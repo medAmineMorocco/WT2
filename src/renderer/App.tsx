@@ -22,7 +22,7 @@ function Hello() {
     <ConfigProvider
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
     >
-      <Layout style={{ minHeight: '100vh' }}>
+      <Layout style={{ minHeight: '97vh' }}>
         <Sider
           theme="light"
           collapsible
@@ -39,11 +39,22 @@ function Hello() {
           </div>
         </Sider>
         <Layout>
-          <Content style={{ margin: '16px' }}>
+          <Content style={{ margin: '8px' }}>
             <div
               style={{
-                padding: 24,
-                minHeight: 360,
+                padding: 12,
+                height: '47vh',
+                background: colorBgContainer,
+                borderRadius: borderRadiusLG,
+              }}
+            >
+              Bill is a cat.
+            </div>
+            <div
+              style={{
+                padding: 12,
+                height: '47vh',
+                marginTop: '1vh',
                 background: colorBgContainer,
                 borderRadius: borderRadiusLG,
               }}
