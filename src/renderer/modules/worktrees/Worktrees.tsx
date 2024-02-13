@@ -84,16 +84,20 @@ export default function Worktrees({
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
     >
-      <div style={{ marginLeft: '8px', marginTop: '8px' }}>
-        <Tooltip title="Change theme" placement="right">
-          <Switch
-            defaultChecked
-            onChange={onChange}
-            checkedChildren={<SunOutlined />}
-            unCheckedChildren={<MoonOutlined />}
-          />
-        </Tooltip>
-      </div>
+      {!collapsed && (
+        <div>
+          <Divider orientation="left">Preferences</Divider>
+          <Tooltip title="Change theme" placement="right">
+            <Switch
+              defaultChecked
+              onChange={onChange}
+              checkedChildren={<SunOutlined />}
+              unCheckedChildren={<MoonOutlined />}
+              style={{ marginLeft: '8px' }}
+            />
+          </Tooltip>
+        </div>
+      )}
       {!collapsed && (
         <Divider orientation="left">
           Worktrees{' '}
