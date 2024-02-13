@@ -3,15 +3,13 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
 import { ConfigProvider, Layout, theme } from 'antd';
 import Worktrees from './modules/worktrees/Worktrees';
+import Workflows from './modules/workflows/Workflows';
+import Execution from './modules/execution/Execution';
 
 const { Content } = Layout;
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
 function Hello() {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
-
   const [isDarkMode, setIsDarkMode] = useState(false);
 
   const onThemeChange = () => {
@@ -26,27 +24,8 @@ function Hello() {
         <Worktrees onThemeChange={onThemeChange} />
         <Layout>
           <Content style={{ margin: '8px' }}>
-            <div
-              style={{
-                padding: 12,
-                height: '47vh',
-                background: colorBgContainer,
-                borderRadius: borderRadiusLG,
-              }}
-            >
-              Bill is a cat.
-            </div>
-            <div
-              style={{
-                padding: 12,
-                height: '47vh',
-                marginTop: '1vh',
-                background: colorBgContainer,
-                borderRadius: borderRadiusLG,
-              }}
-            >
-              Bill is a cat.
-            </div>
+            <Execution />
+            <Workflows />
           </Content>
         </Layout>
       </Layout>
