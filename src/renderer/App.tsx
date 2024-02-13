@@ -105,7 +105,7 @@ function Hello() {
               Worktrees{' '}
               <Tooltip title="Add new worktree" placement="right">
                 <FolderAddOutlined
-                  style={{ cursor: 'pointer' }}
+                  style={{ marginLeft: '4px', cursor: 'pointer' }}
                   onClick={showModal}
                 />
               </Tooltip>
