@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { ConfigProvider, Layout, theme } from 'antd';
+import { ConfigProvider, Layout, theme, App as AntdApp } from 'antd';
 import Worktrees from './modules/worktrees/Worktrees';
 import Workflows from './modules/workflows/Workflows';
 import Execution from './modules/execution/Execution';
@@ -20,15 +20,17 @@ function Hello() {
     <ConfigProvider
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
     >
-      <Layout style={{ minHeight: '97vh' }}>
-        <Worktrees onThemeChange={onThemeChange} />
-        <Layout>
-          <Content style={{ margin: '8px' }}>
-            <Execution />
-            <Workflows />
-          </Content>
+      <AntdApp>
+        <Layout style={{ minHeight: '97vh' }}>
+          <Worktrees onThemeChange={onThemeChange} />
+          <Layout>
+            <Content style={{ margin: '8px' }}>
+              <Execution />
+              <Workflows />
+            </Content>
+          </Layout>
         </Layout>
-      </Layout>
+      </AntdApp>
     </ConfigProvider>
   );
 }

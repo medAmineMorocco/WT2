@@ -11,6 +11,7 @@ import {
   Switch,
   theme,
   Tooltip,
+  App as AntdApp,
 } from 'antd';
 import {
   CheckOutlined,
@@ -24,7 +25,6 @@ import {
 
 const { Sider } = Layout;
 const { useToken } = theme;
-const { confirm } = Modal;
 
 export default function Worktrees({
   onThemeChange,
@@ -34,6 +34,8 @@ export default function Worktrees({
   const [collapsed, setCollapsed] = useState(false);
 
   const { token } = useToken();
+
+  const { modal } = AntdApp.useApp();
 
   const onChange = (newValue: boolean) => {
     onThemeChange(newValue);
@@ -61,7 +63,7 @@ export default function Worktrees({
   ];
 
   const onClick: MenuProps['onClick'] = () => {
-    confirm({
+    modal.confirm({
       title: 'Are you sure delete this worktree ?',
       icon: <ExclamationCircleFilled />,
       okText: 'Yes',
