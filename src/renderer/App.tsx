@@ -93,12 +93,14 @@ function Hello() {
           onCollapse={(value) => setCollapsed(value)}
         >
           <div style={{ marginLeft: '8px', marginTop: '8px' }}>
-            <Switch
-              defaultChecked
-              onChange={onChange}
-              checkedChildren={<SunOutlined />}
-              unCheckedChildren={<MoonOutlined />}
-            />
+            <Tooltip title="Change theme" placement="right">
+              <Switch
+                defaultChecked
+                onChange={onChange}
+                checkedChildren={<SunOutlined />}
+                unCheckedChildren={<MoonOutlined />}
+              />
+            </Tooltip>
           </div>
           {!collapsed && (
             <Divider orientation="left">
