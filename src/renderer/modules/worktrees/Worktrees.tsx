@@ -21,6 +21,7 @@ import {
   MoonOutlined,
   MoreOutlined,
   SunOutlined,
+  BranchesOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -128,7 +129,7 @@ export default function Worktrees({
                   },
                 ]}
               >
-                <Input />
+                <Input prefix={<BranchesOutlined />} />
               </Form.Item>
               <Form.Item>
                 <Button

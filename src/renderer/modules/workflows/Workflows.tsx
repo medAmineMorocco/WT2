@@ -15,6 +15,7 @@ import {
   MinusCircleOutlined,
   RightOutlined,
   PartitionOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -270,8 +271,8 @@ export default function Workflows() {
               )}
             </Form.List>
             <Form.Item>
-              <Button type="primary" htmlType="submit">
-                Add
+              <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
+                Submit
               </Button>
             </Form.Item>
           </Form>
