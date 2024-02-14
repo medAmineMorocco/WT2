@@ -286,7 +286,7 @@ export default function Workflows() {
         <Table
           columns={columns}
           dataSource={data}
-          pagination={{ pageSize: 3 }}
+          pagination={{ pageSize: 3, position: ['bottomLeft'] }}
           bordered
         />
       </div>
