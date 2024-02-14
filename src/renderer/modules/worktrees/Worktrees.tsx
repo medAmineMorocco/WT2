@@ -22,6 +22,8 @@ import {
   MoreOutlined,
   SunOutlined,
   BranchesOutlined,
+  StepBackwardOutlined,
+  StepForwardOutlined,
 } from '@ant-design/icons';
 
 const { Sider } = Layout;
@@ -118,7 +120,7 @@ export default function Worktrees({
             destroyOnClose
             width={400}
           >
-            <Form layout="inline" form={form}>
+            <Form layout="vertical" form={form}>
               <Form.Item
                 label="Name"
                 name="name"
@@ -131,12 +133,20 @@ export default function Worktrees({
               >
                 <Input prefix={<BranchesOutlined />} />
               </Form.Item>
+              <Form.Item label="Pre-hook" name="preHook">
+                <Input prefix={<StepBackwardOutlined />} />
+              </Form.Item>
+              <Form.Item label="Post-hook" name="postHook">
+                <Input prefix={<StepForwardOutlined />} />
+              </Form.Item>
               <Form.Item>
                 <Button
                   type="primary"
                   htmlType="submit"
                   icon={<CheckOutlined />}
-                />
+                >
+                  Submit
+                </Button>
               </Form.Item>
             </Form>
           </Modal>
