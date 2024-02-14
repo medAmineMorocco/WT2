@@ -22,7 +22,7 @@ export default function Execution() {
           color: token.colorTextBase,
         }}
       >
-        Execution
+        <strong>Execution</strong>
       </div>
       <div
         style={{
@@ -34,7 +34,7 @@ export default function Execution() {
           color: token.colorTextBase,
         }}
       >
-        Log
+        <strong>Log</strong>
       </div>
     </div>
   );
