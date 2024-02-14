@@ -9,6 +9,7 @@ import {
   Drawer,
   Form,
   Input,
+  Badge,
 } from 'antd';
 import {
   PlusOutlined,
@@ -178,7 +179,9 @@ export default function Workflows() {
       }}
     >
       <div>
-        <strong>Workflows</strong>
+        <Badge count={7} size="small">
+          <strong>Workflows</strong>
+        </Badge>
       </div>
       <div>
         <Tooltip placement="left" title="Add workflow">
