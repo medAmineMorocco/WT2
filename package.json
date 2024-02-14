@@ -96,6 +96,9 @@
     }
   },
   "dependencies": {
+    "@fortawesome/fontawesome-svg-core": "^6.5.1",
+    "@fortawesome/free-solid-svg-icons": "^6.5.1",
+    "@fortawesome/react-fontawesome": "^0.2.0",
     "antd": "^5.14.0",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.8",
