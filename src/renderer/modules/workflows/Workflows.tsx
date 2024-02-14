@@ -250,10 +250,12 @@ export default function Workflows() {
                           style={{ width: '90%', marginRight: '8px' }}
                         />
                       </Form.Item>
-                      <MinusCircleOutlined
-                        className="dynamic-delete-button"
-                        onClick={() => remove(field.name)}
-                      />
+                      <Tooltip placement="top" title="Remove command">
+                        <MinusCircleOutlined
+                          className="dynamic-delete-button"
+                          onClick={() => remove(field.name)}
+                        />
+                      </Tooltip>
                     </Form.Item>
                   ))}
                   <Form.Item>
