@@ -11,16 +11,31 @@ export default function Execution() {
   const { token } = useToken();
 
   return (
-    <div
-      style={{
-        padding: 12,
-        height: '47vh',
-        background: colorBgContainer,
-        borderRadius: borderRadiusLG,
-        color: token.colorTextBase,
-      }}
-    >
-      Execution
+    <div style={{ display: 'flex', gap: '8px' }}>
+      <div
+        style={{
+          flexGrow: 1,
+          padding: 12,
+          height: '47vh',
+          background: colorBgContainer,
+          borderRadius: borderRadiusLG,
+          color: token.colorTextBase,
+        }}
+      >
+        Execution
+      </div>
+      <div
+        style={{
+          flexGrow: 1,
+          padding: 12,
+          height: '47vh',
+          background: colorBgContainer,
+          borderRadius: borderRadiusLG,
+          color: token.colorTextBase,
+        }}
+      >
+        Log
+      </div>
     </div>
   );
 }
