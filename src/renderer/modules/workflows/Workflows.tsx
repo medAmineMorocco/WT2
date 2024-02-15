@@ -19,6 +19,7 @@ import {
   PartitionOutlined,
   CheckOutlined,
   ExclamationCircleFilled,
+  EditOutlined,
 } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -38,14 +39,23 @@ export default function Workflows() {
   const { token } = useToken();
 
   const [open, setOpen] = useState(false);
+  const [openDetails, setOpenDetails] = useState(false);
   const { modal } = AntdApp.useApp();
 
   const showDrawer = () => {
     setOpen(true);
   };
 
+  const showDetailsDrawer = () => {
+    setOpenDetails(true);
+  };
+
   const onClose = () => {
     setOpen(false);
+  };
+
+  const onCloseDetails = () => {
+    setOpenDetails(false);
   };
 
   const options = [
@@ -134,6 +144,7 @@ export default function Workflows() {
             <FontAwesomeIcon
               icon={faInfo}
               style={{ cursor: 'pointer', color: colorPrimary }}
+              onClick={showDetailsDrawer}
             />
           </Tooltip>
           <Tooltip placement="top" title="Stop workflow">
@@ -304,6 +315,18 @@ export default function Workflows() {
           </Form>
         </Drawer>
       </div>
+      <Drawer
+        title="Workflow Details"
+        onClose={onCloseDetails}
+        open={openDetails}
+      >
+        <p>Some contents...</p>
+        <p>Some contents...</p>
+        <p>Some contents...</p>
+        <Button type="primary" icon={<EditOutlined />}>
+          Edit
+        </Button>
+      </Drawer>
       <div
         style={{ position: 'absolute', left: '8px', right: '8px', top: '80px' }}
       >
