@@ -1,5 +1,6 @@
 import React from 'react';
-import { theme } from 'antd';
+import { theme, Space } from 'antd';
+import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 
 const { useToken } = theme;
 
@@ -22,7 +23,10 @@ export default function Execution() {
           color: token.colorTextBase,
         }}
       >
-        <strong>Execution</strong>
+        <Space>
+          <BlockOutlined />
+          <strong>Execution</strong>
+        </Space>
       </div>
       <div
         style={{
@@ -34,7 +38,10 @@ export default function Execution() {
           color: token.colorTextBase,
         }}
       >
-        <strong>Log</strong>
+        <Space>
+          <FileOutlined />
+          <strong>Log</strong>
+        </Space>
       </div>
     </div>
   );

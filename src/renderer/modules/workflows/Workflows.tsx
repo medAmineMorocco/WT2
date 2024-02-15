@@ -10,6 +10,7 @@ import {
   Form,
   Input,
   Badge,
+  Space,
   App as AntdApp,
 } from 'antd';
 import {
@@ -167,31 +168,31 @@ export default function Workflows() {
   const data = [
     {
       key: '1',
-      name: 'Worktree1',
+      name: 'Workflow1',
     },
     {
       key: '2',
-      name: 'Worktree2',
+      name: 'Workflow2',
     },
     {
       key: '3',
-      name: 'Worktree3',
+      name: 'Workflow3',
     },
     {
       key: '4',
-      name: 'Worktree3',
+      name: 'Workflow4',
     },
     {
       key: '5',
-      name: 'Worktree3',
+      name: 'Workflow5',
     },
     {
       key: '6',
-      name: 'Worktree3',
+      name: 'Workflow6',
     },
     {
       key: '7',
-      name: 'Worktree3',
+      name: 'Workflow7',
     },
   ];
   const onFinish = (values: any) => {
@@ -211,9 +212,12 @@ export default function Workflows() {
       }}
     >
       <div>
-        <Badge count={7} offset={[10, 0]}>
-          <strong>Workflows</strong>
-        </Badge>
+        <Space>
+          <PartitionOutlined />
+          <Badge count={7} offset={[10, 0]}>
+            <strong>Workflows</strong>
+          </Badge>
+        </Space>
       </div>
       <div>
         <Tooltip placement="left" title="Add workflow">
