@@ -214,7 +214,7 @@ export default function Workflows() {
       <div>
         <Space>
           <PartitionOutlined />
-          <Badge count={7} offset={[10, 0]}>
+          <Badge count={7} offset={[10, 0]} title="total">
             <strong>Workflows</strong>
           </Badge>
         </Space>
