@@ -179,7 +179,7 @@ export default function Workflows() {
       }}
     >
       <div>
-        <Badge count={7} size="small">
+        <Badge count={7} offset={[10, 0]}>
           <strong>Workflows</strong>
         </Badge>
       </div>
