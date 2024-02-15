@@ -8,7 +8,6 @@ import {
   Layout,
   MenuProps,
   Modal,
-  Switch,
   theme,
   Tooltip,
   App as AntdApp,
@@ -18,9 +17,7 @@ import {
   DeleteOutlined,
   ExclamationCircleFilled,
   FolderAddOutlined,
-  MoonOutlined,
   MoreOutlined,
-  SunOutlined,
   BranchesOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
@@ -29,20 +26,12 @@ import {
 const { Sider } = Layout;
 const { useToken } = theme;
 
-export default function Worktrees({
-  onThemeChange,
-}: {
-  onThemeChange: (newVal: boolean) => void;
-}) {
+export default function Worktrees() {
   const [collapsed, setCollapsed] = useState(false);
 
   const { token } = useToken();
 
   const { modal } = AntdApp.useApp();
-
-  const onChange = (newValue: boolean) => {
-    onThemeChange(newValue);
-  };
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -89,20 +78,6 @@ export default function Worktrees({
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
     >
-      {!collapsed && (
-        <div>
-          <Divider orientation="left">Preferences</Divider>
-          <Tooltip title="Change theme" placement="right">
-            <Switch
-              defaultChecked
-              onChange={onChange}
-              checkedChildren={<SunOutlined />}
-              unCheckedChildren={<MoonOutlined />}
-              style={{ marginLeft: '8px' }}
-            />
-          </Tooltip>
-        </div>
-      )}
       {!collapsed && (
         <Divider orientation="left">
           Worktrees{' '}

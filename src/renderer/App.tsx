@@ -1,7 +1,14 @@
 import React, { useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { ConfigProvider, Layout, theme, App as AntdApp } from 'antd';
+import { MoonOutlined, MoreOutlined, SunOutlined } from '@ant-design/icons';
+import {
+  ConfigProvider,
+  Layout,
+  theme,
+  FloatButton,
+  App as AntdApp,
+} from 'antd';
 import Worktrees from './modules/worktrees/Worktrees';
 import Workflows from './modules/workflows/Workflows';
 import Execution from './modules/execution/Execution';
@@ -22,13 +29,27 @@ function Hello() {
     >
       <AntdApp>
         <Layout style={{ minHeight: '97vh' }}>
-          <Worktrees onThemeChange={onThemeChange} />
+          <Worktrees />
           <Layout>
             <Content style={{ margin: '8px' }}>
               <Execution />
               <Workflows />
             </Content>
           </Layout>
+          <FloatButton.Group
+            trigger="click"
+            type="primary"
+            style={{ right: 24, bottom: '30px' }}
+            icon={<MoreOutlined />}
+            badge={{ dot: true }}
+            tooltip="Preferences"
+          >
+            <FloatButton
+              icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
+              tooltip={isDarkMode ? 'Light theme' : 'Dark theme'}
+              onClick={onThemeChange}
+            />
+          </FloatButton.Group>
         </Layout>
       </AntdApp>
     </ConfigProvider>
