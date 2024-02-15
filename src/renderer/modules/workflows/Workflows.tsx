@@ -10,6 +10,7 @@ import {
   Form,
   Input,
   Badge,
+  App as AntdApp,
 } from 'antd';
 import {
   PlusOutlined,
@@ -17,6 +18,7 @@ import {
   RightOutlined,
   PartitionOutlined,
   CheckOutlined,
+  ExclamationCircleFilled,
 } from '@ant-design/icons';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import {
@@ -36,6 +38,7 @@ export default function Workflows() {
   const { token } = useToken();
 
   const [open, setOpen] = useState(false);
+  const { modal } = AntdApp.useApp();
 
   const showDrawer = () => {
     setOpen(true);
@@ -62,6 +65,23 @@ export default function Workflows() {
 
   const handleChange = (value: string[]) => {
     console.log(`selected ${value}`);
+  };
+
+  const onDeleteWorkflow = () => {
+    modal.confirm({
+      title: 'Are you sure delete this workflow ?',
+      icon: <ExclamationCircleFilled />,
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      centered: true,
+      onOk() {
+        console.log('OK');
+      },
+      onCancel() {
+        console.log('Cancel');
+      },
+    });
   };
 
   const columns = [
@@ -107,6 +127,7 @@ export default function Workflows() {
             <FontAwesomeIcon
               icon={faTrash}
               style={{ cursor: 'pointer', color: colorError }}
+              onClick={onDeleteWorkflow}
             />
           </Tooltip>
           <Tooltip placement="top" title="View workflow">
