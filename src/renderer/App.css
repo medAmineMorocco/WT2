@@ -5,3 +5,8 @@
 :where(.css-dev-only-do-not-override-1rqnfsa).ant-layout .ant-layout-sider-trigger {
   position: absolute;
 }
+
+.fullSsceen-modal > .ant-modal-content {
+  height: 98%;
+  top: 1vh;
+}
