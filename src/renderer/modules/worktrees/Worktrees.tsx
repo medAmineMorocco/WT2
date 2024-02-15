@@ -10,13 +10,14 @@ import {
   Modal,
   theme,
   Tooltip,
+  Space,
   App as AntdApp,
 } from 'antd';
 import {
   CheckOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
-  FolderAddOutlined,
+  SisternodeOutlined,
   MoreOutlined,
   BranchesOutlined,
   StepBackwardOutlined,
@@ -80,13 +81,15 @@ export default function Worktrees() {
     >
       {!collapsed && (
         <Divider orientation="left">
-          Worktrees{' '}
-          <Tooltip title="Add new worktree" placement="right">
-            <FolderAddOutlined
-              style={{ marginLeft: '4px', cursor: 'pointer' }}
-              onClick={showModal}
-            />
-          </Tooltip>
+          <Space>
+            Worktrees
+            <Tooltip title="Add new worktree" placement="right">
+              <SisternodeOutlined
+                style={{ cursor: 'pointer' }}
+                onClick={showModal}
+              />
+            </Tooltip>
+          </Space>
           <Modal
             open={isModalOpen}
             centered
