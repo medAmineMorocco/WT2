@@ -100,6 +100,7 @@ export default function Workflows() {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
+      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
     },
     {
       title: 'Running mode',
