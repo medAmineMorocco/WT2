@@ -82,6 +82,7 @@ export default function Execution() {
               <ExpandOutlined
                 style={{ cursor: 'pointer' }}
                 onClick={toggleFullScreenMode}
+                className="icon-action"
               />
             </Tooltip>
           </Space>
