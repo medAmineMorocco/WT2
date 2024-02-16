@@ -11,6 +11,8 @@ import {
   Input,
   Badge,
   Space,
+  Flex,
+  Grid,
   App as AntdApp,
 } from 'antd';
 import {
@@ -31,8 +33,10 @@ import {
 } from '@fortawesome/free-solid-svg-icons';
 
 const { useToken } = theme;
+const { useBreakpoint } = Grid;
 
 export default function Workflows() {
+  const breakpoints = useBreakpoint();
   const {
     token: { colorBgContainer, borderRadiusLG, colorPrimary, colorError },
   } = theme.useToken();
@@ -57,6 +61,19 @@ export default function Workflows() {
 
   const onCloseDetails = () => {
     setOpenDetails(false);
+  };
+  const tableSize = () => {
+    console.log('breakpoints', breakpoints);
+    if (breakpoints.xl || breakpoints.xxl) {
+      return 'large';
+    }
+    if (breakpoints.lg) {
+      return 'small';
+    }
+    if (breakpoints.md) {
+      return 'small';
+    }
+    return 'small';
   };
 
   const options = [
@@ -212,136 +229,142 @@ export default function Workflows() {
         color: token.colorTextBase,
       }}
     >
-      <div>
-        <Space>
-          <PartitionOutlined />
-          <Badge count={7} offset={[10, 0]} title="total">
-            <strong>Workflows</strong>
-          </Badge>
-        </Space>
-      </div>
-      <div>
-        <Tooltip placement="left" title="Add workflow">
-          <Button
-            onClick={showDrawer}
-            type="primary"
-            style={{ float: 'right' }}
-            icon={<PlusOutlined />}
-          />
-        </Tooltip>
-        <Drawer
-          title="Add New Workflow"
-          onClose={onClose}
-          open={open}
-          destroyOnClose
-        >
-          <Form
-            name="dynamic_form_item"
-            onFinish={onFinish}
-            style={{ maxWidth: 600 }}
-            layout="vertical"
+      <Flex gap="small" vertical align="space-around">
+        <div>
+          <Space>
+            <PartitionOutlined />
+            <Badge count={7} offset={[10, 0]} title="total">
+              <strong>Workflows</strong>
+            </Badge>
+          </Space>
+        </div>
+        <div>
+          <Tooltip placement="left" title="Add workflow">
+            <Button
+              onClick={showDrawer}
+              type="primary"
+              style={{ float: 'right' }}
+              icon={<PlusOutlined />}
+            />
+          </Tooltip>
+          <Drawer
+            title="Add New Workflow"
+            onClose={onClose}
+            open={open}
+            destroyOnClose
           >
-            <Form.Item
-              label="Name"
-              name="name"
-              rules={[
-                {
-                  required: true,
-                  whitespace: true,
-                  message: 'Please input your workflow name !',
-                },
-              ]}
+            <Form
+              name="dynamic_form_item"
+              onFinish={onFinish}
+              style={{ maxWidth: 600 }}
+              layout="vertical"
             >
-              <Input prefix={<PartitionOutlined />} style={{ width: '90%' }} />
-            </Form.Item>
-            <Form.Item
-              label="Command"
-              name="command"
-              rules={[
-                {
-                  required: true,
-                  whitespace: true,
-                  message: 'Please input the command !',
-                },
-              ]}
-            >
-              <Input prefix={<RightOutlined />} style={{ width: '90%' }} />
-            </Form.Item>
-            <Form.List name="names">
-              {(fields, { add, remove }, { errors }) => (
-                <>
-                  {fields.map((field) => (
-                    <Form.Item required={false} key={field.key}>
-                      <Form.Item
-                        {...field}
-                        validateTrigger={['onChange', 'onBlur']}
-                        rules={[
-                          {
-                            required: true,
-                            whitespace: true,
-                            message:
-                              'Please input the command or delete this field !',
-                          },
-                        ]}
-                        noStyle
-                      >
-                        <Input
-                          prefix={<RightOutlined />}
-                          style={{ width: '90%', marginRight: '8px' }}
-                        />
+              <Form.Item
+                label="Name"
+                name="name"
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Please input your workflow name !',
+                  },
+                ]}
+              >
+                <Input
+                  prefix={<PartitionOutlined />}
+                  style={{ width: '90%' }}
+                />
+              </Form.Item>
+              <Form.Item
+                label="Command"
+                name="command"
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Please input the command !',
+                  },
+                ]}
+              >
+                <Input prefix={<RightOutlined />} style={{ width: '90%' }} />
+              </Form.Item>
+              <Form.List name="names">
+                {(fields, { add, remove }, { errors }) => (
+                  <>
+                    {fields.map((field) => (
+                      <Form.Item required={false} key={field.key}>
+                        <Form.Item
+                          {...field}
+                          validateTrigger={['onChange', 'onBlur']}
+                          rules={[
+                            {
+                              required: true,
+                              whitespace: true,
+                              message:
+                                'Please input the command or delete this field !',
+                            },
+                          ]}
+                          noStyle
+                        >
+                          <Input
+                            prefix={<RightOutlined />}
+                            style={{ width: '90%', marginRight: '8px' }}
+                          />
+                        </Form.Item>
+                        <Tooltip placement="top" title="Remove command">
+                          <MinusCircleOutlined
+                            className="dynamic-delete-button"
+                            onClick={() => remove(field.name)}
+                          />
+                        </Tooltip>
                       </Form.Item>
-                      <Tooltip placement="top" title="Remove command">
-                        <MinusCircleOutlined
-                          className="dynamic-delete-button"
-                          onClick={() => remove(field.name)}
-                        />
-                      </Tooltip>
+                    ))}
+                    <Form.Item>
+                      <Button
+                        type="dashed"
+                        onClick={() => add()}
+                        style={{ width: '90%' }}
+                        icon={<PlusOutlined />}
+                      >
+                        Add command
+                      </Button>
+                      <Form.ErrorList errors={errors} />
                     </Form.Item>
-                  ))}
-                  <Form.Item>
-                    <Button
-                      type="dashed"
-                      onClick={() => add()}
-                      style={{ width: '90%' }}
-                      icon={<PlusOutlined />}
-                    >
-                      Add command
-                    </Button>
-                    <Form.ErrorList errors={errors} />
-                  </Form.Item>
-                </>
-              )}
-            </Form.List>
-            <Form.Item>
-              <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
-                Submit
-              </Button>
-            </Form.Item>
-          </Form>
+                  </>
+                )}
+              </Form.List>
+              <Form.Item>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  icon={<CheckOutlined />}
+                >
+                  Submit
+                </Button>
+              </Form.Item>
+            </Form>
+          </Drawer>
+        </div>
+        <Drawer
+          title="Workflow Details"
+          onClose={onCloseDetails}
+          open={openDetails}
+        >
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+          <p>Some contents...</p>
+          <Button type="primary" icon={<EditOutlined />}>
+            Edit
+          </Button>
         </Drawer>
-      </div>
-      <Drawer
-        title="Workflow Details"
-        onClose={onCloseDetails}
-        open={openDetails}
-      >
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <p>Some contents...</p>
-        <Button type="primary" icon={<EditOutlined />}>
-          Edit
-        </Button>
-      </Drawer>
-      <div
-        style={{ position: 'absolute', left: '8px', right: '8px', top: '80px' }}
-      >
         <Table
           columns={columns}
           dataSource={data}
           pagination={{ pageSize: 3, position: ['bottomLeft'] }}
           bordered
+          size={tableSize()}
         />
-      </div>
+      </Flex>
     </div>
   );
 }

@@ -87,16 +87,13 @@ const createWindow = async () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
     }
-    if (process.env.START_MINIMIZED) {
-      mainWindow.minimize();
-    } else {
-      mainWindow.show();
-    }
+    mainWindow.maximize();
   });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+  mainWindow.setMinimumSize(800, 800);
 
   const menuBuilder = new MenuBuilder(mainWindow);
   menuBuilder.buildMenu();
