@@ -23,14 +23,10 @@ import {
   CheckOutlined,
   ExclamationCircleFilled,
   EditOutlined,
+  CloseCircleOutlined,
+  InfoCircleOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faTrash,
-  faInfo,
-  faStop,
-  faPlay,
-} from '@fortawesome/free-solid-svg-icons';
 
 const { useToken } = theme;
 const { useBreakpoint } = Grid;
@@ -153,28 +149,28 @@ export default function Workflows() {
       render: () => (
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
-            <FontAwesomeIcon
-              icon={faTrash}
-              style={{ cursor: 'pointer', color: colorError }}
+            <MinusCircleOutlined
               onClick={onDeleteWorkflow}
+              style={{ color: colorError }}
+              className="icon-action"
             />
           </Tooltip>
           <Tooltip placement="top" title="View workflow">
-            <FontAwesomeIcon
-              icon={faInfo}
-              style={{ cursor: 'pointer', color: colorPrimary }}
+            <InfoCircleOutlined
               onClick={showDetailsDrawer}
+              style={{ color: colorPrimary }}
+              className="icon-action"
             />
           </Tooltip>
           <Tooltip placement="top" title="Stop workflow">
-            <FontAwesomeIcon
-              icon={faStop}
-              style={{ cursor: 'pointer', color: colorPrimary }}
+            <CloseCircleOutlined
+              className="icon-action"
+              style={{ cursor: 'pointer', color: colorError }}
             />
           </Tooltip>
           <Tooltip placement="top" title="Play workflow">
-            <FontAwesomeIcon
-              icon={faPlay}
+            <PlayCircleOutlined
+              className="icon-action"
               style={{ cursor: 'pointer', color: colorPrimary }}
             />
           </Tooltip>

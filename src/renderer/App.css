@@ -10,3 +10,11 @@
   height: 98%;
   top: 1vh;
 }
+
+.icon-action:active {
+  transform: scale(1.2);
+}
+
+.icon-action {
+  transition: all 0.3s linear;
+}
