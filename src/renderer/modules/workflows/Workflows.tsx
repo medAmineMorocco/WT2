@@ -351,7 +351,7 @@ export default function Workflows() {
           <p>Some contents...</p>
           <p>Some contents...</p>
           <Button type="primary" icon={<EditOutlined />}>
-            Edit
+            Edit Workflow
           </Button>
         </Drawer>
         <Table
