@@ -3,6 +3,10 @@
   outline: none;
 }
 
+body {
+  margin: 0;
+}
+
 :where(.css-dev-only-do-not-override-jop9zq).ant-layout .ant-layout-sider-trigger {
   position: absolute;
 }
