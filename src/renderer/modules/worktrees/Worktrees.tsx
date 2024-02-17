@@ -142,7 +142,7 @@ export default function Worktrees() {
           <Divider orientation="left" style={{ marginTop: 0 }}>
             <Space>
               <strong>Repository</strong>
-              <Tooltip title="Open a repository" placement="right">
+              <Tooltip title="Open a repository" placement="bottomRight">
                 <FolderAddOutlined
                   style={{ cursor: 'pointer' }}
                   onClick={openRepository}
