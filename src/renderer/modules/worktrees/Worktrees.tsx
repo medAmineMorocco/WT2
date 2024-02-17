@@ -179,7 +179,7 @@ export default function Worktrees() {
             destroyOnClose
             width={400}
           >
-            <Form layout="vertical" form={form}>
+            <Form layout="vertical" requiredMark="optional" form={form}>
               <Form.Item
                 label="Name"
                 name="name"

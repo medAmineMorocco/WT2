@@ -254,6 +254,7 @@ export default function Workflows() {
               onFinish={onFinish}
               style={{ maxWidth: 600 }}
               layout="vertical"
+              requiredMark="optional"
             >
               <Form.Item
                 label="Name"
