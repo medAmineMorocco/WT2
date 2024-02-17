@@ -59,7 +59,6 @@ export default function Workflows() {
     setOpenDetails(false);
   };
   const tableSize = () => {
-    console.log('breakpoints', breakpoints);
     if (breakpoints.xl || breakpoints.xxl) {
       return 'large';
     }

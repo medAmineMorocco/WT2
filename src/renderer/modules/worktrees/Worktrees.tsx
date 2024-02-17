@@ -26,6 +26,8 @@ import {
   FolderOutlined,
   FolderAddOutlined,
   WarningOutlined,
+  CopyOutlined,
+  FolderOpenOutlined,
 } from '@ant-design/icons';
 
 import { ipcRenderer } from 'electron';
@@ -60,28 +62,54 @@ export default function Worktrees() {
 
   const items = [
     {
-      label: 'Delete',
+      label: 'Open Worktree in',
       key: '0',
+      icon: <FolderOpenOutlined />,
+      children: [
+        {
+          key: '0-1',
+          label: 'Explorer',
+        },
+        {
+          key: '0-2',
+          label: 'Intellij',
+        },
+        {
+          key: '0-3',
+          label: 'VS Code',
+        },
+      ],
+    },
+    {
+      label: 'Copy Worktree Name',
+      key: '1',
+      icon: <CopyOutlined />,
+    },
+    {
+      label: 'Delete',
+      key: '2',
       icon: <DeleteOutlined />,
       danger: true,
     },
   ];
 
-  const onClick: MenuProps['onClick'] = () => {
-    modal.confirm({
-      title: 'Are you sure delete this worktree ?',
-      icon: <ExclamationCircleFilled />,
-      okText: 'Yes',
-      okType: 'danger',
-      cancelText: 'No',
-      centered: true,
-      onOk() {
-        console.log('OK');
-      },
-      onCancel() {
-        console.log('Cancel');
-      },
-    });
+  const onClick: MenuProps['onClick'] = (event) => {
+    if (event.key === '2') {
+      modal.confirm({
+        title: 'Are you sure delete this worktree ?',
+        icon: <ExclamationCircleFilled />,
+        okText: 'Yes',
+        okType: 'danger',
+        cancelText: 'No',
+        centered: true,
+        onOk() {
+          console.log('OK');
+        },
+        onCancel() {
+          console.log('Cancel');
+        },
+      });
+    }
   };
 
   const openRepository = async () => {
@@ -238,7 +266,7 @@ export default function Worktrees() {
               <Dropdown
                 menu={{ items, onClick }}
                 trigger={['click']}
-                placement="bottomRight"
+                placement="bottom"
               >
                 <Tooltip title="Worktree actions" placement="right">
                   <MoreOutlined style={{ cursor: 'pointer' }} />
