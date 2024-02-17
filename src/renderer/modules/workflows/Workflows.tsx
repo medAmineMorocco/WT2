@@ -164,7 +164,7 @@ export default function Workflows() {
           <Tooltip placement="top" title="Stop workflow">
             <CloseCircleOutlined
               className="icon-action"
-              style={{ cursor: 'pointer', color: colorError }}
+              style={{ cursor: 'pointer', color: colorPrimary }}
             />
           </Tooltip>
           <Tooltip placement="top" title="Play workflow">
