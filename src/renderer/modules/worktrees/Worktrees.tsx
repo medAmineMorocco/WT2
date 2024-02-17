@@ -190,13 +190,22 @@ export default function Worktrees() {
                   },
                 ]}
               >
-                <Input prefix={<BranchesOutlined />} />
+                <Input
+                  prefix={<BranchesOutlined />}
+                  placeholder="feature-add-sidebar"
+                />
               </Form.Item>
               <Form.Item label="Pre-hook" name="preHook">
-                <Input prefix={<StepBackwardOutlined />} />
+                <Input
+                  prefix={<StepBackwardOutlined />}
+                  placeholder="git fetch origin main:main"
+                />
               </Form.Item>
               <Form.Item label="Post-hook" name="postHook">
-                <Input prefix={<StepForwardOutlined />} />
+                <Input
+                  prefix={<StepForwardOutlined />}
+                  placeholder="npm install"
+                />
               </Form.Item>
               <Form.Item>
                 <Button
@@ -204,7 +213,7 @@ export default function Worktrees() {
                   htmlType="submit"
                   icon={<CheckOutlined />}
                 >
-                  Submit
+                  Create Worktree
                 </Button>
               </Form.Item>
             </Form>

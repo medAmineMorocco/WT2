@@ -270,6 +270,7 @@ export default function Workflows() {
                 <Input
                   prefix={<PartitionOutlined />}
                   style={{ width: '90%' }}
+                  placeholder="rebase"
                 />
               </Form.Item>
               <Form.Item
@@ -283,7 +284,7 @@ export default function Workflows() {
                   },
                 ]}
               >
-                <Input prefix={<RightOutlined />} style={{ width: '90%' }} />
+                <Input prefix={<RightOutlined />} style={{ width: '90%' }} placeholder="git rebase main" />
               </Form.Item>
               <Form.List name="names">
                 {(fields, { add, remove }, { errors }) => (
@@ -336,7 +337,7 @@ export default function Workflows() {
                   htmlType="submit"
                   icon={<CheckOutlined />}
                 >
-                  Submit
+                  Create Workflow
                 </Button>
               </Form.Item>
             </Form>
