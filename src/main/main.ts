@@ -9,7 +9,7 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain } from 'electron';
+import { app, BrowserWindow, shell, ipcMain, dialog } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import MenuBuilder from './menu';
@@ -75,9 +75,8 @@ const createWindow = async () => {
     height: 728,
     icon: getAssetPath('icon.png'),
     webPreferences: {
-      preload: app.isPackaged
-        ? path.join(__dirname, 'preload.js')
-        : path.join(__dirname, '../../.erb/dll/preload.js'),
+      nodeIntegration: true,
+      contextIsolation: false,
     },
   });
 
@@ -132,3 +131,22 @@ app
     });
   })
   .catch(console.log);
+
+ipcMain.on('choose-dir', async function (event) {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+  });
+  let pathDir;
+  let name;
+
+  if (result.canceled) {
+    pathDir = null;
+    name = null;
+  } else {
+    const [dir] = result.filePaths;
+    pathDir = dir;
+    name = path.win32.basename(pathDir);
+  }
+
+  event.sender.send('selected-repo', true, pathDir, name);
+});

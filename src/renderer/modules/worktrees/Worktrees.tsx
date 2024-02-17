@@ -11,6 +11,7 @@ import {
   theme,
   Tooltip,
   Space,
+  message,
   App as AntdApp,
 } from 'antd';
 import {
@@ -22,12 +23,20 @@ import {
   BranchesOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
+  FolderOutlined,
+  FolderAddOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
+
+import { ipcRenderer } from 'electron';
 
 const { Sider } = Layout;
 const { useToken } = theme;
 
 export default function Worktrees() {
+  const {
+    token: { colorWarning },
+  } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
 
   const { token } = useToken();
@@ -37,6 +46,9 @@ export default function Worktrees() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [form] = Form.useForm();
+
+  const [selectedRepoPath, setSelectedRepoPath] = useState();
+  const [repoName, setRepoName] = useState();
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -72,6 +84,24 @@ export default function Worktrees() {
     });
   };
 
+  const openRepository = async () => {
+    ipcRenderer.send('choose-dir');
+  };
+
+  ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
+    if (isGitRepo) {
+      if (path && name) {
+        setSelectedRepoPath(path);
+        setRepoName(name);
+        message.destroy();
+        message.success('Success! Repository Imported 🎉');
+      }
+    } else {
+      message.destroy();
+      message.error('Oops! Not a Git Repository ☹️');
+    }
+  });
+
   return (
     <Sider
       theme="light"
@@ -80,13 +110,64 @@ export default function Worktrees() {
       onCollapse={(value) => setCollapsed(value)}
     >
       {!collapsed && (
+        <>
+          <Divider orientation="left" style={{ marginTop: 0 }}>
+            <Space>
+              <strong>Repository</strong>
+              <Tooltip title="Open a repository" placement="right">
+                <FolderAddOutlined
+                  style={{ cursor: 'pointer' }}
+                  onClick={openRepository}
+                  className="icon-action"
+                />
+              </Tooltip>
+            </Space>
+          </Divider>
+          {repoName ? (
+            <div
+              style={{
+                marginLeft: '8px',
+                marginRight: '8px',
+                padding: '4px',
+                border: '1px dashed',
+                overflowWrap: 'anywhere',
+              }}
+            >
+              <Space>
+                <strong>
+                  <FolderOutlined />
+                </strong>
+                <span>{repoName}</span>
+              </Space>
+              <div
+                style={{
+                  paddingRight: '4px',
+                  fontSize: 'smaller',
+                }}
+              >
+                {selectedRepoPath}
+              </div>
+            </div>
+          ) : (
+            <div style={{ textAlign: 'center' }}>
+              <Tooltip title="No repository selected" placement="left">
+                <WarningOutlined
+                  style={{ color: colorWarning, fontSize: '30px' }}
+                />
+              </Tooltip>
+            </div>
+          )}
+        </>
+      )}
+      {!collapsed && (
         <Divider orientation="left">
           <Space>
-            Worktrees
+            <strong>Worktrees</strong>
             <Tooltip title="Add new worktree" placement="right">
               <SisternodeOutlined
                 style={{ cursor: 'pointer' }}
                 onClick={showModal}
+                className="icon-action"
               />
             </Tooltip>
           </Space>
@@ -132,7 +213,7 @@ export default function Worktrees() {
       )}
       {!collapsed && (
         <div>
-          <ul style={{ paddingLeft: '8px' }}>
+          <ul style={{ paddingLeft: '8px', paddingRight: '2px' }}>
             <li
               style={{
                 display: 'flex',
@@ -142,7 +223,9 @@ export default function Worktrees() {
                 color: token.colorTextBase,
               }}
             >
-              worktree1
+              <Space>
+                <BranchesOutlined /> worktree1
+              </Space>
               <Dropdown
                 menu={{ items, onClick }}
                 trigger={['click']}
@@ -162,7 +245,9 @@ export default function Worktrees() {
                 color: token.colorTextBase,
               }}
             >
-              worktree2
+              <Space>
+                <BranchesOutlined /> worktree2
+              </Space>
               <Dropdown
                 menu={{ items, onClick }}
                 trigger={['click']}
