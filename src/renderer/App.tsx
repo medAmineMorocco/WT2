@@ -29,7 +29,7 @@ function Hello() {
     >
       <AntdApp>
         <Layout style={{ minHeight: '97vh' }}>
-          <Worktrees />
+          <Worktrees isDarkMode={isDarkMode} />
           <Layout>
             <Content style={{ margin: '8px' }}>
               <Execution />

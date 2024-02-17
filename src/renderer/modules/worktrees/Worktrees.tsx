@@ -35,7 +35,7 @@ import { ipcRenderer } from 'electron';
 const { Sider } = Layout;
 const { useToken } = theme;
 
-export default function Worktrees() {
+export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const {
     token: { colorWarning },
   } = theme.useToken();
@@ -252,11 +252,8 @@ export default function Worktrees() {
         <div>
           <ul style={{ paddingLeft: '8px', paddingRight: '2px' }}>
             <li
+              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                height: '24px',
                 color: token.colorTextBase,
               }}
             >
@@ -274,11 +271,8 @@ export default function Worktrees() {
               </Dropdown>
             </li>
             <li
+              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
               style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                height: '24px',
                 color: token.colorTextBase,
               }}
             >

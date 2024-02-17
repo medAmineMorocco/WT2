@@ -27,3 +27,19 @@ body {
 .icon-action {
   transition: all 0.3s linear;
 }
+
+.worktree-item,.worktree-item-dark {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  height: 24px;
+}
+
+.worktree-item:hover {
+  background-color: #f5f5f5;
+}
+
+.worktree-item-dark:hover {
+  background-color: rgba(255, 255, 255, 0.08)
+}
+
