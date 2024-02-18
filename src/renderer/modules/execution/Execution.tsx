@@ -8,6 +8,7 @@ import {
   CheckOutlined,
   FullscreenExitOutlined,
 } from '@ant-design/icons';
+import Visualization from './Visualization';
 
 const { useToken } = theme;
 
@@ -37,7 +38,7 @@ export default function Execution() {
     <div style={{ display: 'flex', gap: '8px' }}>
       <div
         style={{
-          flexGrow: 1,
+          flex: 1,
           padding: 12,
           height: '47vh',
           background: colorBgContainer,
@@ -49,11 +50,14 @@ export default function Execution() {
           <BlockOutlined />
           <strong>Execution</strong>
         </Space>
+        <div style={{ height: '42vh', overflowX: 'hidden', overflowY: 'auto' }}>
+          <Visualization />
+        </div>
       </div>
       <div
         style={{
           position: 'relative',
-          flexGrow: 1,
+          flex: 1,
           padding: 12,
           height: '47vh',
           background: colorBgContainer,
