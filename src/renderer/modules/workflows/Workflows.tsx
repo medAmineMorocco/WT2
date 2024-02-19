@@ -240,7 +240,7 @@ export default function Workflows() {
               type="primary"
               style={{ float: 'right' }}
               icon={<PlusOutlined />}
-            />
+            >Add Workflow</Button>
           </Tooltip>
           <Drawer
             title="Add New Workflow"
