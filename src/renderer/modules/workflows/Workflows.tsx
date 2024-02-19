@@ -26,6 +26,7 @@ import {
   CloseCircleOutlined,
   InfoCircleOutlined,
   PlayCircleOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 
 const { useToken } = theme;
@@ -234,14 +235,22 @@ export default function Workflows() {
           </Space>
         </div>
         <div>
-          <Tooltip placement="left" title="Add workflow">
-            <Button
-              onClick={showDrawer}
-              type="primary"
-              style={{ float: 'right' }}
-              icon={<PlusOutlined />}
-            >Add Workflow</Button>
-          </Tooltip>
+          <Space style={{ float: 'right' }}>
+            <Tooltip placement="top" title="Import workflow">
+              <Button type="primary" icon={<UploadOutlined />}>
+                Import
+              </Button>
+            </Tooltip>
+            <Tooltip placement="top" title="Add workflow">
+              <Button
+                onClick={showDrawer}
+                type="primary"
+                icon={<PlusOutlined />}
+              >
+                Add
+              </Button>
+            </Tooltip>
+          </Space>
           <Drawer
             title="Add New Workflow"
             onClose={onClose}
@@ -283,7 +292,11 @@ export default function Workflows() {
                   },
                 ]}
               >
-                <Input prefix={<RightOutlined />} style={{ width: '90%' }} placeholder="git rebase main" />
+                <Input
+                  prefix={<RightOutlined />}
+                  style={{ width: '90%' }}
+                  placeholder="git rebase main"
+                />
               </Form.Item>
               <Form.List name="names">
                 {(fields, { add, remove }, { errors }) => (
