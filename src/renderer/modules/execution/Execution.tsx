@@ -50,8 +50,17 @@ export default function Execution() {
           <BlockOutlined />
           <strong>Execution</strong>
         </Space>
-        <div style={{ height: '42vh', overflowX: 'hidden', overflowY: 'auto' }}>
-          <Visualization />
+        <div
+          style={{
+            height: '42vh',
+            overflowX: 'auto',
+            overflowY: 'auto',
+            position: 'relative',
+          }}
+        >
+          <div>
+            <Visualization />
+          </div>
         </div>
       </div>
       <div
