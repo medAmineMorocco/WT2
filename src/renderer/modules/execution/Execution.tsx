@@ -8,6 +8,7 @@ import {
   CheckOutlined,
   FullscreenExitOutlined,
 } from '@ant-design/icons';
+import { useHotkeys } from 'react-hotkeys-hook';
 import Visualization from './Visualization';
 
 const { useToken } = theme;
@@ -33,6 +34,10 @@ export default function Execution() {
   const toggleFullScreenMode = () => {
     setFullScreenMode(!isFullScreenMode);
   };
+
+  useHotkeys('shift+l', () => toggleFullScreenMode(), {
+    preventDefault: true,
+  });
 
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
@@ -91,7 +96,15 @@ export default function Execution() {
                 <CheckOutlined />
               )}
             </Tooltip>
-            <Tooltip title="Enter fullscreen mode" placement="left">
+            <Tooltip
+              title={
+                <Space>
+                  <span>Enter fullscreen mode</span>
+                  <small style={{ color: 'grey' }}>Shift+L</small>
+                </Space>
+              }
+              placement="left"
+            >
               <ExpandOutlined
                 style={{ cursor: 'pointer' }}
                 onClick={toggleFullScreenMode}

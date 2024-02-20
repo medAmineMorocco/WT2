@@ -30,7 +30,7 @@ import {
   CopyOutlined,
   FolderOpenOutlined,
 } from '@ant-design/icons';
-
+import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 
 const { Sider } = Layout;
@@ -58,6 +58,22 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const showModal = () => {
     setIsModalOpen(true);
   };
+
+  useHotkeys(
+    'shift+w',
+    () => {
+      if (collapsed) {
+        setCollapsed(false);
+        showModal();
+      } else {
+        showModal();
+      }
+    },
+    { preventDefault: true },
+  );
+  useHotkeys('shift+c', () => setCollapsed(!collapsed), {
+    preventDefault: true,
+  });
 
   const handleCancel = () => {
     setIsModalOpen(false);
@@ -118,6 +134,7 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const openRepository = async () => {
     ipcRenderer.send('choose-dir');
   };
+  useHotkeys('shift+o', () => openRepository(), { preventDefault: true });
 
   ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
     if (isGitRepo) {
@@ -149,7 +166,15 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
           <Divider orientation="left" style={{ marginTop: 0 }}>
             <Space>
               <strong>Repository</strong>
-              <Tooltip title="Open a repository" placement="bottomRight">
+              <Tooltip
+                title={
+                  <Space>
+                    <span>Open a repository</span>{' '}
+                    <small style={{ color: 'grey' }}>Shift+O</small>
+                  </Space>
+                }
+                placement="bottomRight"
+              >
                 <FolderAddOutlined
                   style={{ cursor: 'pointer' }}
                   onClick={openRepository}
@@ -198,7 +223,15 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
         <Divider orientation="left">
           <Space>
             <strong>Worktrees</strong>
-            <Tooltip title="Add new worktree" placement="right">
+            <Tooltip
+              title={
+                <Space>
+                  <span>Add new worktree</span>
+                  <small style={{ color: 'grey' }}>Shift+W</small>
+                </Space>
+              }
+              placement="right"
+            >
               <SisternodeOutlined
                 style={{ cursor: 'pointer' }}
                 onClick={showModal}

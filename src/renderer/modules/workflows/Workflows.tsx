@@ -28,6 +28,7 @@ import {
   PlayCircleOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
+import { useHotkeys } from 'react-hotkeys-hook';
 
 const { useToken } = theme;
 const { useBreakpoint } = Grid;
@@ -47,6 +48,8 @@ export default function Workflows() {
   const showDrawer = () => {
     setOpen(true);
   };
+
+  useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
 
   const showDetailsDrawer = () => {
     setOpenDetails(true);
@@ -236,12 +239,28 @@ export default function Workflows() {
         </div>
         <div>
           <Space style={{ float: 'right' }}>
-            <Tooltip placement="top" title="Import workflow">
+            <Tooltip
+              placement="top"
+              title={
+                <Space>
+                  <span>Import workflow</span>
+                  <small style={{ color: 'grey' }}>Shift+I</small>
+                </Space>
+              }
+            >
               <Button type="primary" icon={<UploadOutlined />}>
                 Import
               </Button>
             </Tooltip>
-            <Tooltip placement="top" title="Add workflow">
+            <Tooltip
+              placement="top"
+              title={
+                <Space>
+                  <span>Add workflow</span>
+                  <small style={{ color: 'grey' }}>Shift+A</small>
+                </Space>
+              }
+            >
               <Button
                 onClick={showDrawer}
                 type="primary"
