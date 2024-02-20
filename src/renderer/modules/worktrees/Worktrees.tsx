@@ -12,10 +12,11 @@ import {
   Tooltip,
   Space,
   message,
+  Segmented,
   App as AntdApp,
+  Select,
 } from 'antd';
 import {
-  CheckOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
   SisternodeOutlined,
@@ -51,6 +52,8 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [selectedRepoPath, setSelectedRepoPath] = useState();
   const [repoName, setRepoName] = useState();
+
+  const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
   const showModal = () => {
     setIsModalOpen(true);
@@ -130,6 +133,10 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
     }
   });
 
+  const onChangeCreateWorktreeMode = (newVal: string) => {
+    setCreateWorktreeMode(newVal);
+  };
+
   return (
     <Sider
       theme="light"
@@ -201,12 +208,27 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
           </Space>
           <Modal
             open={isModalOpen}
-            centered
             footer={null}
             onCancel={handleCancel}
             destroyOnClose
             width={400}
+            closeIcon={false}
           >
+            <Segmented
+              defaultValue={createWorktreeMode}
+              onChange={onChangeCreateWorktreeMode}
+              block
+              options={[
+                {
+                  label: <div style={{ padding: 2 }}>With new branch</div>,
+                  value: 'new-branch',
+                },
+                {
+                  label: <div style={{ padding: 2 }}>From existing branch</div>,
+                  value: 'existing-branch',
+                },
+              ]}
+            />
             <Form layout="vertical" requiredMark="optional" form={form}>
               <Form.Item
                 label="Name"
@@ -223,6 +245,28 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
                   placeholder="feature-add-sidebar"
                 />
               </Form.Item>
+              {createWorktreeMode === 'existing-branch' && (
+                <Form.Item
+                  label="Existing branch"
+                  name="existing-branch"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please select a branch!',
+                    },
+                  ]}
+                >
+                  <Select
+                    showSearch
+                    placeholder="Select branch"
+                    options={[
+                      { value: 'main', label: 'main' },
+                      { value: 'fix', label: 'fix' },
+                      { value: 'feature', label: 'feature' },
+                    ]}
+                  />
+                </Form.Item>
+              )}
               <Form.Item label="Pre-hook" name="preHook">
                 <Input
                   prefix={<StepBackwardOutlined />}
@@ -239,7 +283,7 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 <Button
                   type="primary"
                   htmlType="submit"
-                  icon={<CheckOutlined />}
+                  style={{ width: '100%' }}
                 >
                   Create Worktree
                 </Button>

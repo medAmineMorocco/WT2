@@ -241,7 +241,7 @@ export default function Workflows() {
                 Import
               </Button>
             </Tooltip>
-            <Tooltip placement="top" title="Add Workflow">
+            <Tooltip placement="top" title="Add workflow">
               <Button
                 onClick={showDrawer}
                 type="primary"
