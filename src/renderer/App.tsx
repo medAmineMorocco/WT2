@@ -39,7 +39,7 @@ function Hello() {
           <FloatButton.Group
             trigger="click"
             type="primary"
-            style={{ right: '18px', bottom: '38px' }}
+            style={{ right: '18px', bottom: '2vh' }}
             icon={<MoreOutlined />}
             badge={{ dot: true }}
             tooltip="Preferences"
