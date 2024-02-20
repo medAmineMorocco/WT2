@@ -40,7 +40,7 @@ export default function Execution() {
         style={{
           flex: 1,
           padding: 12,
-          height: '47vh',
+          height: '48.5vh',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           color: token.colorTextBase,
@@ -59,7 +59,7 @@ export default function Execution() {
           position: 'relative',
           flex: 1,
           padding: 12,
-          height: '47vh',
+          height: '48.5vh',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           color: token.colorTextBase,

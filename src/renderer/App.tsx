@@ -28,7 +28,7 @@ function Hello() {
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
     >
       <AntdApp>
-        <Layout style={{ minHeight: '97vh' }}>
+        <Layout style={{ height: '100vh' }}>
           <Worktrees isDarkMode={isDarkMode} />
           <Layout>
             <Content style={{ margin: '8px' }}>
