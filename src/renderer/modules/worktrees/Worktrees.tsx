@@ -2,49 +2,37 @@ import React, { useState } from 'react';
 import {
   Button,
   Divider,
-  Dropdown,
   Form,
   Input,
   Layout,
-  MenuProps,
   Modal,
   theme,
   Tooltip,
   Space,
   message,
   Segmented,
-  App as AntdApp,
   Select,
 } from 'antd';
 import {
-  DeleteOutlined,
-  ExclamationCircleFilled,
   SisternodeOutlined,
-  MoreOutlined,
   BranchesOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
   FolderOutlined,
   FolderAddOutlined,
   WarningOutlined,
-  CopyOutlined,
-  FolderOpenOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
+import ListWorktrees from './ListWorktrees';
 
 const { Sider } = Layout;
-const { useToken } = theme;
 
 export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const {
     token: { colorWarning },
   } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
-
-  const { token } = useToken();
-
-  const { modal } = AntdApp.useApp();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -77,58 +65,6 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const handleCancel = () => {
     setIsModalOpen(false);
-  };
-
-  const items = [
-    {
-      label: 'Open Worktree in',
-      key: '0',
-      icon: <FolderOpenOutlined />,
-      children: [
-        {
-          key: '0-1',
-          label: 'Explorer',
-        },
-        {
-          key: '0-2',
-          label: 'Intellij',
-        },
-        {
-          key: '0-3',
-          label: 'VS Code',
-        },
-      ],
-    },
-    {
-      label: 'Copy Worktree Name',
-      key: '1',
-      icon: <CopyOutlined />,
-    },
-    {
-      label: 'Delete',
-      key: '2',
-      icon: <DeleteOutlined />,
-      danger: true,
-    },
-  ];
-
-  const onClick: MenuProps['onClick'] = (event) => {
-    if (event.key === '2') {
-      modal.confirm({
-        title: 'Are you sure delete this worktree ?',
-        icon: <ExclamationCircleFilled />,
-        okText: 'Yes',
-        okType: 'danger',
-        cancelText: 'No',
-        centered: true,
-        onOk() {
-          console.log('OK');
-        },
-        onCancel() {
-          console.log('Cancel');
-        },
-      });
-    }
   };
 
   const openRepository = async () => {
@@ -327,46 +263,7 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
       )}
       {!collapsed && (
         <div>
-          <ul style={{ paddingLeft: '8px', paddingRight: '2px' }}>
-            <li
-              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
-              style={{
-                color: token.colorTextBase,
-              }}
-            >
-              <Space>
-                <BranchesOutlined /> worktree1
-              </Space>
-              <Dropdown
-                menu={{ items, onClick }}
-                trigger={['click']}
-                placement="bottom"
-              >
-                <Tooltip title="Worktree actions" placement="right">
-                  <MoreOutlined style={{ cursor: 'pointer' }} />
-                </Tooltip>
-              </Dropdown>
-            </li>
-            <li
-              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
-              style={{
-                color: token.colorTextBase,
-              }}
-            >
-              <Space>
-                <BranchesOutlined /> worktree2
-              </Space>
-              <Dropdown
-                menu={{ items, onClick }}
-                trigger={['click']}
-                placement="bottomRight"
-              >
-                <Tooltip title="Worktree actions" placement="right">
-                  <MoreOutlined style={{ cursor: 'pointer' }} />
-                </Tooltip>
-              </Dropdown>
-            </li>
-          </ul>
+          <ListWorktrees isDarkMode={isDarkMode} />
         </div>
       )}
     </Sider>
