@@ -71,6 +71,7 @@ export default function Visualization() {
     <ul style={{ paddingLeft: 0 }}>
       {worktreesStates.map((item) => (
         <li
+          key={item.title}
           style={{
             display: 'flex',
             gap: '16px',
