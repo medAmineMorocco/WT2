@@ -48,7 +48,7 @@ export default function Workflows() {
 
   useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
 
-  const showDetailsDrawer = (record: any) => {
+  const showEditDrawer = (record: any) => {
     return () => {
       setWorkflowToEdit(record);
       setOpenEdit(true);
@@ -94,21 +94,36 @@ export default function Workflows() {
     console.log(`selected ${value}`);
   };
 
-  const onDeleteWorkflow = () => {
-    modal.confirm({
-      title: 'Are you sure delete this workflow ?',
-      icon: <ExclamationCircleFilled />,
-      okText: 'Yes',
-      okType: 'danger',
-      cancelText: 'No',
-      centered: true,
-      onOk() {
-        console.log('OK');
-      },
-      onCancel() {
-        console.log('Cancel');
-      },
-    });
+  const deleteWorkflow = (record: any) => {
+    return () => {
+      console.log('delete', record);
+      modal.confirm({
+        title: 'Are you sure delete this workflow ?',
+        icon: <ExclamationCircleFilled />,
+        okText: 'Yes',
+        okType: 'danger',
+        cancelText: 'No',
+        centered: true,
+        onOk() {
+          console.log('OK');
+        },
+        onCancel() {
+          console.log('Cancel');
+        },
+      });
+    };
+  };
+
+  const playWorkflow = (record: any) => {
+    return () => {
+      console.log('play', record);
+    };
+  };
+
+  const stopWorkflow = (record: any) => {
+    return () => {
+      console.log('stop', record);
+    };
   };
 
   const columns = [
@@ -153,26 +168,28 @@ export default function Workflows() {
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
             <MinusCircleOutlined
-              onClick={onDeleteWorkflow}
+              onClick={deleteWorkflow(record)}
               style={{ color: colorError }}
               className="icon-action"
             />
           </Tooltip>
           <Tooltip placement="top" title="Edit workflow">
             <EditOutlined
-              onClick={showDetailsDrawer(record)}
+              onClick={showEditDrawer(record)}
               style={{ color: colorPrimary }}
               className="icon-action"
             />
           </Tooltip>
           <Tooltip placement="top" title="Stop workflow">
             <CloseCircleOutlined
+              onClick={stopWorkflow(record)}
               className="icon-action"
               style={{ cursor: 'pointer', color: colorPrimary }}
             />
           </Tooltip>
           <Tooltip placement="top" title="Play workflow">
             <PlayCircleOutlined
+              onClick={playWorkflow(record)}
               className="icon-action"
               style={{ cursor: 'pointer', color: colorPrimary }}
             />
