@@ -38,9 +38,14 @@ export default function Log() {
     setFullScreenMode(!isFullScreenMode);
   };
 
-  useHotkeys('shift+l', () => toggleFullScreenMode(), {
+  useHotkeys('shift+s', () => toggleFullScreenMode(), {
     preventDefault: true,
   });
+
+  useHotkeys('shift+l', () => onCopyClick(), {
+    preventDefault: true,
+  });
+
 
   return (
     <>

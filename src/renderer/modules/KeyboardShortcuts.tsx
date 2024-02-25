@@ -29,6 +29,11 @@ const data = [
     shortcut2: 'I',
   },
   {
+    title: 'Toggle Fullscreen',
+    shortcut1: 'Shift',
+    shortcut2: 'S',
+  },
+  {
     title: 'Copy Log',
     shortcut1: 'Shift',
     shortcut2: 'L',
