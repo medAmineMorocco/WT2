@@ -1,15 +1,8 @@
-import React, { useState } from 'react';
-import { theme, Space, Tooltip, Modal } from 'antd';
-import {
-  FileOutlined,
-  BlockOutlined,
-  CopyOutlined,
-  ExpandOutlined,
-  CheckOutlined,
-  FullscreenExitOutlined,
-} from '@ant-design/icons';
-import { useHotkeys } from 'react-hotkeys-hook';
+import React from 'react';
+import { theme, Space } from 'antd';
+import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import Visualization from './Visualization';
+import Log from './Log';
 
 const { useToken } = theme;
 
@@ -19,25 +12,6 @@ export default function Execution() {
   } = theme.useToken();
 
   const { token } = useToken();
-
-  const [isCopied, setCopied] = useState(false);
-
-  const [isFullScreenMode, setFullScreenMode] = useState(false);
-
-  const onCopyClick = () => {
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-  };
-
-  const toggleFullScreenMode = () => {
-    setFullScreenMode(!isFullScreenMode);
-  };
-
-  useHotkeys('shift+l', () => toggleFullScreenMode(), {
-    preventDefault: true,
-  });
 
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
@@ -83,75 +57,8 @@ export default function Execution() {
           <FileOutlined />
           <strong>Log</strong>
         </Space>
-
-        <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-          <Space>
-            <Tooltip title={!isCopied ? 'Copy' : 'Copied!'} placement="left">
-              {!isCopied ? (
-                <CopyOutlined
-                  style={{ cursor: 'pointer' }}
-                  onClick={onCopyClick}
-                />
-              ) : (
-                <CheckOutlined />
-              )}
-            </Tooltip>
-            <Tooltip
-              title={
-                <Space>
-                  <span>Enter fullscreen mode</span>
-                  <small style={{ color: 'grey' }}>Shift+L</small>
-                </Space>
-              }
-              placement="left"
-            >
-              <ExpandOutlined
-                style={{ cursor: 'pointer' }}
-                onClick={toggleFullScreenMode}
-                className="icon-action"
-              />
-            </Tooltip>
-          </Space>
-          <Modal
-            title={
-              <Space>
-                <FileOutlined />
-                <strong>Log</strong>
-              </Space>
-            }
-            centered
-            open={isFullScreenMode}
-            className="fullSsceen-modal"
-            width="100vw"
-            style={{ height: '98vh' }}
-            closeIcon={<FullscreenExitOutlined />}
-            maskClosable
-            onCancel={toggleFullScreenMode}
-            destroyOnClose
-            footer={null}
-          >
-            <Tooltip title={!isCopied ? 'Copy' : 'Copied!'} placement="left">
-              {!isCopied ? (
-                <CopyOutlined
-                  style={{
-                    cursor: 'pointer',
-                    position: 'absolute',
-                    top: '21px',
-                    right: '44px',
-                  }}
-                  onClick={onCopyClick}
-                />
-              ) : (
-                <CheckOutlined
-                  style={{
-                    position: 'absolute',
-                    top: '21px',
-                    right: '44px',
-                  }}
-                />
-              )}
-            </Tooltip>
-          </Modal>
+        <div>
+          <Log />
         </div>
       </div>
     </div>
