@@ -6,9 +6,6 @@ import {
   Select,
   Tooltip,
   Button,
-  Drawer,
-  Form,
-  Input,
   Badge,
   Space,
   Flex,
@@ -18,17 +15,16 @@ import {
 import {
   PlusOutlined,
   MinusCircleOutlined,
-  RightOutlined,
   PartitionOutlined,
-  CheckOutlined,
   ExclamationCircleFilled,
   EditOutlined,
   CloseCircleOutlined,
-  InfoCircleOutlined,
   PlayCircleOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
+import EditWorkflow from './EditWorkflow';
+import AddWorkflow from './AddWorkflow';
 
 const { useToken } = theme;
 const { useBreakpoint } = Grid;
@@ -41,26 +37,30 @@ export default function Workflows() {
 
   const { token } = useToken();
 
-  const [open, setOpen] = useState(false);
-  const [openDetails, setOpenDetails] = useState(false);
+  const [openAdd, setOpenAdd] = useState(false);
+  const [openEdit, setOpenEdit] = useState(false);
+  const [workflowToEdit, setWorkflowToEdit] = useState();
   const { modal } = AntdApp.useApp();
 
   const showDrawer = () => {
-    setOpen(true);
+    setOpenAdd(true);
   };
 
   useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
 
-  const showDetailsDrawer = () => {
-    setOpenDetails(true);
+  const showDetailsDrawer = (record: any) => {
+    return () => {
+      setWorkflowToEdit(record);
+      setOpenEdit(true);
+    };
   };
 
-  const onClose = () => {
-    setOpen(false);
+  const onCloseAdd = () => {
+    setOpenAdd(false);
   };
 
-  const onCloseDetails = () => {
-    setOpenDetails(false);
+  const onCloseEdit = () => {
+    setOpenEdit(false);
   };
   const tableSize = () => {
     if (breakpoints.xl || breakpoints.xxl) {
@@ -149,7 +149,7 @@ export default function Workflows() {
     {
       title: 'Action',
       key: 'action',
-      render: () => (
+      render: (_: any, record: any) => (
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
             <MinusCircleOutlined
@@ -158,9 +158,9 @@ export default function Workflows() {
               className="icon-action"
             />
           </Tooltip>
-          <Tooltip placement="top" title="View workflow">
-            <InfoCircleOutlined
-              onClick={showDetailsDrawer}
+          <Tooltip placement="top" title="Edit workflow">
+            <EditOutlined
+              onClick={showDetailsDrawer(record)}
               style={{ color: colorPrimary }}
               className="icon-action"
             />
@@ -186,35 +186,46 @@ export default function Workflows() {
     {
       key: '1',
       name: 'Workflow1',
+      command: 'cmd1',
+      commands: ['cmd2', 'cmd3'],
     },
     {
       key: '2',
       name: 'Workflow2',
+      command: 'cmd1',
+      commands: ['cmd2'],
     },
     {
       key: '3',
       name: 'Workflow3',
+      command: 'cmd1',
+      commands: [],
     },
     {
       key: '4',
       name: 'Workflow4',
+      command: 'cmd1',
+      commands: ['cmd2', 'cmd3'],
     },
     {
       key: '5',
       name: 'Workflow5',
+      command: 'cmd1',
+      commands: ['cmd2', 'cmd3'],
     },
     {
       key: '6',
       name: 'Workflow6',
+      command: 'cmd1',
+      commands: ['cmd2', 'cmd3'],
     },
     {
       key: '7',
       name: 'Workflow7',
+      command: 'cmd1',
+      commands: ['cmd2', 'cmd3'],
     },
   ];
-  const onFinish = (values: any) => {
-    console.log('Received values of form:', values);
-  };
 
   return (
     <div
@@ -270,122 +281,13 @@ export default function Workflows() {
               </Button>
             </Tooltip>
           </Space>
-          <Drawer
-            title="Add New Workflow"
-            onClose={onClose}
-            open={open}
-            destroyOnClose
-          >
-            <Form
-              name="dynamic_form_item"
-              onFinish={onFinish}
-              style={{ maxWidth: 600 }}
-              layout="vertical"
-              requiredMark="optional"
-            >
-              <Form.Item
-                label="Name"
-                name="name"
-                rules={[
-                  {
-                    required: true,
-                    whitespace: true,
-                    message: 'Please input your workflow name !',
-                  },
-                ]}
-              >
-                <Input
-                  prefix={<PartitionOutlined />}
-                  style={{ width: '90%' }}
-                  placeholder="rebase"
-                />
-              </Form.Item>
-              <Form.Item
-                label="Command"
-                name="command"
-                rules={[
-                  {
-                    required: true,
-                    whitespace: true,
-                    message: 'Please input the command !',
-                  },
-                ]}
-              >
-                <Input
-                  prefix={<RightOutlined />}
-                  style={{ width: '90%' }}
-                  placeholder="git rebase main"
-                />
-              </Form.Item>
-              <Form.List name="names">
-                {(fields, { add, remove }, { errors }) => (
-                  <>
-                    {fields.map((field) => (
-                      <Form.Item required={false} key={field.key}>
-                        <Form.Item
-                          {...field}
-                          validateTrigger={['onChange', 'onBlur']}
-                          rules={[
-                            {
-                              required: true,
-                              whitespace: true,
-                              message:
-                                'Please input the command or delete this field !',
-                            },
-                          ]}
-                          noStyle
-                        >
-                          <Input
-                            prefix={<RightOutlined />}
-                            style={{ width: '90%', marginRight: '8px' }}
-                          />
-                        </Form.Item>
-                        <Tooltip placement="top" title="Remove command">
-                          <MinusCircleOutlined
-                            className="dynamic-delete-button"
-                            onClick={() => remove(field.name)}
-                          />
-                        </Tooltip>
-                      </Form.Item>
-                    ))}
-                    <Form.Item>
-                      <Button
-                        type="dashed"
-                        onClick={() => add()}
-                        style={{ width: '90%' }}
-                        icon={<PlusOutlined />}
-                      >
-                        Add command
-                      </Button>
-                      <Form.ErrorList errors={errors} />
-                    </Form.Item>
-                  </>
-                )}
-              </Form.List>
-              <Form.Item>
-                <Button
-                  type="primary"
-                  htmlType="submit"
-                  icon={<CheckOutlined />}
-                >
-                  Create Workflow
-                </Button>
-              </Form.Item>
-            </Form>
-          </Drawer>
+          <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
         </div>
-        <Drawer
-          title="Workflow Details"
-          onClose={onCloseDetails}
-          open={openDetails}
-        >
-          <p>Some contents...</p>
-          <p>Some contents...</p>
-          <p>Some contents...</p>
-          <Button type="primary" icon={<EditOutlined />}>
-            Edit Workflow
-          </Button>
-        </Drawer>
+        <EditWorkflow
+          openEdit={openEdit}
+          onCloseEdit={onCloseEdit}
+          workflow={workflowToEdit}
+        />
         <Table
           columns={columns}
           dataSource={data}
