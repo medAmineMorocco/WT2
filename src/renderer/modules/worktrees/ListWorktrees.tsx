@@ -144,6 +144,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         onCancel={handleCancel}
         destroyOnClose
         centered
+        closeIcon={null}
       >
         <Form
           onFinish={onFinish}
@@ -165,7 +166,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             <Input prefix={<BranchesOutlined />} />
           </Form.Item>
           <Form.Item name="oldWorktreeName" hidden />
-          <Form.Item>
+          <Form.Item style={{ marginRight: 0 }}>
             <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
               Rename
             </Button>
