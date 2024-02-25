@@ -88,6 +88,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const onClickWorktree = (worktreeName: string) => {
     return (event: any) => {
+      if (event.key === '-1') {
+        setIsModalOpen(true);
+        form.setFieldValue('oldWorktreeName', worktreeName);
+        form.setFieldValue('newWorktreeName', worktreeName);
+      }
+      if (event.key === '1') {
+        navigator.clipboard.writeText(worktreeName);
+      }
       if (event.key === '2') {
         modal.confirm({
           title: 'Are you sure delete this worktree ?',
@@ -103,11 +111,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             console.log('Cancel');
           },
         });
-      }
-      if (event.key === '-1') {
-        setIsModalOpen(true);
-        form.setFieldValue('oldWorktreeName', worktreeName);
-        form.setFieldValue('newWorktreeName', worktreeName);
       }
     };
   };
