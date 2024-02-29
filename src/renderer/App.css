@@ -1,6 +1,6 @@
 * {
  user-select: none;
-  outline: none;
+  outline: none !important;
 }
 
 body {
@@ -47,6 +47,10 @@ body {
   margin-top: 0;
 }
 
+:where(.css-dev-only-do-not-override-jop9zq).ant-steps.ant-steps-label-vertical .ant-steps-item-content {
+  margin-top: 0;
+}
+
 ::-webkit-scrollbar {
   width: 4px;
   height: 4px;
@@ -58,4 +62,20 @@ body {
 
 .keyboard-modal > .ant-modal-content > .ant-modal-header {
   margin-bottom: 24px;
+}
+
+.repositories-tabs > .ant-tabs-nav, .repositories-tabs-dark > .ant-tabs-nav {
+  margin-bottom: 0;
+}
+
+.repositories-tabs-dark > .ant-tabs-nav > .ant-tabs-nav-wrap {
+  background-color: black;
+}
+
+:where(.css-dev-only-do-not-override-1rqnfsa).ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 8px 0;
+}
+
+:where(.css-dev-only-do-not-override-jop9zq).ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 8px 0;
 }

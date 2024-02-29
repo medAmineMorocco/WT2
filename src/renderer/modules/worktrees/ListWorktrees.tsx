@@ -117,7 +117,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   return (
     <>
-      <ul style={{ paddingLeft: '8px', paddingRight: '2px' }}>
+      <ul style={{ marginTop: '4px', paddingLeft: '8px', paddingRight: '2px' }}>
         {worktrees.map((worktree) => (
           <li
             key={worktree.name}

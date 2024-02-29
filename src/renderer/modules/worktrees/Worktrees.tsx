@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import {
   Button,
-  Divider,
   Form,
   Input,
   Layout,
@@ -25,10 +24,17 @@ import {
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import ListWorktrees from './ListWorktrees';
+import useStickyState from '../../utils/hooks/hooks';
 
 const { Sider } = Layout;
 
-export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
+export default function Worktrees({
+  isDarkMode,
+  keyTab,
+}: {
+  isDarkMode: boolean;
+  keyTab: string;
+}) {
   const {
     token: { colorWarning },
   } = theme.useToken();
@@ -38,8 +44,8 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [form] = Form.useForm();
 
-  const [selectedRepoPath, setSelectedRepoPath] = useState();
-  const [repoName, setRepoName] = useState();
+  const [selectedRepoPath, setSelectedRepoPath] = useStickyState(keyTab, null);
+  const [repoName, setRepoName] = useStickyState(keyTab, null);
 
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
@@ -75,10 +81,13 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
     if (isGitRepo) {
       if (path && name) {
-        setSelectedRepoPath(path);
-        setRepoName(name);
-        message.destroy();
-        message.success('Success! Repository Imported 🎉');
+        const activeTab = window.localStorage.getItem('activeTab');
+        if (keyTab === activeTab) {
+          setSelectedRepoPath(path);
+          setRepoName(name);
+          message.destroy();
+          message.success('Success! Repository Imported 🎉');
+        }
       }
     } else {
       message.destroy();
@@ -99,31 +108,28 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
     >
       {!collapsed && (
         <>
-          <Divider orientation="left" style={{ marginTop: 0 }}>
-            <Space>
-              <strong>Repository</strong>
-              <Tooltip
-                title={
-                  <Space>
-                    <span>Open a repository</span>{' '}
-                    <small style={{ color: 'grey' }}>Shift+O</small>
-                  </Space>
-                }
-                placement="bottomRight"
-              >
-                <FolderAddOutlined
-                  style={{ cursor: 'pointer' }}
-                  onClick={openRepository}
-                  className="icon-action"
-                />
-              </Tooltip>
-            </Space>
-          </Divider>
+          <Space style={{ marginTop: '16px' }}>
+            <strong style={{ marginLeft: '8px' }}>Repository</strong>
+            <Tooltip
+              title={
+                <Space>
+                  <span>Open a repository</span>{' '}
+                  <small style={{ color: 'grey' }}>Shift+O</small>
+                </Space>
+              }
+              placement="bottomRight"
+            >
+              <FolderAddOutlined
+                style={{ cursor: 'pointer' }}
+                onClick={openRepository}
+                className="icon-action"
+              />
+            </Tooltip>
+          </Space>
           {repoName ? (
             <div
               style={{
-                marginLeft: '8px',
-                marginRight: '8px',
+                margin: '8px',
                 padding: '4px',
                 border: '1px dashed',
                 overflowWrap: 'anywhere',
@@ -156,9 +162,9 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
         </>
       )}
       {!collapsed && (
-        <Divider orientation="left">
-          <Space>
-            <strong>Worktrees</strong>
+        <>
+          <Space style={{ marginTop: '16px' }}>
+            <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
             <Tooltip
               title={
                 <Space>
@@ -259,7 +265,7 @@ export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
               </Form.Item>
             </Form>
           </Modal>
-        </Divider>
+        </>
       )}
       {!collapsed && (
         <div>

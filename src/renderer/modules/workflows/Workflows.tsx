@@ -249,7 +249,7 @@ export default function Workflows() {
       style={{
         position: 'relative',
         padding: 12,
-        height: '48.5vh',
+        height: 'calc(48.5vh - 20px)',
         marginTop: '1vh',
         background: colorBgContainer,
         borderRadius: borderRadiusLG,

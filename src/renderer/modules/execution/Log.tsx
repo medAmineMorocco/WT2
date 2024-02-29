@@ -78,7 +78,7 @@ export default function Log() {
           </Tooltip>
         </Space>
       </div>
-      <div style={{ marginTop: '8px', height: '41.5vh', overflowY: 'auto' }}>
+      <div style={{ marginTop: '8px', height: 'calc(41.5vh - 20px)', overflowY: 'auto' }}>
         <Text type="secondary" ref={logRef}>
           Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ab
           consequuntur cupiditate dolores, explicabo iste itaque natus nisi qui

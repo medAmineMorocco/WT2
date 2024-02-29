@@ -19,7 +19,7 @@ export default function Execution() {
         style={{
           flex: 1,
           padding: 12,
-          height: '48.5vh',
+          height: 'calc(48.5vh - 20px)',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           color: token.colorTextBase,
@@ -47,7 +47,7 @@ export default function Execution() {
           position: 'relative',
           flex: 1,
           padding: 12,
-          height: '48.5vh',
+          height: 'calc(48.5vh - 20px)',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           color: token.colorTextBase,
