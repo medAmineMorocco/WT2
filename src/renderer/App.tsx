@@ -21,17 +21,9 @@ function Hello() {
     preventDefault: true,
   });
 
-  useHotkeys('shift+tab', () => console.log('nex'), {
-    preventDefault: true,
-  });
-
-  useHotkeys('mod+shift+tab', () => console.log('prev'), {
-    preventDefault: true,
-  });
-
   const getTabs = () => {
     return Object.keys(window.localStorage)
-      .filter((key) => key !== 'activeTab')
+      .filter((key) => key.startsWith('tab'))
       .sort();
   };
 
@@ -58,6 +50,48 @@ function Hello() {
   const [activeKey, setActiveKey] = useState(getMinTabKey());
   const [items, setItems] = useState([]);
   const newTabIndex = useRef(Number(getMaxTabKey().replace('tab', '')) + 1);
+
+  const getItem = (array: string[], currentItem: string, direction: string) => {
+    const currentIndex = array.indexOf(currentItem);
+    let resultItem = null;
+
+    if (currentIndex !== -1) {
+      if (direction === 'next' && currentIndex < array.length - 1) {
+        resultItem = array[currentIndex + 1];
+      } else if (direction === 'previous' && currentIndex > 0) {
+        resultItem = array[currentIndex - 1];
+      }
+    }
+    return resultItem;
+  };
+
+  useHotkeys(
+    'shift+right',
+    () => {
+      const nextTab = getItem(getTabs(), activeKey, 'next');
+      if (nextTab) {
+        setActiveKey(nextTab);
+        window.localStorage.setItem('activeTab', nextTab);
+      }
+    },
+    {
+      preventDefault: true,
+    },
+  );
+
+  useHotkeys(
+    'shift+left',
+    () => {
+      const previousTab = getItem(getTabs(), activeKey, 'previous');
+      if (previousTab) {
+        setActiveKey(previousTab);
+        window.localStorage.setItem('activeTab', previousTab);
+      }
+    },
+    {
+      preventDefault: true,
+    },
+  );
 
   useEffect(() => {
     const tabs = getTabs();

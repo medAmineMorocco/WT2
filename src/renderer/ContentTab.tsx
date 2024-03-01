@@ -41,7 +41,7 @@ export default function ContentTab({
     setOpenKeyboard(false);
   };
 
-  useHotkeys('shift+k', () => setOpenKeyboard(true), {
+  useHotkeys('shift+k', openKeyboardShortcuts, {
     preventDefault: true,
   });
 

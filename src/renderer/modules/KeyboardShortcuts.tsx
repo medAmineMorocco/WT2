@@ -48,6 +48,16 @@ const data = [
     shortcut1: 'Shift',
     shortcut2: 'C',
   },
+  {
+    title: 'Move to next tab',
+    shortcut1: 'Shift',
+    shortcut2: '→',
+  },
+  {
+    title: 'Move to previous tab',
+    shortcut1: 'shift',
+    shortcut2: '←',
+  },
 ];
 export default function KeyboardShortcuts({
   open,
