@@ -13,11 +13,19 @@ type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
 function Hello() {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  useEffect(() => {
+    setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem('isDarkMode', isDarkMode.toString());
+  }, [isDarkMode]);
+
   const onThemeChange = () => {
     setIsDarkMode((previousValue) => !previousValue);
   };
 
-  useHotkeys('shift+t', () => onThemeChange(), {
+  useHotkeys('shift+t', onThemeChange, {
     preventDefault: true,
   });
 
@@ -104,7 +112,7 @@ function Hello() {
           children: (
             <ContentTab
               keyTab="tab1"
-              isDarkMode={false}
+              isDarkMode={isDarkMode}
               onThemeChange={onThemeChange}
             />
           ),
@@ -121,7 +129,7 @@ function Hello() {
         children: (
           <ContentTab
             keyTab={tabKey}
-            isDarkMode={false}
+            isDarkMode={isDarkMode}
             onThemeChange={onThemeChange}
           />
         ),
