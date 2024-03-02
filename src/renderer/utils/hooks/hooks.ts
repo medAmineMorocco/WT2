@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react';
+import TabService from '../../services/tab/TabService';
 
 export default function useStickyState(field: string, defaultValue: any) {
-  const activeTab = window.localStorage.getItem('activeTab') || 'tab1';
+  const activeTab = TabService.getActiveTab();
 
   const [newValue, setNewValue] = useState();
 
   const [value, setValue] = useState(() => {
-    const stickyValue = window.localStorage.getItem(activeTab);
-    const initialValue =
-      stickyValue !== null ? JSON.parse(stickyValue)[field] : defaultValue;
+    const initialValue = TabService.getTabField(activeTab, field, defaultValue);
     setNewValue(initialValue);
     return initialValue;
   });

@@ -5,6 +5,7 @@ import { ConfigProvider, theme, App as AntdApp, Tabs, Tooltip } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FolderOutlined } from '@ant-design/icons';
 import ContentTab from './ContentTab';
+import TabService from './services/tab/TabService';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -29,35 +30,11 @@ function Hello() {
     preventDefault: true,
   });
 
-  const getTabs = () => {
-    return Object.keys(window.localStorage)
-      .filter((key) => key.startsWith('tab'))
-      .sort();
-  };
-
-  const getMaxTabKey = () => {
-    if (getTabs().length === 0) {
-      return 'tab1';
-    }
-    const max = Math.max(
-      ...getTabs().map((key) => Number(key.replace('tab', ''))),
-    );
-    return `tab${max}`;
-  };
-
-  const getMinTabKey = () => {
-    if (getTabs().length === 0) {
-      return 'tab1';
-    }
-    const min = Math.min(
-      ...getTabs().map((key) => Number(key.replace('tab', ''))),
-    );
-    return `tab${min}`;
-  };
-
-  const [activeKey, setActiveKey] = useState(getMinTabKey());
+  const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
   const [items, setItems] = useState([]);
-  const newTabIndex = useRef(Number(getMaxTabKey().replace('tab', '')) + 1);
+  const newTabIndex = useRef(
+    Number(TabService.getMaxTabKey().replace('tab', '')) + 1,
+  );
 
   const getItem = (array: string[], currentItem: string, direction: string) => {
     const currentIndex = array.indexOf(currentItem);
@@ -76,10 +53,10 @@ function Hello() {
   useHotkeys(
     'shift+right',
     () => {
-      const nextTab = getItem(getTabs(), activeKey, 'next');
+      const nextTab = getItem(TabService.getTabs(), activeKey, 'next');
       if (nextTab) {
         setActiveKey(nextTab);
-        window.localStorage.setItem('activeTab', nextTab);
+        TabService.setActiveTab(nextTab);
       }
     },
     {
@@ -90,10 +67,10 @@ function Hello() {
   useHotkeys(
     'shift+left',
     () => {
-      const previousTab = getItem(getTabs(), activeKey, 'previous');
+      const previousTab = getItem(TabService.getTabs(), activeKey, 'previous');
       if (previousTab) {
         setActiveKey(previousTab);
-        window.localStorage.setItem('activeTab', previousTab);
+        TabService.setActiveTab(previousTab);
       }
     },
     {
@@ -101,32 +78,8 @@ function Hello() {
     },
   );
 
-  const getTabLabel = (tabKey: string) => {
-    const tabValue = window.localStorage.getItem(tabKey);
-    let tabLabel;
-    if (tabValue) {
-      const { repoName } = JSON.parse(tabValue);
-      tabLabel = repoName || 'New Tab';
-    } else {
-      tabLabel = 'New Tab';
-    }
-    return tabLabel;
-  };
-
-  const getTabRepoPath = (tabKey: string) => {
-    const tabValue = window.localStorage.getItem(tabKey);
-    let result;
-    if (tabValue) {
-      const { selectedRepoPath } = JSON.parse(tabValue);
-      result = selectedRepoPath || null;
-    } else {
-      result = null;
-    }
-    return result;
-  };
-
   useEffect(() => {
-    const tabs = getTabs();
+    const tabs = TabService.getTabs();
     let newItems = [...items];
 
     if (tabs.length === 0) {
@@ -149,8 +102,8 @@ function Hello() {
     }
 
     for (const tabKey of tabs) {
-      const tabLabel = getTabLabel(tabKey);
-      const tabRepoPath = getTabRepoPath(tabKey);
+      const tabLabel = TabService.getTabLabel(tabKey);
+      const tabRepoPath = TabService.getTabRepoPath(tabKey);
       const label = tabRepoPath ? (
         <Tooltip arrow={false} title={tabRepoPath}>
           <span>{tabLabel}</span>
@@ -172,12 +125,12 @@ function Hello() {
       });
     }
     setItems(newItems);
-    setActiveKey(window.localStorage.getItem('activeTab') || 'tab1');
+    setActiveKey(TabService.getActiveTab());
   }, []);
 
   const onChange = (newActiveKey: string) => {
     setActiveKey(newActiveKey);
-    window.localStorage.setItem('activeTab', newActiveKey);
+    TabService.setActiveTab(newActiveKey);
   };
 
   const add = () => {
@@ -197,7 +150,7 @@ function Hello() {
     });
     setItems(newPanes);
     setActiveKey(newActiveKey);
-    window.localStorage.setItem('activeTab', newActiveKey);
+    TabService.setActiveTab(newActiveKey);
   };
 
   const remove = (targetKey: TargetKey) => {
@@ -205,9 +158,9 @@ function Hello() {
       window.localStorage.removeItem(String(targetKey));
       const newPanes = items.filter((item) => item.key !== targetKey);
       setItems(newPanes);
-      const newActiveKey = getMaxTabKey();
+      const newActiveKey = TabService.getMaxTabKey();
       setActiveKey(newActiveKey);
-      window.localStorage.setItem('activeTab', newActiveKey);
+      TabService.setActiveTab(newActiveKey);
     }
   };
 

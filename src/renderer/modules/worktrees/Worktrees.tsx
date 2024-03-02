@@ -25,6 +25,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import ListWorktrees from './ListWorktrees';
 import useStickyState from '../../utils/hooks/hooks';
+import TabService from '../../services/tab/TabService';
 
 const { Sider } = Layout;
 
@@ -84,7 +85,7 @@ export default function Worktrees({
   ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
     if (isGitRepo) {
       if (path && name) {
-        const activeTab = window.localStorage.getItem('activeTab');
+        const activeTab = TabService.getActiveTab();
         if (keyTab === activeTab) {
           setSelectedRepoPath(path);
           setRepoName(name);
