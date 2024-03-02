@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { ConfigProvider, theme, App as AntdApp, Tabs } from 'antd';
+import { ConfigProvider, theme, App as AntdApp, Tabs, Tooltip } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { FolderOutlined } from '@ant-design/icons';
 import ContentTab from './ContentTab';
@@ -101,6 +101,30 @@ function Hello() {
     },
   );
 
+  const getTabLabel = (tabKey: string) => {
+    const tabValue = window.localStorage.getItem(tabKey);
+    let tabLabel;
+    if (tabValue) {
+      const { repoName } = JSON.parse(tabValue);
+      tabLabel = repoName || 'New Tab';
+    } else {
+      tabLabel = 'New Tab';
+    }
+    return tabLabel;
+  };
+
+  const getTabRepoPath = (tabKey: string) => {
+    const tabValue = window.localStorage.getItem(tabKey);
+    let result;
+    if (tabValue) {
+      const { selectedRepoPath } = JSON.parse(tabValue);
+      result = selectedRepoPath || null;
+    } else {
+      result = null;
+    }
+    return result;
+  };
+
   useEffect(() => {
     const tabs = getTabs();
     let newItems = [...items];
@@ -123,9 +147,19 @@ function Hello() {
       setItems(newItems);
       return;
     }
+
     for (const tabKey of tabs) {
+      const tabLabel = getTabLabel(tabKey);
+      const tabRepoPath = getTabRepoPath(tabKey);
+      const label = tabRepoPath ? (
+        <Tooltip arrow={false} title={tabRepoPath}>
+          <span>{tabLabel}</span>
+        </Tooltip>
+      ) : (
+        <span>{tabLabel}</span>
+      );
       newItems.push({
-        label: tabKey,
+        label,
         children: (
           <ContentTab
             keyTab={tabKey}
@@ -138,6 +172,7 @@ function Hello() {
       });
     }
     setItems(newItems);
+    setActiveKey(window.localStorage.getItem('activeTab') || 'tab1');
   }, []);
 
   const onChange = (newActiveKey: string) => {

@@ -44,8 +44,11 @@ export default function Worktrees({
 
   const [form] = Form.useForm();
 
-  const [selectedRepoPath, setSelectedRepoPath] = useStickyState(keyTab, null);
-  const [repoName, setRepoName] = useStickyState(keyTab, null);
+  const [selectedRepoPath, setSelectedRepoPath] = useStickyState(
+    'selectedRepoPath',
+    null,
+  );
+  const [repoName, setRepoName] = useStickyState('repoName', null);
 
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
@@ -106,7 +109,7 @@ export default function Worktrees({
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
     >
-      {!collapsed && (
+      {!collapsed && !repoName && (
         <>
           <Space style={{ marginTop: '16px' }}>
             <strong style={{ marginLeft: '8px' }}>Repository</strong>

@@ -1,12 +1,31 @@
-import React from 'react';
+import { useEffect, useState } from 'react';
 
-export default function useStickyState(key: string, defaultValue: any) {
-  const [value, setValue] = React.useState(() => {
-    const stickyValue = window.localStorage.getItem(key);
-    return stickyValue !== null ? JSON.parse(stickyValue) : defaultValue;
+export default function useStickyState(field: string, defaultValue: any) {
+  const activeTab = window.localStorage.getItem('activeTab') || 'tab1';
+
+  const [newValue, setNewValue] = useState();
+
+  const [value, setValue] = useState(() => {
+    const stickyValue = window.localStorage.getItem(activeTab);
+    const initialValue =
+      stickyValue !== null ? JSON.parse(stickyValue)[field] : defaultValue;
+    setNewValue(initialValue);
+    return initialValue;
   });
-  React.useEffect(() => {
-    window.localStorage.setItem(key, JSON.stringify(value));
-  }, [key, value]);
-  return [value, setValue];
+
+  useEffect(() => {
+    const stickyValue = window.localStorage.getItem(activeTab);
+    if (stickyValue) {
+      const parse = JSON.parse(stickyValue);
+      parse[field] = value;
+      window.localStorage.setItem(activeTab, JSON.stringify(parse));
+      setNewValue(parse);
+    } else {
+      const newVal: any = { [field]: value };
+      window.localStorage.setItem(activeTab, JSON.stringify(newVal));
+      setNewValue(newVal);
+    }
+  }, [activeTab, field, value, setValue]);
+
+  return [newValue ? newValue[field] : null, setValue];
 }
