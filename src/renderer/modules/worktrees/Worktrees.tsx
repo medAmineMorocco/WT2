@@ -103,6 +103,10 @@ export default function Worktrees({
     setCreateWorktreeMode(newVal);
   };
 
+  const onFinish = (values: any) => {
+    console.log('Received values of form: ', values);
+  };
+
   return (
     <Sider
       theme="light"
@@ -208,22 +212,29 @@ export default function Worktrees({
                 },
               ]}
             />
-            <Form layout="vertical" requiredMark="optional" form={form}>
-              <Form.Item
-                label="Name"
-                name="name"
-                rules={[
-                  {
-                    required: true,
-                    message: 'Please input your worktree name!',
-                  },
-                ]}
-              >
-                <Input
-                  prefix={<BranchesOutlined />}
-                  placeholder="feature-add-sidebar"
-                />
-              </Form.Item>
+            <Form
+              layout="vertical"
+              requiredMark="optional"
+              form={form}
+              onFinish={onFinish}
+            >
+              {createWorktreeMode === 'new-branch' && (
+                <Form.Item
+                  label="Name"
+                  name="name"
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Please input your worktree name!',
+                    },
+                  ]}
+                >
+                  <Input
+                    prefix={<BranchesOutlined />}
+                    placeholder="feature-add-sidebar"
+                  />
+                </Form.Item>
+              )}
               {createWorktreeMode === 'existing-branch' && (
                 <Form.Item
                   label="Existing branch"
@@ -233,6 +244,18 @@ export default function Worktrees({
                       required: true,
                       message: 'Please select a branch!',
                     },
+                    () => ({
+                      validator(_, value) {
+                        if (value && value.includes('/')) {
+                          return Promise.reject(
+                            new Error(
+                              'The name of worktree should not contains / character !',
+                            ),
+                          );
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
                   ]}
                 >
                   <Select
@@ -242,6 +265,7 @@ export default function Worktrees({
                       { value: 'main', label: 'main' },
                       { value: 'fix', label: 'fix' },
                       { value: 'feature', label: 'feature' },
+                      { value: 'feature/worktree', label: 'feature/worktree' },
                     ]}
                   />
                 </Form.Item>
