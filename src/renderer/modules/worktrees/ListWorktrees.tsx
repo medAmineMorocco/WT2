@@ -53,8 +53,13 @@ const items = [
     icon: <CopyOutlined />,
   },
   {
-    label: 'Delete',
+    label: 'Copy Worktree Path',
     key: '2',
+    icon: <CopyOutlined />,
+  },
+  {
+    label: 'Delete',
+    key: '3',
     icon: <DeleteOutlined />,
     danger: true,
   },
@@ -97,6 +102,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         navigator.clipboard.writeText(worktreeName);
       }
       if (event.key === '2') {
+        navigator.clipboard.writeText('path');
+      }
+      if (event.key === '3') {
         modal.confirm({
           title: 'Are you sure delete this worktree ?',
           icon: <ExclamationCircleFilled />,
