@@ -190,7 +190,6 @@ function Hello() {
           className={
             isDarkMode ? 'repositories-tabs-dark' : 'repositories-tabs'
           }
-          animated
         />
       </AntdApp>
     </ConfigProvider>
