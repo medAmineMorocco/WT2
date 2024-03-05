@@ -149,6 +149,7 @@ function Hello() {
       icon: <FolderOutlined />,
     });
     setItems(newPanes);
+    window.localStorage.setItem(newActiveKey, JSON.stringify({}));
     setActiveKey(newActiveKey);
     TabService.setActiveTab(newActiveKey);
   };

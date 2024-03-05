@@ -5,10 +5,8 @@ import {
   Input,
   Layout,
   Modal,
-  theme,
   Tooltip,
   Space,
-  message,
   Segmented,
   Select,
 } from 'antd';
@@ -17,39 +15,18 @@ import {
   BranchesOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
-  FolderOutlined,
-  FolderAddOutlined,
-  WarningOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { ipcRenderer } from 'electron';
 import ListWorktrees from './ListWorktrees';
-import useStickyState from '../../utils/hooks/hooks';
-import TabService from '../../services/tab/TabService';
 
 const { Sider } = Layout;
 
-export default function Worktrees({
-  isDarkMode,
-  keyTab,
-}: {
-  isDarkMode: boolean;
-  keyTab: string;
-}) {
-  const {
-    token: { colorWarning },
-  } = theme.useToken();
+export default function Worktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const [collapsed, setCollapsed] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [form] = Form.useForm();
-
-  const [selectedRepoPath, setSelectedRepoPath] = useStickyState(
-    'selectedRepoPath',
-    null,
-  );
-  const [repoName, setRepoName] = useStickyState('repoName', null);
 
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
@@ -77,28 +54,6 @@ export default function Worktrees({
     setIsModalOpen(false);
   };
 
-  const openRepository = async () => {
-    ipcRenderer.send('choose-dir');
-  };
-  useHotkeys('shift+o', () => openRepository(), { preventDefault: true });
-
-  ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
-    if (isGitRepo) {
-      if (path && name) {
-        const activeTab = TabService.getActiveTab();
-        if (keyTab === activeTab) {
-          setSelectedRepoPath(path);
-          setRepoName(name);
-          message.destroy();
-          message.success('Success! Repository Imported 🎉');
-        }
-      }
-    } else {
-      message.destroy();
-      message.error('Oops! Not a Git Repository ☹️');
-    }
-  });
-
   const onChangeCreateWorktreeMode = (newVal: string) => {
     setCreateWorktreeMode(newVal);
   };
@@ -114,61 +69,6 @@ export default function Worktrees({
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
     >
-      {!collapsed && !repoName && (
-        <>
-          <Space style={{ marginTop: '16px' }}>
-            <strong style={{ marginLeft: '8px' }}>Repository</strong>
-            <Tooltip
-              title={
-                <Space>
-                  <span>Open a repository</span>{' '}
-                  <small style={{ color: 'grey' }}>Shift+O</small>
-                </Space>
-              }
-              placement="bottomRight"
-            >
-              <FolderAddOutlined
-                style={{ cursor: 'pointer' }}
-                onClick={openRepository}
-                className="icon-action"
-              />
-            </Tooltip>
-          </Space>
-          {repoName ? (
-            <div
-              style={{
-                margin: '8px',
-                padding: '4px',
-                border: '1px dashed',
-                overflowWrap: 'anywhere',
-              }}
-            >
-              <Space>
-                <strong>
-                  <FolderOutlined />
-                </strong>
-                <span>{repoName}</span>
-              </Space>
-              <div
-                style={{
-                  paddingRight: '4px',
-                  fontSize: 'smaller',
-                }}
-              >
-                {selectedRepoPath}
-              </div>
-            </div>
-          ) : (
-            <div style={{ textAlign: 'center' }}>
-              <Tooltip title="No repository selected" placement="left">
-                <WarningOutlined
-                  style={{ color: colorWarning, fontSize: '30px' }}
-                />
-              </Tooltip>
-            </div>
-          )}
-        </>
-      )}
       {!collapsed && (
         <>
           <Space style={{ marginTop: '16px' }}>
