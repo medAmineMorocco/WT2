@@ -158,9 +158,11 @@ function Hello() {
       window.localStorage.removeItem(String(targetKey));
       const newPanes = items.filter((item) => item.key !== targetKey);
       setItems(newPanes);
-      const newActiveKey = TabService.getMaxTabKey();
-      setActiveKey(newActiveKey);
-      TabService.setActiveTab(newActiveKey);
+      if (targetKey === activeKey) {
+        const newActiveKey = TabService.getMaxTabKey();
+        setActiveKey(newActiveKey);
+        TabService.setActiveTab(newActiveKey);
+      }
     }
   };
 
