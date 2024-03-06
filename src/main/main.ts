@@ -132,7 +132,7 @@ app
   })
   .catch(console.log);
 
-ipcMain.on('choose-dir', async function (event) {
+ipcMain.on('choose-dir', async function (event, keyTab) {
   const result = await dialog.showOpenDialog(mainWindow, {
     properties: ['openDirectory'],
   });
@@ -148,5 +148,5 @@ ipcMain.on('choose-dir', async function (event) {
     name = path.win32.basename(pathDir);
   }
 
-  event.sender.send('selected-repo', true, pathDir, name);
+  event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
 });

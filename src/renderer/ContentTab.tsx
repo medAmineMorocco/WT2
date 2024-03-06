@@ -33,7 +33,7 @@ export default function ContentTab({
   }, [keyTab]);
 
   const onimportAreaClick = () => {
-    ipcRenderer.send('choose-dir');
+    ipcRenderer.send('choose-dir', keyTab);
   };
 
   useHotkeys('shift+o', onimportAreaClick, {
@@ -43,31 +43,34 @@ export default function ContentTab({
     },
   });
 
-  ipcRenderer.on('selected-repo', function (event, isGitRepo, path, name) {
-    if (isGitRepo) {
-      if (path && name) {
-        if (keyTab === activeTab) {
-          const updatedTabsItems = items.map((tabItem: any) => {
-            if (tabItem.key === activeTab) {
-              tabItem.label = name;
-            }
-            return tabItem;
-          });
-          updateItems(updatedTabsItems);
-          window.localStorage.setItem(
-            activeTab,
-            JSON.stringify({ repoName: name, selectedRepoPath: path }),
-          );
-          setIsRepoSelected(true);
-          message.destroy();
-          message.success('Success! Repository Imported 🎉');
+  ipcRenderer.on(
+    `selected-repo-${keyTab}`,
+    function (event, isGitRepo, path, name) {
+      if (isGitRepo) {
+        if (path && name) {
+          if (keyTab === activeTab) {
+            const updatedTabsItems = items.map((tabItem: any) => {
+              if (tabItem.key === activeTab) {
+                tabItem.label = name;
+              }
+              return tabItem;
+            });
+            updateItems(updatedTabsItems);
+            window.localStorage.setItem(
+              activeTab,
+              JSON.stringify({ repoName: name, selectedRepoPath: path }),
+            );
+            setIsRepoSelected(true);
+            message.destroy();
+            message.success('Success! Repository Imported 🎉');
+          }
         }
+      } else {
+        message.destroy();
+        message.error('Oops! Not a Git Repository ☹️');
       }
-    } else {
-      message.destroy();
-      message.error('Oops! Not a Git Repository ☹️');
-    }
-  });
+    },
+  );
 
   return isRepoSelected ? (
     <Layout style={{ height: 'calc(100vh - 40px)' }}>
