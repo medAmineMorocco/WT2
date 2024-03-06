@@ -104,12 +104,7 @@ function Hello() {
       newItems = [
         {
           label: 'Tab 1',
-          children: (
-            <ContentTab
-              keyTab="tab1"
-              isDarkMode={isDarkMode}
-            />
-          ),
+          children: <ContentTab keyTab="tab1" isDarkMode={isDarkMode} />,
           key: 'tab1',
           icon: <FolderOutlined />,
         },
@@ -133,12 +128,7 @@ function Hello() {
       );
       newItems.push({
         label,
-        children: (
-          <ContentTab
-            keyTab={tabKey}
-            isDarkMode={isDarkMode}
-          />
-        ),
+        children: <ContentTab keyTab={tabKey} isDarkMode={isDarkMode} />,
         key: tabKey,
         icon: <FolderOutlined />,
       });
@@ -157,12 +147,7 @@ function Hello() {
     const newPanes = [...items];
     newPanes.push({
       label: 'New Tab',
-      children: (
-        <ContentTab
-          keyTab={newActiveKey}
-          isDarkMode={isDarkMode}
-        />
-      ),
+      children: <ContentTab keyTab={newActiveKey} isDarkMode={isDarkMode} />,
       key: newActiveKey,
       icon: <FolderOutlined />,
     });
@@ -231,6 +216,7 @@ function Hello() {
           className={
             isDarkMode ? 'repositories-tabs-dark' : 'repositories-tabs'
           }
+          destroyInactiveTabPane
         />
         <FloatButton.Group
           trigger="click"
