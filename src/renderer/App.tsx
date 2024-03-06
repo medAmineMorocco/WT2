@@ -1,12 +1,27 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import './App.css';
-import { ConfigProvider, theme, App as AntdApp, Tabs, Tooltip } from 'antd';
+import {
+  ConfigProvider,
+  theme,
+  App as AntdApp,
+  Tabs,
+  Tooltip,
+  FloatButton,
+  Space,
+} from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { FolderOutlined } from '@ant-design/icons';
+import {
+  FolderOutlined,
+  MoonOutlined,
+  MoreOutlined,
+  SunOutlined,
+  UnorderedListOutlined,
+} from '@ant-design/icons';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
+import KeyboardShortcuts from './modules/KeyboardShortcuts';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -14,6 +29,8 @@ type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
 
 function Hello() {
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [openKeyboard, setOpenKeyboard] = useState(false);
+  const [isMenuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
@@ -91,7 +108,6 @@ function Hello() {
             <ContentTab
               keyTab="tab1"
               isDarkMode={isDarkMode}
-              onThemeChange={onThemeChange}
             />
           ),
           key: 'tab1',
@@ -121,7 +137,6 @@ function Hello() {
           <ContentTab
             keyTab={tabKey}
             isDarkMode={isDarkMode}
-            onThemeChange={onThemeChange}
           />
         ),
         key: tabKey,
@@ -146,7 +161,6 @@ function Hello() {
         <ContentTab
           keyTab={newActiveKey}
           isDarkMode={isDarkMode}
-          onThemeChange={onThemeChange}
         />
       ),
       key: newActiveKey,
@@ -182,6 +196,26 @@ function Hello() {
     }
   };
 
+  const onCloseKeyboardShortcuts = () => {
+    setOpenKeyboard(false);
+  };
+
+  const openKeyboardShortcuts = () => {
+    setOpenKeyboard(true);
+  };
+
+  useHotkeys('shift+k', openKeyboardShortcuts, {
+    preventDefault: true,
+  });
+
+  const openMenu = () => {
+    setMenuOpen(!isMenuOpen);
+  };
+
+  useHotkeys('shift+m', () => openMenu(), {
+    preventDefault: true,
+  });
+
   return (
     <ConfigProvider
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
@@ -197,6 +231,46 @@ function Hello() {
           className={
             isDarkMode ? 'repositories-tabs-dark' : 'repositories-tabs'
           }
+        />
+        <FloatButton.Group
+          trigger="click"
+          type="primary"
+          style={{ right: '18px', bottom: '2vh' }}
+          icon={<MoreOutlined />}
+          badge={{ dot: true }}
+          tooltip={
+            <Space>
+              <span>Menu</span>
+              <small style={{ color: 'grey' }}>Shift+M</small>
+            </Space>
+          }
+          open={isMenuOpen}
+          onClick={openMenu}
+        >
+          <FloatButton
+            icon={<UnorderedListOutlined />}
+            tooltip={
+              <Space>
+                <span>Keyboard shortcuts</span>
+                <small style={{ color: 'grey' }}>Shift+K</small>
+              </Space>
+            }
+            onClick={openKeyboardShortcuts}
+          />
+          <FloatButton
+            icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
+            tooltip={
+              <Space>
+                <span>{isDarkMode ? 'Light theme' : 'Dark theme'}</span>
+                <small style={{ color: 'grey' }}>Shift+T</small>
+              </Space>
+            }
+            onClick={onThemeChange}
+          />
+        </FloatButton.Group>
+        <KeyboardShortcuts
+          open={openKeyboard}
+          onClose={onCloseKeyboardShortcuts}
         />
       </AntdApp>
     </ConfigProvider>
