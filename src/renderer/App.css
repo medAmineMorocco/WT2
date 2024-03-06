@@ -80,8 +80,17 @@ body {
   margin: 8px 0;
 }
 
+.import-area-dark-container {
+  background-color: black;
+}
+
+.import-area-container {
+  background-color: white;
+}
+
 .import-area {
-  width: 50vw;
+  width: 40vw;
+  height: 20vh;
   border: 1px dashed #d9d9d9;
   display: flex;
   flex-direction: column;

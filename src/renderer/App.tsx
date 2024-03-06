@@ -6,6 +6,7 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { FolderOutlined } from '@ant-design/icons';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
+import { ItemsProvider, useItemsContext } from './TabsContext';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -31,7 +32,7 @@ function Hello() {
   });
 
   const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
-  const [items, setItems] = useState([]);
+  const { items, updateItems } = useItemsContext();
   const newTabIndex = useRef(
     Number(TabService.getMaxTabKey().replace('tab', '')) + 1,
   );
@@ -97,7 +98,10 @@ function Hello() {
           icon: <FolderOutlined />,
         },
       ];
-      setItems(newItems);
+      updateItems(newItems);
+      setActiveKey('tab1');
+      TabService.setActiveTab('tab1');
+      window.localStorage.setItem('tab1', JSON.stringify({}));
       return;
     }
 
@@ -124,7 +128,7 @@ function Hello() {
         icon: <FolderOutlined />,
       });
     }
-    setItems(newItems);
+    updateItems(newItems);
     setActiveKey(TabService.getActiveTab());
   }, []);
 
@@ -148,7 +152,7 @@ function Hello() {
       key: newActiveKey,
       icon: <FolderOutlined />,
     });
-    setItems(newPanes);
+    updateItems(newPanes);
     window.localStorage.setItem(newActiveKey, JSON.stringify({}));
     setActiveKey(newActiveKey);
     TabService.setActiveTab(newActiveKey);
@@ -158,7 +162,7 @@ function Hello() {
     if (items.length >= 2) {
       window.localStorage.removeItem(String(targetKey));
       const newPanes = items.filter((item) => item.key !== targetKey);
-      setItems(newPanes);
+      updateItems(newPanes);
       if (targetKey === activeKey) {
         const newActiveKey = TabService.getMaxTabKey();
         setActiveKey(newActiveKey);
@@ -203,7 +207,14 @@ export default function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/" element={<Hello />} />
+        <Route
+          path="/"
+          element={
+            <ItemsProvider>
+              <Hello />
+            </ItemsProvider>
+          }
+        />
       </Routes>
     </Router>
   );
