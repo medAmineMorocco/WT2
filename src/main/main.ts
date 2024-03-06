@@ -150,3 +150,7 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
 
   event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
 });
+
+ipcMain.on('change-theme', async function (event, isDarkMode, activeTab) {
+  event.sender.send(`theme-changed-${activeTab}`, isDarkMode);
+});

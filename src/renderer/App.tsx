@@ -18,6 +18,7 @@ import {
   SunOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
@@ -31,6 +32,7 @@ function Hello() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [openKeyboard, setOpenKeyboard] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
+  const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
@@ -38,6 +40,7 @@ function Hello() {
 
   useEffect(() => {
     window.localStorage.setItem('isDarkMode', isDarkMode.toString());
+    ipcRenderer.send('change-theme', isDarkMode, activeKey);
   }, [isDarkMode]);
 
   const onThemeChange = () => {
@@ -48,7 +51,6 @@ function Hello() {
     preventDefault: true,
   });
 
-  const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
   const { items, updateItems } = useItemsContext();
   const newTabIndex = useRef(
     Number(TabService.getMaxTabKey().replace('tab', '')) + 1,
@@ -104,7 +106,7 @@ function Hello() {
       newItems = [
         {
           label: 'Tab 1',
-          children: <ContentTab keyTab="tab1" isDarkMode={isDarkMode} />,
+          children: <ContentTab keyTab="tab1" />,
           key: 'tab1',
           icon: <FolderOutlined />,
         },
@@ -128,7 +130,7 @@ function Hello() {
       );
       newItems.push({
         label,
-        children: <ContentTab keyTab={tabKey} isDarkMode={isDarkMode} />,
+        children: <ContentTab keyTab={tabKey} />,
         key: tabKey,
         icon: <FolderOutlined />,
       });
@@ -147,7 +149,7 @@ function Hello() {
     const newPanes = [...items];
     newPanes.push({
       label: 'New Tab',
-      children: <ContentTab keyTab={newActiveKey} isDarkMode={isDarkMode} />,
+      children: <ContentTab keyTab={newActiveKey} />,
       key: newActiveKey,
       icon: <FolderOutlined />,
     });
@@ -160,7 +162,7 @@ function Hello() {
   const remove = (targetKey: TargetKey) => {
     if (items.length >= 2) {
       window.localStorage.removeItem(String(targetKey));
-      const newPanes = items.filter((item) => item.key !== targetKey);
+      const newPanes = items.filter((item: any) => item.key !== targetKey);
       updateItems(newPanes);
       if (targetKey === activeKey) {
         const newActiveKey = TabService.getMaxTabKey();

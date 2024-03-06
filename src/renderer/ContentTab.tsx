@@ -11,15 +11,12 @@ import { useItemsContext } from './TabsContext';
 
 const { Content } = Layout;
 
-export default function ContentTab({
-  keyTab,
-  isDarkMode,
-}: {
-  keyTab: string;
-  isDarkMode: boolean;
-}) {
+export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [isRepoSelected, setIsRepoSelected] = useState(false);
   const { items, updateItems } = useItemsContext();
+  const [isDarkMode, setIsDarkMode] = useState(
+    JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
+  );
 
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
@@ -72,6 +69,10 @@ export default function ContentTab({
     },
   );
 
+  ipcRenderer.on(`theme-changed-${keyTab}`, function (event, isDarkModeNew) {
+    setIsDarkMode(isDarkModeNew);
+  });
+
   return isRepoSelected ? (
     <Layout style={{ height: 'calc(100vh - 40px)' }}>
       <Worktrees isDarkMode={isDarkMode} />
@@ -95,7 +96,7 @@ export default function ContentTab({
         alignItems: 'center',
       }}
     >
-      <div className="import-area" onClick={onimportAreaClick}>
+      <div className={isDarkMode ? 'import-area-dark' : 'import-area'} onClick={onimportAreaClick}>
         <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
         <p className="ant-upload-text">Open a repository</p>
       </div>
