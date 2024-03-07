@@ -9,7 +9,6 @@ import {
   Badge,
   Space,
   Flex,
-  Grid,
   App as AntdApp,
 } from 'antd';
 import {
@@ -27,10 +26,8 @@ import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
 
 const { useToken } = theme;
-const { useBreakpoint } = Grid;
 
 export default function Workflows() {
-  const breakpoints = useBreakpoint();
   const {
     token: { colorBgContainer, borderRadiusLG, colorPrimary, colorError },
   } = theme.useToken();
@@ -61,18 +58,6 @@ export default function Workflows() {
 
   const onCloseEdit = () => {
     setOpenEdit(false);
-  };
-  const tableSize = () => {
-    if (breakpoints.xl || breakpoints.xxl) {
-      return 'large';
-    }
-    if (breakpoints.lg) {
-      return 'small';
-    }
-    if (breakpoints.md) {
-      return 'small';
-    }
-    return 'small';
   };
 
   const options = [
@@ -256,7 +241,7 @@ export default function Workflows() {
         color: token.colorTextBase,
       }}
     >
-      <Flex gap="small" vertical align="space-around">
+      <Flex gap="large" vertical>
         <div>
           <Space>
             <PartitionOutlined />
@@ -308,9 +293,8 @@ export default function Workflows() {
         <Table
           columns={columns}
           dataSource={data}
-          pagination={{ pageSize: 3, position: ['bottomLeft'] }}
+          pagination={{ pageSize: 4, position: ['bottomLeft'] }}
           bordered
-          size={tableSize()}
         />
       </Flex>
     </div>
