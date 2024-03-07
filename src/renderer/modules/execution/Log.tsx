@@ -46,12 +46,23 @@ export default function Log() {
     preventDefault: true,
   });
 
-
   return (
     <>
       <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
         <Space>
-          <Tooltip title={!isCopied ? 'Copy' : 'Copied!'} placement="left">
+          <Tooltip
+            title={
+              !isCopied ? (
+                <Space>
+                  <span>Copy</span>
+                  <small style={{ color: 'grey' }}>Shift+L</small>
+                </Space>
+              ) : (
+                'Copied!'
+              )
+            }
+            placement="left"
+          >
             {!isCopied ? (
               <CopyOutlined
                 style={{ cursor: 'pointer' }}
@@ -65,7 +76,7 @@ export default function Log() {
             title={
               <Space>
                 <span>Enter fullscreen mode</span>
-                <small style={{ color: 'grey' }}>Shift+L</small>
+                <small style={{ color: 'grey' }}>Shift+S</small>
               </Space>
             }
             placement="left"
@@ -78,7 +89,13 @@ export default function Log() {
           </Tooltip>
         </Space>
       </div>
-      <div style={{ marginTop: '8px', height: 'calc(41.5vh - 20px)', overflowY: 'auto' }}>
+      <div
+        style={{
+          marginTop: '8px',
+          height: 'calc(41.5vh - 20px)',
+          overflowY: 'auto',
+        }}
+      >
         <Text type="secondary" ref={logRef}>
           Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ab
           consequuntur cupiditate dolores, explicabo iste itaque natus nisi qui
