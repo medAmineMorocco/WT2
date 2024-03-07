@@ -167,13 +167,41 @@ export default function Log() {
         className="fullSsceen-modal"
         width="100vw"
         style={{ height: '98vh' }}
-        closeIcon={<FullscreenExitOutlined />}
+        closeIcon={
+          <Tooltip
+            title={
+              <Space>
+                <span>Exit fullscreen mode</span>
+                <small style={{ color: 'grey' }}>Shift+S</small>
+              </Space>
+            }
+            placement="left"
+          >
+            <FullscreenExitOutlined
+              style={{ cursor: 'pointer' }}
+              onClick={toggleFullScreenMode}
+              className="icon-action"
+            />
+          </Tooltip>
+        }
         maskClosable
         onCancel={toggleFullScreenMode}
         destroyOnClose
         footer={null}
       >
-        <Tooltip title={!isCopied ? 'Copy' : 'Copied!'} placement="left">
+        <Tooltip
+          title={
+            !isCopied ? (
+              <Space>
+                <span>Copy</span>
+                <small style={{ color: 'grey' }}>Shift+L</small>
+              </Space>
+            ) : (
+              'Copied!'
+            )
+          }
+          placement="left"
+        >
           {!isCopied ? (
             <CopyOutlined
               style={{
