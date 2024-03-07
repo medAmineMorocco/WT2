@@ -49,6 +49,11 @@ const data = [
     shortcut2: 'C',
   },
   {
+    title: 'New tab',
+    shortcut1: 'Shift',
+    shortcut2: 'N',
+  },
+  {
     title: 'Move to next tab',
     shortcut1: 'Shift',
     shortcut2: '→',

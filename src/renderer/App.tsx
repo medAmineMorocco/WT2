@@ -15,6 +15,7 @@ import {
   FolderOutlined,
   MoonOutlined,
   MoreOutlined,
+  PlusOutlined,
   SunOutlined,
   UnorderedListOutlined,
 } from '@ant-design/icons';
@@ -203,6 +204,10 @@ function Hello() {
     preventDefault: true,
   });
 
+  useHotkeys('shift+n', add, {
+    preventDefault: true,
+  });
+
   return (
     <ConfigProvider
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
@@ -214,6 +219,11 @@ function Hello() {
           activeKey={activeKey}
           onEdit={onEdit}
           items={items}
+          addIcon={
+            <Tooltip title="New Tab (Shift + N)">
+              <PlusOutlined />
+            </Tooltip>
+          }
           size="small"
           className={
             isDarkMode ? 'repositories-tabs-dark' : 'repositories-tabs'
