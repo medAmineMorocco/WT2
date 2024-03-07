@@ -42,6 +42,11 @@ function Hello() {
   useEffect(() => {
     window.localStorage.setItem('isDarkMode', isDarkMode.toString());
     ipcRenderer.send('change-theme', isDarkMode, activeKey);
+    const htmlTags = document.getElementsByTagName('html');
+    if (htmlTags.length > 0) {
+      const htmlTag = htmlTags[0];
+      htmlTag.setAttribute('data-color-scheme', isDarkMode ? 'dark' : 'light');
+    }
   }, [isDarkMode]);
 
   const onThemeChange = () => {

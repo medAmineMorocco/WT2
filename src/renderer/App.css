@@ -1,6 +1,14 @@
 * {
- user-select: none;
+  user-select: none;
   outline: none !important;
+}
+
+[data-color-scheme='dark'] {
+  color-scheme: dark;
+}
+
+[data-color-scheme='light'] {
+  color-scheme: light;
 }
 
 body {
@@ -52,12 +60,19 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
+  width: 8px;
 }
 
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+[data-color-scheme='dark'] ::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+[data-color-scheme='light'] ::-webkit-scrollbar-thumb {
+  background: #ccc;
 }
 
 .keyboard-modal > .ant-modal-content > .ant-modal-header {
