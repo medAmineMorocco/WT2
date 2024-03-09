@@ -1,6 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Layout, message } from 'antd';
-import { InboxOutlined } from '@ant-design/icons';
+import { Layout, message, Spin } from 'antd';
+import {
+  InboxOutlined,
+  LoadingOutlined,
+  FolderOutlined,
+} from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import Worktrees from './modules/worktrees/Worktrees';
@@ -17,16 +21,32 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
+  const [loading, setLoading] = useState(true);
 
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
+  function changeIconOfActiveTab(icon: any) {
+    const newItems = items.map((item: any) => {
+      if (item.key === keyTab) {
+        item.icon = icon;
+      }
+      return item;
+    });
+    updateItems(newItems);
+  }
+
   useEffect(() => {
+    changeIconOfActiveTab(<LoadingOutlined />);
     const tabRepoPath = TabService.getTabRepoPath(keyTab);
     if (tabRepoPath) {
       setIsRepoSelected(true);
     } else {
       setIsRepoSelected(false);
     }
+    setTimeout(() => {
+      changeIconOfActiveTab(<FolderOutlined />);
+      setLoading(false);
+    }, 300);
   }, [keyTab]);
 
   const onimportAreaClick = () => {
@@ -73,17 +93,30 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     setIsDarkMode(isDarkModeNew);
   });
 
-  return isRepoSelected ? (
-    <Layout style={{ height: 'calc(100vh - 40px)' }}>
-      <Worktrees isDarkMode={isDarkMode} />
-      <Layout>
-        <Content style={{ margin: '8px' }}>
-          <Execution />
-          <Workflows />
-        </Content>
+  if (loading) {
+    return (
+      <Layout
+        style={{ height: 'calc(100vh - 40px)', justifyContent: 'center' }}
+      >
+        <Spin />
       </Layout>
-    </Layout>
-  ) : (
+    );
+  }
+
+  if (isRepoSelected) {
+    return (
+      <Layout style={{ height: 'calc(100vh - 40px)' }}>
+        <Worktrees isDarkMode={isDarkMode} />
+        <Layout>
+          <Content style={{ margin: '8px' }}>
+            <Execution />
+            <Workflows />
+          </Content>
+        </Layout>
+      </Layout>
+    );
+  }
+  return (
     <div
       className={
         isDarkMode ? 'import-area-dark-container' : 'import-area-container'
@@ -96,7 +129,10 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         alignItems: 'center',
       }}
     >
-      <div className={isDarkMode ? 'import-area-dark' : 'import-area'} onClick={onimportAreaClick}>
+      <div
+        className={isDarkMode ? 'import-area-dark' : 'import-area'}
+        onClick={onimportAreaClick}
+      >
         <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
         <p className="ant-upload-text">Open a repository</p>
       </div>
