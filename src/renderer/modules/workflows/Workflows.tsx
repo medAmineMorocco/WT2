@@ -37,6 +37,7 @@ export default function Workflows() {
   const [openAdd, setOpenAdd] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [workflowToEdit, setWorkflowToEdit] = useState();
+  const [playingWorkflow, setPlayingWorkflow] = useState(null);
   const { modal } = AntdApp.useApp();
 
   const showDrawer = () => {
@@ -102,12 +103,14 @@ export default function Workflows() {
   const playWorkflow = (record: any) => {
     return () => {
       console.log('play', record);
+      setPlayingWorkflow(record.name);
     };
   };
 
   const stopWorkflow = (record: any) => {
     return () => {
       console.log('stop', record);
+      setPlayingWorkflow(null);
     };
   };
 
@@ -165,20 +168,34 @@ export default function Workflows() {
               className="icon-action"
             />
           </Tooltip>
-          <Tooltip placement="top" title="Stop workflow">
-            <CloseCircleOutlined
-              onClick={stopWorkflow(record)}
-              className="icon-action"
-              style={{ cursor: 'pointer', color: colorPrimary }}
-            />
-          </Tooltip>
-          <Tooltip placement="top" title="Play workflow">
-            <PlayCircleOutlined
-              onClick={playWorkflow(record)}
-              className="icon-action"
-              style={{ cursor: 'pointer', color: colorPrimary }}
-            />
-          </Tooltip>
+          {playingWorkflow === record.name && (
+            <Tooltip placement="top" title="Stop workflow">
+              <CloseCircleOutlined
+                onClick={stopWorkflow(record)}
+                className="icon-action"
+                style={{ cursor: 'pointer', color: colorPrimary }}
+              />
+            </Tooltip>
+          )}
+          {playingWorkflow !== record.name && (
+            <Tooltip placement="top" title="Play workflow">
+              <PlayCircleOutlined
+                onClick={
+                  !playingWorkflow || record.name === playingWorkflow
+                    ? playWorkflow(record)
+                    : () => null
+                }
+                className="icon-action"
+                style={{
+                  cursor:
+                    !playingWorkflow || record.name === playingWorkflow
+                      ? 'pointer'
+                      : 'no-drop',
+                  color: colorPrimary,
+                }}
+              />
+            </Tooltip>
+          )}
         </div>
       ),
     },
