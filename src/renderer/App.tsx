@@ -232,6 +232,7 @@ function Hello() {
                   <small> (Shift + N)</small>
                 </>
               }
+              placement="bottomRight"
             >
               <PlusOutlined />
             </Tooltip>
