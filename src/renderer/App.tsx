@@ -225,7 +225,14 @@ function Hello() {
           onEdit={onEdit}
           items={items}
           addIcon={
-            <Tooltip title="New Tab (Shift + N)">
+            <Tooltip
+              title={
+                <>
+                  <span>New Tab</span>
+                  <small> (Shift + N)</small>
+                </>
+              }
+            >
               <PlusOutlined />
             </Tooltip>
           }
