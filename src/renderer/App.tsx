@@ -106,7 +106,7 @@ function Hello() {
 
   useEffect(() => {
     const tabs = TabService.getTabs();
-    let newItems = [...items];
+    let newItems = [];
 
     if (tabs.length === 0) {
       newItems = [
