@@ -240,7 +240,7 @@ function Hello() {
               title={
                 <>
                   <span>New Tab</span>
-                  <small> (Shift + N)</small>
+                  <small style={{ color: 'grey' }}> Shift+N</small>
                 </>
               }
               placement="bottomRight"
