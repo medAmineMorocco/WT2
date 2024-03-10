@@ -27,6 +27,11 @@ const data = {
       shortcut2: 'N',
     },
     {
+      title: 'Close current tab',
+      shortcut1: 'Shift',
+      shortcut2: 'F4',
+    },
+    {
       title: 'Move to next tab',
       shortcut1: 'Shift',
       shortcut2: '→',
@@ -35,6 +40,11 @@ const data = {
       title: 'Move to previous tab',
       shortcut1: 'shift',
       shortcut2: '←',
+    },
+    {
+      title: 'Open repository',
+      shortcut1: 'Shift',
+      shortcut2: 'O',
     },
   ],
   worktree: [

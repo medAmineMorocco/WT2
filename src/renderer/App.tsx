@@ -213,6 +213,17 @@ function Hello() {
     preventDefault: true,
   });
 
+  useHotkeys(
+    'shift+F4',
+    () => {
+      const activeTab = TabService.getActiveTab();
+      remove(activeTab);
+    },
+    {
+      preventDefault: true,
+    },
+  );
+
   return (
     <ConfigProvider
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
