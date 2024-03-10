@@ -29,7 +29,13 @@ const { useToken } = theme;
 
 export default function Workflows() {
   const {
-    token: { colorBgContainer, borderRadiusLG, colorPrimary, colorError },
+    token: {
+      colorBgContainer,
+      borderRadiusLG,
+      colorPrimary,
+      colorError,
+      colorTextDisabled,
+    },
   } = theme.useToken();
 
   const { token } = useToken();
@@ -156,16 +162,22 @@ export default function Workflows() {
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
             <MinusCircleOutlined
-              onClick={deleteWorkflow(record)}
-              style={{ color: colorError }}
-              className="icon-action"
+              onClick={!playingWorkflow ? deleteWorkflow(record) : () => null}
+              style={{
+                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
+                color: !playingWorkflow ? colorError : colorTextDisabled,
+              }}
+              className={!playingWorkflow ? 'icon-action' : ''}
             />
           </Tooltip>
           <Tooltip placement="top" title="Edit workflow">
             <EditOutlined
-              onClick={showEditDrawer(record)}
-              style={{ color: colorPrimary }}
-              className="icon-action"
+              onClick={!playingWorkflow ? showEditDrawer(record) : () => null}
+              style={{
+                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
+                color: !playingWorkflow ? colorPrimary : colorTextDisabled,
+              }}
+              className={!playingWorkflow ? 'icon-action' : ''}
             />
           </Tooltip>
           {playingWorkflow === record.name && (
@@ -185,13 +197,13 @@ export default function Workflows() {
                     ? playWorkflow(record)
                     : () => null
                 }
-                className="icon-action"
+                className={!playingWorkflow ? 'icon-action' : ''}
                 style={{
                   cursor:
                     !playingWorkflow || record.name === playingWorkflow
                       ? 'pointer'
                       : 'no-drop',
-                  color: colorPrimary,
+                  color: !playingWorkflow ? colorPrimary : colorTextDisabled,
                 }}
               />
             </Tooltip>
