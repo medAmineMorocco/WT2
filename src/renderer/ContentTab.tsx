@@ -7,6 +7,7 @@ import {
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
+import { motion } from 'framer-motion';
 import Worktrees from './modules/worktrees/Worktrees';
 import Execution from './modules/execution/Execution';
 import Workflows from './modules/workflows/Workflows';
@@ -105,19 +106,28 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   if (isRepoSelected) {
     return (
-      <Layout style={{ height: 'calc(100vh - 40px)' }}>
-        <Worktrees isDarkMode={isDarkMode} />
-        <Layout>
-          <Content style={{ margin: '8px' }}>
-            <Execution />
-            <Workflows />
-          </Content>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeInOut' }}
+      >
+        <Layout style={{ height: 'calc(100vh - 40px)' }}>
+          <Worktrees isDarkMode={isDarkMode} />
+          <Layout>
+            <Content style={{ margin: '8px' }}>
+              <Execution />
+              <Workflows />
+            </Content>
+          </Layout>
         </Layout>
-      </Layout>
+      </motion.div>
     );
   }
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5, ease: 'easeOut' }}
       className={
         isDarkMode ? 'import-area-dark-container' : 'import-area-container'
       }
@@ -136,6 +146,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
         <p className="ant-upload-text">Open a repository</p>
       </div>
-    </div>
+    </motion.div>
   );
 }
