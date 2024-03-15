@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Layout, message, Spin } from 'antd';
+import { Layout, message, Progress, theme } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -13,17 +13,21 @@ import Execution from './modules/execution/Execution';
 import Workflows from './modules/workflows/Workflows';
 import TabService from './services/tab/TabService';
 import { useItemsContext } from './TabsContext';
+import Loader from './components/Loader';
 
 const { Content } = Layout;
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
+  const {
+    token: { colorPrimary },
+  } = theme.useToken();
   const [isRepoSelected, setIsRepoSelected] = useState(false);
   const { items, updateItems } = useItemsContext();
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
   const [loading, setLoading] = useState(true);
-
+  const [percent, setPercent] = useState(0);
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   function changeIconOfActiveTab(icon: any) {
@@ -37,6 +41,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   }
 
   useEffect(() => {
+    setInterval(() => {
+      setPercent(percent + 5);
+    }, 100);
+  });
+
+  useEffect(() => {
     changeIconOfActiveTab(<LoadingOutlined />);
     const tabRepoPath = TabService.getTabRepoPath(keyTab);
     if (tabRepoPath) {
@@ -47,7 +57,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     setTimeout(() => {
       changeIconOfActiveTab(<FolderOutlined />);
       setLoading(false);
-    }, 300);
+    }, 2000);
   }, [keyTab]);
 
   const onimportAreaClick = () => {
@@ -97,9 +107,21 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   if (loading) {
     return (
       <Layout
-        style={{ height: 'calc(100vh - 40px)', justifyContent: 'center' }}
+        style={{
+          height: 'calc(100vh - 40px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
       >
-        <Spin />
+        <Loader isDarkMode={isDarkMode} />
+        <Progress
+          strokeColor={colorPrimary}
+          showInfo={false}
+          percent={percent}
+          size="small"
+          style={{ width: 414 }}
+        />
       </Layout>
     );
   }
