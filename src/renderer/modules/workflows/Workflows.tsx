@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { forwardRef, useState } from 'react';
 import {
   theme,
   Table,
@@ -27,7 +27,7 @@ import AddWorkflow from './AddWorkflow';
 
 const { useToken } = theme;
 
-export default function Workflows() {
+const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const {
     token: {
       colorBgContainer,
@@ -304,6 +304,7 @@ export default function Workflows() {
               }
             >
               <Button
+                ref={ref}
                 onClick={showDrawer}
                 type="primary"
                 icon={<PlusOutlined />}
@@ -328,4 +329,6 @@ export default function Workflows() {
       </Flex>
     </div>
   );
-}
+});
+
+export default Workflows;

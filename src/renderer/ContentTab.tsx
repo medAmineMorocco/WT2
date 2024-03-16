@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Layout, message, Progress, theme } from 'antd';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Layout, message, Progress, theme, Tour, TourProps } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -18,6 +18,9 @@ import Loader from './components/Loader';
 const { Content } = Layout;
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
+  const ref1 = useRef(null);
+  const ref2 = useRef(null);
+  const ref3 = useRef(null);
   const {
     token: { colorPrimary },
   } = theme.useToken();
@@ -104,6 +107,54 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     setIsDarkMode(isDarkModeNew);
   });
 
+  const steps: TourProps['steps'] = [
+    {
+      title: 'Create a new worktree',
+      description: 'Put your files here.',
+      cover: (
+        <img
+          alt="tour.png"
+          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
+        />
+      ),
+      target: () => ref1.current,
+      placement: 'rightTop',
+    },
+    {
+      title: 'Create a new workflow',
+      description: 'Save your changes.',
+      cover: (
+        <img
+          alt="tour.png"
+          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
+        />
+      ),
+      target: () => ref2.current,
+      placement: 'left',
+    },
+    {
+      title: 'Watch execution of the workflow',
+      description: 'Click to see other actions.',
+      cover: (
+        <img
+          alt="tour.png"
+          height="180"
+          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
+        />
+      ),
+      target: () => ref3.current,
+      placement: 'bottom',
+    },
+  ];
+
+  const isFirstTimeOpenApp = () => {
+    return !window.localStorage.getItem('fistTime');
+  };
+
+  const onCloseTour = () => {
+    window.localStorage.setItem('fistTime', 'true');
+  };
+
   if (loading) {
     return (
       <Layout
@@ -134,14 +185,17 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         transition={{ duration: 0.5, ease: 'easeInOut' }}
       >
         <Layout style={{ height: 'calc(100vh - 40px)' }}>
-          <Worktrees isDarkMode={isDarkMode} />
+          <Worktrees isDarkMode={isDarkMode} ref={ref1} />
           <Layout>
             <Content style={{ margin: '8px' }}>
-              <Execution />
-              <Workflows />
+              <div ref={ref3}>
+                <Execution />
+              </div>
+              <Workflows ref={ref2} />
             </Content>
           </Layout>
         </Layout>
+        <Tour open={isFirstTimeOpenApp()} onClose={onCloseTour} steps={steps} />
       </motion.div>
     );
   }
