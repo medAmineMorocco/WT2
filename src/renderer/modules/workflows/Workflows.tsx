@@ -13,12 +13,12 @@ import {
 } from 'antd';
 import {
   PlusOutlined,
-  MinusCircleOutlined,
+  DeleteOutlined,
   PartitionOutlined,
   ExclamationCircleFilled,
   EditOutlined,
-  CloseCircleOutlined,
-  PlayCircleOutlined,
+  XFilled,
+  CaretRightOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -161,7 +161,7 @@ export default function Workflows() {
       render: (_: any, record: any) => (
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
-            <MinusCircleOutlined
+            <DeleteOutlined
               onClick={!playingWorkflow ? deleteWorkflow(record) : () => null}
               style={{
                 cursor: !playingWorkflow ? 'pointer' : 'no-drop',
@@ -182,7 +182,7 @@ export default function Workflows() {
           </Tooltip>
           {playingWorkflow === record.name && (
             <Tooltip placement="top" title="Stop workflow">
-              <CloseCircleOutlined
+              <XFilled
                 onClick={stopWorkflow(record)}
                 className="icon-action"
                 style={{ cursor: 'pointer', color: colorPrimary }}
@@ -191,7 +191,7 @@ export default function Workflows() {
           )}
           {playingWorkflow !== record.name && (
             <Tooltip placement="top" title="Play workflow">
-              <PlayCircleOutlined
+              <CaretRightOutlined
                 onClick={
                   !playingWorkflow || record.name === playingWorkflow
                     ? playWorkflow(record)
