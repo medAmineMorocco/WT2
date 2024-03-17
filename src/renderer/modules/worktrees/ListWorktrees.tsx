@@ -171,6 +171,18 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 required: true,
                 message: 'Please input your worktree name!',
               },
+              () => ({
+                validator(_, value) {
+                  if (value && value.includes('/')) {
+                    return Promise.reject(
+                      new Error(
+                        'The name of worktree should not contains / character !',
+                      ),
+                    );
+                  }
+                  return Promise.resolve();
+                },
+              }),
             ]}
             style={{ flex: 1 }}
           >
