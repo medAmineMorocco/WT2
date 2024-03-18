@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useMemo, useState } from 'react';
 import {
   theme,
   Table,
@@ -47,6 +47,10 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [workflowToEdit, setWorkflowToEdit] = useState();
   const [playingWorkflow, setPlayingWorkflow] = useState(null);
   const { modal } = AntdApp.useApp();
+
+  const screenHeight = useMemo(() => {
+    return window.innerHeight;
+  }, []);
 
   const showDrawer = () => {
     setOpenAdd(true);
@@ -286,7 +290,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         color: token.colorTextBase,
       }}
     >
-      <Flex gap="large" vertical>
+      <Flex gap={screenHeight < 1080 ? 'middle' : 'large'} vertical>
         <div>
           <Space>
             <PartitionOutlined />
@@ -348,8 +352,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <Table
           columns={columns}
           dataSource={data}
-          pagination={{ pageSize: 4, position: ['bottomLeft'] }}
+          pagination={{
+            pageSize: screenHeight < 1080 ? 3 : 4,
+            position: ['bottomLeft'],
+          }}
           bordered
+          size={screenHeight < 1080 ? 'middle' : 'large'}
         />
       </Flex>
     </div>
