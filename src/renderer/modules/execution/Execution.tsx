@@ -1,8 +1,10 @@
 import React from 'react';
 import { theme, Space } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
-import Visualization from './Visualization';
-import Log from './Log';
+// import Visualization from './Visualization';
+// import Log from './Log';
+import LogIllustration from '../../components/LogIllustration';
+import VisualizationIllustration from '../../components/VisualizationIllustration';
 
 const { useToken } = theme;
 
@@ -37,8 +39,18 @@ export default function Execution() {
             position: 'relative',
           }}
         >
-          <div>
+          {/* <div>
             <Visualization />
+          </div> */}
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+            }}
+          >
+            <VisualizationIllustration />
           </div>
         </div>
       </div>
@@ -57,8 +69,18 @@ export default function Execution() {
           <FileOutlined />
           <strong>Log</strong>
         </Space>
-        <div>
-          <Log />
+        {/* <div>
+           <Log />
+        </div> */}
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'center',
+            width: '100%',
+            height: '100%',
+          }}
+        >
+          <LogIllustration />
         </div>
       </div>
     </div>
