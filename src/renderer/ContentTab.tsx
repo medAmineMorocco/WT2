@@ -24,12 +24,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const {
     token: { colorPrimary },
   } = theme.useToken();
-  const [isRepoSelected, setIsRepoSelected] = useState(false);
+  const [isRepoSelected, setIsRepoSelected] = useState<Boolean>();
   const { items, updateItems } = useItemsContext();
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [percent, setPercent] = useState(0);
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
@@ -50,6 +50,16 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   });
 
   useEffect(() => {
+    if (isRepoSelected) {
+      setLoading(true);
+      setTimeout(() => {
+        changeIconOfActiveTab(<FolderOutlined />);
+        setLoading(false);
+      }, 2000);
+    }
+  }, [isRepoSelected]);
+
+  useEffect(() => {
     changeIconOfActiveTab(<LoadingOutlined />);
     const tabRepoPath = TabService.getTabRepoPath(keyTab);
     if (tabRepoPath) {
@@ -57,10 +67,15 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     } else {
       setIsRepoSelected(false);
     }
-    setTimeout(() => {
+    if (isRepoSelected) {
+      setLoading(true);
+      setTimeout(() => {
+        changeIconOfActiveTab(<FolderOutlined />);
+        setLoading(false);
+      }, 2000);
+    } else {
       changeIconOfActiveTab(<FolderOutlined />);
-      setLoading(false);
-    }, 2000);
+    }
   }, [keyTab]);
 
   const onimportAreaClick = () => {
@@ -199,29 +214,32 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       </motion.div>
     );
   }
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className={
-        isDarkMode ? 'import-area-dark-container' : 'import-area-container'
-      }
-      style={{
-        width: '100vw',
-        height: 'calc(100vh - 40px)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-      }}
-    >
-      <div
-        className={isDarkMode ? 'import-area-dark' : 'import-area'}
-        onClick={onimportAreaClick}
+  if (isRepoSelected === false) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: 'easeOut' }}
+        className={
+          isDarkMode ? 'import-area-dark-container' : 'import-area-container'
+        }
+        style={{
+          width: '100vw',
+          height: 'calc(100vh - 40px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
       >
-        <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
-        <p className="ant-upload-text">Open a repository</p>
-      </div>
-    </motion.div>
-  );
+        <div
+          className={isDarkMode ? 'import-area-dark' : 'import-area'}
+          onClick={onimportAreaClick}
+        >
+          <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
+          <p className="ant-upload-text">Open a repository</p>
+        </div>
+      </motion.div>
+    );
+  }
+  return <div />;
 }
