@@ -24,6 +24,7 @@ import {
 import { useHotkeys } from 'react-hotkeys-hook';
 import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
+import ImportWorkflow from './ImportWorkflow';
 
 const { useToken } = theme;
 
@@ -41,6 +42,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const { token } = useToken();
 
   const [openAdd, setOpenAdd] = useState(false);
+  const [openImport, setOpenImport] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
   const [workflowToEdit, setWorkflowToEdit] = useState();
   const [playingWorkflow, setPlayingWorkflow] = useState(null);
@@ -50,7 +52,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     setOpenAdd(true);
   };
 
+  const importWorkflow = () => {
+    setOpenImport(true);
+  };
+
   useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
+  useHotkeys('shift+i', () => importWorkflow(), { preventDefault: true });
 
   const showEditDrawer = (record: any) => {
     return () => {
@@ -61,6 +68,15 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const onCloseAdd = () => {
     setOpenAdd(false);
+  };
+
+  const onConfirmImport = (selected: any[]) => {
+    console.log('selected', selected);
+    setOpenImport(false);
+  };
+
+  const onCancelImport = () => {
+    setOpenImport(false);
   };
 
   const onCloseEdit = () => {
@@ -290,7 +306,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
                 </Space>
               }
             >
-              <Button type="primary" icon={<UploadOutlined />}>
+              <Button
+                onClick={importWorkflow}
+                type="primary"
+                icon={<UploadOutlined />}
+              >
                 Import
               </Button>
             </Tooltip>
@@ -314,6 +334,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             </Tooltip>
           </Space>
           <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
+          <ImportWorkflow
+            isOpen={openImport}
+            onConfirm={onConfirmImport}
+            onCancel={onCancelImport}
+          />
         </div>
         <EditWorkflow
           openEdit={openEdit}
