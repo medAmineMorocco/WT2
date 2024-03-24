@@ -56,6 +56,8 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
       }, 2000);
+    } else {
+      changeIconOfActiveTab(<FolderOutlined />);
     }
   }, [isRepoSelected]);
 
@@ -66,15 +68,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setIsRepoSelected(true);
     } else {
       setIsRepoSelected(false);
-    }
-    if (isRepoSelected) {
-      setLoading(true);
-      setTimeout(() => {
-        changeIconOfActiveTab(<FolderOutlined />);
-        setLoading(false);
-      }, 2000);
-    } else {
-      changeIconOfActiveTab(<FolderOutlined />);
     }
   }, [keyTab]);
 
