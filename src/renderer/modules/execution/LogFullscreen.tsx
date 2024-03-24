@@ -1,9 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { Space, Tabs, Tooltip } from 'antd';
-import { CheckOutlined, CopyOutlined, ExpandOutlined } from '@ant-design/icons';
+import { Modal, Space, Tabs, Tooltip } from 'antd';
+import {
+  CheckOutlined,
+  CopyOutlined,
+  FileOutlined,
+  FullscreenExitOutlined,
+} from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { TypeAnimation } from 'react-type-animation';
-import LogFullscreen from './LogFullscreen';
 
 const firstText = `Lorem ipsum dolor sit amet, consectetur adipisicing elit. Ab
 consequuntur cupiditate dolores, explicabo iste itaque natus nisi qui
@@ -54,95 +58,104 @@ facilis in ipsam iste molestiae nam numquam quasi repellendus sint?
 explicabo, in iure magni maxime minus mollitia, nisi nulla qui rem
 ullam voluptatem.`;
 
-export default function Log() {
+export default function LogFullscreen({
+  isFullScreenMode,
+  toggleFullScreenMode,
+  activeKey,
+}: {
+  isFullScreenMode: boolean;
+  toggleFullScreenMode: any;
+  activeKey: string;
+}) {
   const [isCopied, setCopied] = useState(false);
 
-  const [isFullScreenMode, setFullScreenMode] = useState(false);
+  const logFullscreenRef = useRef();
 
-  const logRef = useRef();
-
-  const [activeTabKey, setActiveTabKey] = useState('1');
-
-  const onCopyClick = () => {
-    navigator.clipboard.writeText(logRef.current.innerHTML);
+  const onCopyFullscreenClick = () => {
+    navigator.clipboard.writeText(logFullscreenRef.current.innerHTML);
     setCopied(true);
     setTimeout(() => {
       setCopied(false);
     }, 2000);
   };
 
-  const toggleFullScreenMode = () => {
-    setFullScreenMode(!isFullScreenMode);
-  };
-
-  const onChangeTab = (activeKey: string) => {
-    setActiveTabKey(activeKey);
-  };
-
   useHotkeys('shift+s', () => toggleFullScreenMode(), {
     preventDefault: true,
   });
 
-  useHotkeys('shift+l', () => onCopyClick(), {
-    preventDefault: true,
-  });
-
   return (
-    <>
-      <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
+    <Modal
+      title={
         <Space>
-          <Tooltip
-            title={
-              !isCopied ? (
-                <Space>
-                  <span>Copy</span>
-                  <small style={{ color: 'grey' }}>Shift+L</small>
-                </Space>
-              ) : (
-                'Copied!'
-              )
-            }
-            placement="left"
-          >
-            {!isCopied ? (
-              <CopyOutlined
-                style={{ cursor: 'pointer' }}
-                onClick={onCopyClick}
-              />
-            ) : (
-              <CheckOutlined />
-            )}
-          </Tooltip>
-          <Tooltip
-            title={
-              <Space>
-                <span>Enter fullscreen mode</span>
-                <small style={{ color: 'grey' }}>Shift+S</small>
-              </Space>
-            }
-            placement="left"
-          >
-            <ExpandOutlined
-              style={{ cursor: 'pointer' }}
-              onClick={toggleFullScreenMode}
-              className="icon-action"
-            />
-          </Tooltip>
+          <FileOutlined />
+          <strong>Log</strong>
         </Space>
-      </div>
-      <div
-        style={{
-          marginTop: '8px',
-          height: 'calc(41.5vh - 20px)',
-          overflowY: 'auto',
-        }}
+      }
+      centered
+      open={isFullScreenMode}
+      className="fullSsceen-modal"
+      width="100vw"
+      style={{ height: '98vh' }}
+      closeIcon={
+        <Tooltip
+          title={
+            <Space>
+              <span>Exit fullscreen mode</span>
+              <small style={{ color: 'grey' }}>Shift+S</small>
+            </Space>
+          }
+          placement="left"
+        >
+          <FullscreenExitOutlined
+            style={{ cursor: 'pointer' }}
+            onClick={toggleFullScreenMode}
+            className="icon-action"
+          />
+        </Tooltip>
+      }
+      maskClosable
+      onCancel={toggleFullScreenMode}
+      destroyOnClose
+      footer={null}
+    >
+      <Tooltip
+        title={
+          !isCopied ? (
+            <Space>
+              <span>Copy</span>
+              <small style={{ color: 'grey' }}>Shift+L</small>
+            </Space>
+          ) : (
+            'Copied!'
+          )
+        }
+        placement="left"
       >
+        {!isCopied ? (
+          <CopyOutlined
+            style={{
+              cursor: 'pointer',
+              position: 'absolute',
+              top: '21px',
+              right: '44px',
+            }}
+            onClick={onCopyFullscreenClick}
+          />
+        ) : (
+          <CheckOutlined
+            style={{
+              position: 'absolute',
+              top: '21px',
+              right: '44px',
+            }}
+          />
+        )}
+      </Tooltip>
+      <div style={{ marginTop: '8px', height: '86vh', overflowY: 'auto' }}>
         <Tabs
-          tabPosition="left"
-          style={{
-            height: 'calc(41.5vh - 20px)',
-          }}
-          onChange={onChangeTab}
+          tabPosition="top"
+          centered
+          defaultActiveKey={activeKey}
           items={new Array(3).fill(null).map((_, i) => {
             const id = String(i + 1);
             return {
@@ -150,7 +163,7 @@ export default function Log() {
               key: id,
               children: (
                 <TypeAnimation
-                  ref={logRef}
+                  ref={logFullscreenRef}
                   style={{
                     display: 'block',
                   }}
@@ -162,11 +175,6 @@ export default function Log() {
           })}
         />
       </div>
-      <LogFullscreen
-        isFullScreenMode={isFullScreenMode}
-        toggleFullScreenMode={toggleFullScreenMode}
-        activeKey={activeTabKey}
-      />
-    </>
+    </Modal>
   );
 }

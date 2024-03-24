@@ -2,7 +2,7 @@ import React from 'react';
 import { theme, Space } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 // import Visualization from './Visualization';
-// import Log from './Log';
+import Log from './Log';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
 
@@ -69,10 +69,10 @@ export default function Execution() {
           <FileOutlined />
           <strong>Log</strong>
         </Space>
-        {/* <div>
-           <Log />
-        </div> */}
-        <div
+        <div>
+          <Log />
+        </div>
+        {/* <div
           style={{
             display: 'flex',
             justifyContent: 'center',
@@ -81,7 +81,7 @@ export default function Execution() {
           }}
         >
           <LogIllustration />
-        </div>
+        </div> */}
       </div>
     </div>
   );
