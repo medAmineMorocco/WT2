@@ -31,42 +31,42 @@ const config: any = {
   },
 };
 
+const worktreesStates = [
+  {
+    title: 'Worktree1',
+    current: 3,
+    status: 'success',
+  },
+  {
+    title: 'Worktree2',
+    current: 1,
+    status: 'processing',
+  },
+  {
+    title: 'Worktree3',
+    current: 1,
+    status: 'error',
+  },
+  {
+    title: 'Worktree4',
+    current: -1,
+    status: 'wait',
+  },
+];
+
+const commands = [
+  {
+    title: 'git stash',
+  },
+  {
+    title: 'git rebase master',
+  },
+  {
+    title: 'git pop',
+  },
+];
+
 export default function Visualization() {
-  const worktreesStates = [
-    {
-      title: 'Worktree1',
-      current: 3,
-      status: 'success',
-    },
-    {
-      title: 'Worktree2',
-      current: 1,
-      status: 'processing',
-    },
-    {
-      title: 'Worktree3',
-      current: 1,
-      status: 'error',
-    },
-    {
-      title: 'Worktree4',
-      current: -1,
-      status: 'wait',
-    },
-  ];
-
-  const commands = [
-    {
-      title: 'git stash',
-    },
-    {
-      title: 'git rebase master',
-    },
-    {
-      title: 'git pop',
-    },
-  ];
-
   return (
     <ul style={{ paddingLeft: 0 }}>
       {worktreesStates.map((item) => (

@@ -31,6 +31,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   );
   const [loading, setLoading] = useState(false);
   const [percent, setPercent] = useState(0);
+  const [workflowToPlay, setWorkflowToPlay] = useState();
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   function changeIconOfActiveTab(icon: any) {
@@ -163,6 +164,10 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     window.localStorage.setItem('fistTime', 'true');
   };
 
+  const settingWorkflowToPlay = (workflow: any) => {
+    setWorkflowToPlay(workflow);
+  };
+
   if (loading) {
     return (
       <Layout
@@ -197,9 +202,9 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
           <Layout>
             <Content style={{ margin: '8px' }}>
               <div ref={ref3}>
-                <Execution />
+                <Execution workflowToPlay={workflowToPlay} />
               </div>
-              <Workflows ref={ref2} />
+              <Workflows ref={ref2} setWorkflowToPlay={settingWorkflowToPlay} />
             </Content>
           </Layout>
         </Layout>
