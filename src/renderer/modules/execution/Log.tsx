@@ -134,7 +134,6 @@ export default function Log() {
         style={{
           marginTop: '8px',
           height: 'calc(41.5vh - 20px)',
-          overflowY: 'auto',
         }}
       >
         <Tabs
@@ -142,6 +141,7 @@ export default function Log() {
           style={{
             height: 'calc(41.5vh - 20px)',
           }}
+          className="log-tabs"
           onChange={onChangeTab}
           items={new Array(3).fill(null).map((_, i) => {
             const id = String(i + 1);

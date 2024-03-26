@@ -126,3 +126,7 @@ body {
 .import-area:hover, .import-area-dark:hover {
   border: 1px dashed #1677ff;
 }
+
+.log-tabs .ant-tabs-content-holder {
+  overflow-y: auto;
+}
