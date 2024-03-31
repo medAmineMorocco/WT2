@@ -1,5 +1,5 @@
-import React from 'react';
-import { Steps, Tag } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { StepProps, Steps, Tag } from 'antd';
 import {
   SyncOutlined,
   CheckCircleOutlined,
@@ -7,6 +7,7 @@ import {
   ClockCircleOutlined,
   MinusCircleOutlined,
 } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
 
 const config: any = {
   processing: {
@@ -31,42 +32,36 @@ const config: any = {
   },
 };
 
-const worktreesStates = [
-  {
-    title: 'Worktree1',
-    current: 3,
-    status: 'success',
-  },
-  {
-    title: 'Worktree2',
-    current: 1,
-    status: 'processing',
-  },
-  {
-    title: 'Worktree3',
-    current: 1,
-    status: 'error',
-  },
-  {
-    title: 'Worktree4',
-    current: -1,
-    status: 'wait',
-  },
-];
-
-const commands = [
-  {
-    title: 'git stash',
-  },
-  {
-    title: 'git rebase master',
-  },
-  {
-    title: 'git pop',
-  },
-];
-
 export default function Visualization() {
+  const [commands, setCommands] = useState<StepProps[]>([]);
+  const [worktreesStates, setWorktreesStates] = useState<any[]>([]);
+
+  useEffect(() => {
+    const onReceiveCommands = (event: any, executedCommands: string[]) => {
+      setCommands(
+        executedCommands.map((command) => {
+          return {
+            title: command,
+          };
+        }),
+      );
+    };
+    const onReceiveStatesUpdated = (
+      event: any,
+      worktreesStatesUpdated: any[],
+    ) => {
+      setWorktreesStates(worktreesStatesUpdated);
+    };
+
+    ipcRenderer.on('workflow-started-with-commands', onReceiveCommands);
+    ipcRenderer.on('workflow-started-states-updated', onReceiveStatesUpdated);
+
+    return () => {
+      ipcRenderer.removeAllListeners('workflow-started-states-updated');
+      ipcRenderer.removeAllListeners('workflow-started-with-commands');
+    };
+  }, []);
+
   return (
     <ul style={{ paddingLeft: 0 }}>
       {worktreesStates.map((item) => (

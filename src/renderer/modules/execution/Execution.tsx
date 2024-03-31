@@ -1,20 +1,43 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { theme, Space } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
+import { motion } from 'framer-motion';
+import { ipcRenderer } from 'electron';
 import Visualization from './Visualization';
 import Log from './Log';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
-import { motion } from 'framer-motion';
 
 const { useToken } = theme;
 
-export default function Execution({ workflowToPlay }: { workflowToPlay: any }) {
+export default function Execution() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
+  const [isWorkflowStarted, setIsWorkflowStarted] = useState<boolean | null>(
+    null,
+  );
+
   const { token } = useToken();
+
+  useEffect(() => {
+    const onWorkflowStarted = () => {
+      setIsWorkflowStarted(true);
+    };
+
+    const onWorkflowStopped = () => {
+      setIsWorkflowStarted(false);
+    };
+
+    ipcRenderer.on('workflow-started', onWorkflowStarted);
+    ipcRenderer.on('workflow-stopped', onWorkflowStopped);
+
+    return () => {
+      ipcRenderer.removeAllListeners('workflow-started');
+      ipcRenderer.removeAllListeners('workflow-stopped');
+    };
+  }, []);
 
   return (
     <div style={{ display: 'flex', gap: '8px' }}>
@@ -40,7 +63,7 @@ export default function Execution({ workflowToPlay }: { workflowToPlay: any }) {
             position: 'relative',
           }}
         >
-          {workflowToPlay ? (
+          {isWorkflowStarted !== null ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -81,7 +104,7 @@ export default function Execution({ workflowToPlay }: { workflowToPlay: any }) {
           <strong>Log</strong>
         </Space>
 
-        {workflowToPlay ? (
+        {isWorkflowStarted !== null ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
