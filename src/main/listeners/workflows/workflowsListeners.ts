@@ -2,6 +2,8 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { ipcMain } from 'electron';
 
+const { Notification } = require('electron');
+
 function updateWorktreesStates(
   worktreesStates: any[],
   worktreeLabel: string,
@@ -158,6 +160,10 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       });
       if (i === workflow.worktrees.length - 1) {
         event.sender.send('workflow-stopped');
+        new Notification({
+          title: 'WorktreeWise',
+          body: `Workflow ${workflow.name} finished !`,
+        }).show();
       }
     }
   }
