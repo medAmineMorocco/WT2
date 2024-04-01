@@ -56,10 +56,9 @@ function executeSequentially(
   commandProcess.stdout.on('data', (data: any) => {
     logStates = logStates.map((item) => {
       if (item.label === worktreeLabel) {
-        if (!item.data.includes(command)) {
-          item.data.push(`:::: ${command} ::::`);
+        if (!item.data[command]) {
+          item.data[command] = data.toString();
         }
-        item.data.push(data.toString());
       }
       return item;
     });
@@ -69,7 +68,9 @@ function executeSequentially(
   commandProcess.stderr.on('data', (data: any) => {
     logStates = logStates.map((item) => {
       if (item.label === worktreeLabel) {
-        item.data.push(data.toString());
+        if (!item.data[command]) {
+          item.data[command] = data.toString();
+        }
       }
       return item;
     });
@@ -137,7 +138,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       return {
         label: worktree.label,
         key: index.toString(),
-        data: [],
+        data: {},
       };
     });
     event.sender.send('workflow-started-log-received', logStates);

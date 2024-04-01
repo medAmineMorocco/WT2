@@ -70,11 +70,6 @@ const data = {
       shortcut1: 'Shift',
       shortcut2: 'S',
     },
-    {
-      title: 'Copy Log',
-      shortcut1: 'Shift',
-      shortcut2: 'L',
-    },
   ],
 };
 export default function KeyboardShortcuts({

@@ -1,21 +1,12 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Space, Tabs, Tooltip } from 'antd';
-import {
-  CheckOutlined,
-  CopyOutlined,
-  ExpandOutlined,
-  CodeOutlined,
-} from '@ant-design/icons';
+import React, { useEffect, useState } from 'react';
+import { Alert, Space, Tabs, Tooltip, Typography } from 'antd';
+import { ExpandOutlined, CodeOutlined } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import LogFullscreen from './LogFullscreen';
 
 export default function Log() {
-  const [isCopied, setCopied] = useState(false);
-
   const [isFullScreenMode, setFullScreenMode] = useState(false);
-
-  const logRef = useRef();
 
   const [activeTabKey, setActiveTabKey] = useState('1');
 
@@ -24,20 +15,22 @@ export default function Log() {
   useEffect(() => {
     const onReceiveLog = (event: any, logStates: any[]) => {
       const mappedLogStates = logStates.map((item) => {
-        item.children = item.data.map((child: string) => {
-          return child.split('\n').map((splitted) => {
-            if (splitted.includes(':::: ')) {
-              return (
-                <Alert
-                  showIcon
-                  icon={<CodeOutlined />}
-                  message={splitted.replaceAll('::::', '')}
-                  type="info"
-                />
-              );
-            }
-            return <div>{splitted}</div>;
-          });
+        item.children = Object.entries(item.data).map(([command, value]) => {
+          const commandLog = value as string;
+          return (
+            <div key={command}>
+              <Alert
+                showIcon
+                icon={<CodeOutlined />}
+                message={command}
+                action={<Typography.Text copyable={{ text: commandLog }} />}
+                type="info"
+              />
+              {commandLog.split('\n').map((splitted) => (
+                <div>{splitted}</div>
+              ))}
+            </div>
+          );
         });
         return item;
       });
@@ -51,14 +44,6 @@ export default function Log() {
     };
   }, []);
 
-  const onCopyClick = () => {
-    navigator.clipboard.writeText(logRef.current.innerHTML);
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-  };
-
   const toggleFullScreenMode = () => {
     setFullScreenMode(!isFullScreenMode);
   };
@@ -71,36 +56,10 @@ export default function Log() {
     preventDefault: true,
   });
 
-  useHotkeys('shift+l', () => onCopyClick(), {
-    preventDefault: true,
-  });
-
   return (
     <>
       <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
         <Space>
-          <Tooltip
-            title={
-              !isCopied ? (
-                <Space>
-                  <span>Copy</span>
-                  <small style={{ color: 'grey' }}>Shift+L</small>
-                </Space>
-              ) : (
-                'Copied!'
-              )
-            }
-            placement="left"
-          >
-            {!isCopied ? (
-              <CopyOutlined
-                style={{ cursor: 'pointer' }}
-                onClick={onCopyClick}
-              />
-            ) : (
-              <CheckOutlined />
-            )}
-          </Tooltip>
           <Tooltip
             title={
               <Space>

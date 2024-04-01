@@ -1,9 +1,7 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Alert, Modal, Space, Tabs, Tooltip } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { Alert, Modal, Space, Tabs, Tooltip, Typography } from 'antd';
 import {
-  CheckOutlined,
   CodeOutlined,
-  CopyOutlined,
   FileOutlined,
   FullscreenExitOutlined,
 } from '@ant-design/icons';
@@ -19,29 +17,27 @@ export default function LogFullscreen({
   toggleFullScreenMode: any;
   activeKey: string;
 }) {
-  const [isCopied, setCopied] = useState(false);
-
-  const logFullscreenRef = useRef();
-
   const [data, setData] = useState<any[]>();
 
   useEffect(() => {
     const onReceiveLog = (event: any, logStates: any[]) => {
       const mappedLogStates = logStates.map((item) => {
-        item.children = item.data.map((child: string) => {
-          return child.split('\n').map((splitted) => {
-            if (splitted.includes(':::: ')) {
-              return (
-                <Alert
-                  showIcon
-                  icon={<CodeOutlined />}
-                  message={splitted.replaceAll('::::', '')}
-                  type="info"
-                />
-              );
-            }
-            return <div>{splitted}</div>;
-          });
+        item.children = Object.entries(item.data).map(([command, value]) => {
+          const commandLog = value as string;
+          return (
+            <div key={command}>
+              <Alert
+                showIcon
+                icon={<CodeOutlined />}
+                message={command}
+                action={<Typography.Text copyable={{ text: commandLog }} />}
+                type="info"
+              />
+              {commandLog.split('\n').map((splitted) => (
+                <div>{splitted}</div>
+              ))}
+            </div>
+          );
         });
         return item;
       });
@@ -54,14 +50,6 @@ export default function LogFullscreen({
       ipcRenderer.removeAllListeners('workflow-started-log-received');
     };
   }, []);
-
-  const onCopyFullscreenClick = () => {
-    navigator.clipboard.writeText(logFullscreenRef.current.innerHTML);
-    setCopied(true);
-    setTimeout(() => {
-      setCopied(false);
-    }, 2000);
-  };
 
   useHotkeys('shift+s', () => toggleFullScreenMode(), {
     preventDefault: true,
@@ -102,39 +90,6 @@ export default function LogFullscreen({
       destroyOnClose
       footer={null}
     >
-      <Tooltip
-        title={
-          !isCopied ? (
-            <Space>
-              <span>Copy</span>
-              <small style={{ color: 'grey' }}>Shift+L</small>
-            </Space>
-          ) : (
-            'Copied!'
-          )
-        }
-        placement="left"
-      >
-        {!isCopied ? (
-          <CopyOutlined
-            style={{
-              cursor: 'pointer',
-              position: 'absolute',
-              top: '21px',
-              right: '44px',
-            }}
-            onClick={onCopyFullscreenClick}
-          />
-        ) : (
-          <CheckOutlined
-            style={{
-              position: 'absolute',
-              top: '21px',
-              right: '44px',
-            }}
-          />
-        )}
-      </Tooltip>
       <div style={{ marginTop: '8px', height: '86vh', overflowY: 'auto' }}>
         <Tabs
           tabPosition="top"
