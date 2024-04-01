@@ -1,9 +1,10 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
 
 const { Notification } = require('electron');
 
+let focusedWindow: BrowserWindow;
 function updateWorktreesStates(
   worktreesStates: any[],
   worktreeLabel: string,
@@ -119,7 +120,7 @@ function executeSequentially(
 
 ipcMain.on('play-workflow', async function (event, workflow) {
   console.log('workflow to play', workflow);
-
+  focusedWindow = BrowserWindow.getFocusedWindow();
   if (workflow.mode === 'parallel') {
     console.log('parallel mode');
   } else {
@@ -161,10 +162,17 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       });
       if (i === workflow.worktrees.length - 1) {
         event.sender.send('workflow-stopped');
-        new Notification({
-          title: 'WorktreeWise',
-          body: `Workflow ${workflow.name} finished !`,
-        }).show();
+        if (!focusedWindow.isFocused()) {
+          const notification = new Notification({
+            title: 'WorktreeWise',
+            body: `Workflow ${workflow.name} finished !`,
+          });
+          notification.show();
+
+          notification.on('click', () => {
+            focusedWindow.focus();
+          });
+        }
       }
     }
   }
