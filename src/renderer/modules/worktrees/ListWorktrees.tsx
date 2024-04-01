@@ -18,7 +18,17 @@ import {
   CopyOutlined,
   DeleteOutlined,
   ExclamationCircleFilled,
+  ExportOutlined,
 } from '@ant-design/icons';
+import IntellijIcon from '../../components/editors/IntellijIcon';
+import WebstormIcon from '../../components/editors/WebstormIcon';
+import RiderIcon from '../../components/editors/RiderIcon';
+import PycharmIcon from '../../components/editors/PyCharmIcon';
+import ClionIcon from '../../components/editors/ClionIcon';
+import PhpstormIcon from '../../components/editors/PhpStormIcon';
+import RubymineIcon from '../../components/editors/RubyMineIcon';
+import GoLandIcon from '../../components/editors/GoLandIcon';
+import VsCodeIcon from '../../components/editors/VsCodeIcon';
 
 const { useToken } = theme;
 
@@ -29,31 +39,69 @@ const items = [
     icon: <EditOutlined />,
   },
   {
-    label: 'Open Worktree in',
+    label: 'Open in',
     key: '0',
     icon: <FolderOpenOutlined />,
     children: [
       {
         key: '0-1',
         label: 'Explorer',
+        icon: <ExportOutlined />,
       },
       {
         key: '0-2',
         label: 'Intellij',
+        icon: <IntellijIcon />,
       },
       {
         key: '0-3',
-        label: 'VS Code',
+        label: 'WebStorm',
+        icon: <WebstormIcon />,
+      },
+      {
+        key: '0-4',
+        label: 'Rider',
+        icon: <RiderIcon />,
+      },
+      {
+        key: '0-5',
+        label: 'PyCharm',
+        icon: <PycharmIcon />,
+      },
+      {
+        key: '0-6',
+        label: 'CLion',
+        icon: <ClionIcon />,
+      },
+      {
+        key: '0-7',
+        label: 'PhpStorm',
+        icon: <PhpstormIcon />,
+      },
+      {
+        key: '0-8',
+        label: 'RubyMine',
+        icon: <RubymineIcon />,
+      },
+      {
+        key: '0-9',
+        label: 'GoLand',
+        icon: <GoLandIcon />,
+      },
+      {
+        key: '0-10',
+        label: 'Visual Studio',
+        icon: <VsCodeIcon />,
       },
     ],
   },
   {
-    label: 'Copy Worktree Name',
+    label: 'Copy name',
     key: '1',
     icon: <CopyOutlined />,
   },
   {
-    label: 'Copy Worktree Path',
+    label: 'Copy path',
     key: '2',
     icon: <CopyOutlined />,
   },
@@ -141,6 +189,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               menu={{ items, onClick: onClickWorktree(worktree.name) }}
               trigger={['click']}
               placement="bottom"
+              destroyPopupOnHide
             >
               <Tooltip title="Worktree actions" placement="right">
                 <MoreOutlined style={{ cursor: 'pointer' }} />

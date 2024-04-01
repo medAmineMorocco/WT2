@@ -130,3 +130,13 @@ body {
 .log-tabs .ant-tabs-content-holder {
   overflow-y: auto;
 }
+
+/*code editors*/
+.ant-dropdown-menu-sub .ant-dropdown-menu-title-content {
+  margin-left: 4px;
+}
+
+.ant-dropdown-menu-sub svg {
+  width: 22px;
+  height: 22px;
+}
