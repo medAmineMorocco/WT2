@@ -35,19 +35,19 @@ const { useToken } = theme;
 const items = [
   {
     label: 'Rename',
-    key: '-1',
+    key: '-2',
     icon: <EditOutlined />,
+  },
+  {
+    label: 'Open in Explorer',
+    key: '-1',
+    icon: <ExportOutlined />,
   },
   {
     label: 'Open in',
     key: '0',
     icon: <FolderOpenOutlined />,
     children: [
-      {
-        key: '0-1',
-        label: 'Explorer',
-        icon: <ExportOutlined />,
-      },
       {
         key: '0-2',
         label: 'Intellij',
@@ -96,18 +96,23 @@ const items = [
     ],
   },
   {
-    label: 'Copy name',
+    label: 'Copy',
     key: '1',
     icon: <CopyOutlined />,
-  },
-  {
-    label: 'Copy path',
-    key: '2',
-    icon: <CopyOutlined />,
+    children: [
+      {
+        key: '1-2',
+        label: 'name',
+      },
+      {
+        label: 'path',
+        key: '1-3',
+      },
+    ],
   },
   {
     label: 'Delete',
-    key: '3',
+    key: '2',
     icon: <DeleteOutlined />,
     danger: true,
   },
@@ -141,18 +146,18 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const onClickWorktree = (worktreeName: string) => {
     return (event: any) => {
-      if (event.key === '-1') {
+      if (event.key === '-2') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktreeName);
         form.setFieldValue('newWorktreeName', worktreeName);
       }
-      if (event.key === '1') {
+      if (event.key === '1-2') {
         navigator.clipboard.writeText(worktreeName);
       }
-      if (event.key === '2') {
+      if (event.key === '1-3') {
         navigator.clipboard.writeText('path');
       }
-      if (event.key === '3') {
+      if (event.key === '2') {
         modal.confirm({
           title: 'Are you sure delete this worktree ?',
           icon: <ExclamationCircleFilled />,
