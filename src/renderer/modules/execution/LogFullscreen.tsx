@@ -22,18 +22,20 @@ export default function LogFullscreen({
   useEffect(() => {
     const onReceiveLog = (event: any, logStates: any[]) => {
       const mappedLogStates = logStates.map((item) => {
-        item.children = Object.entries(item.data).map(([command, value]) => {
-          const commandLog = value as string;
+        item.children = Object.entries(item.data).map(([commandKey, value]) => {
+          const commandLog = value as any;
           return (
-            <div key={command}>
+            <div key={commandKey}>
               <Alert
                 showIcon
                 icon={<CodeOutlined />}
-                message={command}
-                action={<Typography.Text copyable={{ text: commandLog }} />}
+                message={commandLog.command}
+                action={
+                  <Typography.Text copyable={{ text: commandLog.output }} />
+                }
                 type="info"
               />
-              {commandLog.split('\n').map((splitted) => (
+              {commandLog.output.split('\n').map((splitted: string) => (
                 <div>{splitted}</div>
               ))}
             </div>

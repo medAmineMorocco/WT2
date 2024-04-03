@@ -33,8 +33,20 @@ let data = [
   {
     key: '1',
     name: 'Workflow1',
-    command: 'pwd',
-    commands: ['ls', 'ls -a'],
+    command: {
+      key: '1',
+      value: 'ping google.com',
+    },
+    commands: [
+      {
+        key: '2',
+        value: 'ping google.com',
+      },
+      {
+        key: '3',
+        value: 'ping google.com',
+      },
+    ],
   },
   {
     key: '2',

@@ -6,6 +6,7 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
   MinusCircleOutlined,
+  ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 
@@ -30,6 +31,10 @@ const config: any = {
     icon: <MinusCircleOutlined />,
     status: 'finish',
   },
+  warning: {
+    icon: <ExclamationCircleOutlined />,
+    status: 'wait',
+  },
 };
 
 export default function Visualization() {
@@ -37,11 +42,11 @@ export default function Visualization() {
   const [worktreesStates, setWorktreesStates] = useState<any[]>([]);
 
   useEffect(() => {
-    const onReceiveCommands = (event: any, executedCommands: string[]) => {
+    const onReceiveCommands = (event: any, executedCommands: any[]) => {
       setCommands(
         executedCommands.map((command) => {
           return {
-            title: command,
+            title: command.value,
           };
         }),
       );

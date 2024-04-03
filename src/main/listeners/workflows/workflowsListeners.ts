@@ -1,10 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { BrowserWindow, ipcMain } from 'electron';
+import { BrowserWindow, ipcMain, Notification } from 'electron';
 
-const { Notification } = require('electron');
-
-let focusedWindow: BrowserWindow;
 function updateWorktreesStates(
   worktreesStates: any[],
   worktreeLabel: string,
@@ -20,164 +17,281 @@ function updateWorktreesStates(
   });
 }
 
+let focusedWindow: BrowserWindow;
 let worktreesStates: any[] = [];
 let logStates: any[] = [];
-function executeSequentially(
-  event: any,
-  worktreeLabel: string,
-  commands: string[],
-  currentIndex: number,
+
+let stopExecution = false;
+function executeCommand(
+  command: any,
   normalizedPath: string,
-  resolve: any,
+  worktreeLabel: string,
+  event: any,
 ) {
-  if (currentIndex >= commands.length) {
-    // All commands have been executed
-    return;
-  }
-  const currentWorktree = worktreesStates.find(
-    (item) => item.title === worktreeLabel,
-  );
-  if (currentWorktree.status !== 'processing') {
-    worktreesStates = updateWorktreesStates(
-      worktreesStates,
-      worktreeLabel,
-      currentIndex,
-      'processing',
-    );
-    event.sender.send('workflow-started-states-updated', worktreesStates);
-  }
-
-  const command = commands[currentIndex];
-
-  const commandProcess = spawn(command, [], {
-    cwd: normalizedPath,
-    shell: 'C:\\Program Files\\Git\\bin\\bash.exe',
-  });
-
-  commandProcess.stdout.on('data', (data: any) => {
-    logStates = logStates.map((item) => {
-      if (item.label === worktreeLabel) {
-        if (!item.data[command]) {
-          item.data[command] = data.toString();
-        }
-      }
-      return item;
+  return new Promise((resolve, reject) => {
+    const commandProcess = spawn(command.value, [], {
+      cwd: normalizedPath,
+      shell: 'C:\\Program Files\\Git\\bin\\bash.exe',
     });
-    event.sender.send('workflow-started-log-received', logStates);
-  });
 
-  commandProcess.stderr.on('data', (data: any) => {
-    logStates = logStates.map((item) => {
-      if (item.label === worktreeLabel) {
-        if (!item.data[command]) {
-          item.data[command] = data.toString();
+    commandProcess.stdout.on('data', (data: any) => {
+      logStates = logStates.map((item) => {
+        if (item.label === worktreeLabel) {
+          let log = '';
+          if (item.data[command.key]) {
+            log = item.data[command.key].output + data.toString();
+          } else {
+            log = data.toString();
+          }
+          item.data[command.key] = {
+            command: command.value,
+            output: log,
+          };
         }
-      }
-      return item;
+        return item;
+      });
+      event.sender.send('workflow-started-log-received', logStates);
     });
-    event.sender.send('workflow-started-log-received', logStates);
-  });
 
-  // Listen for the exit event to handle process completion
-  commandProcess.on('exit', (code: any) => {
-    if (code === 0) {
-      if (currentIndex === commands.length - 1) {
+    commandProcess.stderr.on('data', (data: any) => {
+      logStates = logStates.map((item) => {
+        if (item.label === worktreeLabel) {
+          if (!item.data[command.key]) {
+            item.data[command.key] = {
+              command: command.value,
+              output: data.toString(),
+            };
+          }
+        }
+        return item;
+      });
+      event.sender.send('workflow-started-log-received', logStates);
+    });
+
+    commandProcess.on('exit', (code: any) => {
+      if (code === 0) {
+        resolve('finish command');
+      } else {
+        reject(new Error(code));
+      }
+    });
+
+    commandProcess.on('SIGINT', () => {
+      console.log('SIGINT');
+      stopExecution = true;
+      commandProcess.kill();
+    });
+  });
+}
+
+async function executeProcessesForDirectoriesInSeries(
+  commands: any[],
+  worktrees: any[],
+  event: any,
+) {
+  // eslint-disable-next-line no-restricted-syntax
+  for (const worktree of worktrees) {
+    if (stopExecution) {
+      event.sender.send('workflow-stopped');
+      break;
+    }
+    const normalizedPath = path.normalize(worktree.path);
+
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < commands.length; i++) {
+      if (stopExecution) {
         worktreesStates = updateWorktreesStates(
           worktreesStates,
-          worktreeLabel,
-          currentIndex,
-          'success',
+          worktree.label,
+          i,
+          'warning',
         );
         event.sender.send('workflow-started-states-updated', worktreesStates);
-        resolve('finish commands');
+        event.sender.send('workflow-stopped');
+        break;
       }
-
-      setTimeout(() => {
-        executeSequentially(
-          event,
-          worktreeLabel,
-          commands,
-          currentIndex + 1,
-          normalizedPath,
-          resolve,
+      const command = commands[i];
+      try {
+        const currentWorktree = worktreesStates.find(
+          (item) => item.title === worktree.label,
         );
-      }, 1000);
-    } else {
-      console.error(`Command exited with code ${code}`);
-      worktreesStates = updateWorktreesStates(
-        worktreesStates,
-        worktreeLabel,
-        currentIndex,
-        'error',
-      );
-      setTimeout(() => {
+        if (currentWorktree.status !== 'processing') {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'processing',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        }
+        // eslint-disable-next-line no-await-in-loop
+        await executeCommand(command, normalizedPath, worktree.label, event);
+        if (i === commands.length - 1) {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'success',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        } else {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i + 1,
+            'processing',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        }
+      } catch (e) {
+        worktreesStates = updateWorktreesStates(
+          worktreesStates,
+          worktree.label,
+          i,
+          'error',
+        );
         event.sender.send('workflow-started-states-updated', worktreesStates);
-      }, 1000);
-      resolve('finish commands');
+      }
     }
+  }
+}
+
+async function executeProcessesForDirectoriesInParallel(
+  commands: any[],
+  worktrees: any[],
+  event: any,
+) {
+  // eslint-disable-next-line array-callback-return
+  const promises = worktrees.map(async (worktree) => {
+    const normalizedPath = path.normalize(worktree.path);
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < commands.length; i++) {
+      if (stopExecution) {
+        worktreesStates = updateWorktreesStates(
+          worktreesStates,
+          worktree.label,
+          i,
+          'warning',
+        );
+        event.sender.send('workflow-started-states-updated', worktreesStates);
+        event.sender.send('workflow-stopped');
+        break;
+      }
+      const command = commands[i];
+      try {
+        const currentWorktree = worktreesStates.find(
+          (item) => item.title === worktree.label,
+        );
+        if (currentWorktree.status !== 'processing') {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'processing',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        }
+        // eslint-disable-next-line no-await-in-loop
+        await executeCommand(command, normalizedPath, worktree.label, event);
+        if (i === commands.length - 1) {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'success',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        } else {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i + 1,
+            'processing',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+        }
+      } catch (e) {
+        worktreesStates = updateWorktreesStates(
+          worktreesStates,
+          worktree.label,
+          i,
+          'error',
+        );
+        event.sender.send('workflow-started-states-updated', worktreesStates);
+      }
+    }
+  });
+  await Promise.all(promises);
+}
+
+function sendNotification(msg: string) {
+  const notification = new Notification({
+    title: 'WorktreeWise',
+    body: msg,
+  });
+  notification.show();
+
+  notification.on('click', () => {
+    focusedWindow.focus();
   });
 }
 
 ipcMain.on('play-workflow', async function (event, workflow) {
   console.log('workflow to play', workflow);
+  stopExecution = false;
   focusedWindow = BrowserWindow.getFocusedWindow();
+  event.sender.send('workflow-started');
+  const commands = [workflow.command, ...workflow.commands];
+  event.sender.send('workflow-started-with-commands', commands);
+  worktreesStates = workflow.worktrees.map((worktree: any) => {
+    return {
+      title: worktree.label,
+      current: -1,
+      status: 'wait',
+    };
+  });
+  event.sender.send('workflow-started-states-updated', worktreesStates);
+  logStates = workflow.worktrees.map((worktree: any, index: number) => {
+    return {
+      label: worktree.label,
+      key: index.toString(),
+      data: {},
+    };
+  });
+  event.sender.send('workflow-started-log-received', logStates);
   if (workflow.mode === 'parallel') {
-    console.log('parallel mode');
-  } else {
-    event.sender.send('workflow-started');
-    const commands = [workflow.command, ...workflow.commands];
-    event.sender.send('workflow-started-with-commands', commands);
-    worktreesStates = workflow.worktrees.map((worktree: any) => {
-      return {
-        title: worktree.label,
-        current: -1,
-        status: 'wait',
-      };
-    });
-    event.sender.send('workflow-started-states-updated', worktreesStates);
-    logStates = workflow.worktrees.map((worktree: any, index: number) => {
-      return {
-        label: worktree.label,
-        key: index.toString(),
-        data: {},
-      };
-    });
-    event.sender.send('workflow-started-log-received', logStates);
-    // eslint-disable-next-line no-restricted-syntax
-    for (let i = 0; i < workflow.worktrees.length; i++) {
-      const worktree = workflow.worktrees[i];
-      const normalizedPath = path.normalize(worktree.path);
-      // eslint-disable-next-line no-await-in-loop
-      await new Promise((resolve) => {
-        setTimeout(() => {
-          executeSequentially(
-            event,
-            worktree.label,
-            commands,
-            0,
-            normalizedPath,
-            resolve,
-          );
-        }, 1000);
-      });
-      if (i === workflow.worktrees.length - 1) {
+    executeProcessesForDirectoriesInParallel(
+      commands,
+      workflow.worktrees,
+      event,
+    )
+      .then(() => {
         event.sender.send('workflow-stopped');
+        // eslint-disable-next-line promise/always-return
         if (!focusedWindow.isFocused()) {
-          const notification = new Notification({
-            title: 'WorktreeWise',
-            body: `Workflow ${workflow.name} finished !`,
-          });
-          notification.show();
-
-          notification.on('click', () => {
-            focusedWindow.focus();
-          });
+          sendNotification(`Workflow ${workflow.name} finished !`);
         }
-      }
-    }
+      })
+      .catch((error) => {
+        console.error('An error occurred:', error);
+      });
+  } else {
+    executeProcessesForDirectoriesInSeries(commands, workflow.worktrees, event)
+      .then(() => {
+        event.sender.send('workflow-stopped');
+        // eslint-disable-next-line promise/always-return
+        if (!focusedWindow.isFocused()) {
+          sendNotification(`Workflow ${workflow.name} finished !`);
+        }
+      })
+      .catch((error) => {
+        console.error('An error occurred:', error);
+      });
   }
 });
 
 ipcMain.on('stop-workflow', function (event) {
+  console.log('stop workflow');
+  stopExecution = true;
   event.sender.send('workflow-stopped');
 });
