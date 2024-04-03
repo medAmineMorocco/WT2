@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dropdown,
   Tooltip,
@@ -20,6 +20,7 @@ import {
   ExclamationCircleFilled,
   ExportOutlined,
 } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
 import IntellijIcon from '../../components/editors/IntellijIcon';
 import WebstormIcon from '../../components/editors/WebstormIcon';
 import RiderIcon from '../../components/editors/RiderIcon';
@@ -118,23 +119,41 @@ const items = [
   },
 ];
 
+const worktrees = [
+  {
+    name: 'worktree1',
+    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\jo-gui',
+  },
+  {
+    name: 'worktree2',
+    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\jo-gui',
+  },
+];
+
 export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const { token } = useToken();
 
-  const { modal } = AntdApp.useApp();
+  const { modal, notification } = AntdApp.useApp();
 
   const [form] = Form.useForm();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const worktrees = [
-    {
-      name: 'worktree1',
-    },
-    {
-      name: 'worktree2',
-    },
-  ];
+  useEffect(() => {
+    const onOpenEditorError = (event: any, error: any) => {
+      notification.error({
+        message: 'Error opening directory',
+        description: error,
+        placement: 'bottomLeft',
+      });
+    };
+
+    ipcRenderer.on('open-editor-error', onOpenEditorError);
+
+    return () => {
+      ipcRenderer.removeAllListeners('open-editor-error');
+    };
+  }, []);
 
   const handleCancel = () => {
     setIsModalOpen(false);
@@ -144,15 +163,42 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     console.log('Success:', values);
   };
 
-  const onClickWorktree = (worktreeName: string) => {
+  const onClickWorktree = (worktree: any) => {
     return (event: any) => {
       if (event.key === '-2') {
         setIsModalOpen(true);
-        form.setFieldValue('oldWorktreeName', worktreeName);
-        form.setFieldValue('newWorktreeName', worktreeName);
+        form.setFieldValue('oldWorktreeName', worktree.name);
+        form.setFieldValue('newWorktreeName', worktree.name);
+      }
+      if (event.key === '0-3') {
+        ipcRenderer.send('open-intellij', worktree.path);
+      }
+      if (event.key === '0-3') {
+        ipcRenderer.send('open-webstorm', worktree.path);
+      }
+      if (event.key === '0-4') {
+        ipcRenderer.send('open-rider', worktree.path);
+      }
+      if (event.key === '0-5') {
+        ipcRenderer.send('open-pycharm', worktree.path);
+      }
+      if (event.key === '0-6') {
+        ipcRenderer.send('open-clion', worktree.path);
+      }
+      if (event.key === '0-7') {
+        ipcRenderer.send('open-phpstorm', worktree.path);
+      }
+      if (event.key === '0-8') {
+        ipcRenderer.send('open-rubymine', worktree.path);
+      }
+      if (event.key === '0-9') {
+        ipcRenderer.send('open-goland', worktree.path);
+      }
+      if (event.key === '0-10') {
+        ipcRenderer.send('open-vscode', worktree.path);
       }
       if (event.key === '1-2') {
-        navigator.clipboard.writeText(worktreeName);
+        navigator.clipboard.writeText(worktree.name);
       }
       if (event.key === '1-3') {
         navigator.clipboard.writeText('path');
@@ -166,7 +212,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           cancelText: 'No',
           centered: true,
           onOk() {
-            console.log('OK', worktreeName);
+            console.log('OK', worktree.name);
           },
           onCancel() {
             console.log('Cancel');
@@ -191,7 +237,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               <BranchesOutlined /> {worktree.name}
             </Space>
             <Dropdown
-              menu={{ items, onClick: onClickWorktree(worktree.name) }}
+              menu={{ items, onClick: onClickWorktree(worktree) }}
               trigger={['click']}
               placement="bottom"
               destroyPopupOnHide

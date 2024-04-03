@@ -15,6 +15,7 @@ import log from 'electron-log';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
+import './listeners/editors/editorsListeners';
 
 class AppUpdater {
   constructor() {
