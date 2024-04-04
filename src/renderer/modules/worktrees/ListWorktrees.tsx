@@ -30,6 +30,12 @@ import PhpstormIcon from '../../components/editors/PhpStormIcon';
 import RubymineIcon from '../../components/editors/RubyMineIcon';
 import GoLandIcon from '../../components/editors/GoLandIcon';
 import VsCodeIcon from '../../components/editors/VsCodeIcon';
+import EclipseIcon from '../../components/editors/EclipseIcon';
+import BracketsIcon from '../../components/editors/BracketsIcon';
+import AndroidStudioIcon from '../../components/editors/AndroidStudioIcon';
+import XcodeIcon from '../../components/editors/XcodeIcon';
+import SublimeIcon from '../../components/editors/SublimeIcon';
+import VimIcon from '../../components/editors/VimIcon';
 
 const { useToken } = theme;
 
@@ -93,6 +99,36 @@ const items = [
         key: '0-10',
         label: 'Visual Studio',
         icon: <VsCodeIcon />,
+      },
+      {
+        key: '0-11',
+        label: 'Eclipse',
+        icon: <EclipseIcon />,
+      },
+      {
+        key: '0-12',
+        label: 'Brackets',
+        icon: <BracketsIcon />,
+      },
+      {
+        key: '0-13',
+        label: 'Android Studio',
+        icon: <AndroidStudioIcon />,
+      },
+      {
+        key: '0-14',
+        label: 'Xcode',
+        icon: <XcodeIcon />,
+      },
+      {
+        key: '0-15',
+        label: 'Sublime Text',
+        icon: <SublimeIcon />,
+      },
+      {
+        key: '0-16',
+        label: 'Vim',
+        icon: <VimIcon />,
       },
     ],
   },
@@ -196,6 +232,24 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
       if (event.key === '0-10') {
         ipcRenderer.send('open-vscode', worktree.path);
+      }
+      if (event.key === '0-11') {
+        ipcRenderer.send('open-eclipse', worktree.path);
+      }
+      if (event.key === '0-12') {
+        ipcRenderer.send('open-brackets', worktree.path);
+      }
+      if (event.key === '0-13') {
+        ipcRenderer.send('open-android-studio', worktree.path);
+      }
+      if (event.key === '0-14') {
+        ipcRenderer.send('open-xcode', worktree.path);
+      }
+      if (event.key === '0-15') {
+        ipcRenderer.send('open-sublime', worktree.path);
+      }
+      if (event.key === '0-16') {
+        ipcRenderer.send('open-vim', worktree.path);
       }
       if (event.key === '1-2') {
         navigator.clipboard.writeText(worktree.name);

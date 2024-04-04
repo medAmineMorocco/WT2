@@ -44,3 +44,27 @@ ipcMain.on('open-goland', function (event, path) {
 ipcMain.on('open-vscode', function (event, path) {
   openInEditor('code', path, event);
 });
+
+ipcMain.on('open-eclipse', function (event, path) {
+  openInEditor('eclipse', path, event);
+});
+
+ipcMain.on('open-brackets', function (event, path) {
+  openInEditor('brackets', path, event);
+});
+
+ipcMain.on('open-android-studio', function (event, path) {
+  openInEditor('open', path, event);
+});
+
+ipcMain.on('open-xcode', function (event, path) {
+  openInEditor('open', path, event);
+});
+
+ipcMain.on('open-sublime', function (event, path) {
+  openInEditor('subl', path, event);
+});
+
+ipcMain.on('open-vim', function (event, path) {
+  openInEditor('vim', path, event);
+});
