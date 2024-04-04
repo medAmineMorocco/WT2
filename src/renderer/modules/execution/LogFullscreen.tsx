@@ -31,9 +31,18 @@ export default function LogFullscreen({
                 icon={<CodeOutlined />}
                 message={commandLog.command}
                 action={
-                  <Typography.Text copyable={{ text: commandLog.output }} />
+                  <Space>
+                    <Typography.Text copyable={{ text: commandLog.command }} />
+                    <Typography.Text
+                      copyable={{
+                        text: commandLog.output,
+                        icon: <FileOutlined />,
+                      }}
+                    />
+                  </Space>
                 }
                 type="info"
+                style={{ marginTop: '8px', marginBottom: '8px' }}
               />
               {commandLog.output.split('\n').map((splitted: string) => (
                 <div>{splitted}</div>
