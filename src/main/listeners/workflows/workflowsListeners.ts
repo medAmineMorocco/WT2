@@ -35,6 +35,9 @@ function executeCommand(
     });
 
     commandProcess.stdout.on('data', (data: any) => {
+      if (stopExecution) {
+        commandProcess.kill();
+      }
       logStates = logStates.map((item) => {
         if (item.label === worktreeLabel) {
           let log = '';
@@ -74,12 +77,6 @@ function executeCommand(
       } else {
         reject(new Error(code));
       }
-    });
-
-    commandProcess.on('SIGINT', () => {
-      console.log('SIGINT');
-      stopExecution = true;
-      commandProcess.kill();
     });
   });
 }
