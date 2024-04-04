@@ -22,7 +22,7 @@ export default function EditWorkflow({
   useEffect(() => {
     if (workflow) {
       form.setFieldValue('name', workflow.name);
-      form.setFieldValue('command', workflow.command);
+      form.setFieldValue('command', workflow.command.value);
       form.setFieldValue('commands', workflow.commands);
     }
   }, [form, workflow]);
@@ -82,6 +82,7 @@ export default function EditWorkflow({
                 <Form.Item required={false} key={field.key}>
                   <Form.Item
                     {...field}
+                    name={[field.name, 'value']}
                     validateTrigger={['onChange', 'onBlur']}
                     rules={[
                       {
