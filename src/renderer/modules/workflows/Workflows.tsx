@@ -51,13 +51,24 @@ let data = [
   {
     key: '2',
     name: 'Workflow2',
-    command: 'cmd1',
-    commands: ['cmd2'],
+    command: {
+      key: '1',
+      value: 'pwd',
+    },
+    commands: [
+      {
+        key: '2',
+        value: 'ls',
+      },
+    ],
   },
   {
     key: '3',
     name: 'Workflow3',
-    command: 'cmd1',
+    command: {
+      key: '1',
+      value: 'pwd',
+    },
     commands: [],
   },
   {
