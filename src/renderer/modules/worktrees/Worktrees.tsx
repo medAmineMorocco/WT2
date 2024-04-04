@@ -129,6 +129,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     rules={[
                       {
                         required: true,
+                        whitespace: true,
                         message: 'Please input your worktree name!',
                       },
                       () => ({
@@ -158,6 +159,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     rules={[
                       {
                         required: true,
+                        whitespace: true,
                         message: 'Please select a branch!',
                       },
                       () => ({
