@@ -16,6 +16,7 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
 import './listeners/editors/editorsListeners';
+import './listeners/worktrees/worktreesListeners';
 
 class AppUpdater {
   constructor() {

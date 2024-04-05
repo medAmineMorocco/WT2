@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   Dropdown,
   Tooltip,
@@ -36,6 +36,7 @@ import AndroidStudioIcon from '../../components/editors/AndroidStudioIcon';
 import XcodeIcon from '../../components/editors/XcodeIcon';
 import SublimeIcon from '../../components/editors/SublimeIcon';
 import VimIcon from '../../components/editors/VimIcon';
+import TabService from '../../services/tab/TabService';
 
 const { useToken } = theme;
 
@@ -155,17 +156,6 @@ const items = [
   },
 ];
 
-const worktrees = [
-  {
-    name: 'worktree1',
-    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\jo-gui',
-  },
-  {
-    name: 'worktree2',
-    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\jo-gui',
-  },
-];
-
 export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const { token } = useToken();
 
@@ -175,7 +165,16 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
+  const [worktrees, setWorktrees] = useState([]);
+
+  const tabRepoPath = useMemo(() => {
+    const activeTab = TabService.getActiveTab();
+    return TabService.getTabRepoPath(activeTab);
+  }, []);
+
   useEffect(() => {
+    ipcRenderer.send('get-worktrees', tabRepoPath);
+
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
         message: 'Error opening directory',
@@ -184,10 +183,43 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       });
     };
 
+    const onWorktreesFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setWorktrees(JSON.parse(result));
+      } else {
+        notification.error({
+          message: 'Error fetching worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onWorktreeRemoved = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Worktree removed',
+          description: 'Worktree removed successfully',
+          placement: 'bottomLeft',
+        });
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Error fetching worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     ipcRenderer.on('open-editor-error', onOpenEditorError);
+    ipcRenderer.on('worktrees-found', onWorktreesFound);
+    ipcRenderer.on('worktree-removed', onWorktreeRemoved);
 
     return () => {
       ipcRenderer.removeAllListeners('open-editor-error');
+      ipcRenderer.removeAllListeners('worktrees-found');
+      ipcRenderer.removeAllListeners('worktree-removed');
     };
   }, []);
 
@@ -266,7 +298,12 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           cancelText: 'No',
           centered: true,
           onOk() {
-            console.log('OK', worktree.name);
+            ipcRenderer.send(
+              'remove-worktree',
+              worktree.name,
+              tabRepoPath,
+              true,
+            );
           },
           onCancel() {
             console.log('Cancel');
@@ -279,7 +316,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   return (
     <>
       <ul style={{ marginTop: '4px', paddingLeft: '8px', paddingRight: '2px' }}>
-        {worktrees.map((worktree) => (
+        {worktrees.map((worktree: any) => (
           <li
             key={worktree.name}
             className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}

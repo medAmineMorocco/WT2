@@ -1,4 +1,4 @@
-import React, { forwardRef, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import {
   Button,
   Form,
@@ -9,6 +9,7 @@ import {
   Space,
   Segmented,
   Select,
+  App as AntdApp,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -17,7 +18,9 @@ import {
   StepForwardOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
+import { ipcRenderer } from 'electron';
 import ListWorktrees from './ListWorktrees';
+import TabService from '../../services/tab/TabService';
 
 const { Sider } = Layout;
 
@@ -30,6 +33,39 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const [form] = Form.useForm();
 
     const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
+
+    const { notification } = AntdApp.useApp();
+
+    const tabRepoPath = useMemo(() => {
+      const activeTab = TabService.getActiveTab();
+      return TabService.getTabRepoPath(activeTab);
+    }, []);
+
+    useEffect(() => {
+      const onWorktreeCreated = (event: any, code: number, result: any) => {
+        if (code === 0) {
+          notification.success({
+            message: 'Worktree created',
+            description: result,
+            placement: 'bottomLeft',
+          });
+          ipcRenderer.send('get-worktrees', tabRepoPath);
+          setIsModalOpen(false);
+        } else {
+          notification.error({
+            message: 'Error fetching worktrees',
+            description: result,
+            placement: 'bottomLeft',
+          });
+        }
+      };
+
+      ipcRenderer.on('worktree-created', onWorktreeCreated);
+
+      return () => {
+        ipcRenderer.removeAllListeners('worktree-created');
+      };
+    }, []);
 
     const showModal = () => {
       setIsModalOpen(true);
@@ -61,6 +97,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const onFinish = (values: any) => {
       console.log('Received values of form: ', values);
+      ipcRenderer.send('create-worktree', values.name, tabRepoPath);
     };
 
     return (
