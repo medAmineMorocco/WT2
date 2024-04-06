@@ -153,6 +153,20 @@ const items = [
     key: '2',
     icon: <DeleteOutlined />,
     danger: true,
+    children: [
+      {
+        label: 'worktree',
+        key: '2-0',
+      },
+      {
+        label: 'worktree and local branch',
+        key: '2-1',
+      },
+      {
+        label: 'worktree and local/remote branch',
+        key: '2-2',
+      },
+    ],
   },
 ];
 
@@ -289,7 +303,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       if (event.key === '1-3') {
         navigator.clipboard.writeText('path');
       }
-      if (event.key === '2') {
+      if (event.key === '2-0') {
         modal.confirm({
           title: 'Are you sure delete this worktree ?',
           icon: <ExclamationCircleFilled />,
@@ -300,6 +314,48 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           onOk() {
             ipcRenderer.send(
               'remove-worktree',
+              worktree.name,
+              tabRepoPath,
+              true,
+            );
+          },
+          onCancel() {
+            console.log('Cancel');
+          },
+        });
+      }
+      if (event.key === '2-1') {
+        modal.confirm({
+          title: `Are you sure delete this worktree and ${worktree.name} branch ?`,
+          icon: <ExclamationCircleFilled />,
+          okText: 'Yes',
+          okType: 'danger',
+          cancelText: 'No',
+          centered: true,
+          onOk() {
+            ipcRenderer.send(
+              'remove-worktree-local-branch',
+              worktree.name,
+              tabRepoPath,
+              true,
+            );
+          },
+          onCancel() {
+            console.log('Cancel');
+          },
+        });
+      }
+      if (event.key === '2-2') {
+        modal.confirm({
+          title: `Are you sure delete this worktree and ${worktree.name} branch and origin/${worktree.name} branch ?`,
+          icon: <ExclamationCircleFilled />,
+          okText: 'Yes',
+          okType: 'danger',
+          cancelText: 'No',
+          centered: true,
+          onOk() {
+            ipcRenderer.send(
+              'remove-worktree-local-remote-branch',
               worktree.name,
               tabRepoPath,
               true,

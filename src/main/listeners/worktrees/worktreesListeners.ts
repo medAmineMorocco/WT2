@@ -19,6 +19,38 @@ ipcMain.on('remove-worktree', async function (event, name, directory, force) {
   }
 });
 
+ipcMain.on(
+  'remove-worktree-local-branch',
+  async function (event, name, directory, force) {
+    try {
+      const result = await worktreeMainService.removeWithLocalBranch(
+        name,
+        directory,
+        force,
+      );
+      event.sender.send('worktree-removed', 0, result);
+    } catch (err) {
+      event.sender.send('worktree-removed', -1, err);
+    }
+  },
+);
+
+ipcMain.on(
+  'remove-worktree-local-remote-branch',
+  async function (event, name, directory, force) {
+    try {
+      const result = await worktreeMainService.removeWithLocalAndRemoteBranch(
+        name,
+        directory,
+        force,
+      );
+      event.sender.send('worktree-removed', 0, result);
+    } catch (err) {
+      event.sender.send('worktree-removed', -1, err);
+    }
+  },
+);
+
 ipcMain.on('get-worktrees', async function (event, directory: string) {
   try {
     const worktrees = await worktreeMainService.findAll(directory);

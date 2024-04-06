@@ -72,8 +72,54 @@ function remove(name: string, dir: string, force: boolean) {
   });
 }
 
+function removeWithLocalBranch(name: string, dir: string, force: boolean) {
+  return new Promise((resolve, reject) => {
+    const command = force
+      ? `git worktree remove ../${name} --force`
+      : `git worktree remove ../${name}`;
+    exec(
+      `${command} && git branch -d ${name}`,
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
+function removeWithLocalAndRemoteBranch(
+  name: string,
+  dir: string,
+  force: boolean,
+) {
+  return new Promise((resolve, reject) => {
+    const command = force
+      ? `git worktree remove ../${name} --force`
+      : `git worktree remove ../${name}`;
+    exec(
+      `${command} && git push origin --delete ${name} && git branch -d ${name}`,
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
 export default {
   findAll,
   add,
   remove,
+  removeWithLocalBranch,
+  removeWithLocalAndRemoteBranch,
 };
