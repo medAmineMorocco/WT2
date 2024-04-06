@@ -9,6 +9,7 @@ import {
   Input,
   Button,
   Modal,
+  Typography,
 } from 'antd';
 import {
   MoreOutlined,
@@ -192,7 +193,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
         message: 'Error opening directory',
-        description: error,
+        description: <Typography.Text copyable>{error}</Typography.Text>,
         placement: 'bottomLeft',
       });
     };
@@ -203,7 +204,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       } else {
         notification.error({
           message: 'Error fetching worktrees',
-          description: result,
+          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -220,7 +221,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       } else {
         notification.error({
           message: 'Error fetching worktrees',
-          description: result,
+          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -251,57 +252,79 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
         form.setFieldValue('newWorktreeName', worktree.name);
+        return;
       }
-      if (event.key === '0-3') {
+      if (event.key === '-1') {
+        ipcRenderer.send('open-explorer', worktree.path);
+        return;
+      }
+      if (event.key === '0-2') {
         ipcRenderer.send('open-intellij', worktree.path);
+        return;
       }
       if (event.key === '0-3') {
         ipcRenderer.send('open-webstorm', worktree.path);
+        return;
       }
       if (event.key === '0-4') {
         ipcRenderer.send('open-rider', worktree.path);
+        return;
       }
       if (event.key === '0-5') {
         ipcRenderer.send('open-pycharm', worktree.path);
+        return;
       }
       if (event.key === '0-6') {
         ipcRenderer.send('open-clion', worktree.path);
+        return;
       }
       if (event.key === '0-7') {
         ipcRenderer.send('open-phpstorm', worktree.path);
+        return;
       }
       if (event.key === '0-8') {
         ipcRenderer.send('open-rubymine', worktree.path);
+        return;
       }
       if (event.key === '0-9') {
         ipcRenderer.send('open-goland', worktree.path);
+        return;
       }
       if (event.key === '0-10') {
         ipcRenderer.send('open-vscode', worktree.path);
+        return;
       }
       if (event.key === '0-11') {
         ipcRenderer.send('open-eclipse', worktree.path);
+        return;
       }
       if (event.key === '0-12') {
         ipcRenderer.send('open-brackets', worktree.path);
+        return;
       }
       if (event.key === '0-13') {
         ipcRenderer.send('open-android-studio', worktree.path);
+        return;
       }
       if (event.key === '0-14') {
         ipcRenderer.send('open-xcode', worktree.path);
+        return;
       }
       if (event.key === '0-15') {
         ipcRenderer.send('open-sublime', worktree.path);
+        return;
       }
       if (event.key === '0-16') {
         ipcRenderer.send('open-vim', worktree.path);
+        return;
       }
       if (event.key === '1-2') {
         navigator.clipboard.writeText(worktree.name);
+        return;
       }
       if (event.key === '1-3') {
-        navigator.clipboard.writeText('path');
+        navigator.clipboard.writeText(worktree.path);
+        return;
       }
       if (event.key === '2-0') {
         modal.confirm({
@@ -323,6 +346,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             console.log('Cancel');
           },
         });
+        return;
       }
       if (event.key === '2-1') {
         modal.confirm({
@@ -344,6 +368,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             console.log('Cancel');
           },
         });
+        return;
       }
       if (event.key === '2-2') {
         modal.confirm({

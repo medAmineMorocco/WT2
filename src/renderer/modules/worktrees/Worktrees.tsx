@@ -10,6 +10,7 @@ import {
   Segmented,
   Select,
   App as AntdApp,
+  Typography,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -53,8 +54,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           setIsModalOpen(false);
         } else {
           notification.error({
-            message: 'Error fetching worktrees',
-            description: result,
+            message: 'Error creating worktree',
+            description: <Typography.Text copyable>{result}</Typography.Text>,
             placement: 'bottomLeft',
           });
         }
@@ -101,7 +102,12 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         createWorktreeMode === 'new-branch'
           ? values.name
           : values['existing-branch'];
-      ipcRenderer.send('create-worktree', worktreeName, tabRepoPath);
+      ipcRenderer.send(
+        'create-worktree',
+        worktreeName,
+        createWorktreeMode === 'existing-branch',
+        tabRepoPath,
+      );
     };
 
     return (

@@ -1,3 +1,6 @@
+import fs from 'fs';
+import { execSync } from 'child_process';
+
 const { exec } = require('child_process');
 
 function findAll(directory: string) {
@@ -31,10 +34,13 @@ function findAll(directory: string) {
   });
 }
 
-function add(name: string, dir: string) {
+function add(name: string, isExistingBranch: boolean, dir: string) {
   return new Promise((resolve, reject) => {
+    const command = isExistingBranch
+      ? `git worktree add ../${name} ${name}`
+      : `git worktree add ../${name}`;
     exec(
-      `git worktree add ../${name}`,
+      command,
       {
         cwd: dir,
       },
@@ -42,10 +48,13 @@ function add(name: string, dir: string) {
         if (error) {
           reject(error);
         }
-        // const jetbrainsCachedDir = `${dir}\\.idea`;
-        // if (fs.existsSync(jetbrainsCachedDir)) {
-        //   await execPromisify(`cp -r .idea ../${name}`, { cwd: dir });
-        // }
+        const jetbrainsCachedDir = `${dir}\\.idea`;
+        if (fs.existsSync(jetbrainsCachedDir)) {
+          execSync(`cp -r .idea ../${name}`, {
+            cwd: dir,
+            shell: 'C:\\Program Files\\Git\\bin\\bash.exe',
+          });
+        }
         resolve(stdout);
       },
     );
