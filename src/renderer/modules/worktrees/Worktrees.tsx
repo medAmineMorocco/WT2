@@ -97,7 +97,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const onFinish = (values: any) => {
       console.log('Received values of form: ', values);
-      ipcRenderer.send('create-worktree', values.name, tabRepoPath);
+      const worktreeName =
+        createWorktreeMode === 'new-branch'
+          ? values.name
+          : values['existing-branch'];
+      ipcRenderer.send('create-worktree', worktreeName, tabRepoPath);
     };
 
     return (
