@@ -3,7 +3,8 @@ import path from 'path';
 const fs = require('fs');
 const { conf } = require('../../conf/conf');
 
-function add(
+function save(
+  id: string,
   name: string,
   mainCommand: string,
   commands: string[],
@@ -18,6 +19,7 @@ function add(
         };
       });
   const workflow = {
+    id: id !== '' ? id : new Date().getTime().toString(),
     name,
     command: {
       key: '0',
@@ -25,14 +27,16 @@ function add(
     },
     commands: mappedCommands,
   };
-  const baseDir = `${dir}\\.git\\${conf.appPath}\\${name}`;
-  fs.mkdirSync(path.normalize(baseDir));
+  const baseDir = `${dir}\\.git\\${conf.appPath}\\${workflow.id}`;
+  if (!fs.existsSync(path.normalize(baseDir))) {
+    fs.mkdirSync(path.normalize(baseDir));
+  }
   const targetDir = `${baseDir}\\details.json`;
   fs.writeFileSync(path.normalize(targetDir), JSON.stringify(workflow));
 }
 
-function remove(name: string, dir: string) {
-  const targetDir = `${dir}\\.git\\${conf.appPath}\\${name}`;
+function remove(id: string, dir: string) {
+  const targetDir = `${dir}\\.git\\${conf.appPath}\\${id}`;
   fs.rmSync(path.normalize(targetDir), { recursive: true, force: true });
 }
 
@@ -42,8 +46,8 @@ function findAll(dir: string) {
     .readdirSync(path.normalize(baseDir), { withFileTypes: true })
     .filter((dirent: any) => dirent.isDirectory())
     .map((dirent: any) => dirent.name)
-    .map((dirName: string) => {
-      const targetDir = `${baseDir}\\${dirName}\\details.json`;
+    .map((id: string) => {
+      const targetDir = `${baseDir}\\${id}\\details.json`;
       return JSON.parse(fs.readFileSync(targetDir, 'utf-8'));
     });
 }
@@ -68,7 +72,7 @@ function findByName(dir: string, workflow: string) {
 }
 
 export default {
-  add,
+  save,
   remove,
   findAll,
   findAllWithDetails,

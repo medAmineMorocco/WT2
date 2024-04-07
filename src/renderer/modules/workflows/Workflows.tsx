@@ -171,7 +171,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         centered: true,
         onOk() {
           console.log('OK');
-          ipcRenderer.send('remove-workflow', record.name, tabRepoPath);
+          ipcRenderer.send('remove-workflow', record.id, tabRepoPath);
         },
         onCancel() {
           console.log('Cancel');

@@ -1,5 +1,13 @@
-import React, { useEffect } from 'react';
-import { Button, Drawer, Form, Input, Tooltip } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import {
+  App as AntdApp,
+  Button,
+  Drawer,
+  Form,
+  Input,
+  Tooltip,
+  Typography,
+} from 'antd';
 import {
   CheckOutlined,
   MinusCircleOutlined,
@@ -7,6 +15,8 @@ import {
   PlusOutlined,
   RightOutlined,
 } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
+import TabService from '../../services/tab/TabService';
 
 export default function EditWorkflow({
   openEdit,
@@ -19,16 +29,61 @@ export default function EditWorkflow({
 }) {
   const [form] = Form.useForm();
 
+  const { notification } = AntdApp.useApp();
+
+  const tabRepoPath = useMemo(() => {
+    const activeTab = TabService.getActiveTab();
+    return TabService.getTabRepoPath(activeTab);
+  }, []);
+
+  useEffect(() => {
+    const onWorkflowUpdated = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Workflow updated',
+          description: 'Worktree updated successfully',
+          placement: 'bottomLeft',
+        });
+        onCloseEdit();
+        ipcRenderer.send('get-workflows', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Error updating workflow',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    ipcRenderer.on('workflow-updated', onWorkflowUpdated);
+
+    return () => {
+      ipcRenderer.removeAllListeners('workflow-updated');
+    };
+  }, []);
+
   useEffect(() => {
     if (workflow) {
+      form.setFieldValue('id', workflow.id);
       form.setFieldValue('name', workflow.name);
       form.setFieldValue('command', workflow.command.value);
-      form.setFieldValue('commands', workflow.commands);
+      form.setFieldValue(
+        'commands',
+        workflow.commands.map((cmd: any) => cmd.value),
+      );
     }
   }, [form, workflow]);
 
   const onFinish = (values: any) => {
     console.log('Received values of form:', values);
+    ipcRenderer.send(
+      'update-workflow',
+      values.id,
+      values.name,
+      values.command,
+      values.commands,
+      tabRepoPath,
+    );
   };
 
   return (
@@ -41,6 +96,7 @@ export default function EditWorkflow({
         layout="vertical"
         requiredMark="optional"
       >
+        <Form.Item name="id" hidden />
         <Form.Item
           label="Name"
           name="name"
@@ -82,7 +138,6 @@ export default function EditWorkflow({
                 <Form.Item required={false} key={field.key}>
                   <Form.Item
                     {...field}
-                    name={[field.name, 'value']}
                     validateTrigger={['onChange', 'onBlur']}
                     rules={[
                       {
