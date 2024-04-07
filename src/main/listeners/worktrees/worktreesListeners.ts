@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import worktreeMainService from '../../services/worktreeMainService';
+import worktreeMainService from '../../services/worktrees/worktreeMainService';
 
 ipcMain.on(
   'create-worktree',
