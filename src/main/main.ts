@@ -18,6 +18,7 @@ import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
 import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
+import './listeners/branches/branchesListeners';
 
 const { conf } = require('./conf/conf');
 

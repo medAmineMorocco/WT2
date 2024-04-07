@@ -37,6 +37,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const { notification } = AntdApp.useApp();
 
+    const [branches, setBranches] = useState([]);
+
     const tabRepoPath = useMemo(() => {
       const activeTab = TabService.getActiveTab();
       return TabService.getTabRepoPath(activeTab);
@@ -61,12 +63,33 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }
       };
 
+      const onBranchesFound = (event: any, code: number, result: any) => {
+        if (code === 0) {
+          setBranches(
+            JSON.parse(result).map((branch: string) => {
+              return {
+                label: branch,
+                value: branch,
+              };
+            }),
+          );
+        }
+      };
+
       ipcRenderer.on('worktree-created', onWorktreeCreated);
+      ipcRenderer.on('branches-found', onBranchesFound);
 
       return () => {
         ipcRenderer.removeAllListeners('worktree-created');
+        ipcRenderer.removeAllListeners('branches-found');
       };
     }, []);
+
+    useEffect(() => {
+      if (createWorktreeMode === 'existing-branch') {
+        ipcRenderer.send('get-branches', tabRepoPath);
+      }
+    }, [createWorktreeMode, tabRepoPath]);
 
     const showModal = () => {
       setIsModalOpen(true);
@@ -226,15 +249,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     <Select
                       showSearch
                       placeholder="Select branch"
-                      options={[
-                        { value: 'main', label: 'main' },
-                        { value: 'fix', label: 'fix' },
-                        { value: 'feature', label: 'feature' },
-                        {
-                          value: 'feature/worktree',
-                          label: 'feature/worktree',
-                        },
-                      ]}
+                      options={branches}
                     />
                   </Form.Item>
                 )}

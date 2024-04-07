@@ -153,7 +153,6 @@ const items = [
     label: 'Delete',
     key: '2',
     icon: <DeleteOutlined />,
-    danger: true,
     children: [
       {
         label: 'worktree',
