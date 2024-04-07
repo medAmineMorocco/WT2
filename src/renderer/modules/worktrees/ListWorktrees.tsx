@@ -220,7 +220,25 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error fetching worktrees',
+          message: 'Error removing worktree',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onWorktreeRenamed = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Worktree renamed',
+          description: 'Worktree renamed successfully',
+          placement: 'bottomLeft',
+        });
+        setIsModalOpen(false);
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Error renaming worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
@@ -230,11 +248,13 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     ipcRenderer.on('open-editor-error', onOpenEditorError);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('worktree-removed', onWorktreeRemoved);
+    ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
 
     return () => {
       ipcRenderer.removeAllListeners('open-editor-error');
       ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('worktree-removed');
+      ipcRenderer.removeAllListeners('worktree-renamed');
     };
   }, []);
 
@@ -244,6 +264,12 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const onFinish = (values: any) => {
     console.log('Success:', values);
+    ipcRenderer.send(
+      'rename-worktree',
+      form.getFieldValue('oldWorktreeName'),
+      form.getFieldValue('newWorktreeName'),
+      tabRepoPath,
+    );
   };
 
   const onClickWorktree = (worktree: any) => {

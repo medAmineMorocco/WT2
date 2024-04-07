@@ -58,6 +58,22 @@ ipcMain.on(
   },
 );
 
+ipcMain.on(
+  'rename-worktree',
+  async function (event, oldName, newName, directory) {
+    try {
+      const result = await worktreeMainService.rename(
+        oldName,
+        newName,
+        directory,
+      );
+      event.sender.send('worktree-renamed', 0, result);
+    } catch (err: any) {
+      event.sender.send('worktree-renamed', -1, err.message);
+    }
+  },
+);
+
 ipcMain.on('get-worktrees', async function (event, directory: string) {
   try {
     const worktrees = await worktreeMainService.findAll(directory);

@@ -125,10 +125,28 @@ function removeWithLocalAndRemoteBranch(
   });
 }
 
+function rename(oldName: string, newName: string, dir: string) {
+  return new Promise((resolve, reject) => {
+    exec(
+      `git worktree move ${oldName} ../${newName} && git branch -m ${oldName} ${newName}`,
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
 export default {
   findAll,
   add,
   remove,
   removeWithLocalBranch,
   removeWithLocalAndRemoteBranch,
+  rename,
 };
