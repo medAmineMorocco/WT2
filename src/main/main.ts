@@ -12,11 +12,14 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, dialog, screen } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
+import fs from 'fs';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
 import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
+
+const { conf } = require('./conf/conf');
 
 class AppUpdater {
   constructor() {
@@ -155,6 +158,10 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
     const [dir] = result.filePaths;
     pathDir = dir;
     name = path.win32.basename(pathDir);
+    const baseDir = `${pathDir}\\.git\\${conf.appPath}`;
+    if (!fs.existsSync(path.normalize(baseDir))) {
+      fs.mkdirSync(path.normalize(baseDir));
+    }
   }
 
   event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
