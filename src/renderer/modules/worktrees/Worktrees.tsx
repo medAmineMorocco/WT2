@@ -191,6 +191,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 requiredMark="optional"
                 form={form}
                 onFinish={onFinish}
+                style={{ marginTop: '8px' }}
               >
                 {createWorktreeMode === 'new-branch' && (
                   <Form.Item
