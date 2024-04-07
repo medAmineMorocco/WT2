@@ -58,6 +58,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }, 2000);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
+      ipcRenderer.send('clear-interval');
     }
   }, [isRepoSelected]);
 

@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 
+const intervalIds: any[] = [];
 ipcMain.on(
   'create-worktree',
   async function (event, name, isExistingBranch, directory) {
@@ -80,5 +81,21 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
     event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
   } catch (err: any) {
     event.sender.send('worktrees-found', -1, err.message);
+  }
+  intervalIds.push(
+    setInterval(async () => {
+      try {
+        const worktrees = await worktreeMainService.findAll(directory);
+        event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
+      } catch (err: any) {
+        event.sender.send('worktrees-found', -1, err.message);
+      }
+    }, 10000),
+  );
+});
+
+ipcMain.on('clear-interval', function (event) {
+  if (intervalIds) {
+    intervalIds.forEach((interval) => clearInterval(interval));
   }
 });
