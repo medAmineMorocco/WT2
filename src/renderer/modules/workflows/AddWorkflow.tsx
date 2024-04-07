@@ -1,5 +1,13 @@
-import React from 'react';
-import { Button, Drawer, Form, Input, Tooltip } from 'antd';
+import React, { useEffect, useMemo } from 'react';
+import {
+  App as AntdApp,
+  Button,
+  Drawer,
+  Form,
+  Input,
+  Tooltip,
+  Typography,
+} from 'antd';
 import {
   CheckOutlined,
   MinusCircleOutlined,
@@ -7,6 +15,8 @@ import {
   PlusOutlined,
   RightOutlined,
 } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
+import TabService from '../../services/tab/TabService';
 
 export default function AddWorkflow({
   openAdd,
@@ -15,8 +25,48 @@ export default function AddWorkflow({
   openAdd: boolean;
   onCloseAdd: any;
 }) {
+  const { notification } = AntdApp.useApp();
+
+  const tabRepoPath = useMemo(() => {
+    const activeTab = TabService.getActiveTab();
+    return TabService.getTabRepoPath(activeTab);
+  }, []);
+
+  useEffect(() => {
+    const onWorkflowCreated = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Workflow created',
+          description: 'Worktree created successfully',
+          placement: 'bottomLeft',
+        });
+        onCloseAdd();
+        ipcRenderer.send('get-workflows', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Error creating workflow',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    ipcRenderer.on('workflow-created', onWorkflowCreated);
+
+    return () => {
+      ipcRenderer.removeAllListeners('workflow-created');
+    };
+  }, []);
+
   const onFinish = (values: any) => {
     console.log('Received values of form:', values);
+    ipcRenderer.send(
+      'add-workflow',
+      values.name,
+      values.command,
+      values.commands,
+      tabRepoPath,
+    );
   };
 
   return (
@@ -67,7 +117,7 @@ export default function AddWorkflow({
             placeholder="git rebase main"
           />
         </Form.Item>
-        <Form.List name="names">
+        <Form.List name="commands">
           {(fields, { add, remove }, { errors }) => (
             <>
               {fields.map((field) => (

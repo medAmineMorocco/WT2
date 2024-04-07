@@ -10,6 +10,7 @@ import {
   Table,
   theme,
   Tooltip,
+  Typography,
 } from 'antd';
 import {
   CaretRightOutlined,
@@ -26,76 +27,9 @@ import { ipcRenderer } from 'electron';
 import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
 import ImportWorkflow from './ImportWorkflow';
+import TabService from '../../services/tab/TabService';
 
 const { useToken } = theme;
-
-let data = [
-  {
-    key: '1',
-    name: 'Workflow1',
-    command: {
-      key: '1',
-      value: 'ping google.com',
-    },
-    commands: [
-      {
-        key: '2',
-        value: 'ping google.com',
-      },
-      {
-        key: '3',
-        value: 'ping google.com',
-      },
-    ],
-  },
-  {
-    key: '2',
-    name: 'Workflow2',
-    command: {
-      key: '1',
-      value: 'pwd',
-    },
-    commands: [
-      {
-        key: '2',
-        value: 'ls',
-      },
-    ],
-  },
-  {
-    key: '3',
-    name: 'Workflow3',
-    command: {
-      key: '1',
-      value: 'pwd',
-    },
-    commands: [],
-  },
-  {
-    key: '4',
-    name: 'Workflow4',
-    command: 'cmd1',
-    commands: ['cmd2', 'cmd3'],
-  },
-  {
-    key: '5',
-    name: 'Workflow5',
-    command: 'cmd1',
-    commands: ['cmd2', 'cmd3'],
-  },
-  {
-    key: '6',
-    name: 'Workflow6',
-    command: 'cmd1',
-    commands: ['cmd2', 'cmd3'],
-  },
-  {
-    key: '7',
-    name: 'Workflow7',
-    command: 'cmd1',
-    commands: ['cmd2', 'cmd3'],
-  },
-];
 
 const options = [
   {
@@ -133,17 +67,57 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [openEdit, setOpenEdit] = useState(false);
   const [workflowToEdit, setWorkflowToEdit] = useState();
   const [playingWorkflow, setPlayingWorkflow] = useState(null);
-  const { modal } = AntdApp.useApp();
+  const { modal, notification } = AntdApp.useApp();
+  const [workflows, setWorkflows] = useState<any>([]);
+
+  const tabRepoPath = useMemo(() => {
+    const activeTab = TabService.getActiveTab();
+    return TabService.getTabRepoPath(activeTab);
+  }, []);
 
   useEffect(() => {
+    ipcRenderer.send('get-workflows', tabRepoPath);
+    const onWorkflowsFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setWorkflows(JSON.parse(result));
+      } else {
+        notification.error({
+          message: 'Error fetching workflows',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     const onWorkflowStopped = () => {
       setPlayingWorkflow(null);
     };
 
+    const onWorkflowRemoved = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Workflow deleted',
+          description: 'Worktree deleted successfully',
+          placement: 'bottomLeft',
+        });
+        ipcRenderer.send('get-workflows', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Error deleting workflow',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
+    ipcRenderer.on('workflow-removed', onWorkflowRemoved);
 
     return () => {
+      ipcRenderer.removeAllListeners('workflows-found');
       ipcRenderer.removeAllListeners('workflow-stopped');
+      ipcRenderer.removeAllListeners('workflow-removed');
     };
   }, []);
 
@@ -188,7 +162,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const deleteWorkflow = (record: any) => {
     return () => {
-      console.log('delete', record);
       modal.confirm({
         title: 'Are you sure delete this workflow ?',
         icon: <ExclamationCircleFilled />,
@@ -198,6 +171,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         centered: true,
         onOk() {
           console.log('OK');
+          ipcRenderer.send('remove-workflow', record.name, tabRepoPath);
         },
         onCancel() {
           console.log('Cancel');
@@ -229,26 +203,30 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   };
 
   const handleModeChange = (value: any, workflow: any) => {
-    data = data.map((item: any) => {
-      if (item.key === workflow.key) {
-        item.mode = value;
-      }
-      return item;
-    });
-    console.log('data', data);
+    setWorkflows(
+      workflows.map((item: any) => {
+        if (item.key === workflow.key) {
+          item.mode = value;
+        }
+        return item;
+      }),
+    );
+    console.log('workflows', workflows);
   };
 
   const handleWorktreesChange = (value: any[], workflow: any) => {
     const valuesMapped = value.map((val) =>
       options.find((option) => option.value === val),
     );
-    data = data.map((item: any) => {
-      if (item.key === workflow.key) {
-        item.worktrees = valuesMapped;
-      }
-      return item;
-    });
-    console.log('data', data);
+    setWorkflows(
+      workflows.map((item: any) => {
+        if (item.key === workflow.key) {
+          item.worktrees = valuesMapped;
+        }
+        return item;
+      }),
+    );
+    console.log('workflows', workflows);
   };
 
   const columns = [
@@ -422,7 +400,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         />
         <Table
           columns={columns}
-          dataSource={data}
+          dataSource={workflows}
           pagination={{
             pageSize: screenHeight < 1080 ? 3 : 4,
             position: ['bottomLeft'],

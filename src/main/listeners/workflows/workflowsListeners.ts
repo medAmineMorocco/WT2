@@ -1,6 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import { BrowserWindow, ipcMain, Notification } from 'electron';
+import workflowsMainService from '../../services/workflows/workflowsMainService';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -291,4 +292,40 @@ ipcMain.on('stop-workflow', function (event) {
   console.log('stop workflow');
   stopExecution = true;
   event.sender.send('workflow-stopped');
+});
+
+ipcMain.on(
+  'add-workflow',
+  function (
+    event,
+    name: string,
+    mainCommand: string,
+    commands: string[],
+    dir: string,
+  ) {
+    try {
+      workflowsMainService.add(name, mainCommand, commands, dir);
+      event.sender.send('workflow-created', 0);
+    } catch (err: any) {
+      event.sender.send('workflow-created', -1, err.message);
+    }
+  },
+);
+
+ipcMain.on('remove-workflow', function (event, name: string, dir: string) {
+  try {
+    workflowsMainService.remove(name, dir);
+    event.sender.send('workflow-removed', 0);
+  } catch (err: any) {
+    event.sender.send('workflow-removed', -1, err.message);
+  }
+});
+
+ipcMain.on('get-workflows', function (event, dir: string) {
+  try {
+    const workflows = workflowsMainService.findAll(dir);
+    event.sender.send('workflows-found', 0, JSON.stringify(workflows));
+  } catch (err: any) {
+    event.sender.send('workflows-found', -1, err.message);
+  }
 });
