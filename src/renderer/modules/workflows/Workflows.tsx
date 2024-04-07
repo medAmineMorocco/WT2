@@ -31,24 +31,6 @@ import TabService from '../../services/tab/TabService';
 
 const { useToken } = theme;
 
-const options = [
-  {
-    label: 'Worktree1',
-    value: 'Worktree1',
-    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\WorktreeWise',
-  },
-  {
-    label: 'Worktree2',
-    value: 'Worktree2',
-    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\jo-gui',
-  },
-  {
-    label: 'Worktree3',
-    value: 'Worktree3',
-    path: 'C:\\Users\\moham\\OneDrive\\Desktop\\apache-jmeter-5.6.2',
-  },
-];
-
 const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const {
     token: {
@@ -69,6 +51,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [playingWorkflow, setPlayingWorkflow] = useState(null);
   const { modal, notification } = AntdApp.useApp();
   const [workflows, setWorkflows] = useState<any>([]);
+  const [worktrees, setWorktrees] = useState([]);
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -110,14 +93,31 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
+    const onWorktreesFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setWorktrees(
+          JSON.parse(result).map((item: any) => {
+            return {
+              label: item.name,
+              value: item.name,
+              path: item.path,
+            };
+          }),
+        );
+      }
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
     ipcRenderer.on('workflow-removed', onWorkflowRemoved);
+
+    ipcRenderer.on('worktrees-found', onWorktreesFound);
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
       ipcRenderer.removeAllListeners('workflow-stopped');
       ipcRenderer.removeAllListeners('workflow-removed');
+      ipcRenderer.removeAllListeners('worktrees-found');
     };
   }, []);
 
@@ -186,7 +186,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         record.mode = 'sequential';
       }
       if (!record.worktrees) {
-        record.worktrees = options;
+        record.worktrees = worktrees;
       }
       console.log('play', record);
       ipcRenderer.send('play-workflow', record);
@@ -216,12 +216,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const handleWorktreesChange = (value: any[], workflow: any) => {
     const valuesMapped = value.map((val) =>
-      options.find((option) => option.value === val),
+      worktrees.find((option: any) => option.value === val),
     );
     setWorkflows(
       workflows.map((item: any) => {
         if (item.key === workflow.key) {
-          item.worktrees = valuesMapped;
+          item.worktrees = valuesMapped.length !== 0 ? valuesMapped : worktrees;
         }
         return item;
       }),
@@ -264,7 +264,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           placeholder="Select worktrees"
           defaultValue={[]}
           onChange={(value) => handleWorktreesChange(value, record)}
-          options={options}
+          options={worktrees}
           size="small"
         />
       ),
