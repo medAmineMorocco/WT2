@@ -1,7 +1,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { BrowserWindow, ipcMain, Notification } from 'electron';
+import { BrowserWindow, dialog, ipcMain, Notification } from 'electron';
+import fs from 'fs';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
+import { conf } from '../../conf/conf';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -348,3 +350,36 @@ ipcMain.on('get-workflows', function (event, dir: string) {
     event.sender.send('workflows-found', -1, err.message);
   }
 });
+
+ipcMain.on('open-dialog-import-workflows', async function (event) {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  });
+
+  try {
+    if (!result.canceled) {
+      const [dir] = result.filePaths;
+
+      const workflows = workflowsMainService.findAll(path.normalize(dir));
+      event.sender.send(
+        'workflows-to-import-found',
+        0,
+        JSON.stringify(workflows),
+      );
+    }
+  } catch (err: any) {
+    event.sender.send('workflows-to-import-found', -1, err.message);
+  }
+});
+
+ipcMain.on(
+  'import-workflows',
+  async function (event, workflows: any[], dir: string) {
+    try {
+      workflowsMainService.saveAll(workflows, dir);
+      event.sender.send('workflows-imported', 0);
+    } catch (err: any) {
+      event.sender.send('workflows-imported', -1, err.message);
+    }
+  },
+);

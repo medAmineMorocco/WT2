@@ -35,6 +35,18 @@ function save(
   fs.writeFileSync(path.normalize(targetDir), JSON.stringify(workflow));
 }
 
+function saveAll(workflows: any[], dir: string) {
+  workflows.forEach((workflow: any) => {
+    workflow.id = new Date().getTime().toString();
+    const baseDir = `${dir}\\.git\\${conf.appPath}\\${workflow.id}`;
+    if (!fs.existsSync(path.normalize(baseDir))) {
+      fs.mkdirSync(path.normalize(baseDir));
+    }
+    const targetDir = `${baseDir}\\details.json`;
+    fs.writeFileSync(path.normalize(targetDir), JSON.stringify(workflow));
+  });
+}
+
 function remove(id: string, dir: string) {
   const targetDir = `${dir}\\.git\\${conf.appPath}\\${id}`;
   fs.rmSync(path.normalize(targetDir), { recursive: true, force: true });
@@ -52,29 +64,9 @@ function findAll(dir: string) {
     });
 }
 
-function findAllWithDetails(dir: string) {
-  const baseDir = `${dir}\\.git\\${conf.appPath}`;
-  return findAll(dir).map((workflow: any) => {
-    const targetDir = `${baseDir}\\${workflow}\\details.json`;
-    const data = fs.readFileSync(path.normalize(targetDir), {
-      encoding: 'utf8',
-    });
-    return JSON.parse(data);
-  });
-}
-
-function findByName(dir: string, workflow: string) {
-  const targetDir = `${dir}\\.git\\${conf.appPath}\\${workflow}\\details.json`;
-  const data = fs.readFileSync(path.normalize(targetDir), {
-    encoding: 'utf8',
-  });
-  return JSON.parse(data);
-}
-
 export default {
   save,
+  saveAll,
   remove,
   findAll,
-  findAllWithDetails,
-  findByName,
 };

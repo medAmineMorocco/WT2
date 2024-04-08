@@ -52,6 +52,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const { modal, notification } = AntdApp.useApp();
   const [workflows, setWorkflows] = useState<any>([]);
   const [worktrees, setWorktrees] = useState([]);
+  const [workflowsToImport, setWorkflowsToImport] = useState([]);
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -69,6 +70,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
+      }
+    };
+
+    const onWorkflowsImported = (event: any, code: number) => {
+      if (code === 0) {
+        ipcRenderer.send('get-workflows', tabRepoPath);
       }
     };
 
@@ -107,17 +114,36 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
+    const onWorkflowsToImportFound = (
+      event: any,
+      code: number,
+      result: any,
+    ) => {
+      if (code === 0) {
+        setWorkflowsToImport(
+          JSON.parse(result).map((workflow: any) => {
+            workflow.key = workflow.id;
+            return workflow;
+          }),
+        );
+        setOpenImport(true);
+      }
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
+    ipcRenderer.on('workflows-imported', onWorkflowsImported);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
     ipcRenderer.on('workflow-removed', onWorkflowRemoved);
-
     ipcRenderer.on('worktrees-found', onWorktreesFound);
+    ipcRenderer.on('workflows-to-import-found', onWorkflowsToImportFound);
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
+      ipcRenderer.removeAllListeners('workflows-imported');
       ipcRenderer.removeAllListeners('workflow-stopped');
       ipcRenderer.removeAllListeners('workflow-removed');
       ipcRenderer.removeAllListeners('worktrees-found');
+      ipcRenderer.removeAllListeners('workflows-to-import-found');
     };
   }, []);
 
@@ -130,7 +156,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   };
 
   const importWorkflow = () => {
-    setOpenImport(true);
+    ipcRenderer.send('open-dialog-import-workflows');
   };
 
   useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
@@ -148,7 +174,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   };
 
   const onConfirmImport = (selected: any[]) => {
-    console.log('selected', selected);
+    ipcRenderer.send('import-workflows', selected, tabRepoPath);
     setOpenImport(false);
   };
 
@@ -387,11 +413,14 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             </Tooltip>
           </Space>
           <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
-          <ImportWorkflow
-            isOpen={openImport}
-            onConfirm={onConfirmImport}
-            onCancel={onCancelImport}
-          />
+          {openImport && (
+            <ImportWorkflow
+              isOpen={openImport}
+              onConfirm={onConfirmImport}
+              onCancel={onCancelImport}
+              workflows={workflowsToImport}
+            />
+          )}
         </div>
         <EditWorkflow
           openEdit={openEdit}

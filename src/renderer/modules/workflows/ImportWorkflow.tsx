@@ -1,69 +1,28 @@
 import React, { useState } from 'react';
 import { Modal, Table } from 'antd';
 
-const data = [
-  {
-    key: 'Workflow 1',
-    name: 'Workflow 1',
-  },
-  {
-    key: 'Workflow 2',
-    name: 'Workflow 2',
-  },
-  {
-    key: 'Workflow 3',
-    name: 'Workflow 3',
-  },
-  {
-    key: 'Workflow 4',
-    name: 'Workflow 4',
-  },
-  {
-    key: 'Workflow 5',
-    name: 'Workflow 5',
-  },
-  {
-    key: 'Workflow 6',
-    name: 'Workflow 6',
-  },
-];
 export default function ImportWorkflow({
   isOpen,
   onConfirm,
   onCancel,
+  workflows,
 }: {
   isOpen: boolean;
   onConfirm: any;
   onCancel: any;
+  workflows: any[];
 }) {
-  const [selectedWorkflows, setSelectedWorkflows] = useState();
+  const [selectedWorkflows, setSelectedWorkflows] = useState<any[]>([]);
 
-  const onSelectChange = (newSelectedRowKeys: any) => {
-    setSelectedWorkflows(newSelectedRowKeys);
+  const onSelectChange = (newSelectedRowKeys: any[]) => {
+    setSelectedWorkflows(
+      workflows.filter((item: any) => newSelectedRowKeys.includes(item.key)),
+    );
   };
-  const expandedRowRender = () => (
+  const expandedRowRender = (el: any) => (
     <Table
-      columns={[
-        { title: 'Order', dataIndex: 'order', key: 'order' },
-        { title: 'Command', dataIndex: 'cmd', key: 'cmd' },
-      ]}
-      dataSource={[
-        {
-          key: '1',
-          order: 1,
-          cmd: 'cmd1',
-        },
-        {
-          key: '2',
-          order: 2,
-          cmd: 'cmd2',
-        },
-        {
-          key: '3',
-          order: 3,
-          cmd: 'cmd3',
-        },
-      ]}
+      columns={[{ title: 'Command(s)', dataIndex: 'value', key: 'key' }]}
+      dataSource={[el.command, ...el.commands]}
       pagination={false}
     />
   );
@@ -80,7 +39,6 @@ export default function ImportWorkflow({
     >
       <Table
         rowSelection={{
-          selectedRowKeys: selectedWorkflows,
           onChange: onSelectChange,
           type: 'checkbox',
         }}
@@ -91,7 +49,7 @@ export default function ImportWorkflow({
           },
         ]}
         expandable={{ expandedRowRender }}
-        dataSource={data}
+        dataSource={workflows}
         pagination={false}
         scroll={{ y: 400 }}
       />
