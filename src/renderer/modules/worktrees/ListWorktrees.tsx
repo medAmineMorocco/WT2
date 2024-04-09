@@ -255,7 +255,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ipcRenderer.removeAllListeners('worktree-removed');
       ipcRenderer.removeAllListeners('worktree-renamed');
     };
-  }, []);
+  }, [notification, tabRepoPath]);
 
   const handleCancel = () => {
     setIsModalOpen(false);

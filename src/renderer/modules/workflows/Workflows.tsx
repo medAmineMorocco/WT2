@@ -145,7 +145,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('workflows-to-import-found');
     };
-  }, []);
+  }, [notification, tabRepoPath]);
 
   const screenHeight = useMemo(() => {
     return window.innerHeight;

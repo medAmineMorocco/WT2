@@ -56,7 +56,7 @@ export default function AddWorkflow({
     return () => {
       ipcRenderer.removeAllListeners('workflow-created');
     };
-  }, []);
+  }, [notification, onCloseAdd, tabRepoPath]);
 
   const onFinish = (values: any) => {
     console.log('Received values of form:', values);

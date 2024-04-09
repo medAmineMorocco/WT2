@@ -83,7 +83,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         ipcRenderer.removeAllListeners('worktree-created');
         ipcRenderer.removeAllListeners('branches-found');
       };
-    }, []);
+    }, [notification, tabRepoPath]);
 
     useEffect(() => {
       if (createWorktreeMode === 'existing-branch') {

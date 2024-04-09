@@ -60,7 +60,7 @@ export default function EditWorkflow({
     return () => {
       ipcRenderer.removeAllListeners('workflow-updated');
     };
-  }, []);
+  }, [notification, onCloseEdit, tabRepoPath]);
 
   useEffect(() => {
     if (workflow && openEdit) {
