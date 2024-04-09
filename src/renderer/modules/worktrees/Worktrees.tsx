@@ -86,10 +86,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     }, [notification, tabRepoPath]);
 
     useEffect(() => {
-      if (createWorktreeMode === 'existing-branch') {
+      if (createWorktreeMode === 'existing-branch' && isModalOpen) {
         ipcRenderer.send('get-branches', tabRepoPath);
       }
-    }, [createWorktreeMode, tabRepoPath]);
+    }, [createWorktreeMode, isModalOpen, tabRepoPath]);
 
     const showModal = () => {
       setIsModalOpen(true);
