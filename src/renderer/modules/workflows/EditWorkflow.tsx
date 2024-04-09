@@ -63,7 +63,7 @@ export default function EditWorkflow({
   }, []);
 
   useEffect(() => {
-    if (workflow) {
+    if (workflow && openEdit) {
       form.setFieldValue('id', workflow.id);
       form.setFieldValue('name', workflow.name);
       form.setFieldValue('command', workflow.command.value);
@@ -72,7 +72,7 @@ export default function EditWorkflow({
         workflow.commands.map((cmd: any) => cmd.value),
       );
     }
-  }, [form, workflow]);
+  }, [form, workflow, openEdit]);
 
   const onFinish = (values: any) => {
     console.log('Received values of form:', values);
@@ -87,7 +87,12 @@ export default function EditWorkflow({
   };
 
   return (
-    <Drawer title="Edit Workflow" onClose={onCloseEdit} open={openEdit}>
+    <Drawer
+      title="Edit Workflow"
+      onClose={onCloseEdit}
+      open={openEdit}
+      destroyOnClose
+    >
       <Form
         form={form}
         name="dynamic_form_item"
