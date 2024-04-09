@@ -98,6 +98,7 @@ export default function AddWorkflow({
             prefix={<PartitionOutlined />}
             style={{ width: '90%' }}
             placeholder="rebase"
+            allowClear
           />
         </Form.Item>
         <Form.Item
@@ -115,6 +116,7 @@ export default function AddWorkflow({
             prefix={<RightOutlined />}
             style={{ width: '90%' }}
             placeholder="git rebase main"
+            allowClear
           />
         </Form.Item>
         <Form.List name="commands">
@@ -138,6 +140,7 @@ export default function AddWorkflow({
                     <Input
                       prefix={<RightOutlined />}
                       style={{ width: '90%', marginRight: '8px' }}
+                      allowClear
                     />
                   </Form.Item>
                   <Tooltip placement="top" title="Remove command">

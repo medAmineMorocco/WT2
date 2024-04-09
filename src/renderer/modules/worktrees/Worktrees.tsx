@@ -220,6 +220,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     <Input
                       prefix={<BranchesOutlined />}
                       placeholder="feature-add-sidebar"
+                      allowClear
                     />
                   </Form.Item>
                 )}
@@ -258,12 +259,14 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                   <Input
                     prefix={<StepBackwardOutlined />}
                     placeholder="git fetch origin main:main"
+                    allowClear
                   />
                 </Form.Item>
                 <Form.Item label="Post-hook" name="postHook">
                   <Input
                     prefix={<StepForwardOutlined />}
                     placeholder="npm install"
+                    allowClear
                   />
                 </Form.Item>
                 <Form.Item>

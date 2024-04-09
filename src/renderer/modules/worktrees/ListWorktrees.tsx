@@ -484,7 +484,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             ]}
             style={{ flex: 1 }}
           >
-            <Input prefix={<BranchesOutlined />} />
+            <Input prefix={<BranchesOutlined />} allowClear />
           </Form.Item>
           <Form.Item name="oldWorktreeName" hidden />
           <Form.Item style={{ marginRight: 0 }}>
