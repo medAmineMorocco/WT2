@@ -146,26 +146,27 @@ app
   .catch(console.log);
 
 ipcMain.on('choose-dir', async function (event, keyTab) {
-  const result = await dialog.showOpenDialog(mainWindow, {
-    properties: ['openDirectory'],
-  });
-  let pathDir;
-  let name;
+  if (mainWindow) {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+    });
+    let pathDir;
+    let name;
 
-  if (result.canceled) {
-    pathDir = null;
-    name = null;
-  } else {
-    const [dir] = result.filePaths;
-    pathDir = dir;
-    name = path.win32.basename(pathDir);
-    const baseDir = `${pathDir}\\.git\\${conf.appPath}`;
-    if (!fs.existsSync(path.normalize(baseDir))) {
-      fs.mkdirSync(path.normalize(baseDir));
+    if (result.canceled) {
+      pathDir = null;
+      name = null;
+    } else {
+      const [dir] = result.filePaths;
+      pathDir = dir;
+      name = path.win32.basename(pathDir);
+      const baseDir = `${pathDir}\\.git\\${conf.appPath}`;
+      if (!fs.existsSync(path.normalize(baseDir))) {
+        fs.mkdirSync(path.normalize(baseDir));
+      }
     }
+    event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
   }
-
-  event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
 });
 
 ipcMain.on('change-theme', async function (event, isDarkMode, activeTab) {

@@ -1,9 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
 import { BrowserWindow, dialog, ipcMain, Notification } from 'electron';
-import fs from 'fs';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
-import { conf } from '../../conf/conf';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -20,7 +18,7 @@ function updateWorktreesStates(
   });
 }
 
-let focusedWindow: BrowserWindow;
+let focusedWindow: BrowserWindow | null;
 let worktreesStates: any[] = [];
 let logStates: any[] = [];
 
@@ -232,7 +230,7 @@ function sendNotification(msg: string) {
   notification.show();
 
   notification.on('click', () => {
-    focusedWindow.focus();
+    focusedWindow?.focus();
   });
 }
 
@@ -268,7 +266,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       .then(() => {
         event.sender.send('workflow-stopped');
         // eslint-disable-next-line promise/always-return
-        if (!focusedWindow.isFocused()) {
+        if (!focusedWindow?.isFocused()) {
           sendNotification(`Workflow ${workflow.name} finished !`);
         }
       })
@@ -280,7 +278,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       .then(() => {
         event.sender.send('workflow-stopped');
         // eslint-disable-next-line promise/always-return
-        if (!focusedWindow.isFocused()) {
+        if (!focusedWindow?.isFocused()) {
           sendNotification(`Workflow ${workflow.name} finished !`);
         }
       })
