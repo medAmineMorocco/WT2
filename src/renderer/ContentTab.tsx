@@ -1,5 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Layout, message, Progress, theme, Tour, TourProps } from 'antd';
+import {
+  Button,
+  Layout,
+  message,
+  Progress,
+  theme,
+  Tour,
+  TourProps,
+} from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -45,7 +53,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   useEffect(() => {
     setInterval(() => {
-      setPercent(percent + 5);
+      setPercent(percent + 50);
     }, 100);
   });
 
@@ -55,7 +63,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
-      }, 2000);
+      }, 1500);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
       ipcRenderer.send('clear-interval');
@@ -225,13 +233,13 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
           alignItems: 'center',
         }}
       >
-        <div
+        <Button
           className={isDarkMode ? 'import-area-dark' : 'import-area'}
           onClick={onimportAreaClick}
         >
           <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
           <p className="ant-upload-text">Open a repository</p>
-        </div>
+        </Button>
       </motion.div>
     );
   }
