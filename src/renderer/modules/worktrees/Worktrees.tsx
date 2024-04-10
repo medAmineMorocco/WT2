@@ -40,10 +40,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const [branches, setBranches] = useState([]);
 
+    const activeTab = useMemo(() => TabService.getActiveTab(), []);
+
     const tabRepoPath = useMemo(() => {
-      const activeTab = TabService.getActiveTab();
       return TabService.getTabRepoPath(activeTab);
-    }, []);
+    }, [activeTab]);
 
     useEffect(() => {
       const onWorktreeCreated = (event: any, code: number, result: any) => {
@@ -90,7 +91,14 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       if (createWorktreeMode === 'existing-branch' && isModalOpen) {
         ipcRenderer.send('get-branches', tabRepoPath);
       }
-    }, [createWorktreeMode, isModalOpen, tabRepoPath]);
+      const activeTabValue = TabService.getTab(activeTab);
+      if (activeTabValue.preHook) {
+        form.setFieldValue('preHook', activeTabValue.preHook);
+      }
+      if (activeTabValue.postHook) {
+        form.setFieldValue('postHook', activeTabValue.postHook);
+      }
+    }, [activeTab, createWorktreeMode, form, isModalOpen, tabRepoPath]);
 
     const showModal = () => {
       setIsModalOpen(true);
@@ -182,6 +190,15 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           },
         ];
       }
+
+      const activeTabValue = TabService.getTab(activeTab);
+      const activeTabNewValue = {
+        ...activeTabValue,
+        preHook: values.preHook,
+        postHook: values.postHook,
+      };
+      window.localStorage.setItem(activeTab, JSON.stringify(activeTabNewValue));
+
       if (values.preHook || values.postHook) {
         ipcRenderer.send('play-workflow', workflow);
         setIsModalOpen(false);
