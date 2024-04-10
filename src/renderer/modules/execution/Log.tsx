@@ -21,18 +21,22 @@ export default function Log() {
             <div key={commandKey}>
               <Alert
                 showIcon
-                icon={<CodeOutlined />}
+                icon={
+                  <Typography.Text
+                    copyable={{
+                      text: commandLog.command,
+                      icon: <CodeOutlined />,
+                    }}
+                  />
+                }
                 message={commandLog.command}
                 action={
-                  <Space>
-                    <Typography.Text copyable={{ text: commandLog.command }} />
-                    <Typography.Text
-                      copyable={{
-                        text: commandLog.output,
-                        icon: <FileOutlined />,
-                      }}
-                    />
-                  </Space>
+                  <Typography.Text
+                    copyable={{
+                      text: commandLog.output,
+                      icon: <FileOutlined />,
+                    }}
+                  />
                 }
                 type="info"
                 style={{ marginTop: '8px', marginBottom: '8px' }}
