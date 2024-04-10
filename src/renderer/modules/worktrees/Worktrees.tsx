@@ -17,6 +17,7 @@ import {
   BranchesOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
+  InfoCircleOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
@@ -125,6 +126,67 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         createWorktreeMode === 'new-branch'
           ? values.name
           : values['existing-branch'];
+      const command =
+        createWorktreeMode === 'existing-branch'
+          ? `git worktree add ../${worktreeName} ${worktreeName}`
+          : `git worktree add ../${worktreeName}`;
+      const workflow = {
+        name: worktreeName,
+        command: null,
+        commands: [],
+        mode: 'sequential',
+        worktrees: [
+          {
+            label: 'create worktree',
+            path: tabRepoPath,
+          },
+        ],
+      } as any;
+      if (values.preHook) {
+        workflow.command = {
+          key: '0',
+          value: values.preHook,
+        };
+        workflow.commands = [
+          {
+            key: '1',
+            value: command,
+          },
+        ];
+      }
+      if (values.postHook && !values.preHook) {
+        workflow.command = {
+          key: '0',
+          value: command,
+        };
+        workflow.commands = [
+          {
+            key: '1',
+            value: values.postHook,
+            postHook: true,
+            worktreeName,
+          },
+        ];
+      }
+      if (values.postHook && values.preHook) {
+        workflow.commands = [
+          {
+            key: '1',
+            value: command,
+          },
+          {
+            key: '2',
+            value: values.postHook,
+            postHook: true,
+            worktreeName,
+          },
+        ];
+      }
+      if (values.preHook || values.postHook) {
+        ipcRenderer.send('play-workflow', workflow);
+        setIsModalOpen(false);
+        return;
+      }
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
@@ -255,14 +317,30 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     />
                   </Form.Item>
                 )}
-                <Form.Item label="Pre-hook" name="preHook">
+                <Form.Item
+                  label="Pre-hook"
+                  name="preHook"
+                  tooltip={{
+                    title: `command will be executed in ${tabRepoPath}`,
+                    icon: <InfoCircleOutlined />,
+                    placement: 'right',
+                  }}
+                >
                   <Input
                     prefix={<StepBackwardOutlined />}
                     placeholder="git fetch origin main:main"
                     allowClear
                   />
                 </Form.Item>
-                <Form.Item label="Post-hook" name="postHook">
+                <Form.Item
+                  label="Post-hook"
+                  name="postHook"
+                  tooltip={{
+                    title: `command will be executed in created worktree repository`,
+                    icon: <InfoCircleOutlined />,
+                    placement: 'right',
+                  }}
+                >
                   <Input
                     prefix={<StepForwardOutlined />}
                     placeholder="npm install"

@@ -439,7 +439,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               placement="bottom"
               destroyPopupOnHide
             >
-              <Tooltip title="Worktree actions" placement="right">
+              <Tooltip title="actions" placement="right">
                 <MoreOutlined style={{ cursor: 'pointer' }} />
               </Tooltip>
             </Dropdown>

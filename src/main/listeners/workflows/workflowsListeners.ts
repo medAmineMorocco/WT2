@@ -93,7 +93,7 @@ async function executeProcessesForDirectoriesInSeries(
       event.sender.send('workflow-stopped');
       break;
     }
-    const normalizedPath = path.normalize(worktree.path);
+    let normalizedPath = path.normalize(worktree.path);
 
     // eslint-disable-next-line no-plusplus
     for (let i = 0; i < commands.length; i++) {
@@ -121,6 +121,12 @@ async function executeProcessesForDirectoriesInSeries(
             'processing',
           );
           event.sender.send('workflow-started-states-updated', worktreesStates);
+        }
+        if (command.postHook) {
+          const mainRepoName = path.win32.basename(worktree.path);
+          normalizedPath = path.normalize(
+            worktree.path.replace(mainRepoName, command.worktreeName),
+          );
         }
         // eslint-disable-next-line no-await-in-loop
         await executeCommand(command, normalizedPath, worktree.label, event);
