@@ -369,7 +369,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <div>
           <Space>
             <PartitionOutlined />
-            <Badge count={7} offset={[10, 0]} title="total">
+            <Badge count={workflows.length} offset={[10, 0]} title="total">
               <strong>Workflows</strong>
             </Badge>
           </Space>
