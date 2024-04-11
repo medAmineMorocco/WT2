@@ -136,7 +136,40 @@ body {
   margin-left: 4px;
 }
 
-.ant-dropdown-menu-sub svg {
-  width: 22px;
-  height: 22px;
+.card {
+  width: 100%;
+}
+
+.editor-card-container {
+  position: relative;
+  border: 1px solid;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  height: 120px;
+  width: 100%;
+  padding: 8px;
+}
+
+.editor-card-enabled {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}
+
+.editor-card-path {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+}
+
+.editor-card-footer {
+  border-bottom: 1px solid;
+  border-left: 1px solid;
+  border-right: 1px solid;
+  border-bottom-left-radius: 4px;
+  border-bottom-right-radius: 4px;
+  width: 100%;
+  text-align: right;
+  padding: 8px;
 }

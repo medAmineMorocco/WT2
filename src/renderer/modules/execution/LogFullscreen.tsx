@@ -5,7 +5,6 @@ import {
   FileOutlined,
   FullscreenExitOutlined,
 } from '@ant-design/icons';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 
 export default function LogFullscreen({
@@ -66,10 +65,6 @@ export default function LogFullscreen({
     };
   }, []);
 
-  useHotkeys('shift+s', () => toggleFullScreenMode(), {
-    preventDefault: true,
-  });
-
   return (
     <Modal
       title={
@@ -88,7 +83,7 @@ export default function LogFullscreen({
           title={
             <Space>
               <span>Exit fullscreen mode</span>
-              <small style={{ color: 'grey' }}>Shift+S</small>
+              <small style={{ color: 'grey' }}>ESC</small>
             </Space>
           }
           placement="left"

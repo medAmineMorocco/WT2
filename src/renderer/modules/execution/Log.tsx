@@ -67,7 +67,7 @@ export default function Log() {
     setActiveTabKey(activeKey);
   };
 
-  useHotkeys('shift+s', () => toggleFullScreenMode(), {
+  useHotkeys('shift+f', () => toggleFullScreenMode(), {
     preventDefault: true,
   });
 
@@ -79,7 +79,7 @@ export default function Log() {
             title={
               <Space>
                 <span>Enter fullscreen mode</span>
-                <small style={{ color: 'grey' }}>Shift+S</small>
+                <small style={{ color: 'grey' }}>Shift+F</small>
               </Space>
             }
             placement="left"

@@ -1,11 +1,17 @@
 import React from 'react';
 
-export default function VimIcon() {
+export default function VimIcon({
+  width,
+  height,
+}: {
+  width: string;
+  height: string;
+}) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      width="1em"
-      height="1em"
+      width={width}
+      height={height}
       viewBox="0 0 128 128"
     >
       <defs>

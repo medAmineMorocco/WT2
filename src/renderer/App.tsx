@@ -1,5 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
+import {
+  MemoryRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+} from 'react-router-dom';
 import './App.css';
 import {
   ConfigProvider,
@@ -18,12 +23,14 @@ import {
   PlusOutlined,
   SunOutlined,
   UnorderedListOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
 import KeyboardShortcuts from './modules/KeyboardShortcuts';
+import Settings from './modules/settings/Settings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -34,6 +41,7 @@ function Hello() {
   const [openKeyboard, setOpenKeyboard] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
   const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
+  const navigate = useNavigate();
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
@@ -197,6 +205,14 @@ function Hello() {
     setOpenKeyboard(true);
   };
 
+  const openSettingsPage = () => {
+    navigate('/settings');
+  };
+
+  useHotkeys('shift+s', openSettingsPage, {
+    preventDefault: true,
+  });
+
   useHotkeys('shift+k', openKeyboardShortcuts, {
     preventDefault: true,
   });
@@ -270,6 +286,16 @@ function Hello() {
           onClick={openMenu}
         >
           <FloatButton
+            icon={<SettingOutlined />}
+            tooltip={
+              <Space>
+                <span>Settings</span>
+                <small style={{ color: 'grey' }}>Shift+S</small>
+              </Space>
+            }
+            onClick={openSettingsPage}
+          />
+          <FloatButton
             icon={<UnorderedListOutlined />}
             tooltip={
               <Space>
@@ -311,6 +337,7 @@ export default function App() {
             </ItemsProvider>
           }
         />
+        <Route path="/settings" element={<Settings />} />
       </Routes>
     </Router>
   );

@@ -10,6 +10,11 @@ const data = {
       shortcut2: 'M',
     },
     {
+      title: 'Settings',
+      shortcut1: 'Shift',
+      shortcut2: 'S',
+    },
+    {
       title: 'Toggle theme',
       shortcut1: 'Shift',
       shortcut2: 'T',
@@ -66,9 +71,13 @@ const data = {
       shortcut2: 'I',
     },
     {
-      title: 'Toggle Fullscreen',
+      title: 'Enter Fullscreen',
       shortcut1: 'Shift',
-      shortcut2: 'S',
+      shortcut2: 'F',
+    },
+    {
+      title: 'Exit Fullscreen',
+      shortcut1: 'ESC',
     },
   ],
 };
@@ -112,7 +121,7 @@ export default function KeyboardShortcuts({
                     <div style={{ display: 'flex' }}>
                       <span style={{ flex: 1 }}>{item.title}</span>{' '}
                       <Text keyboard>{item.shortcut1}</Text>
-                      <Text keyboard>{item.shortcut2}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
                     </div>
                   </List.Item>
                 )}
@@ -131,7 +140,7 @@ export default function KeyboardShortcuts({
                     <div style={{ display: 'flex' }}>
                       <span style={{ flex: 1 }}>{item.title}</span>{' '}
                       <Text keyboard>{item.shortcut1}</Text>
-                      <Text keyboard>{item.shortcut2}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
                     </div>
                   </List.Item>
                 )}
@@ -150,7 +159,7 @@ export default function KeyboardShortcuts({
                     <div style={{ display: 'flex' }}>
                       <span style={{ flex: 1 }}>{item.title}</span>{' '}
                       <Text keyboard>{item.shortcut1}</Text>
-                      <Text keyboard>{item.shortcut2}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
                     </div>
                   </List.Item>
                 )}
@@ -169,7 +178,7 @@ export default function KeyboardShortcuts({
                     <div style={{ display: 'flex' }}>
                       <span style={{ flex: 1 }}>{item.title}</span>{' '}
                       <Text keyboard>{item.shortcut1}</Text>
-                      <Text keyboard>{item.shortcut2}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
                     </div>
                   </List.Item>
                 )}
