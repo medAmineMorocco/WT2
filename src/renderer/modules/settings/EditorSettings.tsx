@@ -45,7 +45,15 @@ export default function EditorSettings() {
   };
 
   const onFinish = (values: any) => {
-    console.log('Success:', values);
+    const editorsChanged = editors.map((item) => {
+      if (item.label === values.editorName) {
+        item.path = values.path;
+      }
+      return item;
+    });
+    window.localStorage.setItem('editors', JSON.stringify(editorsChanged));
+    setEditors(editorsChanged);
+    setIsModalOpen(false);
   };
 
   return (
