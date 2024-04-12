@@ -277,10 +277,15 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       workflow.worktrees,
       event,
     )
-      .then(() => {
+      .then(async () => {
         event.sender.send('workflow-stopped');
+        const notificationsEnabled =
+          (await focusedWindow?.webContents.executeJavaScript(
+            'localStorage.getItem("notificationsEnabled");',
+            true,
+          )) === 'true';
         // eslint-disable-next-line promise/always-return
-        if (!focusedWindow?.isFocused()) {
+        if (!focusedWindow?.isFocused() && notificationsEnabled) {
           sendNotification(`Workflow ${workflow.name} finished !`);
         }
       })
@@ -289,10 +294,15 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       });
   } else {
     executeProcessesForDirectoriesInSeries(commands, workflow.worktrees, event)
-      .then(() => {
+      .then(async () => {
         event.sender.send('workflow-stopped');
+        const notificationsEnabled =
+          (await focusedWindow?.webContents.executeJavaScript(
+            'localStorage.getItem("notificationsEnabled");',
+            true,
+          )) === 'true';
         // eslint-disable-next-line promise/always-return
-        if (!focusedWindow?.isFocused()) {
+        if (!focusedWindow?.isFocused() && notificationsEnabled) {
           sendNotification(`Workflow ${workflow.name} finished !`);
         }
       })
