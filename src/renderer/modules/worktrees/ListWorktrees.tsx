@@ -22,26 +22,12 @@ import {
   ExportOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
-import IntellijIcon from '../../components/editors/IntellijIcon';
-import WebstormIcon from '../../components/editors/WebstormIcon';
-import RiderIcon from '../../components/editors/RiderIcon';
-import PycharmIcon from '../../components/editors/PyCharmIcon';
-import ClionIcon from '../../components/editors/ClionIcon';
-import PhpstormIcon from '../../components/editors/PhpStormIcon';
-import RubymineIcon from '../../components/editors/RubyMineIcon';
-import GoLandIcon from '../../components/editors/GoLandIcon';
-import VsCodeIcon from '../../components/editors/VsCodeIcon';
-import EclipseIcon from '../../components/editors/EclipseIcon';
-import BracketsIcon from '../../components/editors/BracketsIcon';
-import AndroidStudioIcon from '../../components/editors/AndroidStudioIcon';
-import XcodeIcon from '../../components/editors/XcodeIcon';
-import SublimeIcon from '../../components/editors/SublimeIcon';
-import VimIcon from '../../components/editors/VimIcon';
 import TabService from '../../services/tab/TabService';
+import { editorIconsMap } from '../config/EditorsConfig';
 
 const { useToken } = theme;
 
-const items = [
+let items = [
   {
     label: 'Rename',
     key: '-2',
@@ -56,83 +42,6 @@ const items = [
     label: 'Open in',
     key: '0',
     icon: <FolderOpenOutlined />,
-    children: [
-      {
-        key: '0-2',
-        label: 'Intellij',
-        icon: <IntellijIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-3',
-        label: 'WebStorm',
-        icon: <WebstormIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-4',
-        label: 'Rider',
-        icon: <RiderIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-5',
-        label: 'PyCharm',
-        icon: <PycharmIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-6',
-        label: 'CLion',
-        icon: <ClionIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-7',
-        label: 'PhpStorm',
-        icon: <PhpstormIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-8',
-        label: 'RubyMine',
-        icon: <RubymineIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-9',
-        label: 'GoLand',
-        icon: <GoLandIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-10',
-        label: 'Visual Studio',
-        icon: <VsCodeIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-11',
-        label: 'Eclipse',
-        icon: <EclipseIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-12',
-        label: 'Brackets',
-        icon: <BracketsIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-13',
-        label: 'Android Studio',
-        icon: <AndroidStudioIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-14',
-        label: 'Xcode',
-        icon: <XcodeIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-15',
-        label: 'Sublime Text',
-        icon: <SublimeIcon width="22px" height="22px" />,
-      },
-      {
-        key: '0-16',
-        label: 'Vim',
-        icon: <VimIcon width="22px" height="22px" />,
-      },
-    ],
   },
   {
     label: 'Copy',
@@ -184,6 +93,30 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
+  }, []);
+
+  useEffect(() => {
+    const storedEditors = window.localStorage.getItem('editors');
+    if (storedEditors) {
+      const enabledEditors = JSON.parse(storedEditors)
+        .filter((editor: any) => editor.enabled === true)
+        .map((editor: any) => {
+          editor.icon = {
+            ...editorIconsMap[editor.icon],
+            props: {
+              width: '22px',
+              height: '22px',
+            },
+          };
+          return editor;
+        });
+      items = items.map((item: any) => {
+        if (item.key === '0') {
+          item.children = enabledEditors;
+        }
+        return item;
+      });
+    }
   }, []);
 
   useEffect(() => {

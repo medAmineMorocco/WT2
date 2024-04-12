@@ -1,153 +1,47 @@
+import React, { useEffect, useState } from 'react';
 import { Button, Form, Input, Modal, Space, Switch, Typography } from 'antd';
 import { BranchesOutlined, EditOutlined } from '@ant-design/icons';
-import React, { useState } from 'react';
-import IntellijIcon from '../../components/editors/IntellijIcon';
-import WebstormIcon from '../../components/editors/WebstormIcon';
-import RiderIcon from '../../components/editors/RiderIcon';
-import PycharmIcon from '../../components/editors/PyCharmIcon';
-import ClionIcon from '../../components/editors/ClionIcon';
-import PhpstormIcon from '../../components/editors/PhpStormIcon';
-import RubymineIcon from '../../components/editors/RubyMineIcon';
-import GoLandIcon from '../../components/editors/GoLandIcon';
-import VsCodeIcon from '../../components/editors/VsCodeIcon';
-import EclipseIcon from '../../components/editors/EclipseIcon';
-import BracketsIcon from '../../components/editors/BracketsIcon';
-import AndroidStudioIcon from '../../components/editors/AndroidStudioIcon';
-import XcodeIcon from '../../components/editors/XcodeIcon';
-import SublimeIcon from '../../components/editors/SublimeIcon';
-import VimIcon from '../../components/editors/VimIcon';
-
-const editorsCst = [
-  {
-    name: 'Intellij',
-    icon: <IntellijIcon width="30px" height="30px" />,
-    path: 'C:Program Files\\JetBrains\\IntelliJ IDEA 2021.3.3\\bin\\idea64.exe',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Webstorm',
-    icon: <WebstormIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Rider',
-    icon: <RiderIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'PyCharm',
-    icon: <PycharmIcon width="30px" height="30px" />,
-    path: 'path',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'CLion',
-    icon: <ClionIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'PhpStorm',
-    icon: <PhpstormIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'RubyMine',
-    icon: <RubymineIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'GoLand',
-    icon: <GoLandIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Visual Studio',
-    icon: <VsCodeIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Eclipse',
-    icon: <EclipseIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Brackets',
-    icon: <BracketsIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Android Studio',
-    icon: <AndroidStudioIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Xcode',
-    icon: <XcodeIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Sublime Text',
-    icon: <SublimeIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-  {
-    name: 'Vim',
-    icon: <VimIcon width="30px" height="30px" />,
-    path: '',
-    description: 'Import java project in Intellij',
-    enabled: true,
-  },
-];
+import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 
 export default function EditorSettings() {
   const [form] = Form.useForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editors, setEditors] = useState(editorsCst);
+  const [editors, setEditors] = useState<any[]>([]);
+
+  useEffect(() => {
+    const storedEditors = window.localStorage.getItem('editors');
+    const mappedEditors = storedEditors
+      ? JSON.parse(storedEditors)
+      : JSON.parse(JSON.stringify(editorsCst));
+    const optionalParams = mappedEditors.map((item: any) => {
+      // @ts-ignore
+      item.iconTag = editorIconsMap[item.icon];
+      return item;
+    });
+    setEditors(optionalParams);
+  }, []);
 
   const handleCancel = () => {
     setIsModalOpen(false);
   };
   const onEditPathEditor = (editor: any) => {
     form.setFieldValue('path', editor.path);
-    form.setFieldValue('editorName', editor.name);
+    form.setFieldValue('editorName', editor.label);
     setIsModalOpen(true);
   };
 
   const onChangeStatus = (editor: any, checked: boolean) => {
-    setEditors(
-      editors.map((item) => {
-        if (editor.name === item.name) {
-          item.enabled = checked;
-        }
-        return item;
-      }),
+    const editorsChangedStatus = editors.map((item) => {
+      if (editor.label === item.label) {
+        item.enabled = checked;
+      }
+      return item;
+    });
+    window.localStorage.setItem(
+      'editors',
+      JSON.stringify(editorsChangedStatus),
     );
+    setEditors(editorsChangedStatus);
   };
 
   const onFinish = (values: any) => {
@@ -177,8 +71,8 @@ export default function EditorSettings() {
               style={{ borderColor: editor.enabled ? '#69b1ff' : 'grey' }}
             >
               <Space>
-                {editor.icon}
-                <span style={{ fontWeight: 'bold' }}>{editor.name}</span>
+                {editor.iconTag}
+                <span style={{ fontWeight: 'bold' }}>{editor.label}</span>
               </Space>
 
               <Switch
