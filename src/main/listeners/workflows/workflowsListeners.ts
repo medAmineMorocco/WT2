@@ -42,6 +42,7 @@ function executeCommand(
   return new Promise(async (resolve, reject) => {
     const options: any = {
       cwd: normalizedPath,
+      shell: true,
     };
 
     const terminal = await settingsMainService.getActualTerminal(focusedWindow);
