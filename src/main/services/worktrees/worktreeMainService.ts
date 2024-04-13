@@ -1,5 +1,6 @@
 import fs from 'fs';
-import { execSync } from 'child_process';
+import path from 'path';
+import copyDirectory from '../utils/fileService';
 
 const { exec } = require('child_process');
 
@@ -18,12 +19,12 @@ function findAll(directory: string) {
 
         const worktrees = lines.map((line: string) => {
           const lineBySpace = line.split(/\s+/g);
-          const path = lineBySpace[0];
+          const pathRep = lineBySpace[0];
           const head = lineBySpace[1];
           const name = lineBySpace[2].replace('[', '').replace(']', '');
 
           return {
-            path,
+            path: pathRep,
             name,
             head,
           };
@@ -50,10 +51,10 @@ function add(name: string, isExistingBranch: boolean, dir: string) {
         }
         const jetbrainsCachedDir = `${dir}\\.idea`;
         if (fs.existsSync(jetbrainsCachedDir)) {
-          execSync(`cp -r .idea ../${name}`, {
-            cwd: dir,
-            shell: 'C:\\Program Files\\Git\\bin\\bash.exe',
-          });
+          await copyDirectory(
+            path.join(dir, '.idea'),
+            path.join(dir, '..', name, '.idea'),
+          );
         }
         resolve(stdout);
       },
