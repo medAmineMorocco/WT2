@@ -2,6 +2,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
+import settingsMainService from '../../services/settings/settingsMainService';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -37,11 +38,17 @@ function executeCommand(
   worktreeLabel: string,
   event: any,
 ) {
-  return new Promise((resolve, reject) => {
-    const commandProcess = spawn(command.value, [], {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const options: any = {
       cwd: normalizedPath,
-      shell: 'C:\\Program Files\\Git\\bin\\bash.exe',
-    });
+    };
+
+    const terminal = await settingsMainService.getActualTerminal(focusedWindow);
+    if (terminal) {
+      options.shell = terminal;
+    }
+    const commandProcess = spawn(command.value, [], options);
 
     commandProcess.stdout.on('data', (data: any) => {
       if (stopExecution) {
