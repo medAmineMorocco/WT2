@@ -11,6 +11,7 @@ import {
   Select,
   App as AntdApp,
   Typography,
+  Tag,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -429,9 +430,21 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           </>
         )}
         {!collapsed && (
-          <div>
-            <ListWorktrees isDarkMode={isDarkMode} />
-          </div>
+          <>
+            <div>
+              <ListWorktrees isDarkMode={isDarkMode} />
+            </div>
+            <Tag
+              style={{
+                position: 'absolute',
+                bottom: '12px',
+                left: 'calc(50% - 25px)',
+                zIndex: 8,
+              }}
+            >
+              1.0.0
+            </Tag>
+          </>
         )}
       </Sider>
     );
