@@ -89,7 +89,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           ipcRenderer.send('get-worktrees', tabRepoPath);
           if (code === 0) {
             notification.success({
-              message: 'Worktree created',
+              message: 'Prune Worktrees',
               description: 'Stale worktrees have been successfully pruned',
               placement: 'bottomLeft',
             });

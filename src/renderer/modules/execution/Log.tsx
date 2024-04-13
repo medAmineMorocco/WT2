@@ -1,6 +1,20 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Space, Tabs, Tooltip, Typography } from 'antd';
-import { ExpandOutlined, CodeOutlined, FileOutlined } from '@ant-design/icons';
+import {
+  Alert,
+  Collapse,
+  Segmented,
+  Space,
+  Tabs,
+  Tooltip,
+  Typography,
+} from 'antd';
+import {
+  ExpandOutlined,
+  CodeOutlined,
+  FileOutlined,
+  BarsOutlined,
+  BorderOutlined,
+} from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import LogFullscreen from './LogFullscreen';
@@ -11,6 +25,8 @@ export default function Log() {
   const [activeTabKey, setActiveTabKey] = useState('1');
 
   const [data, setData] = useState<any[]>();
+
+  const [logMode, setLogMode] = useState('segment');
 
   useEffect(() => {
     const onReceiveLog = (event: any, logStates: any[]) => {
@@ -71,10 +87,23 @@ export default function Log() {
     preventDefault: true,
   });
 
+  const onChangeLogMode = (value: string) => {
+    setLogMode(value);
+  };
+
   return (
     <>
       <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
         <Space>
+          <Segmented
+            value={logMode}
+            onChange={onChangeLogMode}
+            options={[
+              { value: 'segment', icon: <BarsOutlined /> },
+              { value: 'sequence', icon: <BorderOutlined /> },
+            ]}
+            size="small"
+          />
           <Tooltip
             title={
               <Space>
@@ -96,17 +125,22 @@ export default function Log() {
         style={{
           marginTop: '8px',
           height: 'calc(41.5vh - 20px)',
+          overflowY: 'auto',
         }}
       >
-        <Tabs
-          tabPosition="left"
-          style={{
-            height: 'calc(41.5vh - 20px)',
-          }}
-          className="log-tabs"
-          onChange={onChangeTab}
-          items={data}
-        />
+        {logMode === 'segment' ? (
+          <Tabs
+            tabPosition="left"
+            style={{
+              height: 'calc(41.5vh - 20px)',
+            }}
+            className="log-tabs"
+            onChange={onChangeTab}
+            items={data}
+          />
+        ) : (
+          <Collapse ghost items={data} />
+        )}
       </div>
       <LogFullscreen
         isFullScreenMode={isFullScreenMode}

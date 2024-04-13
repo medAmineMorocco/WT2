@@ -1,6 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { Alert, Modal, Space, Tabs, Tooltip, Typography } from 'antd';
 import {
+  Alert,
+  Collapse,
+  Modal,
+  Segmented,
+  Space,
+  Tabs,
+  Tooltip,
+  Typography,
+} from 'antd';
+import {
+  BarsOutlined,
+  BorderOutlined,
   CodeOutlined,
   FileOutlined,
   FullscreenExitOutlined,
@@ -17,6 +28,7 @@ export default function LogFullscreen({
   activeKey: string;
 }) {
   const [data, setData] = useState<any[]>();
+  const [logMode, setLogMode] = useState('segment');
 
   useEffect(() => {
     const onReceiveLog = (event: any, logStates: any[]) => {
@@ -65,6 +77,10 @@ export default function LogFullscreen({
     };
   }, []);
 
+  const onChangeLogMode = (value: string) => {
+    setLogMode(value);
+  };
+
   return (
     <Modal
       title={
@@ -100,13 +116,27 @@ export default function LogFullscreen({
       destroyOnClose
       footer={null}
     >
+      <Segmented
+        value={logMode}
+        onChange={onChangeLogMode}
+        style={{ position: 'absolute', top: '16px', right: '46px' }}
+        options={[
+          { value: 'segment', icon: <BarsOutlined /> },
+          { value: 'sequence', icon: <BorderOutlined /> },
+        ]}
+        size="small"
+      />
       <div style={{ marginTop: '8px', height: '86vh', overflowY: 'auto' }}>
-        <Tabs
-          tabPosition="top"
-          centered
-          defaultActiveKey={activeKey}
-          items={data}
-        />
+        {logMode === 'segment' ? (
+          <Tabs
+            tabPosition="top"
+            centered
+            defaultActiveKey={activeKey}
+            items={data}
+          />
+        ) : (
+          <Collapse ghost items={data} />
+        )}
       </div>
     </Modal>
   );
