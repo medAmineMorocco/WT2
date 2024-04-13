@@ -99,3 +99,12 @@ ipcMain.on('clear-interval', function (event) {
     intervalIds.forEach((interval) => clearInterval(interval));
   }
 });
+
+ipcMain.on('prune-worktrees', async function (event, directory: string) {
+  try {
+    await worktreeMainService.prune(directory);
+    event.sender.send('worktrees-pruned', 0);
+  } catch (err: any) {
+    event.sender.send('worktrees-pruned', -1, err.message);
+  }
+});

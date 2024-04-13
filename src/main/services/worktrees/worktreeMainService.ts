@@ -143,6 +143,23 @@ function rename(oldName: string, newName: string, dir: string) {
   });
 }
 
+function prune(dir: string) {
+  return new Promise((resolve, reject) => {
+    exec(
+      'git worktree prune',
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
 export default {
   findAll,
   add,
@@ -150,4 +167,5 @@ export default {
   removeWithLocalBranch,
   removeWithLocalAndRemoteBranch,
   rename,
+  prune,
 };

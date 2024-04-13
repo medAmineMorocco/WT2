@@ -18,6 +18,8 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
   InfoCircleOutlined,
+  SyncOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
@@ -41,6 +43,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const [branches, setBranches] = useState([]);
 
     const activeTab = useMemo(() => TabService.getActiveTab(), []);
+
+    const [pruneLoading, setPruneLoading] = useState<boolean>(false);
 
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
@@ -78,12 +82,34 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }
       };
 
+      const onWorktreesPruned = (event: any, code: number, result: any) => {
+        setTimeout(() => {
+          setPruneLoading(false);
+          ipcRenderer.send('get-worktrees', tabRepoPath);
+          if (code === 0) {
+            notification.success({
+              message: 'Worktree created',
+              description: 'Stale worktrees have been successfully pruned',
+              placement: 'bottomLeft',
+            });
+          } else {
+            notification.error({
+              message: 'Error creating worktree',
+              description: <Typography.Text copyable>{result}</Typography.Text>,
+              placement: 'bottomLeft',
+            });
+          }
+        }, 200);
+      };
+
       ipcRenderer.on('worktree-created', onWorktreeCreated);
       ipcRenderer.on('branches-found', onBranchesFound);
+      ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
 
       return () => {
         ipcRenderer.removeAllListeners('worktree-created');
         ipcRenderer.removeAllListeners('branches-found');
+        ipcRenderer.removeAllListeners('worktrees-pruned');
       };
     }, [notification, tabRepoPath]);
 
@@ -119,6 +145,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     useHotkeys('shift+c', () => setCollapsed(!collapsed), {
       preventDefault: true,
     });
+
+    const onClickPrune = () => {
+      setPruneLoading(true);
+      ipcRenderer.send('prune-worktrees', tabRepoPath);
+    };
 
     const handleCancel = () => {
       setIsModalOpen(false);
@@ -221,8 +252,28 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       >
         {!collapsed && (
           <>
-            <Space style={{ marginTop: '16px' }}>
-              <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
+            <div
+              style={{
+                marginTop: '16px',
+                display: 'flex',
+                paddingRight: '4px',
+              }}
+            >
+              <Space style={{ flexGrow: 1 }}>
+                <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
+                {!pruneLoading ? (
+                  <Tooltip title="Prune worktrees">
+                    <SyncOutlined
+                      className="icon-action"
+                      style={{ cursor: 'pointer' }}
+                      onClick={onClickPrune}
+                    />
+                  </Tooltip>
+                ) : (
+                  <LoadingOutlined />
+                )}
+              </Space>
+
               <Tooltip
                 title={
                   <Space>
@@ -230,16 +281,16 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     <small style={{ color: 'grey' }}>Shift+W</small>
                   </Space>
                 }
-                placement="right"
               >
-                <SisternodeOutlined
-                  ref={ref}
-                  style={{ cursor: 'pointer' }}
+                <Button
+                  type="primary"
+                  size="small"
                   onClick={showModal}
-                  className="icon-action"
+                  ref={ref}
+                  icon={<SisternodeOutlined />}
                 />
               </Tooltip>
-            </Space>
+            </div>
             <Modal
               open={isModalOpen}
               footer={null}
