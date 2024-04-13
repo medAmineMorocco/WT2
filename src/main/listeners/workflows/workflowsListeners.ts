@@ -94,6 +94,21 @@ function executeCommand(
         reject(new Error(code));
       }
     });
+    commandProcess.on('error', (err: any) => {
+      logStates = logStates.map((item) => {
+        if (item.label === worktreeLabel) {
+          if (!item.data[command.key]) {
+            item.data[command.key] = {
+              command: command.value,
+              output: err.toString(),
+            };
+          }
+        }
+        return item;
+      });
+      event.sender.send('workflow-started-log-received', logStates);
+      reject(new Error(err.toString()));
+    });
   });
 }
 
@@ -170,6 +185,7 @@ async function executeProcessesForDirectoriesInSeries(
           'error',
         );
         event.sender.send('workflow-started-states-updated', worktreesStates);
+        return;
       }
     }
   }
@@ -237,6 +253,7 @@ async function executeProcessesForDirectoriesInParallel(
           'error',
         );
         event.sender.send('workflow-started-states-updated', worktreesStates);
+        return;
       }
     }
   });
