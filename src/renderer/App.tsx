@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { Suspense, useEffect, useRef, useState } from 'react';
 import {
   MemoryRouter as Router,
   Routes,
@@ -30,7 +30,6 @@ import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
 import KeyboardShortcuts from './modules/KeyboardShortcuts';
-import Settings from './modules/settings/Settings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -325,20 +324,23 @@ function Hello() {
   );
 }
 
+const Settings = React.lazy(() => import('./modules/settings/Settings'));
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route
-          path="/"
-          element={
-            <ItemsProvider>
-              <Hello />
-            </ItemsProvider>
-          }
-        />
-        <Route path="/settings" element={<Settings />} />
-      </Routes>
+      <Suspense fallback={<div>Loading...</div>}>
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <ItemsProvider>
+                <Hello />
+              </ItemsProvider>
+            }
+          />
+          <Route path="/settings" element={<Settings />} />
+        </Routes>
+      </Suspense>
     </Router>
   );
 }
