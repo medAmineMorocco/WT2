@@ -32,17 +32,21 @@ let worktreesStates: any[] = [];
 let logStates: any[] = [];
 
 let stopExecution = false;
+let abortController: AbortController;
 function executeCommand(
   command: any,
   normalizedPath: string,
   worktreeLabel: string,
   event: any,
 ) {
+  abortController = new AbortController();
+
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options: any = {
       cwd: normalizedPath,
       shell: true,
+      signal: abortController.signal,
     };
 
     const terminal = await settingsMainService.getActualTerminal(focusedWindow);
@@ -53,7 +57,7 @@ function executeCommand(
 
     commandProcess.stdout.on('data', (data: any) => {
       if (stopExecution) {
-        commandProcess.kill();
+        abortController.abort();
       }
       logStates = logStates.map((item) => {
         if (item.label === worktreeLabel) {
@@ -88,9 +92,12 @@ function executeCommand(
       event.sender.send('workflow-started-log-received', logStates);
     });
 
-    commandProcess.on('exit', (code: any) => {
+    commandProcess.on('exit', (code: any, signal: any) => {
       if (code === 0) {
         resolve('finish command');
+      }
+      if (code !== 0 && signal === 'SIGTERM') {
+        reject(new Error('SIGTERM'));
       } else {
         reject(new Error(code));
       }
@@ -178,7 +185,17 @@ async function executeProcessesForDirectoriesInSeries(
           );
           event.sender.send('workflow-started-states-updated', worktreesStates);
         }
-      } catch (e) {
+      } catch (err: any) {
+        if (err.message.includes('aborted')) {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'warning',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+          return;
+        }
         worktreesStates = updateWorktreesStates(
           worktreesStates,
           worktree.label,
@@ -246,7 +263,17 @@ async function executeProcessesForDirectoriesInParallel(
           );
           event.sender.send('workflow-started-states-updated', worktreesStates);
         }
-      } catch (e) {
+      } catch (err: any) {
+        if (err.message.includes('aborted')) {
+          worktreesStates = updateWorktreesStates(
+            worktreesStates,
+            worktree.label,
+            i,
+            'warning',
+          );
+          event.sender.send('workflow-started-states-updated', worktreesStates);
+          return;
+        }
         worktreesStates = updateWorktreesStates(
           worktreesStates,
           worktree.label,
