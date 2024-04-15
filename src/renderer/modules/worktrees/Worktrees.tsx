@@ -431,7 +431,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         )}
         {!collapsed && (
           <>
-            <div>
+            <div style={{ height: '40%', overflowY: 'auto' }}>
               <ListWorktrees isDarkMode={isDarkMode} />
             </div>
             <Tag
