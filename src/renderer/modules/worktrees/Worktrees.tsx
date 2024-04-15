@@ -54,6 +54,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     useEffect(() => {
       const onWorktreeCreated = (event: any, code: number, result: any) => {
         if (code === 0) {
+          form.setFieldValue('name', null);
           notification.success({
             message: 'Worktree created',
             description: result,
