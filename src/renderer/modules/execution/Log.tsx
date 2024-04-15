@@ -55,7 +55,13 @@ export default function Log() {
                   />
                 }
                 type="info"
-                style={{ marginTop: '8px', marginBottom: '8px' }}
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  marginTop: '8px',
+                  marginBottom: '8px',
+                  borderRadius: 0,
+                }}
               />
               {commandLog.output.split('\n').map((splitted: string) => (
                 <div>{splitted}</div>
@@ -123,6 +129,7 @@ export default function Log() {
       </div>
       <div
         style={{
+          position: 'relative',
           marginTop: '8px',
           height: 'calc(41.5vh - 20px)',
           overflowY: 'auto',

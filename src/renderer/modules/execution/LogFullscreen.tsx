@@ -57,7 +57,13 @@ export default function LogFullscreen({
                   />
                 }
                 type="info"
-                style={{ marginTop: '8px', marginBottom: '8px' }}
+                style={{
+                  position: 'sticky',
+                  top: 0,
+                  marginTop: '8px',
+                  marginBottom: '8px',
+                  borderRadius: 0,
+                }}
               />
               {commandLog.output.split('\n').map((splitted: string) => (
                 <div>{splitted}</div>
@@ -126,7 +132,14 @@ export default function LogFullscreen({
         ]}
         size="small"
       />
-      <div style={{ marginTop: '8px', height: '86vh', overflowY: 'auto' }}>
+      <div
+        style={{
+          position: 'relative',
+          marginTop: '8px',
+          height: '86vh',
+          overflowY: 'auto',
+        }}
+      >
         {logMode === 'segment' ? (
           <Tabs
             tabPosition="top"
