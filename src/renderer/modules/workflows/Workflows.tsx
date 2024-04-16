@@ -13,15 +13,12 @@ import {
   Typography,
 } from 'antd';
 import {
-  CaretRightOutlined,
-  DeleteOutlined,
-  EditOutlined,
   ExclamationCircleFilled,
   PartitionOutlined,
   PlusOutlined,
   UploadOutlined,
-  XFilled,
 } from '@ant-design/icons';
+import { PlayIcon, StopIcon, Edit02Icon, Delete02Icon } from 'hugeicons-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import EditWorkflow from './EditWorkflow';
@@ -301,7 +298,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       render: (_: any, record: any) => (
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip placement="top" title="Delete workflow">
-            <DeleteOutlined
+            <Delete02Icon
+              size={16}
               onClick={!playingWorkflow ? deleteWorkflow(record) : () => null}
               style={{
                 cursor: !playingWorkflow ? 'pointer' : 'no-drop',
@@ -311,7 +309,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             />
           </Tooltip>
           <Tooltip placement="top" title="Edit workflow">
-            <EditOutlined
+            <Edit02Icon
+              size={16}
               onClick={!playingWorkflow ? showEditDrawer(record) : () => null}
               style={{
                 cursor: !playingWorkflow ? 'pointer' : 'no-drop',
@@ -322,7 +321,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           {playingWorkflow === record.name && (
             <Tooltip placement="top" title="Stop workflow">
-              <XFilled
+              <StopIcon
+                size={16}
                 onClick={stopWorkflow(record)}
                 className="icon-action"
                 style={{ cursor: 'pointer', color: colorPrimary }}
@@ -331,7 +331,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           )}
           {playingWorkflow !== record.name && (
             <Tooltip placement="top" title="Play workflow">
-              <CaretRightOutlined
+              <PlayIcon
+                size={16}
                 onClick={
                   !playingWorkflow || record.name === playingWorkflow
                     ? playWorkflow(record)
