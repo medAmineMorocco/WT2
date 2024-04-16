@@ -205,15 +205,15 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const playWorkflow = (record: any) => {
     return () => {
+      const workflow = { ...record };
       if (!record.mode) {
-        record.mode = 'sequential';
+        workflow.mode = 'sequential';
       }
-      if (!record.worktrees) {
-        record.worktrees = worktrees;
+      if (!record.worktrees || record.worktrees.length === 0) {
+        workflow.worktrees = worktrees;
       }
-      console.log('play', record);
-      ipcRenderer.send('play-workflow', record);
-      setPlayingWorkflow(record.name);
+      ipcRenderer.send('play-workflow', workflow);
+      setPlayingWorkflow(workflow.name);
     };
   };
 
@@ -237,14 +237,14 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     console.log('workflows', workflows);
   };
 
-  const handleWorktreesChange = (value: any[], workflow: any) => {
-    const valuesMapped = value.map((val) =>
+  const handleWorktreesChange = (values: any[], workflow: any) => {
+    const valuesMapped = values.map((val) =>
       worktrees.find((option: any) => option.value === val),
     );
     setWorkflows(
       workflows.map((item: any) => {
-        if (item.key === workflow.key) {
-          item.worktrees = valuesMapped.length !== 0 ? valuesMapped : worktrees;
+        if (item.id === workflow.id) {
+          item.worktrees = valuesMapped;
         }
         return item;
       }),
