@@ -22,9 +22,9 @@ import {
   MoreOutlined,
   PlusOutlined,
   SunOutlined,
-  UnorderedListOutlined,
   SettingOutlined,
 } from '@ant-design/icons';
+import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
@@ -295,7 +295,7 @@ function Hello() {
             onClick={openSettingsPage}
           />
           <FloatButton
-            icon={<UnorderedListOutlined />}
+            icon={<CommandIcon size={18} />}
             tooltip={
               <Space>
                 <span>Keyboard shortcuts</span>
