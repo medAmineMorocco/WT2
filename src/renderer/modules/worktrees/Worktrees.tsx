@@ -264,7 +264,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
               <Space style={{ flexGrow: 1 }}>
                 <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
                 {!pruneLoading ? (
-                  <Tooltip title="Prune worktrees">
+                  <Tooltip
+                    title="Prune worktrees"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
                     <SyncOutlined
                       className="icon-action"
                       style={{ cursor: 'pointer' }}
@@ -283,6 +287,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     <small style={{ color: 'grey' }}>Shift+W</small>
                   </Space>
                 }
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
               >
                 <Button
                   type="primary"

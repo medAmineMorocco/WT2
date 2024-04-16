@@ -102,6 +102,8 @@ export default function LogFullscreen({
       style={{ height: '98vh' }}
       closeIcon={
         <Tooltip
+          mouseEnterDelay={0}
+          mouseLeaveDelay={0}
           title={
             <Space>
               <span>Exit fullscreen mode</span>

@@ -143,7 +143,12 @@ export default function AddWorkflow({
                       allowClear
                     />
                   </Form.Item>
-                  <Tooltip placement="top" title="Remove command">
+                  <Tooltip
+                    placement="top"
+                    title="Remove command"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
                     <MinusCircleOutlined
                       className="dynamic-delete-button"
                       onClick={() => remove(field.name)}

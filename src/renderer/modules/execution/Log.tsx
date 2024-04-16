@@ -118,6 +118,8 @@ export default function Log() {
               </Space>
             }
             placement="left"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
           >
             <ExpandOutlined
               style={{ cursor: 'pointer' }}

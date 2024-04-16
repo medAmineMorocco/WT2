@@ -297,7 +297,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       key: 'action',
       render: (_: any, record: any) => (
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
-          <Tooltip placement="top" title="Delete workflow">
+          <Tooltip
+            placement="top"
+            title="Delete workflow"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
             <Delete02Icon
               size={16}
               onClick={!playingWorkflow ? deleteWorkflow(record) : () => null}
@@ -308,7 +313,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               className={!playingWorkflow ? 'icon-action' : ''}
             />
           </Tooltip>
-          <Tooltip placement="top" title="Edit workflow">
+          <Tooltip
+            placement="top"
+            title="Edit workflow"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
             <Edit02Icon
               size={16}
               onClick={!playingWorkflow ? showEditDrawer(record) : () => null}
@@ -320,7 +330,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             />
           </Tooltip>
           {playingWorkflow === record.name && (
-            <Tooltip placement="top" title="Stop workflow">
+            <Tooltip
+              placement="top"
+              title="Stop workflow"
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+            >
               <StopIcon
                 size={16}
                 onClick={stopWorkflow(record)}
@@ -330,7 +345,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             </Tooltip>
           )}
           {playingWorkflow !== record.name && (
-            <Tooltip placement="top" title="Play workflow">
+            <Tooltip
+              placement="top"
+              title="Play workflow"
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+            >
               <PlayIcon
                 size={16}
                 onClick={
@@ -385,6 +405,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
                   <small style={{ color: 'grey' }}>Shift+I</small>
                 </Space>
               }
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
             >
               <Button
                 onClick={importWorkflow}
@@ -402,6 +424,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
                   <small style={{ color: 'grey' }}>Shift+A</small>
                 </Space>
               }
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
             >
               <Button
                 ref={ref}

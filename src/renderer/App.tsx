@@ -135,7 +135,12 @@ function Hello() {
       const tabLabel = TabService.getTabLabel(tabKey);
       const tabRepoPath = TabService.getTabRepoPath(tabKey);
       const label = tabRepoPath ? (
-        <Tooltip arrow={false} title={tabRepoPath}>
+        <Tooltip
+          arrow={false}
+          title={tabRepoPath}
+          mouseEnterDelay={0}
+          mouseLeaveDelay={0}
+        >
           <span>{tabLabel}</span>
         </Tooltip>
       ) : (
@@ -259,6 +264,8 @@ function Hello() {
                 </>
               }
               placement="bottomRight"
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
             >
               <PlusOutlined />
             </Tooltip>
