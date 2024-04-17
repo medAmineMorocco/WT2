@@ -108,3 +108,20 @@ ipcMain.on('prune-worktrees', async function (event, directory: string) {
     event.sender.send('worktrees-pruned', -1, err.message);
   }
 });
+
+ipcMain.on(
+  'change-lock-worktree',
+  async function (
+    event,
+    toLock: boolean,
+    worktreeName: string,
+    directory: string,
+  ) {
+    try {
+      await worktreeMainService.changeLock(toLock, worktreeName, directory);
+      event.sender.send('worktrees-changed-lock', 0, toLock);
+    } catch (err: any) {
+      event.sender.send('worktrees-changed-lock', -1, toLock, err.message);
+    }
+  },
+);

@@ -20,6 +20,8 @@ import {
   DeleteOutlined,
   ExclamationCircleFilled,
   ExportOutlined,
+  LockOutlined,
+  UnlockOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
@@ -55,25 +57,6 @@ let items = [
       {
         label: 'path',
         key: '1-3',
-      },
-    ],
-  },
-  {
-    label: 'Delete',
-    key: '2',
-    icon: <DeleteOutlined />,
-    children: [
-      {
-        label: 'worktree',
-        key: '2-0',
-      },
-      {
-        label: 'worktree and local branch',
-        key: '2-1',
-      },
-      {
-        label: 'worktree and local/remote branch',
-        key: '2-2',
       },
     ],
   },
@@ -177,16 +160,44 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
     };
 
+    const onWorktreeChangedLock = (
+      event: any,
+      code: number,
+      toLock: boolean,
+      result: any,
+    ) => {
+      if (code === 0) {
+        notification.success({
+          message: toLock ? 'Worktree locked' : 'Worktree unlocked',
+          description: toLock
+            ? 'Worktree locked successfully'
+            : 'Worktree unlocked successfully',
+          placement: 'bottomLeft',
+        });
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: toLock
+            ? 'Error locking worktree'
+            : 'Error unlocking worktree',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     ipcRenderer.on('open-editor-error', onOpenEditorError);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('worktree-removed', onWorktreeRemoved);
     ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
+    ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
 
     return () => {
       ipcRenderer.removeAllListeners('open-editor-error');
       ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('worktree-removed');
       ipcRenderer.removeAllListeners('worktree-renamed');
+      ipcRenderer.removeAllListeners('worktrees-changed-lock');
     };
   }, [notification, tabRepoPath]);
 
@@ -202,6 +213,52 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       form.getFieldValue('newWorktreeName'),
       tabRepoPath,
     );
+  };
+
+  const getMenuItems = (isWorktreeLocked: boolean) => {
+    if (isWorktreeLocked) {
+      return [
+        ...items,
+        {
+          label: 'Delete',
+          key: '2',
+          icon: <DeleteOutlined />,
+          disabled: true,
+        },
+        {
+          label: 'Unlock',
+          key: '3',
+          icon: <UnlockOutlined />,
+        },
+      ];
+    }
+    return [
+      ...items,
+      {
+        label: 'Delete',
+        key: '2',
+        icon: <DeleteOutlined />,
+        children: [
+          {
+            label: 'worktree',
+            key: '2-0',
+          },
+          {
+            label: 'worktree and local branch',
+            key: '2-1',
+          },
+          {
+            label: 'worktree and local/remote branch',
+            key: '2-2',
+          },
+        ],
+      },
+      {
+        label: 'Lock',
+        key: '4',
+        icon: <LockOutlined />,
+      },
+    ];
   };
 
   const onClickWorktree = (worktree: any) => {
@@ -349,6 +406,22 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           },
         });
       }
+      if (event.key === '3') {
+        ipcRenderer.send(
+          'change-lock-worktree',
+          false,
+          worktree.name,
+          tabRepoPath,
+        );
+      }
+      if (event.key === '4') {
+        ipcRenderer.send(
+          'change-lock-worktree',
+          true,
+          worktree.name,
+          tabRepoPath,
+        );
+      }
     };
   };
 
@@ -364,10 +437,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             }}
           >
             <Space>
-              <BranchesOutlined /> {worktree.name}
+              {worktree.isLocked ? <LockOutlined /> : <BranchesOutlined />}
+              {worktree.name}
             </Space>
             <Dropdown
-              menu={{ items, onClick: onClickWorktree(worktree) }}
+              menu={{
+                items: getMenuItems(worktree.isLocked),
+                onClick: onClickWorktree(worktree),
+              }}
               trigger={['click']}
               placement="bottom"
               destroyPopupOnHide

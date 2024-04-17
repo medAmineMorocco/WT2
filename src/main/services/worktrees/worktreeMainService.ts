@@ -22,11 +22,13 @@ function findAll(directory: string) {
           const pathRep = lineBySpace[0];
           const head = lineBySpace[1];
           const name = lineBySpace[2].replace('[', '').replace(']', '');
+          const isLocked = lineBySpace[3] === 'locked';
 
           return {
             path: pathRep,
             name,
             head,
+            isLocked,
           };
         });
         resolve(worktrees);
@@ -160,6 +162,26 @@ function prune(dir: string) {
   });
 }
 
+function changeLock(toLock: boolean, worktreeName: string, dir: string) {
+  return new Promise((resolve, reject) => {
+    const command = toLock
+      ? `git worktree lock ${worktreeName}`
+      : `git worktree unlock ${worktreeName}`;
+    exec(
+      command,
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
 export default {
   findAll,
   add,
@@ -168,4 +190,5 @@ export default {
   removeWithLocalAndRemoteBranch,
   rename,
   prune,
+  changeLock,
 };
