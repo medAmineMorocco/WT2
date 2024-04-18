@@ -93,29 +93,36 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   ipcRenderer.on(
     `selected-repo-${keyTab}`,
-    function (event, isGitRepo, path, name) {
-      if (isGitRepo) {
-        if (path && name) {
-          if (keyTab === activeTab) {
-            const updatedTabsItems = items.map((tabItem: any) => {
-              if (tabItem.key === activeTab) {
-                tabItem.label = name;
-              }
-              return tabItem;
-            });
-            updateItems(updatedTabsItems);
-            window.localStorage.setItem(
-              activeTab,
-              JSON.stringify({ repoName: name, selectedRepoPath: path }),
-            );
-            setIsRepoSelected(true);
-            message.destroy();
-            message.success('Success! Repository Imported 🎉');
-          }
-        }
-      } else {
+    function (event, isGitRepo, isWorktree, path, name) {
+      if (!isGitRepo) {
         message.destroy();
         message.error('Oops! Not a Git Repository ☹️');
+        return;
+      }
+      if (isWorktree) {
+        message.destroy();
+        message.error(
+          'Oops! This directory appears to be part of a Git worktree ☹️',
+        );
+        return;
+      }
+      if (path && name) {
+        if (keyTab === activeTab) {
+          const updatedTabsItems = items.map((tabItem: any) => {
+            if (tabItem.key === activeTab) {
+              tabItem.label = name;
+            }
+            return tabItem;
+          });
+          updateItems(updatedTabsItems);
+          window.localStorage.setItem(
+            activeTab,
+            JSON.stringify({ repoName: name, selectedRepoPath: path }),
+          );
+          setIsRepoSelected(true);
+          message.destroy();
+          message.success('Success! Repository Imported 🎉');
+        }
       }
     },
   );

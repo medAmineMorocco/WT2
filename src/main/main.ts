@@ -146,6 +146,21 @@ app
   })
   .catch(console.log);
 
+function checkGitRepo(repoPath: string) {
+  const gitDirectory = path.join(repoPath, '.git');
+  return fs.existsSync(gitDirectory);
+}
+
+async function checkWorktree(repoPath: string) {
+  try {
+    const gitFile = path.join(repoPath, '.git');
+    const gitContents = await fs.readFileSync(gitFile, 'utf8');
+    return gitContents.includes('gitdir:');
+  } catch (error) {
+    return false;
+  }
+}
+
 ipcMain.on('choose-dir', async function (event, keyTab) {
   if (mainWindow) {
     const result = await dialog.showOpenDialog(mainWindow, {
@@ -153,20 +168,33 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
     });
     let pathDir;
     let name;
-
+    let isGitRepo = false;
+    let isWorktree = false;
     if (result.canceled) {
       pathDir = null;
       name = null;
     } else {
       const [dir] = result.filePaths;
-      pathDir = dir;
-      name = path.win32.basename(pathDir);
-      const baseDir = `${pathDir}\\.git\\${conf.appPath}`;
-      if (!fs.existsSync(path.normalize(baseDir))) {
-        fs.mkdirSync(path.normalize(baseDir));
+      if (checkGitRepo(dir)) {
+        isGitRepo = true;
+        if (await checkWorktree(dir)) {
+          isWorktree = true;
+        }
+        pathDir = dir;
+        name = path.basename(pathDir);
+        const baseDir = path.join(pathDir, '.git', conf.appPath);
+        if (!isWorktree && !fs.existsSync(path.normalize(baseDir))) {
+          fs.mkdirSync(path.normalize(baseDir));
+        }
       }
     }
-    event.sender.send(`selected-repo-${keyTab}`, true, pathDir, name);
+    event.sender.send(
+      `selected-repo-${keyTab}`,
+      isGitRepo,
+      isWorktree,
+      pathDir,
+      name,
+    );
   }
 });
 
