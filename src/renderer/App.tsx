@@ -280,44 +280,76 @@ function Hello() {
           trigger="click"
           type="primary"
           style={{ right: '18px', bottom: '2vh' }}
-          icon={<MoreOutlined />}
-          badge={{ dot: true }}
-          tooltip={
-            <Space>
-              <span>Menu</span>
-              <small style={{ color: 'grey' }}>Shift+M</small>
-            </Space>
+          icon={
+            <Tooltip
+              title={
+                <Space>
+                  <span>Menu</span>
+                  <small style={{ color: 'grey' }}>Shift+M</small>
+                </Space>
+              }
+              placement="left"
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+            >
+              <MoreOutlined />
+            </Tooltip>
           }
+          badge={{ dot: true }}
           open={isMenuOpen}
           onClick={openMenu}
         >
           <FloatButton
-            icon={<SettingOutlined />}
-            tooltip={
-              <Space>
-                <span>Settings</span>
-                <small style={{ color: 'grey' }}>Shift+S</small>
-              </Space>
+            icon={
+              <Tooltip
+                title={
+                  <Space>
+                    <span>Settings</span>
+                    <small style={{ color: 'grey' }}>Shift+S</small>
+                  </Space>
+                }
+                placement="left"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <SettingOutlined />
+              </Tooltip>
             }
             onClick={openSettingsPage}
           />
           <FloatButton
-            icon={<CommandIcon size={18} />}
-            tooltip={
-              <Space>
-                <span>Keyboard shortcuts</span>
-                <small style={{ color: 'grey' }}>Shift+K</small>
-              </Space>
+            icon={
+              <Tooltip
+                title={
+                  <Space>
+                    <span>Keyboard shortcuts</span>
+                    <small style={{ color: 'grey' }}>Shift+K</small>
+                  </Space>
+                }
+                placement="left"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <CommandIcon size={18} />
+              </Tooltip>
             }
             onClick={openKeyboardShortcuts}
           />
           <FloatButton
-            icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
-            tooltip={
-              <Space>
-                <span>{isDarkMode ? 'Light theme' : 'Dark theme'}</span>
-                <small style={{ color: 'grey' }}>Shift+T</small>
-              </Space>
+            icon={
+              <Tooltip
+                title={
+                  <Space>
+                    <span>{isDarkMode ? 'Light theme' : 'Dark theme'}</span>
+                    <small style={{ color: 'grey' }}>Shift+T</small>
+                  </Space>
+                }
+                placement="left"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                {isDarkMode ? <SunOutlined /> : <MoonOutlined />}
+              </Tooltip>
             }
             onClick={onThemeChange}
           />
