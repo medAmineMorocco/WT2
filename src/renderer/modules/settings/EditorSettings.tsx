@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Form, Input, Modal, Space, Switch, Typography } from 'antd';
-import { BranchesOutlined, EditOutlined } from '@ant-design/icons';
+import { Button, Dropdown, Form, Input, Modal } from 'antd';
+import {
+  BranchesOutlined,
+  EditOutlined,
+  EllipsisOutlined,
+} from '@ant-design/icons';
+import { CheckCard } from '@ant-design/pro-components';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 
 export default function EditorSettings() {
@@ -59,53 +64,44 @@ export default function EditorSettings() {
   return (
     <div
       style={{
-        display: 'grid',
-        gap: '20px',
-        justifyContent: 'center',
-        gridTemplateColumns: '20% 20% 20%',
+        textAlign: 'center',
       }}
     >
       {editors.map((editor) => {
         return (
-          <div
-            className="card"
-            key={editor.name}
-            style={{
-              boxShadow: editor.enabled ? '0 0 4px #69b1ff' : '0 0 4px grey',
+          <CheckCard
+            className="editor-card"
+            avatar={editor.iconTag}
+            title={editor.label}
+            description={editor.description}
+            onChange={(checked) => {
+              onChangeStatus(editor, checked);
             }}
-          >
-            <div
-              className="editor-card-container"
-              style={{ borderColor: editor.enabled ? '#69b1ff' : 'grey' }}
-            >
-              <Space>
-                {editor.iconTag}
-                <span style={{ fontWeight: 'bold' }}>{editor.label}</span>
-              </Space>
-
-              <Switch
-                className="editor-card-enabled"
-                size="small"
-                onChange={(checked: boolean) => onChangeStatus(editor, checked)}
-                value={editor.enabled}
-              />
-
-              <div className="editor-card-path">
-                <Typography.Text style={{ width: '100%' }}>
-                  {editor.description}
-                </Typography.Text>
-              </div>
-            </div>
-            <div
-              className="editor-card-footer"
-              style={{ borderColor: editor.enabled ? '#69b1ff' : 'grey' }}
-            >
-              <EditOutlined
-                style={{ cursor: 'pointer' }}
-                onClick={() => onEditPathEditor(editor)}
-              />
-            </div>
-          </div>
+            checked={editor.enabled}
+            extra={
+              <Dropdown
+                placement="topCenter"
+                menu={{
+                  onClick: ({ domEvent }) => {
+                    domEvent.stopPropagation();
+                    onEditPathEditor(editor);
+                  },
+                  items: [
+                    {
+                      label: 'edit',
+                      icon: <EditOutlined />,
+                      key: '1',
+                    },
+                  ],
+                }}
+              >
+                <EllipsisOutlined
+                  style={{ fontSize: 22, color: 'rgba(0,0,0,0.5)' }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </Dropdown>
+            }
+          />
         );
       })}
 

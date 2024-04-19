@@ -183,3 +183,7 @@ body {
   text-align: right;
   padding: 8px;
 }
+
+.editor-card .ant-pro-checkcard-description {
+  text-align: left;
+}
