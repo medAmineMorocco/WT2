@@ -5,11 +5,6 @@ const { Text } = Typography;
 const data = {
   general: [
     {
-      title: 'Menu',
-      shortcut1: 'Shift',
-      shortcut2: 'M',
-    },
-    {
       title: 'Settings',
       shortcut1: 'Shift',
       shortcut2: 'S',
