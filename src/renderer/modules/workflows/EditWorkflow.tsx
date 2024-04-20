@@ -40,15 +40,15 @@ export default function EditWorkflow({
     const onWorkflowUpdated = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow updated',
-          description: 'Worktree updated successfully',
+          message: 'Workflow Successfully Updated',
+          description: 'Your workflow changes have been applied.',
           placement: 'bottomLeft',
         });
         onCloseEdit();
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error updating workflow',
+          message: 'Unable to Update Workflow',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });

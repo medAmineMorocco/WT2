@@ -36,15 +36,15 @@ export default function AddWorkflow({
     const onWorkflowCreated = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow created',
-          description: 'Worktree created successfully',
+          message: 'Workflow Successfully Created',
+          description: 'Your new workflow is ready to use.',
           placement: 'bottomLeft',
         });
         onCloseAdd();
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error creating workflow',
+          message: 'Unable to Create Workflow',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });

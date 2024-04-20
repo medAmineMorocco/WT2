@@ -107,7 +107,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
-        message: 'Error opening directory',
+        message: 'Unable to Open Web Editor',
         description: <Typography.Text copyable>{error}</Typography.Text>,
         placement: 'bottomLeft',
       });
@@ -118,7 +118,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setWorktrees(JSON.parse(result));
       } else {
         notification.error({
-          message: 'Error fetching worktrees',
+          message: 'Unable to Fetch Worktrees',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
@@ -128,14 +128,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onWorktreeRemoved = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Worktree removed',
-          description: 'Worktree removed successfully',
+          message: 'Worktree Successfully Removed',
+          description: 'The worktree has been deleted.',
           placement: 'bottomLeft',
         });
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error removing worktree',
+          message: 'Unable to Remove Worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
@@ -145,15 +145,15 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onWorktreeRenamed = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Worktree renamed',
-          description: 'Worktree renamed successfully',
+          message: 'Worktree Successfully Renamed',
+          description: 'The worktree has been renamed.',
           placement: 'bottomLeft',
         });
         setIsModalOpen(false);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error renaming worktree',
+          message: 'Unable to Rename Worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
@@ -168,18 +168,18 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     ) => {
       if (code === 0) {
         notification.success({
-          message: toLock ? 'Worktree locked' : 'Worktree unlocked',
+          message: toLock ? 'Worktree Locked' : 'Worktree Unlocked',
           description: toLock
-            ? 'Worktree locked successfully'
-            : 'Worktree unlocked successfully',
+            ? 'Access to the worktree has been successfully restricted.'
+            : 'Access to the worktree has been successfully restored.',
           placement: 'bottomLeft',
         });
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
           message: toLock
-            ? 'Error locking worktree'
-            : 'Error unlocking worktree',
+            ? 'Unable to Lock Worktree'
+            : 'Unable to Unlock Worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });

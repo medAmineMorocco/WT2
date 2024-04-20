@@ -63,7 +63,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         setWorkflows(JSON.parse(result));
       } else {
         notification.error({
-          message: 'Error fetching workflows',
+          message: 'Unable to Fetch Workflows',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
@@ -83,14 +83,14 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     const onWorkflowRemoved = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow deleted',
-          description: 'Worktree deleted successfully',
+          message: 'Workflow Successfully Deleted',
+          description: 'The workflow has been removed.',
           placement: 'bottomLeft',
         });
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         notification.error({
-          message: 'Error deleting workflow',
+          message: 'Unable to Delete Workflow',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });

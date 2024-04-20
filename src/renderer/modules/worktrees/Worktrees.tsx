@@ -56,7 +56,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         if (code === 0) {
           form.setFieldValue('name', null);
           notification.success({
-            message: 'Worktree created',
+            message: 'Worktree Created',
             description: result,
             placement: 'bottomLeft',
           });
@@ -64,7 +64,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           setIsModalOpen(false);
         } else {
           notification.error({
-            message: 'Error creating worktree',
+            message: 'Unable to Create Worktree',
             description: <Typography.Text copyable>{result}</Typography.Text>,
             placement: 'bottomLeft',
           });
@@ -90,13 +90,13 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           ipcRenderer.send('get-worktrees', tabRepoPath);
           if (code === 0) {
             notification.success({
-              message: 'Prune Worktrees',
+              message: 'Worktrees Pruned',
               description: 'Stale worktrees have been successfully pruned',
               placement: 'bottomLeft',
             });
           } else {
             notification.error({
-              message: 'Error creating worktree',
+              message: 'Unable to Create Worktree',
               description: <Typography.Text copyable>{result}</Typography.Text>,
               placement: 'bottomLeft',
             });
