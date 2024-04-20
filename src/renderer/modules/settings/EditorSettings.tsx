@@ -70,6 +70,7 @@ export default function EditorSettings() {
       {editors.map((editor) => {
         return (
           <CheckCard
+            key={editor.key}
             className="editor-card"
             avatar={editor.iconTag}
             title={editor.label}
