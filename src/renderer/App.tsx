@@ -39,8 +39,8 @@ function Hello() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [openKeyboard, setOpenKeyboard] = useState(false);
   const [isMenuOpen, setMenuOpen] = useState(false);
-  const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
   const navigate = useNavigate();
+  const { items, updateItems, activeKey, setActiveKey } = useItemsContext();
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
@@ -64,7 +64,6 @@ function Hello() {
     preventDefault: true,
   });
 
-  const { items, updateItems } = useItemsContext();
   const newTabIndex = useRef(
     Number(TabService.getMaxTabKey().replace('tab', '')) + 1,
   );

@@ -5,6 +5,17 @@ export default class TabService {
       .sort();
   };
 
+  static getTabsWithDetails = (): any[] => {
+    return Object.keys(window.localStorage)
+      .filter((key) => key.startsWith('tab'))
+      .map((tab) => {
+        return {
+          tab,
+          ...TabService.getTab(tab),
+        };
+      });
+  };
+
   static getTab = (tabKey: string) => {
     const tabValue = window.localStorage.getItem(tabKey);
     if (!tabValue) {

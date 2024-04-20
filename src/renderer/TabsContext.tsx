@@ -1,16 +1,20 @@
 import React, { createContext, useState, useContext } from 'react';
+import TabService from './services/tab/TabService';
 
 const ItemsContext = createContext<any | null>(null);
 
 function ItemsProvider({ children }) {
   const [items, setItems] = useState<any[]>([]);
+  const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
 
   const updateItems = (newItems: any[]) => {
     setItems(newItems);
   };
 
   return (
-    <ItemsContext.Provider value={{ items, updateItems }}>
+    <ItemsContext.Provider
+      value={{ items, updateItems, activeKey, setActiveKey }}
+    >
       {children}
     </ItemsContext.Provider>
   );

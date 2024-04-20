@@ -33,7 +33,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     token: { colorPrimary },
   } = theme.useToken();
   const [isRepoSelected, setIsRepoSelected] = useState<Boolean>();
-  const { items, updateItems } = useItemsContext();
+  const { items, updateItems, setActiveKey } = useItemsContext();
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
@@ -91,12 +91,13 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     },
   });
 
-  ipcRenderer.on(
-    `selected-repo-${keyTab}`,
-    function (event, isGitRepo, isWorktree, path, name) {
+  useEffect(() => {
+    const onSelectRepo = (event: any, isGitRepo: boolean, isWorktree: boolean, path: string, name: string) => {
+      setLoading(true);
       if (!isGitRepo) {
         message.destroy();
         message.error('Oops! Not a Git Repository ☹️');
+        setLoading(false);
         return;
       }
       if (isWorktree) {
@@ -104,28 +105,47 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         message.error(
           'Oops! This directory appears to be part of a Git worktree ☹️',
         );
+        setLoading(false);
         return;
       }
       if (path && name) {
         if (keyTab === activeTab) {
-          const updatedTabsItems = items.map((tabItem: any) => {
-            if (tabItem.key === activeTab) {
-              tabItem.label = name;
-            }
-            return tabItem;
-          });
-          updateItems(updatedTabsItems);
-          window.localStorage.setItem(
-            activeTab,
-            JSON.stringify({ repoName: name, selectedRepoPath: path }),
+          const allOpenedRepos = TabService.getTabsWithDetails();
+          const foundRepo = allOpenedRepos.find(
+            (openedRepo) => openedRepo.selectedRepoPath === path,
           );
-          setIsRepoSelected(true);
-          message.destroy();
-          message.success('Success! Repository Imported 🎉');
+          if (foundRepo) {
+            setLoading(false);
+            setActiveKey(foundRepo.tab);
+            TabService.setActiveTab(foundRepo.tab);
+          } else {
+            setLoading(false);
+            console.log('itemssssss', items);
+            const updatedTabsItems = items.map((tabItem: any) => {
+              if (tabItem.key === activeTab) {
+                tabItem.label = name;
+              }
+              return tabItem;
+            });
+            updateItems(updatedTabsItems);
+            window.localStorage.setItem(
+              activeTab,
+              JSON.stringify({ repoName: name, selectedRepoPath: path }),
+            );
+            setIsRepoSelected(true);
+            message.destroy();
+            message.success('Success! Repository Imported 🎉');
+          }
         }
       }
-    },
-  );
+    };
+
+    ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
+
+    return () => {
+      ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
+    };
+  }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 
   ipcRenderer.on(`theme-changed-${keyTab}`, function (event, isDarkModeNew) {
     setIsDarkMode(isDarkModeNew);
