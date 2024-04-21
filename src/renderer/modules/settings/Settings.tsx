@@ -4,12 +4,14 @@ import {
   NotificationOutlined,
   CodeOutlined,
   ApiOutlined,
+  ClearOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import EditorSettings from './EditorSettings';
 import NotificationSettings from './NotificationSettings';
 import TerminalSettings from './TerminalSettings';
+import CacheSettings from './CacheSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -34,6 +36,11 @@ const itemsMenu: MenuProps['items'] = [
     key: '2',
     label: 'Editors',
     icon: <ApiOutlined />,
+  },
+  {
+    key: '3',
+    label: 'Clear cache',
+    icon: <ClearOutlined />,
   },
 ];
 
@@ -65,7 +72,10 @@ export default function Settings() {
     if (keyNavigation === '1') {
       return <TerminalSettings />;
     }
-    return <EditorSettings />;
+    if (keyNavigation === '2') {
+      return <EditorSettings />;
+    }
+    return <CacheSettings />;
   };
 
   return (

@@ -336,17 +336,19 @@ export default function App() {
   return (
     <Router>
       <Suspense fallback={<div>Loading...</div>}>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <ItemsProvider>
-                <Hello />
-              </ItemsProvider>
-            }
-          />
-          <Route path="/settings" element={<Settings />} />
-        </Routes>
+        <AntdApp>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <ItemsProvider>
+                  <Hello />
+                </ItemsProvider>
+              }
+            />
+            <Route path="/settings" element={<Settings />} />
+          </Routes>
+        </AntdApp>
       </Suspense>
     </Router>
   );
