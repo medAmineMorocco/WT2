@@ -1,6 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import copyDirectory from '../utils/fileService';
+import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 
 const { exec } = require('child_process');
 
@@ -51,13 +52,42 @@ function add(name: string, isExistingBranch: boolean, dir: string) {
         if (error) {
           reject(error);
         }
-        const jetbrainsCachedDir = `${dir}\\.idea`;
-        if (fs.existsSync(jetbrainsCachedDir)) {
-          await copyDirectory(
-            path.join(dir, '.idea'),
-            path.join(dir, '..', name, '.idea'),
-          );
+
+        // eslint-disable-next-line no-restricted-syntax
+        for (const editor of editorsCst) {
+          if (editor.enabled && editor.settingsFolder) {
+            const projectEditorSettingsFolder = path.join(
+              dir,
+              editor.settingsFolder,
+            );
+            if (
+              fs.existsSync(projectEditorSettingsFolder) &&
+              !fs.existsSync(path.join(dir, '..', name, editor.settingsFolder))
+            ) {
+              // eslint-disable-next-line no-await-in-loop
+              await copyDirectory(
+                projectEditorSettingsFolder,
+                path.join(dir, '..', name, editor.settingsFolder),
+              );
+            }
+          }
+          if (editor.enabled && editor.settingsFile) {
+            const projectEditorSettingsFile = path.join(
+              dir,
+              editor.settingsFile,
+            );
+            if (
+              fs.existsSync(projectEditorSettingsFile) &&
+              !fs.existsSync(path.join(dir, '..', name, editor.settingsFile))
+            ) {
+              fs.copyFileSync(
+                projectEditorSettingsFile,
+                path.join(dir, '..', name, editor.settingsFile),
+              );
+            }
+          }
         }
+
         resolve(stdout);
       },
     );
