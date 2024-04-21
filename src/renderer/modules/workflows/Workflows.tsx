@@ -83,9 +83,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     const onWorkflowRemoved = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow Successfully Deleted',
-          description: 'The workflow has been removed.',
+          message: 'The workflow has been removed',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
@@ -186,7 +186,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const deleteWorkflow = (record: any) => {
     return () => {
       modal.confirm({
-        title: 'Are you sure delete this workflow ?',
+        title: 'Confirm deletion of this workflow ?',
         icon: <ExclamationCircleFilled />,
         okText: 'Yes',
         okType: 'danger',

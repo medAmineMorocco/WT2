@@ -59,6 +59,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             message: 'Worktree Created',
             description: result,
             placement: 'bottomLeft',
+            duration: 1,
           });
           ipcRenderer.send('get-worktrees', tabRepoPath);
           setIsModalOpen(false);
@@ -90,9 +91,9 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           ipcRenderer.send('get-worktrees', tabRepoPath);
           if (code === 0) {
             notification.success({
-              message: 'Worktrees Pruned',
-              description: 'Stale worktrees have been successfully pruned',
+              message: 'Stale worktrees have been successfully pruned',
               placement: 'bottomLeft',
+              duration: 0.5,
             });
           } else {
             notification.error({

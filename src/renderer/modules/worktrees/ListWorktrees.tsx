@@ -129,8 +129,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       if (code === 0) {
         notification.success({
           message: 'Worktree Successfully Removed',
-          description: 'The worktree has been deleted.',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
@@ -145,9 +145,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onWorktreeRenamed = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Worktree Successfully Renamed',
-          description: 'The worktree has been renamed.',
+          message: 'The worktree has been renamed',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         setIsModalOpen(false);
         ipcRenderer.send('get-worktrees', tabRepoPath);
@@ -168,11 +168,11 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     ) => {
       if (code === 0) {
         notification.success({
-          message: toLock ? 'Worktree Locked' : 'Worktree Unlocked',
-          description: toLock
-            ? 'Access to the worktree has been successfully restricted.'
-            : 'Access to the worktree has been successfully restored.',
+          message: toLock
+            ? 'Access to the worktree has been successfully restricted'
+            : 'Access to the worktree has been successfully restored',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
@@ -343,7 +343,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
       if (event.key === '2-0') {
         modal.confirm({
-          title: 'Are you sure delete this worktree ?',
+          title: 'Confirm deletion of this worktree ?',
           icon: <ExclamationCircleFilled />,
           okText: 'Yes',
           okType: 'danger',
@@ -365,7 +365,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
       if (event.key === '2-1') {
         modal.confirm({
-          title: `Are you sure delete this worktree and ${worktree.name} branch ?`,
+          title: `Confirm deletion of this worktree and ${worktree.name} branch ?`,
           icon: <ExclamationCircleFilled />,
           okText: 'Yes',
           okType: 'danger',
@@ -387,7 +387,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
       if (event.key === '2-2') {
         modal.confirm({
-          title: `Are you sure delete this worktree and ${worktree.name} branch and origin/${worktree.name} branch ?`,
+          title: `Confirm deletion of this worktree and ${worktree.name} branch and origin/${worktree.name} branch ?`,
           icon: <ExclamationCircleFilled />,
           okText: 'Yes',
           okType: 'danger',

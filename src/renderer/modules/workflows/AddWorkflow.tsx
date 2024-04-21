@@ -36,9 +36,9 @@ export default function AddWorkflow({
     const onWorkflowCreated = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow Successfully Created',
-          description: 'Your new workflow is ready to use.',
+          message: 'Your new workflow is ready to use',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         onCloseAdd();
         ipcRenderer.send('get-workflows', tabRepoPath);

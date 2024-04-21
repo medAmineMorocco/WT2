@@ -40,9 +40,9 @@ export default function EditWorkflow({
     const onWorkflowUpdated = (event: any, code: number, result: any) => {
       if (code === 0) {
         notification.success({
-          message: 'Workflow Successfully Updated',
-          description: 'Your workflow changes have been applied.',
+          message: 'Your workflow changes have been applied',
           placement: 'bottomLeft',
+          duration: 0.5,
         });
         onCloseEdit();
         ipcRenderer.send('get-workflows', tabRepoPath);
