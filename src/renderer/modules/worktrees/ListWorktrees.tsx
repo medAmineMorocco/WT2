@@ -482,7 +482,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               {
                 required: true,
                 whitespace: true,
-                message: 'Please input your worktree name!',
+                message: 'Please enter the name of your worktree.',
               },
               () => ({
                 validator(_, value) {

@@ -339,7 +339,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       {
                         required: true,
                         whitespace: true,
-                        message: 'Please input your worktree name!',
+                        message: 'Please enter the name of your worktree.',
                       },
                       () => ({
                         validator(_, value) {
@@ -370,7 +370,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       {
                         required: true,
                         whitespace: true,
-                        message: 'Please select a branch!',
+                        message: 'Please choose a branch.',
                       },
                       () => ({
                         validator(_, value) {

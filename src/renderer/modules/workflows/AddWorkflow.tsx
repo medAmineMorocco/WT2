@@ -90,7 +90,7 @@ export default function AddWorkflow({
             {
               required: true,
               whitespace: true,
-              message: 'Please input your workflow name !',
+              message: 'Please enter the name of your workflow.',
             },
           ]}
         >
@@ -108,7 +108,7 @@ export default function AddWorkflow({
             {
               required: true,
               whitespace: true,
-              message: 'Please input the command !',
+              message: 'Please enter the command.',
             },
           ]}
         >
@@ -132,7 +132,7 @@ export default function AddWorkflow({
                         required: true,
                         whitespace: true,
                         message:
-                          'Please input the command or delete this field !',
+                          'Please enter the command, or delete this field.',
                       },
                     ]}
                     noStyle

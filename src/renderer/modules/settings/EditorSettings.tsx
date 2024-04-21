@@ -127,7 +127,7 @@ export default function EditorSettings() {
               {
                 required: true,
                 whitespace: true,
-                message: 'Please input your worktree name!',
+                message: 'Please enter the name of your worktree.',
               },
             ]}
             style={{ flex: 1 }}
