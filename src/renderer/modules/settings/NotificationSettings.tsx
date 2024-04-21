@@ -23,6 +23,7 @@ export default function NotificationSettings() {
         label="Enable Desktop Notifications"
         name="notificationsEnabled"
         valuePropName="checked"
+        extra="Get notified instantly when your workflow finishes."
       >
         <Switch onChange={onChange} value={enabled} />
       </Form.Item>

@@ -62,86 +62,92 @@ export default function EditorSettings() {
   };
 
   return (
-    <div
-      style={{
-        textAlign: 'center',
-      }}
-    >
-      {editors.map((editor) => {
-        return (
-          <CheckCard
-            key={editor.key}
-            className="editor-card"
-            avatar={editor.iconTag}
-            title={editor.label}
-            description={editor.description}
-            onChange={(checked) => {
-              onChangeStatus(editor, checked);
-            }}
-            checked={editor.enabled}
-            extra={
-              <Dropdown
-                placement="topCenter"
-                menu={{
-                  onClick: ({ domEvent }) => {
-                    domEvent.stopPropagation();
-                    onEditPathEditor(editor);
-                  },
-                  items: [
-                    {
-                      label: 'edit',
-                      icon: <EditOutlined />,
-                      key: '1',
-                    },
-                  ],
-                }}
-              >
-                <EllipsisOutlined
-                  style={{ fontSize: 22, color: 'rgba(0,0,0,0.5)' }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Dropdown>
-            }
-          />
-        );
-      })}
-
-      <Modal
-        open={isModalOpen}
-        footer={null}
-        onCancel={handleCancel}
-        destroyOnClose
-        centered
-        closeIcon={null}
+    <>
+      <div style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: '8px' }}>
+        Customize your experience by enabling only the editors you want to work
+        with.
+      </div>
+      <div
+        style={{
+          textAlign: 'center',
+        }}
       >
-        <Form
-          onFinish={onFinish}
-          layout="inline"
-          requiredMark="optional"
-          form={form}
+        {editors.map((editor) => {
+          return (
+            <CheckCard
+              key={editor.key}
+              className="editor-card"
+              avatar={editor.iconTag}
+              title={editor.label}
+              description={editor.description}
+              onChange={(checked) => {
+                onChangeStatus(editor, checked);
+              }}
+              checked={editor.enabled}
+              extra={
+                <Dropdown
+                  placement="topCenter"
+                  menu={{
+                    onClick: ({ domEvent }) => {
+                      domEvent.stopPropagation();
+                      onEditPathEditor(editor);
+                    },
+                    items: [
+                      {
+                        label: 'edit',
+                        icon: <EditOutlined />,
+                        key: '1',
+                      },
+                    ],
+                  }}
+                >
+                  <EllipsisOutlined
+                    style={{ fontSize: 22, color: 'rgba(0,0,0,0.5)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </Dropdown>
+              }
+            />
+          );
+        })}
+
+        <Modal
+          open={isModalOpen}
+          footer={null}
+          onCancel={handleCancel}
+          destroyOnClose
+          centered
+          closeIcon={null}
         >
-          <Form.Item
-            label="Path"
-            name="path"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Please enter the name of your worktree.',
-              },
-            ]}
-            style={{ flex: 1 }}
+          <Form
+            onFinish={onFinish}
+            layout="inline"
+            requiredMark="optional"
+            form={form}
           >
-            <Input prefix={<BranchesOutlined />} allowClear />
-          </Form.Item>
-          <Form.Item name="editorName" hidden />
-          <Form.Item style={{ marginRight: 0 }}>
-            <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
-              Edit
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
-    </div>
+            <Form.Item
+              label="Path"
+              name="path"
+              rules={[
+                {
+                  required: true,
+                  whitespace: true,
+                  message: 'Please enter the name of your worktree.',
+                },
+              ]}
+              style={{ flex: 1 }}
+            >
+              <Input prefix={<BranchesOutlined />} allowClear />
+            </Form.Item>
+            <Form.Item name="editorName" hidden />
+            <Form.Item style={{ marginRight: 0 }}>
+              <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
+                Edit
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    </>
   );
 }
