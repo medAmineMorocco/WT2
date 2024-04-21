@@ -38,8 +38,10 @@ export const editorsCst = [
     key: '0-2',
     label: 'Intellij',
     icon: 'IntellijIcon',
-    path: 'C:Program Files\\JetBrains\\IntelliJ IDEA 2021.3.3\\bin\\idea64.exe',
-    description: 'Import java project in Intellij',
+    path: '',
+    settingsFolder: '.idea',
+    description:
+      'Import and manage Java projects effortlessly, utilizing advanced tools for code analysis, debugging, and version control',
     enabled: true,
   },
   {
@@ -47,7 +49,9 @@ export const editorsCst = [
     label: 'Webstorm',
     icon: 'WebstormIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      'Create and manage web development projects effortlessly, leveraging specialized tools and features tailored for front-end and back-end development in WebStorm.',
     enabled: true,
   },
   {
@@ -55,15 +59,19 @@ export const editorsCst = [
     label: 'Rider',
     icon: 'RiderIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      "Effortlessly manage and develop .NET projects, including ASP.NET, Xamarin, and Unity, using Rider's powerful IDE tailored for .NET development.",
     enabled: true,
   },
   {
     key: '0-5',
     label: 'PyCharm',
     icon: 'PycharmIcon',
-    path: 'path',
-    description: 'Import java project in Intellij',
+    path: '',
+    settingsFolder: '.idea',
+    description:
+      "Efficiently develop Python projects with PyCharm's intelligent code completion, debugging, and version control features tailored for Python development.",
     enabled: true,
   },
   {
@@ -71,7 +79,9 @@ export const editorsCst = [
     label: 'CLion',
     icon: 'ClionIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      "Seamlessly develop C and C++ projects with CLion's advanced coding assistance, refactorings, and integrated debugger tailored for C and C++ development.",
     enabled: true,
   },
   {
@@ -79,7 +89,9 @@ export const editorsCst = [
     label: 'PhpStorm',
     icon: 'PhpstormIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      "Effortlessly develop PHP projects with PhpStorm's intelligent code completion, refactorings, and comprehensive framework support tailored for PHP development.",
     enabled: true,
   },
   {
@@ -87,7 +99,9 @@ export const editorsCst = [
     label: 'RubyMine',
     icon: 'RubymineIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      "Effortlessly develop Ruby and Rails projects with RubyMine's intelligent code completion, refactorings, and comprehensive framework support tailored for Ruby development.",
     enabled: true,
   },
   {
@@ -95,7 +109,9 @@ export const editorsCst = [
     label: 'GoLand',
     icon: 'GoLandIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      "Effortlessly develop Go projects with GoLand's intelligent code completion, refactorings, and comprehensive support tailored specifically for Go development.",
     enabled: true,
   },
   {
@@ -103,7 +119,9 @@ export const editorsCst = [
     label: 'Visual Studio',
     icon: 'VsCodeIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.vscode',
+    description:
+      'Edit various programming projects with ease, from web development to cloud-based applications.',
     enabled: true,
   },
   {
@@ -111,7 +129,9 @@ export const editorsCst = [
     label: 'Eclipse',
     icon: 'EclipseIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.settings',
+    description:
+      'Create and manage Java projects with ease, leveraging a wide range of plugins and tools for software development.',
     enabled: true,
   },
   {
@@ -119,7 +139,9 @@ export const editorsCst = [
     label: 'Brackets',
     icon: 'BracketsIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFile: '.brackets.json',
+    description:
+      'Build and design responsive websites and web applications using intuitive features tailored for web development.',
     enabled: true,
   },
   {
@@ -127,7 +149,9 @@ export const editorsCst = [
     label: 'Android Studio',
     icon: 'AndroidStudioIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.idea',
+    description:
+      'Develop Android applications seamlessly, taking advantage of specialized tools and integrations for Android app development.',
     enabled: true,
   },
   {
@@ -135,7 +159,8 @@ export const editorsCst = [
     label: 'Xcode',
     icon: 'XcodeIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    description:
+      'Develop macOS, iOS, watchOS, and tvOS applications with a comprehensive suite of tools for building, testing, and debugging.',
     enabled: true,
   },
   {
@@ -143,7 +168,9 @@ export const editorsCst = [
     label: 'Sublime Text',
     icon: 'SublimeIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    settingsFolder: '.sublime-project',
+    description:
+      'Seamlessly work on coding projects ranging from simple scripts to complex software applications.',
     enabled: true,
   },
   {
@@ -151,7 +178,8 @@ export const editorsCst = [
     label: 'Vim',
     icon: 'VimIcon',
     path: '',
-    description: 'Import java project in Intellij',
+    description:
+      'Handle coding tasks efficiently, from quick edits to large-scale software development, using its powerful modal editing features.',
     enabled: true,
   },
 ];
