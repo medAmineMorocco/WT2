@@ -124,7 +124,7 @@ export default function KeyboardShortcuts({
             ),
           },
           {
-            label: 'Tabs',
+            label: 'Tab',
             key: '20',
             children: (
               <List

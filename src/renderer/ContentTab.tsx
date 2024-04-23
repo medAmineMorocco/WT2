@@ -120,7 +120,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
             TabService.setActiveTab(foundRepo.tab);
           } else {
             setLoading(false);
-            console.log('itemssssss', items);
             const updatedTabsItems = items.map((tabItem: any) => {
               if (tabItem.key === activeTab) {
                 tabItem.label = name;
