@@ -6,6 +6,7 @@ const ItemsContext = createContext<any | null>(null);
 function ItemsProvider({ children }) {
   const [items, setItems] = useState<any[]>([]);
   const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
+  const [isWorkflowPlaying, setIsWorkflowPlaying] = useState(false);
 
   const updateItems = (newItems: any[]) => {
     setItems(newItems);
@@ -13,7 +14,14 @@ function ItemsProvider({ children }) {
 
   return (
     <ItemsContext.Provider
-      value={{ items, updateItems, activeKey, setActiveKey }}
+      value={{
+        items,
+        updateItems,
+        activeKey,
+        setActiveKey,
+        isWorkflowPlaying,
+        setIsWorkflowPlaying,
+      }}
     >
       {children}
     </ItemsContext.Provider>

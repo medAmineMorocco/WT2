@@ -36,10 +36,12 @@ const { defaultAlgorithm, darkAlgorithm } = theme;
 type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
 
 function Hello() {
+  const { notification } = AntdApp.useApp();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [openKeyboard, setOpenKeyboard] = useState(false);
   const navigate = useNavigate();
-  const { items, updateItems, activeKey, setActiveKey } = useItemsContext();
+  const { items, updateItems, activeKey, setActiveKey, isWorkflowPlaying } =
+    useItemsContext();
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
@@ -81,9 +83,21 @@ function Hello() {
     return resultItem;
   };
 
+  const showNotificationOfWorkflowPlaying = () => {
+    notification.warning({
+      message: 'A workflow is currently running. please stop the workflow.',
+      placement: 'bottomLeft',
+      duration: 2,
+    });
+  };
+
   useHotkeys(
     'shift+right',
     () => {
+      if (isWorkflowPlaying) {
+        showNotificationOfWorkflowPlaying();
+        return;
+      }
       const nextTab = getItem(TabService.getTabs(), activeKey, 'next');
       if (nextTab) {
         setActiveKey(nextTab);
@@ -98,6 +112,10 @@ function Hello() {
   useHotkeys(
     'shift+left',
     () => {
+      if (isWorkflowPlaying) {
+        showNotificationOfWorkflowPlaying();
+        return;
+      }
       const previousTab = getItem(TabService.getTabs(), activeKey, 'previous');
       if (previousTab) {
         setActiveKey(previousTab);
@@ -156,6 +174,10 @@ function Hello() {
   }, []);
 
   const onChange = (newActiveKey: string) => {
+    if (isWorkflowPlaying) {
+      showNotificationOfWorkflowPlaying();
+      return;
+    }
     setActiveKey(newActiveKey);
     TabService.setActiveTab(newActiveKey);
   };
@@ -177,6 +199,10 @@ function Hello() {
 
   const remove = (targetKey: TargetKey) => {
     if (items.length >= 2) {
+      if (isWorkflowPlaying && targetKey === activeKey) {
+        showNotificationOfWorkflowPlaying();
+        return;
+      }
       window.localStorage.removeItem(String(targetKey));
       const newPanes = items.filter((item: any) => item.key !== targetKey);
       updateItems(newPanes);

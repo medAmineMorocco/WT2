@@ -25,6 +25,7 @@ import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
 import ImportWorkflow from './ImportWorkflow';
 import TabService from '../../services/tab/TabService';
+import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
 
@@ -50,6 +51,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [workflows, setWorkflows] = useState<any>([]);
   const [worktrees, setWorktrees] = useState([]);
   const [workflowsToImport, setWorkflowsToImport] = useState([]);
+  const { setIsWorkflowPlaying } = useItemsContext();
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -77,6 +79,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     };
 
     const onWorkflowStopped = () => {
+      setIsWorkflowPlaying(false);
       setPlayingWorkflow(null);
     };
 
@@ -214,6 +217,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
       ipcRenderer.send('play-workflow', workflow);
       setPlayingWorkflow(workflow.name);
+      setIsWorkflowPlaying(true);
     };
   };
 
