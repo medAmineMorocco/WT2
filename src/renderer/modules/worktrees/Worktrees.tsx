@@ -319,7 +319,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                   },
                   {
                     label: (
-                      <div style={{ padding: 2 }}>From existing branch</div>
+                      <div style={{ padding: 2 }}>For an existing branch</div>
                     ),
                     value: 'existing-branch',
                   },
@@ -336,6 +336,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                   <Form.Item
                     label="Name"
                     name="name"
+                    extra="Always created from HEAD of the main worktree"
                     rules={[
                       {
                         required: true,
