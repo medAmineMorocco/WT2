@@ -28,10 +28,16 @@ body {
   padding-right: 8px;
 }
 
-.ant-layout-sider-collapsed .ant-layout-sider-trigger {
+:where(.css-dev-only-do-not-override-1jknxed).ant-layout .ant-layout-sider-light .ant-layout-sider-trigger {
+  text-align: right;
+  padding-right: 8px;
+}
+
+.ant-layout-sider.ant-layout-sider-collapsed .ant-layout-sider-trigger {
   text-align: center;
   padding-right: 0;
 }
+
 
 .fullSsceen-modal > .ant-modal-content {
   height: 98%;

@@ -475,7 +475,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 bottom: '12px',
                 left: 'calc(50% - 25px)',
                 zIndex: 8,
-                display: 'none',
               }}
             >
               1.0.0
