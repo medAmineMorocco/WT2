@@ -12,6 +12,8 @@ import {
   App as AntdApp,
   Typography,
   Tag,
+  Card,
+  Statistic,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -21,6 +23,7 @@ import {
   InfoCircleOutlined,
   SyncOutlined,
   LoadingOutlined,
+  HourglassOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
@@ -443,12 +446,36 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             <div style={{ height: '40%', overflowY: 'auto' }}>
               <ListWorktrees isDarkMode={isDarkMode} />
             </div>
+            <div
+              style={{
+                position: 'absolute',
+                bottom: '46px',
+                width: '100%',
+                padding: '16px',
+              }}
+            >
+              <Card
+                bordered={false}
+                style={{
+                  backgroundColor: isDarkMode ? 'black' : '#f5f5f5',
+                  boxShadow: 'none',
+                }}
+              >
+                <Statistic
+                  title="Free Trial"
+                  value={4}
+                  prefix={<HourglassOutlined />}
+                  suffix="Days"
+                />
+              </Card>
+            </div>
             <Tag
               style={{
                 position: 'absolute',
                 bottom: '12px',
                 left: 'calc(50% - 25px)',
                 zIndex: 8,
+                display: 'none',
               }}
             >
               1.0.0
