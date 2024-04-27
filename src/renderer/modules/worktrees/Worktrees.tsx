@@ -165,6 +165,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       ipcRenderer.send('prune-worktrees', tabRepoPath);
     };
 
+    useHotkeys('shift+p', () => onClickPrune(), {
+      preventDefault: true,
+    });
+
     const handleCancel = () => {
       setIsModalOpen(false);
     };
@@ -289,7 +293,12 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
                 {!pruneLoading ? (
                   <Tooltip
-                    title="Prune worktrees"
+                    title={
+                      <Space>
+                        <span>Prune worktrees</span>
+                        <small style={{ color: 'grey' }}>Shift+P</small>
+                      </Space>
+                    }
                     mouseEnterDelay={0}
                     mouseLeaveDelay={0}
                   >

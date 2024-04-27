@@ -58,6 +58,11 @@ const data = {
       shortcut1: 'Shift',
       shortcut2: 'W',
     },
+    {
+      title: 'Prune Worktrees',
+      shortcut1: 'Shift',
+      shortcut2: 'P',
+    },
   ],
   workflow: [
     {
