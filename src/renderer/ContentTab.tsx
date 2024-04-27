@@ -139,16 +139,18 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }
     };
 
+    const onThemeChange = (event: any, isDarkModeNew: boolean) => {
+      setIsDarkMode(isDarkModeNew);
+    };
+
     ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
+    ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
 
     return () => {
       ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
+      ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
-
-  ipcRenderer.on(`theme-changed-${keyTab}`, function (event, isDarkModeNew) {
-    setIsDarkMode(isDarkModeNew);
-  });
 
   const steps: TourProps['steps'] = [
     {
