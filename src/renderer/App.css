@@ -193,3 +193,15 @@ body {
 .editor-card .ant-pro-checkcard-description {
   text-align: left;
 }
+
+.git-log-modal div[tabindex="-1"] {
+  height: 100%;
+}
+
+.git-log-modal .ant-modal-content {
+  height: 100%;
+}
+
+.git-log-modal .ant-modal-content .ant-modal-body {
+  height: 100%;
+}

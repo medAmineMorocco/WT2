@@ -20,6 +20,7 @@ import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
 import './listeners/settings/settingsListeners';
+import './listeners/git/gitListeners';
 
 const { conf } = require('./conf/conf');
 

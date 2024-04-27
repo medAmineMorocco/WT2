@@ -97,6 +97,8 @@
   },
   "dependencies": {
     "@ant-design/pro-components": "^2.7.1",
+    "@xterm/addon-fit": "^0.10.0",
+    "@xterm/xterm": "^5.5.0",
     "antd": "5.16.1",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.8",

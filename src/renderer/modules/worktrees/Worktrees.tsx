@@ -14,6 +14,8 @@ import {
   Tag,
   Card,
   Statistic,
+  theme,
+  Divider,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -27,13 +29,17 @@ import {
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
+import { GitBranchIcon } from 'hugeicons-react';
 import ListWorktrees from './ListWorktrees';
 import TabService from '../../services/tab/TabService';
+import GitLog from '../gitLog/GitLog';
 
 const { Sider } = Layout;
+const { useToken } = theme;
 
 const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
   ({ isDarkMode }, ref) => {
+    const { token } = useToken();
     const [collapsed, setCollapsed] = useState(false);
 
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -49,6 +55,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
     const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+
+    const [openGitLog, setOpenGitLog] = useState(false);
 
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
@@ -249,6 +257,14 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       );
     };
 
+    const ShowGitLog = () => {
+      setOpenGitLog(true);
+    };
+
+    const onCloseGitLog = () => {
+      setOpenGitLog(false);
+    };
+
     return (
       <Sider
         theme="light"
@@ -303,6 +319,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 />
               </Tooltip>
             </div>
+            <GitLog
+              isModalOpen={openGitLog}
+              handleCancel={onCloseGitLog}
+              isDarkMode={isDarkMode}
+            />
             <Modal
               open={isModalOpen}
               footer={null}
@@ -446,6 +467,31 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             <div style={{ height: '40%', overflowY: 'auto' }}>
               <ListWorktrees isDarkMode={isDarkMode} />
             </div>
+            <Divider style={{ margin: 0 }} />
+            <ul style={{ marginTop: 0, paddingLeft: '0' }}>
+              <li
+                key="git-log"
+                style={{
+                  color: token.colorTextBase,
+                  cursor: 'pointer',
+                }}
+              >
+                <Button
+                  type="text"
+                  block
+                  onClick={ShowGitLog}
+                  style={{
+                    borderRadius: 0,
+                    textAlign: 'left',
+                    paddingLeft: '8px',
+                    fontWeight: 'bold',
+                  }}
+                  icon={<GitBranchIcon size={16} />}
+                >
+                  Git Log
+                </Button>
+              </li>
+            </ul>
             <div
               style={{
                 position: 'absolute',
