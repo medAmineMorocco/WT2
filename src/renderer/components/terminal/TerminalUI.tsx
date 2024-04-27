@@ -30,6 +30,9 @@ export default function TerminalUI({
     fitAddon.fit();
     if (output) {
       terminal.writeln(output);
+      setTimeout(() => {
+        terminal.scrollToTop();
+      });
     }
     return () => {
       terminal.dispose();
