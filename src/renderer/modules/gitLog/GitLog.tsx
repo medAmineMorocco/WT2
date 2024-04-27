@@ -64,7 +64,6 @@ export default function GitLog({
         <strong>Git Log</strong>
       </Space>
       <TerminalUI
-        repositoryPath="repo"
         isDarkMode={isDarkMode}
         output={gitLog
           .replaceAll('*', '🔵 ')

@@ -5,11 +5,9 @@ import { FitAddon } from '@xterm/addon-fit';
 
 let terminal: any = null;
 export default function TerminalUI({
-  repositoryPath,
   isDarkMode,
   output,
 }: {
-  repositoryPath: string;
   isDarkMode: boolean;
   output: string;
 }) {
@@ -36,7 +34,7 @@ export default function TerminalUI({
     return () => {
       terminal.dispose();
     };
-  }, [isDarkMode, output, repositoryPath]);
+  }, [isDarkMode, output]);
 
   return (
     <div
