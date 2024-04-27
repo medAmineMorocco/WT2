@@ -60,7 +60,9 @@ function findAll(dir: string) {
     .map((dirent: any) => dirent.name)
     .map((id: string) => {
       const targetDir = `${baseDir}\\${id}\\details.json`;
-      return JSON.parse(fs.readFileSync(targetDir, 'utf-8'));
+      const workflow = JSON.parse(fs.readFileSync(targetDir, 'utf-8'));
+      workflow.key = workflow.id;
+      return workflow;
     });
 }
 
