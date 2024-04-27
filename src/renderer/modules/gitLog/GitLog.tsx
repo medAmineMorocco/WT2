@@ -1,6 +1,7 @@
-import { Modal, Typography, notification } from 'antd';
+import { Modal, Typography, notification, Space } from 'antd';
 import { ipcRenderer } from 'electron';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { GitBranchIcon } from 'hugeicons-react';
 import TerminalUI from '../../components/terminal/TerminalUI';
 import TabService from '../../services/tab/TabService';
 
@@ -58,7 +59,10 @@ export default function GitLog({
         paddingBottom: 0,
       }}
     >
-      <div>Git Log</div>
+      <Space>
+        <GitBranchIcon size={16} />
+        <strong>Git Log</strong>
+      </Space>
       <TerminalUI
         repositoryPath="repo"
         isDarkMode={isDarkMode}

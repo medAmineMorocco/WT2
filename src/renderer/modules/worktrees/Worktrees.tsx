@@ -265,6 +265,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       setOpenGitLog(false);
     };
 
+    useHotkeys('shift+g', () => setOpenGitLog(true), {
+      preventDefault: true,
+    });
+
     return (
       <Sider
         theme="light"
@@ -476,20 +480,27 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                   cursor: 'pointer',
                 }}
               >
-                <Button
-                  type="text"
-                  block
-                  onClick={ShowGitLog}
-                  style={{
-                    borderRadius: 0,
-                    textAlign: 'left',
-                    paddingLeft: '8px',
-                    fontWeight: 'bold',
-                  }}
-                  icon={<GitBranchIcon size={16} />}
+                <Tooltip
+                  title={<small>Shift+G</small>}
+                  placement="right"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
                 >
-                  Git Log
-                </Button>
+                  <Button
+                    type="text"
+                    block
+                    onClick={ShowGitLog}
+                    style={{
+                      borderRadius: 0,
+                      textAlign: 'left',
+                      paddingLeft: '8px',
+                      fontWeight: 'bold',
+                    }}
+                    icon={<GitBranchIcon size={16} />}
+                  >
+                    Git Log
+                  </Button>
+                </Tooltip>
               </li>
             </ul>
             <div
