@@ -39,7 +39,7 @@ export default function TerminalUI({
   return (
     <div
       ref={terminalRef}
-      style={{ width: '96%', height: 'calc(100% - 22px)', padding: '32px' }}
+      style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
     />
   );
 }

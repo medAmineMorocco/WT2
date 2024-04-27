@@ -55,7 +55,7 @@ export default function GitLog({
         position: 'absolute',
         right: '8px',
         top: '48px',
-        height: 'calc(100% - 48px)',
+        height: 'calc(100% - 56px)',
         paddingBottom: 0,
       }}
     >
