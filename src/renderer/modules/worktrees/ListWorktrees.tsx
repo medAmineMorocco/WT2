@@ -497,6 +497,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 },
               }),
             ]}
+            extra="The folder and associated branch will be renamed"
             style={{ flex: 1 }}
           >
             <Input prefix={<BranchesOutlined />} allowClear />
