@@ -1,20 +1,29 @@
-import { exec } from 'child_process';
+import { execSync } from 'child_process';
+import { BrowserWindow } from 'electron';
+import settingsMainService from '../settings/settingsMainService';
 
 function showLog(directory: string) {
-  return new Promise((resolve, reject) => {
-    exec(
-      'git log --oneline --decorate --graph --all -500',
-      {
-        cwd: directory,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        const branches = stdout.toString();
-        resolve(branches);
-      },
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const options = {
+      cwd: directory,
+      shell: true,
+    } as any;
+    const terminal = await settingsMainService.getActualTerminal(
+      BrowserWindow.getFocusedWindow(),
     );
+    if (terminal) {
+      options.shell = terminal;
+    }
+    try {
+      const stdout = execSync(
+        'git log --oneline --decorate --graph --all --color=always --format="%C(auto)%h %C(auto)%d %C(italic)%an %C(auto)%ai %C(bold)%s" -500',
+        options,
+      );
+      resolve(stdout);
+    } catch (error) {
+      reject(error);
+    }
   });
 }
 

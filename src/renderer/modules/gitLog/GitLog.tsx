@@ -63,13 +63,7 @@ export default function GitLog({
         <GitBranchIcon size={16} />
         <strong>Git Log</strong>
       </Space>
-      <TerminalUI
-        isDarkMode={isDarkMode}
-        output={gitLog
-          .replaceAll('*', '🔵 ')
-          .replaceAll('->', '➡️ ')
-          .replaceAll('-', '➖ ')}
-      />
+      <TerminalUI isDarkMode={isDarkMode} output={gitLog} />
     </Modal>
   );
 }
