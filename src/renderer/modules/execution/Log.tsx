@@ -19,7 +19,6 @@ import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import LogFullscreen from './LogFullscreen';
 import TerminalUI from '../../components/terminal/TerminalUI';
-import { useItemsContext } from '../../TabsContext';
 
 export default function Log() {
   const [isFullScreenMode, setFullScreenMode] = useState(false);
@@ -31,8 +30,6 @@ export default function Log() {
   const [logMode, setLogMode] = useState('segment');
 
   const [logStates, setLogStates] = useState<any[]>();
-
-  const { isDarkMode } = useItemsContext();
 
   function removeANSI(str: string) {
     return str.replace(
@@ -80,7 +77,6 @@ export default function Log() {
               />
               <div>
                 <TerminalUI
-                  isDarkMode={isDarkMode}
                   output={commandLog.output}
                   backgroundDarkMode="rgb(20, 20, 20)"
                 />
@@ -108,7 +104,7 @@ export default function Log() {
     return () => {
       ipcRenderer.removeAllListeners('workflow-started-log-received');
     };
-  }, [isDarkMode]);
+  }, [logStates]);
 
   const toggleFullScreenMode = () => {
     setFullScreenMode(!isFullScreenMode);

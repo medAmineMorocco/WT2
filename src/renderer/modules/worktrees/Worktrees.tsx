@@ -333,11 +333,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
               </Tooltip>
             </div>
             {openGitLog && (
-              <GitLog
-                isModalOpen={openGitLog}
-                handleCancel={onCloseGitLog}
-                isDarkMode={isDarkMode}
-              />
+              <GitLog isModalOpen={openGitLog} handleCancel={onCloseGitLog} />
             )}
             <Modal
               open={isModalOpen}

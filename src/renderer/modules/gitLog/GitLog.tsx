@@ -8,11 +8,9 @@ import TabService from '../../services/tab/TabService';
 export default function GitLog({
   isModalOpen,
   handleCancel,
-  isDarkMode,
 }: {
   isModalOpen: boolean;
   handleCancel: any;
-  isDarkMode: boolean;
 }) {
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
@@ -66,11 +64,7 @@ export default function GitLog({
       <div
         style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
       >
-        <TerminalUI
-          isDarkMode={isDarkMode}
-          output={gitLog}
-          backgroundDarkMode="#1f1f1f"
-        />
+        <TerminalUI output={gitLog} backgroundDarkMode="#1f1f1f" />
       </div>
     </Modal>
   );

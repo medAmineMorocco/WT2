@@ -2,18 +2,18 @@ import React, { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import '@xterm/xterm/css/xterm.css';
 import { FitAddon } from '@xterm/addon-fit';
+import { useItemsContext } from '../../TabsContext';
 
 let terminal: any = null;
 export default function TerminalUI({
-  isDarkMode,
   output,
   backgroundDarkMode,
 }: {
-  isDarkMode: boolean;
   output: string;
   backgroundDarkMode: string;
 }) {
   const terminalRef = useRef(null);
+  const { isDarkMode } = useItemsContext();
 
   useEffect(() => {
     terminal = new Terminal({
@@ -37,8 +37,11 @@ export default function TerminalUI({
     }
     return () => {
       terminal.dispose();
+      if (terminalRef.current) {
+        terminalRef.current.innerHTML = '';
+      }
     };
-  }, [isDarkMode, output]);
+  }, [backgroundDarkMode, isDarkMode, output]);
 
   return <div ref={terminalRef} style={{ width: '100%', height: '100%' }} />;
 }
