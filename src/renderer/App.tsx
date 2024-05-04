@@ -37,11 +37,17 @@ type TargetKey = React.MouseEvent | React.KeyboardEvent | string;
 
 function Hello() {
   const { notification } = AntdApp.useApp();
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [openKeyboard, setOpenKeyboard] = useState(false);
   const navigate = useNavigate();
-  const { items, updateItems, activeKey, setActiveKey, isWorkflowPlaying } =
-    useItemsContext();
+  const {
+    items,
+    updateItems,
+    activeKey,
+    setActiveKey,
+    isWorkflowPlaying,
+    isDarkMode,
+    setIsDarkMode,
+  } = useItemsContext();
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');

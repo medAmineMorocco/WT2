@@ -7,9 +7,11 @@ let terminal: any = null;
 export default function TerminalUI({
   isDarkMode,
   output,
+  backgroundDarkMode,
 }: {
   isDarkMode: boolean;
   output: string;
+  backgroundDarkMode: string;
 }) {
   const terminalRef = useRef(null);
 
@@ -18,9 +20,8 @@ export default function TerminalUI({
       convertEol: true,
       disableStdin: true,
       fontWeight: '200',
-      customGlyphs: true,
       theme: {
-        background: isDarkMode ? '#1f1f1f' : 'white',
+        background: isDarkMode ? backgroundDarkMode : 'white',
         foreground: isDarkMode ? 'white' : 'black',
       },
     });
@@ -39,10 +40,5 @@ export default function TerminalUI({
     };
   }, [isDarkMode, output]);
 
-  return (
-    <div
-      ref={terminalRef}
-      style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
-    />
-  );
+  return <div ref={terminalRef} style={{ width: '100%', height: '100%' }} />;
 }

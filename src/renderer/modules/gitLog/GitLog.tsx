@@ -63,7 +63,15 @@ export default function GitLog({
         <GitBranchIcon size={16} />
         <strong>Git Log</strong>
       </Space>
-      <TerminalUI isDarkMode={isDarkMode} output={gitLog} />
+      <div
+        style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
+      >
+        <TerminalUI
+          isDarkMode={isDarkMode}
+          output={gitLog}
+          backgroundDarkMode="#1f1f1f"
+        />
+      </div>
     </Modal>
   );
 }

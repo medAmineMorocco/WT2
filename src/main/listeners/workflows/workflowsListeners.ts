@@ -19,13 +19,6 @@ function updateWorktreesStates(
   });
 }
 
-function removeANSI(str: string) {
-  return str.replace(
-    // eslint-disable-next-line no-control-regex
-    /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-    '',
-  );
-}
 
 let focusedWindow: BrowserWindow | null;
 let worktreesStates: any[] = [];
@@ -63,9 +56,9 @@ function executeCommand(
         if (item.label === worktreeLabel) {
           let log = '';
           if (item.data[command.key]) {
-            log = item.data[command.key].output + removeANSI(data.toString());
+            log = item.data[command.key].output + data.toString();
           } else {
-            log = removeANSI(data.toString());
+            log = data.toString();
           }
           item.data[command.key] = {
             command: command.value,

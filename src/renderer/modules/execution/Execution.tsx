@@ -45,6 +45,7 @@ export default function Execution() {
         style={{
           flex: 1,
           padding: 12,
+          width: 0,
           height: 'calc(48.5vh - 20px)',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
@@ -93,6 +94,7 @@ export default function Execution() {
           position: 'relative',
           flex: 1,
           padding: 12,
+          width: 0,
           height: 'calc(48.5vh - 20px)',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,

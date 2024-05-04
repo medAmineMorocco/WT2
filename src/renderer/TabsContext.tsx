@@ -7,6 +7,7 @@ function ItemsProvider({ children }) {
   const [items, setItems] = useState<any[]>([]);
   const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
   const [isWorkflowPlaying, setIsWorkflowPlaying] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
 
   const updateItems = (newItems: any[]) => {
     setItems(newItems);
@@ -21,6 +22,8 @@ function ItemsProvider({ children }) {
         setActiveKey,
         isWorkflowPlaying,
         setIsWorkflowPlaying,
+        isDarkMode,
+        setIsDarkMode,
       }}
     >
       {children}

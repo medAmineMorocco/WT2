@@ -22,10 +22,12 @@ import {
   ExportOutlined,
   LockOutlined,
   UnlockOutlined,
+  CodeOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap } from '../config/EditorsConfig';
+import TerminalInteractive from '../terminal/TerminalInteractive';
 
 const { useToken } = theme;
 
@@ -39,6 +41,11 @@ let items = [
     label: 'Open in Explorer',
     key: '-1',
     icon: <ExportOutlined />,
+  },
+  {
+    label: 'Open in Terminal',
+    key: '-3',
+    icon: <CodeOutlined />,
   },
   {
     label: 'Open in',
@@ -72,6 +79,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [worktrees, setWorktrees] = useState([]);
+
+  const [openTerminalModal, setOpenTerminalModal] = useState(false);
+  const [repositoryInTerminal, setRepositoryInTerminal] = useState(null);
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -261,8 +271,18 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     ];
   };
 
+  const closeTerminalModal = () => {
+    setRepositoryInTerminal(null);
+    setOpenTerminalModal(false);
+  };
+
   const onClickWorktree = (worktree: any) => {
     return (event: any) => {
+      if (event.key === '-3') {
+        setRepositoryInTerminal(worktree.path);
+        setOpenTerminalModal(true);
+        return;
+      }
       if (event.key === '-2') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
@@ -461,6 +481,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           </li>
         ))}
       </ul>
+      {openTerminalModal && (
+        <TerminalInteractive
+          isModalOpen={openTerminalModal}
+          repository={repositoryInTerminal}
+          handleCancel={closeTerminalModal}
+          isDarkMode={isDarkMode}
+        />
+      )}
       <Modal
         open={isModalOpen}
         footer={null}
