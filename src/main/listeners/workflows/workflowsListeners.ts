@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import { BrowserWindow, dialog, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import settingsMainService from '../../services/settings/settingsMainService';
 
@@ -281,10 +281,19 @@ async function executeProcessesForDirectoriesInParallel(
   await Promise.all(promises);
 }
 
+const RESOURCES_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'assets')
+  : path.join(__dirname, '../../assets');
+
+const getAssetPath = (...paths: string[]): string => {
+  return path.join(RESOURCES_PATH, ...paths);
+};
+
 function sendNotification(msg: string) {
   const notification = new Notification({
-    title: 'WorktreeWise',
-    body: msg,
+    title: msg,
+    body: 'You can review the results now.',
+    icon: getAssetPath('icon.png'),
   });
   notification.show();
 
@@ -331,7 +340,9 @@ ipcMain.on('play-workflow', async function (event, workflow) {
           )) === 'true';
         // eslint-disable-next-line promise/always-return
         if (!focusedWindow?.isFocused() && notificationsEnabled) {
-          sendNotification(`Workflow ${workflow.name} finished !`);
+          sendNotification(
+            `Your workflow ${workflow.name} has finished executing.`,
+          );
         }
       })
       .catch((error) => {
@@ -348,7 +359,9 @@ ipcMain.on('play-workflow', async function (event, workflow) {
           )) === 'true';
         // eslint-disable-next-line promise/always-return
         if (!focusedWindow?.isFocused() && notificationsEnabled) {
-          sendNotification(`Workflow ${workflow.name} finished !`);
+          sendNotification(
+            `Your workflow ${workflow.name} has finished executing.`,
+          );
         }
       })
       .catch((error) => {
