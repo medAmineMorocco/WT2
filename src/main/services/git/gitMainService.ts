@@ -27,6 +27,29 @@ function showLog(directory: string) {
   });
 }
 
+function executeCommand(command: string, directory: string) {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const options = {
+      cwd: directory,
+      shell: true,
+    } as any;
+    const terminal = await settingsMainService.getActualTerminal(
+      BrowserWindow.getFocusedWindow(),
+    );
+    if (terminal) {
+      options.shell = terminal;
+    }
+    try {
+      const stdout = execSync(command, options);
+      resolve(stdout);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 export default {
   showLog,
+  executeCommand,
 };
