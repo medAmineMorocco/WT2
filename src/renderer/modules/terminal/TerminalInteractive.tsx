@@ -58,13 +58,19 @@ export default function TerminalInteractive({
       if (code === 0) {
         const ld = [...lineData];
         ld.push(
-          <TerminalOutput key={new Date().getTime().toString()}>{result}</TerminalOutput>,
+          <TerminalOutput key={new Date().getTime().toString()}>
+            {result}
+          </TerminalOutput>,
         );
-        setLineData(ld);
+        if (!commandFinished) {
+          setLineData(ld);
+        }
       } else {
         const ld = [...lineData];
         ld.push(
-          <TerminalOutput key={new Date().getTime().toString()}>{result}</TerminalOutput>,
+          <TerminalOutput key={new Date().getTime().toString()}>
+            {result}
+          </TerminalOutput>,
         );
         setLineData(ld);
       }
