@@ -173,7 +173,7 @@ export default function Log() {
             items={data}
           />
         ) : (
-          <Collapse ghost items={data} />
+          <Collapse ghost defaultActiveKey="0" items={data} />
         )}
       </div>
       <LogFullscreen
