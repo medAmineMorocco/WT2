@@ -17,7 +17,7 @@ function showLog(directory: string) {
     }
     try {
       const stdout = execSync(
-        'git log --oneline --decorate --graph --all --color=always --format="%C(auto)%h %C(auto)%d %C(italic)%an %C(auto)%ai %C(bold)%s" -500',
+        'git log --oneline --decorate --graph --all --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>" -500',
         options,
       );
       resolve(stdout);
