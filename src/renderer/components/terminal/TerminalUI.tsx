@@ -80,6 +80,7 @@ export default function TerminalUI({
   return (
     <div
       ref={terminalRef}
+      className="terminal-ui"
       style={{
         width: '100%',
         height: '100%',

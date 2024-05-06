@@ -229,3 +229,13 @@ body {
 .react-terminal-line.react-terminal-input.react-terminal-active-input .cursor {
   background-color: #1677ff !important;
 }
+
+.xterm-viewport,
+.xterm-screen,
+.xterm-rows {
+  cursor: auto;
+}
+
+.terminal-ui .xterm-cursor {
+  visibility: hidden;
+}
