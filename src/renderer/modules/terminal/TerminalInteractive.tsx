@@ -29,15 +29,16 @@ export default function TerminalInteractive({
   const [lineData, setLineData] = useState([
     <TerminalOutput key={0}>{banner}</TerminalOutput>,
   ]);
+  const [commandFinished, setCommandFinished] = useState(true);
 
   useEffect(() => {
     const handleKeyDown = (event: any) => {
       if (event.ctrlKey && event.key === 'u') {
         console.log('u');
-      }
-      if (event.ctrlKey && event.key === 'l') {
-        console.log('clear');
+      } else if (event.ctrlKey && event.key === 'l') {
         setLineData([]);
+      } else if (event.ctrlKey && event.key === 'c') {
+        ipcRenderer.send('stop-command');
       } else if (event.key === 'ArrowUp') {
         console.log('up');
       } else if (event.key === 'ArrowDown') {
@@ -56,21 +57,29 @@ export default function TerminalInteractive({
     const onReceiveCommandOutput = (event: any, code: number, result: any) => {
       if (code === 0) {
         const ld = [...lineData];
-        const decoder = new TextDecoder();
-        const decodedString = decoder.decode(result);
-        ld.push(<TerminalOutput>{decodedString}</TerminalOutput>);
+        ld.push(
+          <TerminalOutput key={new Date().getTime().toString()}>{result}</TerminalOutput>,
+        );
         setLineData(ld);
       } else {
         const ld = [...lineData];
-        ld.push(<TerminalOutput>{result}</TerminalOutput>);
+        ld.push(
+          <TerminalOutput key={new Date().getTime().toString()}>{result}</TerminalOutput>,
+        );
         setLineData(ld);
       }
     };
 
-    ipcRenderer.on('command-executed', onReceiveCommandOutput);
+    const onCommandFinished = (event: any) => {
+      setCommandFinished(true);
+    };
+
+    ipcRenderer.on('command-receive-data', onReceiveCommandOutput);
+    ipcRenderer.on('command-finished', onCommandFinished);
 
     return () => {
-      ipcRenderer.removeAllListeners('command-executed');
+      ipcRenderer.removeAllListeners('command-receive-data');
+      ipcRenderer.removeAllListeners('command-finished');
     };
   }, [lineData, repository]);
 
@@ -80,6 +89,7 @@ export default function TerminalInteractive({
     if (input.toLocaleLowerCase().trim() === 'clear') {
       ld = [];
     } else if (input) {
+      setCommandFinished(false);
       ipcRenderer.send('execute-command', input, repository);
     }
     setLineData(ld);
@@ -105,7 +115,7 @@ export default function TerminalInteractive({
         <Terminal
           name={repository}
           colorMode={isDarkMode ? ColorMode.Dark : ColorMode.Light}
-          onInput={onInput}
+          onInput={commandFinished ? onInput : null}
         >
           {lineData}
         </Terminal>

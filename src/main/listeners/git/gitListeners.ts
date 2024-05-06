@@ -1,5 +1,7 @@
-import { ipcMain } from 'electron';
+import { BrowserWindow, ipcMain } from 'electron';
+import { spawn } from 'child_process';
 import gitMainService from '../../services/git/gitMainService';
+import settingsMainService from '../../services/settings/settingsMainService';
 
 ipcMain.on('show-git-log', async function (event, directory: string) {
   try {
@@ -10,14 +12,45 @@ ipcMain.on('show-git-log', async function (event, directory: string) {
   }
 });
 
+let abortController: AbortController;
 ipcMain.on(
   'execute-command',
   async function (event, command: string, directory: string) {
-    try {
-      const gitLog = await gitMainService.executeCommand(command, directory);
-      event.sender.send('command-executed', 0, gitLog);
-    } catch (err: any) {
-      event.sender.send('command-executed', -1, err.message);
+    abortController = new AbortController();
+
+    const options: any = {
+      cwd: directory,
+      shell: true,
+      signal: abortController.signal,
+    };
+
+    const terminal = await settingsMainService.getActualTerminal(
+      BrowserWindow.getFocusedWindow(),
+    );
+    if (terminal) {
+      options.shell = terminal;
     }
+    const commandProcess = spawn(command, [], options);
+
+    commandProcess.stdout.on('data', (data: any) => {
+      event.sender.send('command-receive-data', 0, data.toString());
+    });
+
+    commandProcess.stderr.on('data', (data: any) => {
+      event.sender.send('command-receive-data', 0, data.toString());
+    });
+
+    commandProcess.on('error', (err: any) => {
+      event.sender.send('command-receive-data', 0, err.toString());
+    });
+
+    commandProcess.on('exit', (code: any) => {
+      event.sender.send('command-finished');
+    });
   },
 );
+
+ipcMain.on('stop-command', function (event) {
+  abortController.abort();
+  event.sender.send('command-stopped');
+});
