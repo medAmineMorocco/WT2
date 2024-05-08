@@ -55,23 +55,13 @@ export default function TerminalInteractive({
 
   useEffect(() => {
     const onReceiveCommandOutput = (event: any, code: number, result: any) => {
-      if (code === 0) {
-        const ld = [...lineData];
-        ld.push(
-          <TerminalOutput key={new Date().getTime().toString()}>
-            {result}
-          </TerminalOutput>,
-        );
-        if (!commandFinished) {
-          setLineData(ld);
-        }
-      } else {
-        const ld = [...lineData];
-        ld.push(
-          <TerminalOutput key={new Date().getTime().toString()}>
-            {result}
-          </TerminalOutput>,
-        );
+      const ld = [...lineData];
+      ld.push(
+        <TerminalOutput key={new Date().getTime().toString()}>
+          {result}
+        </TerminalOutput>,
+      );
+      if (!commandFinished) {
         setLineData(ld);
       }
     };
