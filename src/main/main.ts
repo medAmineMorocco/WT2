@@ -22,7 +22,13 @@ import './listeners/branches/branchesListeners';
 import './listeners/settings/settingsListeners';
 import './listeners/git/gitListeners';
 
+const Store = require('electron-store');
+
+const store = new Store();
 const { conf } = require('./conf/conf');
+
+const TRIAL_PERIOD_DAYS = 7;
+const PRO_VERSION = false;
 
 class AppUpdater {
   constructor() {
@@ -96,6 +102,13 @@ const createWindow = async () => {
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
+    }
+    if (!PRO_VERSION) {
+      let trialStartDate = store.get('trialStartDate');
+      if (!trialStartDate) {
+        trialStartDate = new Date();
+        store.set('trialStartDate', trialStartDate.toLocaleString());
+      }
     }
     mainWindow.maximize();
   });
@@ -201,4 +214,30 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
 
 ipcMain.on('change-theme', async function (event, isDarkMode, activeTab) {
   event.sender.send(`theme-changed-${activeTab}`, isDarkMode);
+});
+
+ipcMain.on('check-trial-expiration', function (event) {
+  if (PRO_VERSION) {
+    event.sender.send('is-expired', PRO_VERSION, false, null);
+  } else {
+    let trialStartDate = store.get('trialStartDate');
+    if (!trialStartDate) {
+      trialStartDate = new Date();
+      store.set('trialStartDate', trialStartDate.toLocaleString());
+    }
+
+    const currentDate = new Date();
+    const daysSinceStart = Math.floor(
+      (currentDate.getTime() - new Date(trialStartDate).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    const daysRemaining = TRIAL_PERIOD_DAYS - daysSinceStart;
+
+    event.sender.send(
+      'is-expired',
+      PRO_VERSION,
+      daysSinceStart > TRIAL_PERIOD_DAYS,
+      daysRemaining,
+    );
+  }
 });

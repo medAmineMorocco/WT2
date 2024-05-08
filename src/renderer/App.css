@@ -239,3 +239,18 @@ body {
 .terminal-ui .xterm-cursor {
   visibility: hidden;
 }
+
+.trial-expired-modal {
+  height: 80%;
+}
+
+.trial-expired-modal div[tabindex="-1"], .trial-expired-modal .ant-modal-content {
+  height: 100%;
+}
+
+.trial-expired-modal .ant-modal-body {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

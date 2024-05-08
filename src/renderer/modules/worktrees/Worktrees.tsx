@@ -12,8 +12,6 @@ import {
   App as AntdApp,
   Typography,
   Tag,
-  Card,
-  Statistic,
   theme,
   Divider,
 } from 'antd';
@@ -25,7 +23,6 @@ import {
   InfoCircleOutlined,
   SyncOutlined,
   LoadingOutlined,
-  HourglassOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
@@ -33,6 +30,7 @@ import { GitBranchIcon } from 'hugeicons-react';
 import ListWorktrees from './ListWorktrees';
 import TabService from '../../services/tab/TabService';
 import GitLog from '../gitLog/GitLog';
+import PackInfos from '../packInfos/PackInfos';
 
 const { Sider } = Layout;
 const { useToken } = theme;
@@ -125,7 +123,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         ipcRenderer.removeAllListeners('branches-found');
         ipcRenderer.removeAllListeners('worktrees-pruned');
       };
-    }, [notification, tabRepoPath]);
+    }, [form, notification, tabRepoPath]);
 
     useEffect(() => {
       if (createWorktreeMode === 'existing-branch' && isModalOpen) {
@@ -518,20 +516,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 padding: '16px',
               }}
             >
-              <Card
-                bordered={false}
-                style={{
-                  backgroundColor: isDarkMode ? 'black' : '#f5f5f5',
-                  boxShadow: 'none',
-                }}
-              >
-                <Statistic
-                  title="Free Trial"
-                  value={4}
-                  prefix={<HourglassOutlined />}
-                  suffix="Days"
-                />
-              </Card>
+              <PackInfos isDarkMode={isDarkMode} />
             </div>
             <Tag
               style={{
