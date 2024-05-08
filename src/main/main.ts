@@ -110,6 +110,9 @@ const createWindow = async () => {
         store.set('trialStartDate', trialStartDate.toLocaleString());
       }
     }
+    if (process.platform === 'win32') {
+      app.setAppUserModelId(app.name);
+    }
     mainWindow.maximize();
   });
 
