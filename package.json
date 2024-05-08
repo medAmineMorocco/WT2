@@ -181,8 +181,8 @@
     "webpack-merge": "^5.9.0"
   },
   "build": {
-    "productName": "ElectronReact",
-    "appId": "org.erb.ElectronReact",
+    "productName": "WorktreeWise",
+    "appId": "org.erb.WorktreeWise",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
