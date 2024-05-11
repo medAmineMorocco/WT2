@@ -76,10 +76,7 @@ export default function Log() {
                 }}
               />
               <div>
-                <TerminalUI
-                  output={commandLog.output}
-                  backgroundDarkMode="rgb(20, 20, 20)"
-                />
+                <TerminalUI output={removeANSI(commandLog.output)} />
               </div>
             </div>
           );
