@@ -2,8 +2,8 @@ import { Modal, Typography, notification, Space } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
-import TerminalUI from '../../components/terminal/TerminalUI';
 import TabService from '../../services/tab/TabService';
+import LogUI from '../../components/log/LogUI';
 
 export default function GitLog({
   isModalOpen,
@@ -64,7 +64,7 @@ export default function GitLog({
       <div
         style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
       >
-        <TerminalUI output={gitLog} backgroundDarkMode="#1f1f1f" />
+        <LogUI output={gitLog} />
       </div>
     </Modal>
   );
