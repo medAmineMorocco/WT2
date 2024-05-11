@@ -17,6 +17,7 @@ import {
   FullscreenExitOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
+import TerminalUI from '../../components/terminal/TerminalUI';
 
 export default function LogFullscreen({
   isFullScreenMode,
@@ -28,11 +29,22 @@ export default function LogFullscreen({
   activeKey: string;
 }) {
   const [data, setData] = useState<any[]>();
+
   const [logMode, setLogMode] = useState('segment');
 
+  const [logStates, setLogStates] = useState<any[]>();
+
+  function removeANSI(str: string) {
+    return str.replace(
+      // eslint-disable-next-line no-control-regex
+      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+      '',
+    );
+  }
+
   useEffect(() => {
-    const onReceiveLog = (event: any, logStates: any[]) => {
-      const mappedLogStates = logStates.map((item) => {
+    const buildLog = (logStatesReceived: any[]) => {
+      return logStatesReceived.map((item) => {
         item.children = Object.entries(item.data).map(([commandKey, value]) => {
           const commandLog = value as any;
           return (
@@ -51,7 +63,7 @@ export default function LogFullscreen({
                 action={
                   <Typography.Text
                     copyable={{
-                      text: commandLog.output,
+                      text: removeANSI(commandLog.output),
                       icon: <FileOutlined />,
                     }}
                   />
@@ -63,16 +75,27 @@ export default function LogFullscreen({
                   marginTop: '8px',
                   marginBottom: '8px',
                   borderRadius: 0,
+                  zIndex: 88,
                 }}
               />
-              {commandLog.output.split('\n').map((splitted: string) => (
-                <div>{splitted}</div>
-              ))}
+              <div>
+                <TerminalUI output={removeANSI(commandLog.output)} />
+              </div>
             </div>
           );
         });
         return item;
       });
+    };
+
+    if (logStates) {
+      const mappedLogStates = buildLog(logStates);
+      setData(mappedLogStates);
+    }
+
+    const onReceiveLog = (event: any, logStatesReceived: any[]) => {
+      setLogStates(logStatesReceived);
+      const mappedLogStates = buildLog(logStatesReceived);
       setData(mappedLogStates);
     };
 
@@ -81,7 +104,7 @@ export default function LogFullscreen({
     return () => {
       ipcRenderer.removeAllListeners('workflow-started-log-received');
     };
-  }, []);
+  }, [logStates]);
 
   const onChangeLogMode = (value: string) => {
     setLogMode(value);
@@ -150,7 +173,7 @@ export default function LogFullscreen({
             items={data}
           />
         ) : (
-          <Collapse ghost items={data} />
+          <Collapse ghost defaultActiveKey="0" items={data} />
         )}
       </div>
     </Modal>
