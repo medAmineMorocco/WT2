@@ -12,6 +12,18 @@ ipcMain.on('show-git-log', async function (event, directory: string) {
   }
 });
 
+ipcMain.on(
+  'show-git-diff',
+  async function (event, directory: string, isDarkMode: boolean) {
+    try {
+      const gitDiff = await gitMainService.showDiff(directory, isDarkMode);
+      event.sender.send('receive-git-diff', 0, gitDiff);
+    } catch (err: any) {
+      event.sender.send('receive-git-diff', -1, err.message);
+    }
+  },
+);
+
 let abortController: AbortController;
 ipcMain.on(
   'execute-command',

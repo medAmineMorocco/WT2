@@ -26,11 +26,12 @@ import {
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
-import { GitBranchIcon } from 'hugeicons-react';
+import { GitBranchIcon, GitCompareIcon } from 'hugeicons-react';
 import ListWorktrees from './ListWorktrees';
 import TabService from '../../services/tab/TabService';
 import GitLog from '../gitLog/GitLog';
 import PackInfos from '../packInfos/PackInfos';
+import GitDiff from '../gitDiff/GitDiff';
 
 const { Sider } = Layout;
 const { useToken } = theme;
@@ -55,6 +56,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const [pruneLoading, setPruneLoading] = useState<boolean>(false);
 
     const [openGitLog, setOpenGitLog] = useState(false);
+
+    const [openGitDiff, setOpenGitDiff] = useState(false);
 
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
@@ -271,6 +274,18 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       preventDefault: true,
     });
 
+    const ShowGitDiff = () => {
+      setOpenGitDiff(true);
+    };
+
+    const onCloseGitDiff = () => {
+      setOpenGitDiff(false);
+    };
+
+    useHotkeys('shift+d', () => setOpenGitDiff(true), {
+      preventDefault: true,
+    });
+
     return (
       <Sider
         theme="light"
@@ -332,6 +347,12 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             </div>
             {openGitLog && (
               <GitLog isModalOpen={openGitLog} handleCancel={onCloseGitLog} />
+            )}
+            {openGitDiff && (
+              <GitDiff
+                isModalOpen={openGitDiff}
+                handleCancel={onCloseGitDiff}
+              />
             )}
             <Modal
               open={isModalOpen}
@@ -496,6 +517,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     block
                     onClick={ShowGitLog}
                     style={{
+                      display: 'flex',
+                      alignItems: 'center',
                       borderRadius: 0,
                       textAlign: 'left',
                       paddingLeft: '8px',
@@ -504,6 +527,37 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     icon={<GitBranchIcon size={16} />}
                   >
                     Git Log
+                  </Button>
+                </Tooltip>
+              </li>
+              <li
+                key="git-diff"
+                style={{
+                  color: token.colorTextBase,
+                  cursor: 'pointer',
+                }}
+              >
+                <Tooltip
+                  title={<small>Shift+D</small>}
+                  placement="right"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <Button
+                    type="text"
+                    block
+                    onClick={ShowGitDiff}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: 0,
+                      textAlign: 'left',
+                      paddingLeft: '8px',
+                      fontWeight: 'bold',
+                    }}
+                    icon={<GitCompareIcon size={16} />}
+                  >
+                    Git Diff
                   </Button>
                 </Tooltip>
               </li>

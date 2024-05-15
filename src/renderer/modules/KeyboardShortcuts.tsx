@@ -5,9 +5,14 @@ const { Text } = Typography;
 const data = {
   general: [
     {
-      title: 'Show git log',
+      title: 'Git log',
       shortcut1: 'Shift',
       shortcut2: 'G',
+    },
+    {
+      title: 'Git diff',
+      shortcut1: 'Shift',
+      shortcut2: 'D',
     },
     {
       title: 'Settings',

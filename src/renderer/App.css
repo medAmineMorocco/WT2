@@ -259,3 +259,7 @@ body {
   height: 8px;
 }
 
+.d2h-file-side-diff::-webkit-scrollbar  {
+  height: 8px;
+}
+
