@@ -14,15 +14,53 @@ ipcMain.on('show-git-log', async function (event, directory: string) {
 
 ipcMain.on(
   'show-git-diff',
-  async function (event, directory: string, isDarkMode: boolean) {
+  async function (
+    event,
+    val1: string,
+    val2: string,
+    directory: string,
+    isDarkMode: boolean,
+  ) {
     try {
-      const gitDiff = await gitMainService.showDiff(directory, isDarkMode);
+      const gitDiff = await gitMainService.showDiff(
+        val1,
+        val2,
+        directory,
+        isDarkMode,
+      );
       event.sender.send('receive-git-diff', 0, gitDiff);
     } catch (err: any) {
       event.sender.send('receive-git-diff', -1, err.message);
     }
   },
 );
+
+ipcMain.on('list-branches', async function (event, directory: string) {
+  try {
+    const branches = await gitMainService.listBranches(directory);
+    event.sender.send('receive-branches', 0, branches);
+  } catch (err: any) {
+    event.sender.send('receive-branches', -1, err.message);
+  }
+});
+
+ipcMain.on('list-tags', async function (event, directory: string) {
+  try {
+    const tags = await gitMainService.listTags(directory);
+    event.sender.send('receive-tags', 0, tags);
+  } catch (err: any) {
+    event.sender.send('receive-tags', -1, err.message);
+  }
+});
+
+ipcMain.on('list-worktrees', async function (event, directory: string) {
+  try {
+    const worktrees = await gitMainService.listWorktrees(directory);
+    event.sender.send('receive-worktrees', 0, worktrees);
+  } catch (err: any) {
+    event.sender.send('receive-worktrees', -1, err.message);
+  }
+});
 
 let abortController: AbortController;
 ipcMain.on(
