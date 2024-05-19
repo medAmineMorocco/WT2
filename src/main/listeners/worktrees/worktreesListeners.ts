@@ -44,22 +44,6 @@ ipcMain.on(
 );
 
 ipcMain.on(
-  'remove-worktree-local-remote-branch',
-  async function (event, name, directory, force) {
-    try {
-      const result = await worktreeMainService.removeWithLocalAndRemoteBranch(
-        name,
-        directory,
-        force,
-      );
-      event.sender.send('worktree-removed', 0, result);
-    } catch (err: any) {
-      event.sender.send('worktree-removed', -1, err.message);
-    }
-  },
-);
-
-ipcMain.on(
   'rename-worktree',
   async function (event, oldName, newName, directory) {
     try {

@@ -257,10 +257,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             label: 'worktree and local branch',
             key: '2-1',
           },
-          {
-            label: 'worktree and local/remote branch',
-            key: '2-2',
-          },
         ],
       },
       {
@@ -404,27 +400,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           },
         });
         return;
-      }
-      if (event.key === '2-2') {
-        modal.confirm({
-          title: `Confirm deletion of this worktree and ${worktree.name} branch and origin/${worktree.name} branch ?`,
-          icon: <ExclamationCircleFilled />,
-          okText: 'Yes',
-          okType: 'danger',
-          cancelText: 'No',
-          centered: true,
-          onOk() {
-            ipcRenderer.send(
-              'remove-worktree-local-remote-branch',
-              worktree.name,
-              tabRepoPath,
-              true,
-            );
-          },
-          onCancel() {
-            console.log('Cancel');
-          },
-        });
       }
       if (event.key === '3') {
         ipcRenderer.send(

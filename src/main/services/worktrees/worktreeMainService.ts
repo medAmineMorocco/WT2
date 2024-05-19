@@ -134,30 +134,6 @@ function removeWithLocalBranch(name: string, dir: string, force: boolean) {
   });
 }
 
-function removeWithLocalAndRemoteBranch(
-  name: string,
-  dir: string,
-  force: boolean,
-) {
-  return new Promise((resolve, reject) => {
-    const command = force
-      ? `git worktree remove ../${name} --force`
-      : `git worktree remove ../${name}`;
-    exec(
-      `${command} && git push origin --delete ${name} && git branch -d ${name}`,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
-  });
-}
-
 function rename(oldName: string, newName: string, dir: string) {
   return new Promise((resolve, reject) => {
     exec(
@@ -217,7 +193,6 @@ export default {
   add,
   remove,
   removeWithLocalBranch,
-  removeWithLocalAndRemoteBranch,
   rename,
   prune,
   changeLock,
