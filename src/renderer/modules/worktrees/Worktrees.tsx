@@ -49,7 +49,9 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const { notification } = AntdApp.useApp();
 
-    const [branches, setBranches] = useState([]);
+    const [branches, setBranches] = useState<any[]>([]);
+
+    const [tags, setTags] = useState<any[]>([]);
 
     const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
@@ -97,6 +99,19 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }
       };
 
+      const onTagsFound = (event: any, code: number, result: any) => {
+        if (code === 0) {
+          setTags(
+            result.map((branch: string) => {
+              return {
+                label: branch,
+                value: branch,
+              };
+            }),
+          );
+        }
+      };
+
       const onWorktreesPruned = (event: any, code: number, result: any) => {
         setTimeout(() => {
           setPruneLoading(false);
@@ -119,11 +134,13 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
       ipcRenderer.on('worktree-created', onWorktreeCreated);
       ipcRenderer.on('branches-found', onBranchesFound);
+      ipcRenderer.on('receive-tags', onTagsFound);
       ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
 
       return () => {
         ipcRenderer.removeAllListeners('worktree-created');
         ipcRenderer.removeAllListeners('branches-found');
+        ipcRenderer.removeAllListeners('receive-tags');
         ipcRenderer.removeAllListeners('worktrees-pruned');
       };
     }, [form, notification, tabRepoPath]);
@@ -131,6 +148,9 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     useEffect(() => {
       if (createWorktreeMode === 'existing-branch' && isModalOpen) {
         ipcRenderer.send('get-branches', tabRepoPath);
+      }
+      if (createWorktreeMode === 'existing-tag' && isModalOpen) {
+        ipcRenderer.send('list-tags', tabRepoPath);
       }
       const activeTabValue = TabService.getTab(activeTab);
       if (activeTabValue.preHook) {
@@ -180,14 +200,22 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const onFinish = (values: any) => {
       console.log('Received values of form: ', values);
-      const worktreeName =
-        createWorktreeMode === 'new-branch'
-          ? values.name
-          : values['existing-branch'];
-      const command =
-        createWorktreeMode === 'existing-branch'
-          ? `git worktree add ../${worktreeName} ${worktreeName}`
-          : `git worktree add ../${worktreeName}`;
+      let worktreeName: any;
+      if (createWorktreeMode === 'new-branch') {
+        worktreeName = values.name;
+      } else if (createWorktreeMode === 'existing-branch') {
+        worktreeName = values['existing-branch'];
+      } else {
+        worktreeName = values['existing-tag'];
+      }
+      let command: string;
+      if (createWorktreeMode === 'existing-branch') {
+        command = `git worktree add ../${worktreeName} ${worktreeName}`;
+      } else if (createWorktreeMode === 'existing-tag') {
+        command = `git checkout -b ${worktreeName} 744dbb837b809e41fee306c1dafe7d28d1b544c7`;
+      } else {
+        command = `git worktree add ../${worktreeName}`;
+      }
       const workflow = {
         name: worktreeName,
         command: null,
@@ -257,7 +285,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
-        createWorktreeMode === 'existing-branch',
+        createWorktreeMode,
         tabRepoPath,
       );
     };
@@ -368,14 +396,16 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 block
                 options={[
                   {
-                    label: <div style={{ padding: 2 }}>With new branch</div>,
+                    label: <div style={{ padding: 2 }}>new worktree</div>,
                     value: 'new-branch',
                   },
                   {
-                    label: (
-                      <div style={{ padding: 2 }}>For an existing branch</div>
-                    ),
+                    label: <div style={{ padding: 2 }}>from branch</div>,
                     value: 'existing-branch',
+                  },
+                  {
+                    label: <div style={{ padding: 2 }}>from tag</div>,
+                    value: 'existing-tag',
                   },
                 ]}
               />
@@ -443,9 +473,43 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     ]}
                   >
                     <Select
+                      allowClear
                       showSearch
                       placeholder="Select branch"
                       options={branches}
+                    />
+                  </Form.Item>
+                )}
+                {createWorktreeMode === 'existing-tag' && (
+                  <Form.Item
+                    label="Existing tag"
+                    name="existing-tag"
+                    extra="A new branch is created from the selected tag, and a worktree is linked to it"
+                    rules={[
+                      {
+                        required: true,
+                        whitespace: true,
+                        message: 'Please choose a tag.',
+                      },
+                      () => ({
+                        validator(_, value) {
+                          if (value && value.includes('/')) {
+                            return Promise.reject(
+                              new Error(
+                                'The name of worktree should not contains / character !',
+                              ),
+                            );
+                          }
+                          return Promise.resolve();
+                        },
+                      }),
+                    ]}
+                  >
+                    <Select
+                      allowClear
+                      showSearch
+                      placeholder="Select tag"
+                      options={tags}
                     />
                   </Form.Item>
                 )}

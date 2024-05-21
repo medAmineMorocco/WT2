@@ -121,7 +121,11 @@ function listTags(directory: string) {
       shell: true,
     } as any;
     try {
-      const stdout = execSync('git tag', options).toString().trim().split('\n');
+      const stdout = execSync('git tag', options)
+        .toString()
+        .trim()
+        .split('\n')
+        .filter((value) => value !== '');
       resolve(stdout);
     } catch (error) {
       reject(error);

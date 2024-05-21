@@ -4,11 +4,11 @@ import worktreeMainService from '../../services/worktrees/worktreeMainService';
 const intervalIds: any[] = [];
 ipcMain.on(
   'create-worktree',
-  async function (event, name, isExistingBranch, directory) {
+  async function (event, name, createWorktreeMode, directory) {
     try {
       const result = await worktreeMainService.add(
         name,
-        isExistingBranch,
+        createWorktreeMode,
         directory,
       );
       event.sender.send('worktree-created', 0, result);

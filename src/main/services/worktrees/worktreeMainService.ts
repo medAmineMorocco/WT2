@@ -3,7 +3,7 @@ import path from 'path';
 import copyDirectory from '../utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 
-const { exec } = require('child_process');
+const { exec, execSync } = require('child_process');
 
 function findAll(directory: string) {
   return new Promise((resolve, reject) => {
@@ -38,11 +38,16 @@ function findAll(directory: string) {
   });
 }
 
-function add(name: string, isExistingBranch: boolean, dir: string) {
+function add(name: string, createWorktreeMode: string, dir: string) {
   return new Promise((resolve, reject) => {
-    const command = isExistingBranch
-      ? `git worktree add ../${name} ${name}`
-      : `git worktree add ../${name}`;
+    let command: string;
+    if (createWorktreeMode === 'existing-branch') {
+      command = `git worktree add ../${name} ${name}`;
+    } else if (createWorktreeMode === 'existing-tag') {
+      command = `git branch ${name.replaceAll('.', '-')} ${name}`;
+    } else {
+      command = `git worktree add ../${name}`;
+    }
     exec(
       command,
       {
@@ -51,6 +56,17 @@ function add(name: string, isExistingBranch: boolean, dir: string) {
       async (error: any, stdout: any) => {
         if (error) {
           reject(error);
+        }
+        if (createWorktreeMode === 'existing-tag') {
+          try {
+            // eslint-disable-next-line no-param-reassign
+            name = name.replaceAll('.', '-');
+            execSync(`git worktree add ../${name} ${name}`, {
+              cwd: dir,
+            });
+          } catch (e) {
+            reject(e);
+          }
         }
 
         // eslint-disable-next-line no-restricted-syntax
