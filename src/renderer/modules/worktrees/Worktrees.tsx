@@ -23,6 +23,7 @@ import {
   InfoCircleOutlined,
   SyncOutlined,
   LoadingOutlined,
+  FolderOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
@@ -61,11 +62,17 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const [openGitDiff, setOpenGitDiff] = useState(false);
 
+    const [worktreesFolder, setWorktreesFolder] = useState<string>('');
+
+    const [pathSeparator, setPathSeparator] = useState<string>('');
+
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
     }, [activeTab]);
 
     useEffect(() => {
+      ipcRenderer.send('get-worktrees-folder', tabRepoPath);
+
       const onWorktreeCreated = (event: any, code: number, result: any) => {
         if (code === 0) {
           form.setFieldValue('name', null);
@@ -132,16 +139,30 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }, 200);
       };
 
+      const onWorktreesFolderFound = (
+        event: any,
+        code: number,
+        result: any,
+      ) => {
+        if (code === 0) {
+          const { folder, separator } = JSON.parse(result);
+          setWorktreesFolder(folder);
+          setPathSeparator(separator);
+        }
+      };
+
       ipcRenderer.on('worktree-created', onWorktreeCreated);
       ipcRenderer.on('branches-found', onBranchesFound);
       ipcRenderer.on('receive-tags', onTagsFound);
       ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+      ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
 
       return () => {
         ipcRenderer.removeAllListeners('worktree-created');
         ipcRenderer.removeAllListeners('branches-found');
         ipcRenderer.removeAllListeners('receive-tags');
         ipcRenderer.removeAllListeners('worktrees-pruned');
+        ipcRenderer.removeAllListeners('worktrees-folder-found');
       };
     }, [form, notification, tabRepoPath]);
 
@@ -285,6 +306,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
+        worktreesFolder + pathSeparator + worktreeName,
         createWorktreeMode,
         tabRepoPath,
       );
@@ -313,6 +335,23 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     useHotkeys('shift+d', () => setOpenGitDiff(true), {
       preventDefault: true,
     });
+
+    const getWorktreeName = () => {
+      if (createWorktreeMode === 'new-branch') {
+        return form.getFieldValue('name') || ' ';
+      }
+      if (createWorktreeMode === 'existing-branch') {
+        return form.getFieldValue('existing-branch') || ' ';
+      }
+      if (createWorktreeMode === 'existing-tag') {
+        const tag = form.getFieldValue('existing-tag');
+        if (tag) {
+          return tag.replaceAll('.', '-');
+        }
+        return ' ';
+      }
+      return '';
+    };
 
     return (
       <Sider
@@ -542,6 +581,36 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     placeholder="npm install"
                     allowClear
                   />
+                </Form.Item>
+                <Form.Item extra="The worktree will be created at the specified directory">
+                  <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
+                    <Tooltip
+                      mouseEnterDelay={0}
+                      mouseLeaveDelay={0}
+                      title="Change location"
+                      placement="bottom"
+                    >
+                      <Button size="small" icon={<FolderOutlined />} />
+                    </Tooltip>
+                    <Tooltip
+                      mouseEnterDelay={0}
+                      mouseLeaveDelay={0}
+                      title={
+                        worktreesFolder +
+                        pathSeparator +
+                        form.getFieldValue('name')
+                      }
+                      placement="bottom"
+                    >
+                      <Typography.Text
+                        code
+                        ellipsis={{ rows: 1 }}
+                        style={{ direction: 'rtl' }}
+                      >
+                        {worktreesFolder + pathSeparator + getWorktreeName()}
+                      </Typography.Text>
+                    </Tooltip>
+                  </div>
                 </Form.Item>
                 <Form.Item>
                   <Button

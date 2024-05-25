@@ -221,6 +221,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       'rename-worktree',
       form.getFieldValue('oldWorktreeName'),
       form.getFieldValue('newWorktreeName'),
+      form.getFieldValue('oldWorktreePath'),
       tabRepoPath,
     );
   };
@@ -282,6 +283,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       if (event.key === '-2') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
+        form.setFieldValue('oldWorktreePath', worktree.path);
         form.setFieldValue('newWorktreeName', worktree.name);
         return;
       }
@@ -368,7 +370,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           onOk() {
             ipcRenderer.send(
               'remove-worktree',
-              worktree.name,
+              worktree.path,
               tabRepoPath,
               true,
             );
@@ -391,6 +393,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             ipcRenderer.send(
               'remove-worktree-local-branch',
               worktree.name,
+              worktree.path,
               tabRepoPath,
               true,
             );
@@ -506,6 +509,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             <Input prefix={<BranchesOutlined />} allowClear />
           </Form.Item>
           <Form.Item name="oldWorktreeName" hidden />
+          <Form.Item name="oldWorktreePath" hidden />
           <Form.Item style={{ marginRight: 0 }}>
             <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
               Rename

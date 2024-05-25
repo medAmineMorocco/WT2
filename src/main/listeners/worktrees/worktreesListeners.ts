@@ -4,10 +4,11 @@ import worktreeMainService from '../../services/worktrees/worktreeMainService';
 const intervalIds: any[] = [];
 ipcMain.on(
   'create-worktree',
-  async function (event, name, createWorktreeMode, directory) {
+  async function (event, name, worktreePath, createWorktreeMode, directory) {
     try {
       const result = await worktreeMainService.add(
         name,
+        worktreePath,
         createWorktreeMode,
         directory,
       );
@@ -18,21 +19,29 @@ ipcMain.on(
   },
 );
 
-ipcMain.on('remove-worktree', async function (event, name, directory, force) {
-  try {
-    const result = await worktreeMainService.remove(name, directory, force);
-    event.sender.send('worktree-removed', 0, result);
-  } catch (err: any) {
-    event.sender.send('worktree-removed', -1, err.message);
-  }
-});
+ipcMain.on(
+  'remove-worktree',
+  async function (event, worktreePath, directory, force) {
+    try {
+      const result = await worktreeMainService.remove(
+        worktreePath,
+        directory,
+        force,
+      );
+      event.sender.send('worktree-removed', 0, result);
+    } catch (err: any) {
+      event.sender.send('worktree-removed', -1, err.message);
+    }
+  },
+);
 
 ipcMain.on(
   'remove-worktree-local-branch',
-  async function (event, name, directory, force) {
+  async function (event, name, worktreePath, directory, force) {
     try {
       const result = await worktreeMainService.removeWithLocalBranch(
         name,
+        worktreePath,
         directory,
         force,
       );
@@ -45,11 +54,12 @@ ipcMain.on(
 
 ipcMain.on(
   'rename-worktree',
-  async function (event, oldName, newName, directory) {
+  async function (event, oldName, newName, oldWorktreePath, directory) {
     try {
       const result = await worktreeMainService.rename(
         oldName,
         newName,
+        oldWorktreePath,
         directory,
       );
       event.sender.send('worktree-renamed', 0, result);
@@ -109,3 +119,17 @@ ipcMain.on(
     }
   },
 );
+
+ipcMain.on('get-worktrees-folder', async function (event, directory: string) {
+  try {
+    const { folder, separator }: any =
+      await worktreeMainService.getWorktreesFolder(directory);
+    event.sender.send(
+      'worktrees-folder-found',
+      0,
+      JSON.stringify({ folder, separator }),
+    );
+  } catch (err: any) {
+    event.sender.send('worktrees-folder-found', -1, err.message);
+  }
+});
