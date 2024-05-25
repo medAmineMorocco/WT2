@@ -133,3 +133,24 @@ ipcMain.on('get-worktrees-folder', async function (event, directory: string) {
     event.sender.send('worktrees-folder-found', -1, err.message);
   }
 });
+
+ipcMain.on(
+  'move-worktree-to-folder',
+  async function (
+    event,
+    name: string,
+    newWorktreePath: string,
+    directory: string,
+  ) {
+    try {
+      await worktreeMainService.moveWorktreeToFolder(
+        name,
+        newWorktreePath,
+        directory,
+      );
+      event.sender.send('worktree-moved-to-folder', 0);
+    } catch (err: any) {
+      event.sender.send('worktree-moved-to-folder', -1, err.message);
+    }
+  },
+);

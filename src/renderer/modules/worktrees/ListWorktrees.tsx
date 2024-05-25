@@ -6,9 +6,6 @@ import {
   theme,
   App as AntdApp,
   Form,
-  Input,
-  Button,
-  Modal,
   Typography,
 } from 'antd';
 import {
@@ -25,9 +22,12 @@ import {
   CodeOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
+import { FolderEditIcon } from 'hugeicons-react';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
+import RenameWorktree from './RenameWorktree';
+import MoveWorktree from './MoveWorktree';
 
 const { useToken } = theme;
 
@@ -77,6 +77,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const [form] = Form.useForm();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
   const [worktrees, setWorktrees] = useState([]);
 
@@ -196,11 +198,30 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
     };
 
+    const onWorktreeMoved = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'The worktree has been moved',
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
+        setIsMoveModalOpen(false);
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Unable to Move Worktree to folder',
+          description: <Typography.Text copyable>{result}</Typography.Text>,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     ipcRenderer.on('open-editor-error', onOpenEditorError);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('worktree-removed', onWorktreeRemoved);
     ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
     ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
+    ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
 
     return () => {
       ipcRenderer.removeAllListeners('open-editor-error');
@@ -208,6 +229,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ipcRenderer.removeAllListeners('worktree-removed');
       ipcRenderer.removeAllListeners('worktree-renamed');
       ipcRenderer.removeAllListeners('worktrees-changed-lock');
+      ipcRenderer.removeAllListeners('worktree-moved-to-folder');
     };
   }, [notification, tabRepoPath]);
 
@@ -222,6 +244,20 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       form.getFieldValue('oldWorktreeName'),
       form.getFieldValue('newWorktreeName'),
       form.getFieldValue('oldWorktreePath'),
+      tabRepoPath,
+    );
+  };
+
+  const handleCancelMoveWorktree = () => {
+    setIsMoveModalOpen(false);
+  };
+
+  const onFinishMoveWorktree = (values: any) => {
+    console.log('Success:', values);
+    ipcRenderer.send(
+      'move-worktree-to-folder',
+      form.getFieldValue('nameWorktreeToMove'),
+      form.getFieldValue('newWorktreePath'),
       tabRepoPath,
     );
   };
@@ -245,6 +281,11 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     }
     return [
       ...items,
+      {
+        label: 'Change Folder',
+        key: '5',
+        icon: <FolderEditIcon size={16} />,
+      },
       {
         label: 'Delete',
         key: '2',
@@ -411,6 +452,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           worktree.name,
           tabRepoPath,
         );
+        return;
       }
       if (event.key === '4') {
         ipcRenderer.send(
@@ -418,6 +460,15 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           true,
           worktree.name,
           tabRepoPath,
+        );
+        return;
+      }
+      if (event.key === '5') {
+        setIsMoveModalOpen(true);
+        form.setFieldValue('nameWorktreeToMove', worktree.name);
+        form.setFieldValue(
+          'newWorktreePath',
+          'C:/Users/moham/OneDrive/Desktop/WorktreeWise-worktrees',
         );
       }
     };
@@ -467,56 +518,22 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           isDarkMode={isDarkMode}
         />
       )}
-      <Modal
-        open={isModalOpen}
-        footer={null}
-        onCancel={handleCancel}
-        destroyOnClose
-        centered
-        closeIcon={null}
-      >
-        <Form
-          onFinish={onFinish}
-          layout="inline"
-          requiredMark="optional"
+      {isModalOpen && (
+        <RenameWorktree
+          isModalOpen={isModalOpen}
           form={form}
-        >
-          <Form.Item
-            label="Name"
-            name="newWorktreeName"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Please enter the name of your worktree.',
-              },
-              () => ({
-                validator(_, value) {
-                  if (value && value.includes('/')) {
-                    return Promise.reject(
-                      new Error(
-                        'The name of worktree should not contains / character !',
-                      ),
-                    );
-                  }
-                  return Promise.resolve();
-                },
-              }),
-            ]}
-            extra="The folder and associated branch will be renamed"
-            style={{ flex: 1 }}
-          >
-            <Input prefix={<BranchesOutlined />} allowClear />
-          </Form.Item>
-          <Form.Item name="oldWorktreeName" hidden />
-          <Form.Item name="oldWorktreePath" hidden />
-          <Form.Item style={{ marginRight: 0 }}>
-            <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
-              Rename
-            </Button>
-          </Form.Item>
-        </Form>
-      </Modal>
+          onFinish={onFinish}
+          handleCancel={handleCancel}
+        />
+      )}
+      {isMoveModalOpen && (
+        <MoveWorktree
+          isModalOpen={isMoveModalOpen}
+          form={form}
+          onFinish={onFinishMoveWorktree}
+          handleCancel={handleCancelMoveWorktree}
+        />
+      )}
     </>
   );
 }

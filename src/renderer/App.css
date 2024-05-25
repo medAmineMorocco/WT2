@@ -263,3 +263,7 @@ body {
   height: 8px;
 }
 
+.move-worktree-space .ant-space-item:nth-child(2) {
+  flex: 1;
+}
+

@@ -238,6 +238,27 @@ function getWorktreesFolder(dir: string) {
   });
 }
 
+function moveWorktreeToFolder(
+  name: string,
+  newWorktreePath: string,
+  dir: string,
+) {
+  return new Promise((resolve, reject) => {
+    exec(
+      `git worktree move ${name} ${newWorktreePath}`,
+      {
+        cwd: dir,
+      },
+      (error: any, stdout: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve(stdout);
+      },
+    );
+  });
+}
+
 export default {
   findAll,
   add,
@@ -247,4 +268,5 @@ export default {
   prune,
   changeLock,
   getWorktreesFolder,
+  moveWorktreeToFolder,
 };
