@@ -25,12 +25,14 @@ function findAll(directory: string) {
           const head = lineBySpace[1];
           const name = lineBySpace[2].replace('[', '').replace(']', '');
           const isLocked = lineBySpace[3] === 'locked';
+          const prunable = lineBySpace[3] === 'prunable';
 
           return {
             path: pathRep,
             name,
             head,
             isLocked,
+            prunable,
           };
         });
         resolve(worktrees);

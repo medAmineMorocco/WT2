@@ -20,6 +20,7 @@ import {
   LockOutlined,
   UnlockOutlined,
   CodeOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon } from 'hugeicons-react';
@@ -486,8 +487,26 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             }}
           >
             <Space>
-              {worktree.isLocked ? <LockOutlined /> : <BranchesOutlined />}
-              {worktree.name}
+              {/* eslint-disable-next-line no-nested-ternary */}
+              {worktree.isLocked ? (
+                <LockOutlined />
+              ) : worktree.prunable ? (
+                <Tooltip
+                  title="gitdir file points to non-existent location"
+                  placement="right"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <CloseOutlined style={{ color: token.colorError }} />
+                </Tooltip>
+              ) : (
+                <BranchesOutlined />
+              )}
+              <span
+                style={{ color: worktree.prunable ? token.colorError : '' }}
+              >
+                {worktree.name}
+              </span>
             </Space>
             <Dropdown
               menu={{
