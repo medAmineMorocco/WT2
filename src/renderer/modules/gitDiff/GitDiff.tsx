@@ -338,6 +338,7 @@ export default function GitDiff({
                 <div>
                   {isLeftInputFocus === true && (
                     <Input
+                      value={val1}
                       placeholder="commit hash"
                       onChange={(e) => onLeftValueChange(e.target.value)}
                     />
@@ -346,6 +347,7 @@ export default function GitDiff({
                     <Select
                       placeholder={leftPlaceholder}
                       onChange={onLeftValueChange}
+                      value={val1}
                       options={leftOptions}
                       showSearch
                       style={{ width: '100%' }}
@@ -402,6 +404,7 @@ export default function GitDiff({
                 <div>
                   {isRightInputFocus === true && (
                     <Input
+                      value={val2}
                       placeholder="commit hash"
                       onChange={(e) => onRightValueChange(e.target.value)}
                     />
@@ -410,6 +413,7 @@ export default function GitDiff({
                     <Select
                       placeholder={rightPlaceholder}
                       onChange={onRightValueChange}
+                      value={val2}
                       options={rightOptions}
                       showSearch
                       style={{ width: '100%' }}
@@ -431,7 +435,9 @@ export default function GitDiff({
             <Button
               type="primary"
               onClick={findDifference}
-              disabled={!val1 || !val2}
+              disabled={
+                !val1 || /^\s*$/.test(val1) || !val2 || /^\s*$/.test(val2)
+              }
             >
               Compare
             </Button>
