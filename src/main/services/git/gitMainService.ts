@@ -4,7 +4,7 @@ import { html } from 'diff2html';
 import { ColorSchemeType } from 'diff2html/lib/types';
 import settingsMainService from '../settings/settingsMainService';
 
-function showLog(directory: string) {
+function showLog(directory: string, branch: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options = {
@@ -18,10 +18,10 @@ function showLog(directory: string) {
       options.shell = terminal;
     }
     try {
-      const stdout = execSync(
-        'git log --oneline --decorate --graph --all --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>" -500',
-        options,
-      );
+      const command = branch
+        ? `git log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>" -500`
+        : 'git log --oneline --decorate --all --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>" -500';
+      const stdout = execSync(command, options);
       resolve(stdout);
     } catch (error) {
       reject(error);

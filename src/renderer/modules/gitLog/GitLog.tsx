@@ -1,4 +1,4 @@
-import { Modal, Typography, notification, Space } from 'antd';
+import { Modal, Typography, notification, Space, Select } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
@@ -18,10 +18,14 @@ export default function GitLog({
     return TabService.getTabRepoPath(activeTab);
   }, [activeTab]);
 
+  const [worktrees, setWorktrees] = useState<any[]>([]);
+
   const [gitLog, setGitLog] = useState('');
 
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
+    ipcRenderer.send('get-worktrees', tabRepoPath);
+
     const onReceiveGitLog = (event: any, code: number, result: any) => {
       if (code === 0) {
         setGitLog(result);
@@ -34,12 +38,31 @@ export default function GitLog({
       }
     };
 
+    const onWorktreesFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setWorktrees(
+          JSON.parse(result).map((item: any) => {
+            return {
+              label: item.name,
+              value: item.name,
+            };
+          }),
+        );
+      }
+    };
+
     ipcRenderer.on('receive-git-log', onReceiveGitLog);
+    ipcRenderer.on('worktrees-found', onWorktreesFound);
 
     return () => {
       ipcRenderer.removeAllListeners('receive-git-log');
+      ipcRenderer.removeAllListeners('worktrees-found');
     };
   }, [tabRepoPath]);
+
+  const handleChange = (value: string) => {
+    ipcRenderer.send('show-git-log', tabRepoPath, value);
+  };
 
   return (
     <Modal
@@ -62,8 +85,16 @@ export default function GitLog({
         <strong>Git Log</strong>
       </Space>
       <div
-        style={{ width: '96%', height: 'calc(100% - 46px)', padding: '22px' }}
+        style={{ width: '96%', height: 'calc(100% - 94px)', padding: '22px' }}
       >
+        <div style={{ marginBottom: '16px', textAlign: 'center' }}>
+          <Select
+            placeholder="Select a worktree"
+            options={worktrees}
+            onChange={handleChange}
+            style={{ width: 220 }}
+          />
+        </div>
         <LogUI output={gitLog} />
       </div>
     </Modal>
