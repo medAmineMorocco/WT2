@@ -467,10 +467,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       if (event.key === '5') {
         setIsMoveModalOpen(true);
         form.setFieldValue('nameWorktreeToMove', worktree.name);
-        form.setFieldValue(
-          'newWorktreePath',
-          'C:/Users/moham/OneDrive/Desktop/WorktreeWise-worktrees',
-        );
+        form.setFieldValue('newWorktreePath', worktree.path);
       }
     };
   };

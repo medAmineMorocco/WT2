@@ -267,3 +267,8 @@ body {
   flex: 1;
 }
 
+#newWorktreePath {
+  direction: rtl;
+  text-align: left;
+}
+

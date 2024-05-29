@@ -1,5 +1,7 @@
 import { Button, Form, Input, Modal, Space, Tooltip } from 'antd';
 import { CheckOutlined, FolderOutlined } from '@ant-design/icons';
+import { ipcRenderer } from 'electron';
+import React, { useEffect, useState } from 'react';
 
 export default function MoveWorktree({
   isModalOpen,
@@ -12,6 +14,42 @@ export default function MoveWorktree({
   onFinish: any;
   handleCancel: any;
 }) {
+  const [osSeparator, setOsSeparator] = useState('');
+
+  useEffect(() => {
+    ipcRenderer.send('get-os-separator');
+
+    const onSelectWorktreesDir = (
+      event: any,
+      code: number,
+      dirPath: string,
+    ) => {
+      if (code === 0) {
+        const nameWorktreeToMove = form.getFieldValue('nameWorktreeToMove');
+        form.setFieldValue(
+          'newWorktreePath',
+          `${dirPath}${osSeparator}${nameWorktreeToMove}`,
+        );
+      }
+    };
+
+    const onOsSeparatorFound = (event: any, separator: string) => {
+      setOsSeparator(separator);
+    };
+
+    ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
+    ipcRenderer.on('os-separator-found', onOsSeparatorFound);
+
+    return () => {
+      ipcRenderer.removeAllListeners('selected-worktrees-dir');
+      ipcRenderer.removeAllListeners('os-separator-found');
+    };
+  }, [form, osSeparator]);
+
+  const chooseWorktreesDir = () => {
+    ipcRenderer.send('choose-worktrees-dir');
+  };
+
   return (
     <Modal
       open={isModalOpen}
@@ -34,7 +72,7 @@ export default function MoveWorktree({
             title="Change Folder"
             placement="top"
           >
-            <Button icon={<FolderOutlined />} />
+            <Button icon={<FolderOutlined />} onClick={chooseWorktreesDir} />
           </Tooltip>
           <Form.Item name="newWorktreePath">
             <Input disabled allowClear />

@@ -1,4 +1,5 @@
-import { ipcMain } from 'electron';
+import { dialog, ipcMain } from 'electron';
+import path from 'path';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 
 const intervalIds: any[] = [];
@@ -154,3 +155,15 @@ ipcMain.on(
     }
   },
 );
+
+ipcMain.on('choose-worktrees-dir', async function (event) {
+  const result = await dialog.showOpenDialog({
+    properties: ['openDirectory'],
+  });
+  if (!result.canceled) {
+    const [dir] = result.filePaths;
+    const name = path.basename(dir);
+
+    event.sender.send('selected-worktrees-dir', 0, dir, name);
+  }
+});

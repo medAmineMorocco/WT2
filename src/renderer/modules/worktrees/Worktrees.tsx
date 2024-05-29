@@ -151,11 +151,22 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }
       };
 
+      const onSelectWorktreesDir = (
+        event: any,
+        code: number,
+        dirPath: string,
+      ) => {
+        if (code === 0) {
+          setWorktreesFolder(dirPath);
+        }
+      };
+
       ipcRenderer.on('worktree-created', onWorktreeCreated);
       ipcRenderer.on('branches-found', onBranchesFound);
       ipcRenderer.on('receive-tags', onTagsFound);
       ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
       ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
+      ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
 
       return () => {
         ipcRenderer.removeAllListeners('worktree-created');
@@ -163,6 +174,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         ipcRenderer.removeAllListeners('receive-tags');
         ipcRenderer.removeAllListeners('worktrees-pruned');
         ipcRenderer.removeAllListeners('worktrees-folder-found');
+        ipcRenderer.removeAllListeners('selected-worktrees-dir');
       };
     }, [form, notification, tabRepoPath]);
 
@@ -351,6 +363,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         return ' ';
       }
       return '';
+    };
+
+    const chooseWorktreesDir = () => {
+      ipcRenderer.send('choose-worktrees-dir');
     };
 
     return (
@@ -590,7 +606,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       title="Change location"
                       placement="bottom"
                     >
-                      <Button size="small" icon={<FolderOutlined />} />
+                      <Button
+                        size="small"
+                        icon={<FolderOutlined />}
+                        onClick={chooseWorktreesDir}
+                      />
                     </Tooltip>
                     <Tooltip
                       mouseEnterDelay={0}
