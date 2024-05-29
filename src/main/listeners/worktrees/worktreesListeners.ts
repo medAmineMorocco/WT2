@@ -31,7 +31,14 @@ ipcMain.on(
       );
       event.sender.send('worktree-removed', 0, result);
     } catch (err: any) {
-      event.sender.send('worktree-removed', -1, err.message);
+      event.sender.send(
+        'worktree-removed',
+        -1,
+        err.message,
+        worktreePath,
+        null,
+        false,
+      );
     }
   },
 );
@@ -48,7 +55,14 @@ ipcMain.on(
       );
       event.sender.send('worktree-removed', 0, result);
     } catch (err: any) {
-      event.sender.send('worktree-removed', -1, err.message);
+      event.sender.send(
+        'worktree-removed',
+        -1,
+        err.message,
+        worktreePath,
+        name,
+        true,
+      );
     }
   },
 );

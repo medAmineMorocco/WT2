@@ -138,7 +138,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
     };
 
-    const onWorktreeRemoved = (event: any, code: number, result: any) => {
+    const onWorktreeRemoved = (
+      event: any,
+      code: number,
+      result: any,
+      worktreePath: string,
+      worktreeName: string,
+      withLocalBranch: boolean,
+    ) => {
       if (code === 0) {
         notification.success({
           message: 'Worktree Successfully Removed',
@@ -152,6 +159,39 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
+        if (result.includes('--force')) {
+          modal.confirm({
+            title: withLocalBranch
+              ? 'Confirm deletion of this worktree and local branch ?'
+              : 'Confirm deletion of this worktree ?',
+            icon: <ExclamationCircleFilled />,
+            okText: 'Yes',
+            okType: 'danger',
+            cancelText: 'No',
+            centered: true,
+            onOk() {
+              if (withLocalBranch) {
+                ipcRenderer.send(
+                  'remove-worktree-local-branch',
+                  worktreeName,
+                  worktreePath,
+                  tabRepoPath,
+                  true,
+                );
+              } else {
+                ipcRenderer.send(
+                  'remove-worktree',
+                  worktreePath,
+                  tabRepoPath,
+                  true,
+                );
+              }
+            },
+            onCancel() {
+              console.log('Cancel');
+            },
+          });
+        }
       }
     };
 
@@ -232,7 +272,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ipcRenderer.removeAllListeners('worktrees-changed-lock');
       ipcRenderer.removeAllListeners('worktree-moved-to-folder');
     };
-  }, [notification, tabRepoPath]);
+  }, [modal, notification, tabRepoPath]);
 
   const handleCancel = () => {
     setIsModalOpen(false);
@@ -402,48 +442,17 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         return;
       }
       if (event.key === '2-0') {
-        modal.confirm({
-          title: 'Confirm deletion of this worktree ?',
-          icon: <ExclamationCircleFilled />,
-          okText: 'Yes',
-          okType: 'danger',
-          cancelText: 'No',
-          centered: true,
-          onOk() {
-            ipcRenderer.send(
-              'remove-worktree',
-              worktree.path,
-              tabRepoPath,
-              true,
-            );
-          },
-          onCancel() {
-            console.log('Cancel');
-          },
-        });
+        ipcRenderer.send('remove-worktree', worktree.path, tabRepoPath, false);
         return;
       }
       if (event.key === '2-1') {
-        modal.confirm({
-          title: `Confirm deletion of this worktree and ${worktree.name} branch ?`,
-          icon: <ExclamationCircleFilled />,
-          okText: 'Yes',
-          okType: 'danger',
-          cancelText: 'No',
-          centered: true,
-          onOk() {
-            ipcRenderer.send(
-              'remove-worktree-local-branch',
-              worktree.name,
-              worktree.path,
-              tabRepoPath,
-              true,
-            );
-          },
-          onCancel() {
-            console.log('Cancel');
-          },
-        });
+        ipcRenderer.send(
+          'remove-worktree-local-branch',
+          worktree.name,
+          worktree.path,
+          tabRepoPath,
+          false,
+        );
         return;
       }
       if (event.key === '3') {

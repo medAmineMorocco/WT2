@@ -149,15 +149,26 @@ function removeWithLocalBranch(
       ? `git worktree remove ${worktreePath} --force`
       : `git worktree remove ${worktreePath}`;
     exec(
-      `${command} && git branch -d ${name}`,
+      command,
       {
         cwd: dir,
       },
-      (error: any, stdout: any) => {
+      (error: any) => {
         if (error) {
           reject(error);
         }
-        resolve(stdout);
+        exec(
+          `git branch -d ${name}`,
+          {
+            cwd: dir,
+          },
+          (error2: any) => {
+            if (error2) {
+              reject(error2);
+            }
+            resolve('ok');
+          },
+        );
       },
     );
   });
