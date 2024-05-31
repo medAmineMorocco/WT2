@@ -27,7 +27,9 @@ export default function TerminalInteractive({
   isDarkMode: boolean;
 }) {
   const [lineData, setLineData] = useState([
-    <TerminalOutput key={0}>{banner}</TerminalOutput>,
+    <TerminalOutput key={0}>
+      <span style={{ whiteSpace: 'pre' }}>{banner}</span>
+    </TerminalOutput>,
   ]);
   const [commandFinished, setCommandFinished] = useState(true);
 
