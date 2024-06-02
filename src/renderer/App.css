@@ -214,10 +214,6 @@ body {
   background-color: transparent !important;
 }
 
-.red-btn, .yellow-btn, .green-btn {
-  display: none;
-}
-
 .react-terminal-wrapper.react-terminal-light:after, .react-terminal-wrapper:after {
   color: #1677ff !important;
 }

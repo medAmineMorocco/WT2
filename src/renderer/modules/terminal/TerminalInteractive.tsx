@@ -1,11 +1,11 @@
 import { Modal } from 'antd';
 import React, { useEffect, useState } from 'react';
+import { ipcRenderer } from 'electron';
 import Terminal, {
   ColorMode,
   TerminalInput,
   TerminalOutput,
-} from 'react-terminal-ui';
-import { ipcRenderer } from 'electron';
+} from '../../components/terminal';
 
 const banner =
   ' _       __              __    __                   _       __ _           \n' +
@@ -35,16 +35,10 @@ export default function TerminalInteractive({
 
   useEffect(() => {
     const handleKeyDown = (event: any) => {
-      if (event.ctrlKey && event.key === 'u') {
-        console.log('u');
-      } else if (event.ctrlKey && event.key === 'l') {
+      if (event.ctrlKey && event.key === 'l') {
         setLineData([]);
       } else if (event.ctrlKey && event.key === 'c') {
         ipcRenderer.send('stop-command');
-      } else if (event.key === 'ArrowUp') {
-        console.log('up');
-      } else if (event.key === 'ArrowDown') {
-        console.log('down');
       }
     };
 

@@ -1,5 +1,6 @@
-import Terminal, { ColorMode, TerminalOutput } from 'react-terminal-ui';
+import React from 'react';
 import { useItemsContext } from '../../TabsContext';
+import Terminal, { ColorMode, TerminalOutput } from '.';
 
 export default function TerminalUI({ output }: { output: string }) {
   const { isDarkMode } = useItemsContext();

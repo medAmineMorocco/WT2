@@ -9334,11 +9334,6 @@ react-shallow-renderer@^16.15.0:
     object-assign "^4.1.1"
     react-is "^16.12.0 || ^17.0.0 || ^18.0.0"
 
-react-terminal-ui@^1.2.0:
-  version "1.2.0"
-  resolved "https://registry.npmjs.org/react-terminal-ui/-/react-terminal-ui-1.2.0.tgz"
-  integrity sha512-MTPIrWoLGH46zk8yLd8c8YTqgixggvOsfDBmZf/iVJBgJU0RDgOqjlyYFnh6rRsERXh91+aXm6f5zc+eMoUgEA==
-
 react-test-renderer@^18.2.0:
   version "18.2.0"
   resolved "https://registry.npmjs.org/react-test-renderer/-/react-test-renderer-18.2.0.tgz"
