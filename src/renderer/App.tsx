@@ -23,6 +23,7 @@ import {
   PlusOutlined,
   SunOutlined,
   SettingOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';
@@ -159,7 +160,35 @@ function Hello() {
       const label = tabRepoPath ? (
         <Tooltip
           arrow={false}
-          title={tabRepoPath}
+          title={
+            <div>
+              <Space>
+                <ApartmentOutlined />
+                <span style={{ fontWeight: 'bold' }}>{tabLabel}</span>
+              </Space>
+              <Space>
+                <FolderOutlined
+                  style={{
+                    fontSize: '12px',
+                  }}
+                />
+                <span
+                  style={{
+                    display: 'block',
+                    whiteSpace: 'nowrap',
+                    textOverflow: 'ellipsis',
+                    overflowX: 'hidden',
+                    width: '210px',
+                    direction: 'rtl',
+                    fontSize: '12px',
+                  }}
+                >
+                  {tabRepoPath}
+                </span>
+              </Space>
+            </div>
+          }
+          placement="bottomLeft"
           mouseEnterDelay={0}
           mouseLeaveDelay={0}
         >
