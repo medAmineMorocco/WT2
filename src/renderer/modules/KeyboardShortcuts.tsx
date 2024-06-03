@@ -5,12 +5,12 @@ const { Text } = Typography;
 const data = {
   general: [
     {
-      title: 'Git log',
+      title: 'Git Log',
       shortcut1: 'Shift',
       shortcut2: 'G',
     },
     {
-      title: 'Git diff',
+      title: 'Git Diff',
       shortcut1: 'Shift',
       shortcut2: 'D',
     },
@@ -20,39 +20,39 @@ const data = {
       shortcut2: 'S',
     },
     {
-      title: 'Toggle theme',
+      title: 'Toggle Theme',
       shortcut1: 'Shift',
       shortcut2: 'T',
     },
     {
-      title: 'Collapse sidebar',
+      title: 'Collapse Sidebar',
       shortcut1: 'Shift',
       shortcut2: 'C',
     },
   ],
   tabs: [
     {
-      title: 'New tab',
+      title: 'New Tab',
       shortcut1: 'Shift',
       shortcut2: 'N',
     },
     {
-      title: 'Close current tab',
+      title: 'Close Current Tab',
       shortcut1: 'Shift',
       shortcut2: 'F4',
     },
     {
-      title: 'Move to next tab',
+      title: 'Move to Next Tab',
       shortcut1: 'Shift',
       shortcut2: '→',
     },
     {
-      title: 'Move to previous tab',
+      title: 'Move to Previous Tab',
       shortcut1: 'shift',
       shortcut2: '←',
     },
     {
-      title: 'Open repository',
+      title: 'Open Repository',
       shortcut1: 'Shift',
       shortcut2: 'O',
     },
@@ -88,6 +88,30 @@ const data = {
     {
       title: 'Exit Fullscreen',
       shortcut1: 'ESC',
+    },
+  ],
+  terminal: [
+    {
+      title: 'Clear Console',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: 'L',
+    },
+    {
+      title: 'Clear Input',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: 'U',
+    },
+    {
+      title: 'Go to Start of Input',
+      shortcut1: 'Home',
+    },
+    {
+      title: 'Go to End of Input',
+      shortcut1: 'End',
+    },
+    {
+      title: 'Navigate Command History',
+      shortcut1: '↑/↓',
     },
   ],
 };
@@ -183,6 +207,25 @@ export default function KeyboardShortcuts({
               <List
                 grid={{ column: 1 }}
                 dataSource={data.workflow}
+                renderItem={(item) => (
+                  <List.Item>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ flex: 1 }}>{item.title}</span>{' '}
+                      <Text keyboard>{item.shortcut1}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            ),
+          },
+          {
+            label: 'Terminal',
+            key: '50',
+            children: (
+              <List
+                grid={{ column: 1 }}
+                dataSource={data.terminal}
                 renderItem={(item) => (
                   <List.Item>
                     <div style={{ display: 'flex' }}>
