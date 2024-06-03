@@ -272,3 +272,6 @@ body {
   white-space: pre-wrap !important;
 }
 
+.terminal-ui .xterm-rows {
+  font-family: "Fira Mono", Consolas, Menlo, Monaco, "Courier New", Courier, monospace !important;
+}
