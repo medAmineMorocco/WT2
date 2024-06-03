@@ -1,32 +1,47 @@
 import {
-  Modal,
-  Typography,
-  notification,
-  Space,
-  Radio,
-  Input,
-  Select,
-  RadioChangeEvent,
   Button,
   FloatButton,
-  Result,
   Grid,
+  Input,
+  Modal,
+  notification,
+  Radio,
+  RadioChangeEvent,
+  Result,
+  Select,
+  Space,
+  Typography,
 } from 'antd';
 import {
   BranchesOutlined,
-  TagOutlined,
-  NodeIndexOutlined,
   ForkOutlined,
   LoadingOutlined,
+  NodeIndexOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
 import { GitCompareIcon } from 'hugeicons-react';
+import {
+  Diff2HtmlUI,
+  Diff2HtmlUIConfig,
+} from 'diff2html/lib/ui/js/diff2html-ui';
+import { ColorSchemeType } from 'diff2html/lib/types';
+import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
+import 'highlight.js/styles/github.min.css';
+import 'highlight.js/styles/github-dark.min.css';
 import 'diff2html/bundles/css/diff2html.min.css';
 import { useItemsContext } from '../../TabsContext';
 
 const { useBreakpoint } = Grid;
+
+const configuration: Diff2HtmlUIConfig = {
+  drawFileList: true,
+  fileListToggle: false,
+  outputFormat: 'side-by-side',
+  highlight: true,
+};
 
 export default function GitDiff({
   isModalOpen,
@@ -43,9 +58,9 @@ export default function GitDiff({
 
   const { isDarkMode } = useItemsContext();
 
-  const [diffMode, setDiffMode] = useState(false);
+  const [diff, setDiff] = useState();
 
-  const [gitDiff, setGitDiff] = useState('');
+  const [diffMode, setDiffMode] = useState(false);
 
   const [leftOptions, setLeftOptions] = useState<any[]>([]);
 
@@ -90,6 +105,18 @@ export default function GitDiff({
     });
   };
 
+  const drawDiff = (dif: string) => {
+    const targetElement = document.getElementById('git-diff');
+    if (targetElement) {
+      configuration.colorScheme = isDarkMode
+        ? ColorSchemeType.DARK
+        : ColorSchemeType.LIGHT;
+      const diff2htmlUi = new Diff2HtmlUI(targetElement, dif, configuration);
+      diff2htmlUi.draw();
+      diff2htmlUi.highlightCode();
+    }
+  };
+
   useEffect(() => {
     if (screens.xl === false) {
       setResponsiveStyle({
@@ -110,7 +137,8 @@ export default function GitDiff({
     ipcRenderer.send('list-worktrees', tabRepoPath);
     const onReceiveGitDiff = (event: any, code: number, result: any) => {
       if (code === 0) {
-        setGitDiff(result);
+        setDiff(result);
+        drawDiff(result);
         setLoading(false);
         setDiffMode(true);
       } else {
@@ -173,7 +201,7 @@ export default function GitDiff({
       ipcRenderer.removeAllListeners('receive-tags');
       ipcRenderer.removeAllListeners('receive-worktrees');
     };
-  }, [tabRepoPath]);
+  }, [isDarkMode, tabRepoPath]);
 
   const onLeftModeChange = (e: RadioChangeEvent) => {
     const val = e.target.value;
@@ -225,8 +253,16 @@ export default function GitDiff({
 
   const findDifference = () => {
     setLoading(true);
-    ipcRenderer.send('show-git-diff', val1, val2, tabRepoPath, isDarkMode);
+    ipcRenderer.send('show-git-diff', val1, val2, tabRepoPath);
   };
+
+  const onThemeChange = () => {
+    drawDiff(diff);
+  };
+
+  useHotkeys('shift+t', onThemeChange, {
+    preventDefault: true,
+  });
 
   return (
     <Modal
@@ -270,20 +306,18 @@ export default function GitDiff({
             />
           </div>
         )}
-        {!loading && diffMode && (
-          <div
-            dangerouslySetInnerHTML={{ __html: gitDiff }}
-            style={{
-              position: 'absolute',
-              left: '26px',
-              right: '26px',
-              top: '54px',
-              height: '90%',
-              overflowY: 'auto',
-            }}
-            className="diff-container"
-          />
-        )}
+        <div
+          id="git-diff"
+          style={{
+            position: 'absolute',
+            left: '26px',
+            right: '26px',
+            top: '54px',
+            height: '90%',
+            overflowY: 'auto',
+          }}
+          className="diff-container"
+        />
         {!loading && diffMode && (
           <FloatButton.BackTop
             target={() => document.querySelector('.diff-container')}

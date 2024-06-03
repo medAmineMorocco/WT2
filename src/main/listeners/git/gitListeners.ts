@@ -17,20 +17,9 @@ ipcMain.on(
 
 ipcMain.on(
   'show-git-diff',
-  async function (
-    event,
-    val1: string,
-    val2: string,
-    directory: string,
-    isDarkMode: boolean,
-  ) {
+  async function (event, val1: string, val2: string, directory: string) {
     try {
-      const gitDiff = await gitMainService.showDiff(
-        val1,
-        val2,
-        directory,
-        isDarkMode,
-      );
+      const gitDiff = await gitMainService.showDiff(val1, val2, directory);
       event.sender.send('receive-git-diff', 0, gitDiff);
     } catch (err: any) {
       event.sender.send('receive-git-diff', -1, err.message);

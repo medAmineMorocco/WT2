@@ -1,7 +1,5 @@
 import { execSync } from 'child_process';
 import { BrowserWindow } from 'electron';
-import { html } from 'diff2html';
-import { ColorSchemeType } from 'diff2html/lib/types';
 import settingsMainService from '../settings/settingsMainService';
 
 function showLog(directory: string, branch: string) {
@@ -29,12 +27,7 @@ function showLog(directory: string, branch: string) {
   });
 }
 
-function showDiff(
-  val1: string,
-  val2: string,
-  directory: string,
-  isDarkMode: boolean,
-) {
+function showDiff(val1: string, val2: string, directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options = {
@@ -44,11 +37,7 @@ function showDiff(
     } as any;
     try {
       const stdout = execSync(`git diff ${val1} ${val2}`, options);
-      const htmlDiff = html(stdout.toString(), {
-        outputFormat: 'side-by-side',
-        colorScheme: isDarkMode ? ColorSchemeType.DARK : ColorSchemeType.LIGHT,
-      });
-      resolve(htmlDiff);
+      resolve(stdout.toString());
     } catch (error) {
       reject(error);
     }
