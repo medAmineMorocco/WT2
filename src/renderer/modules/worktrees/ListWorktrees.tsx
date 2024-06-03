@@ -153,45 +153,44 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           duration: 0.5,
         });
         ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else if (result.includes('--force')) {
+        modal.confirm({
+          title: withLocalBranch
+            ? 'Staged changes have been found in the worktree. Confirm deletion of this worktree and local branch ?'
+            : 'Staged changes have been found in the worktree. Confirm deletion of this worktree ?',
+          icon: <ExclamationCircleFilled />,
+          okText: 'Yes',
+          okType: 'danger',
+          cancelText: 'No',
+          centered: true,
+          onOk() {
+            if (withLocalBranch) {
+              ipcRenderer.send(
+                'remove-worktree-local-branch',
+                worktreeName,
+                worktreePath,
+                tabRepoPath,
+                true,
+              );
+            } else {
+              ipcRenderer.send(
+                'remove-worktree',
+                worktreePath,
+                tabRepoPath,
+                true,
+              );
+            }
+          },
+          onCancel() {
+            console.log('Cancel');
+          },
+        });
       } else {
         notification.error({
           message: 'Unable to Remove Worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
-        if (result.includes('--force')) {
-          modal.confirm({
-            title: withLocalBranch
-              ? 'Confirm deletion of this worktree and local branch ?'
-              : 'Confirm deletion of this worktree ?',
-            icon: <ExclamationCircleFilled />,
-            okText: 'Yes',
-            okType: 'danger',
-            cancelText: 'No',
-            centered: true,
-            onOk() {
-              if (withLocalBranch) {
-                ipcRenderer.send(
-                  'remove-worktree-local-branch',
-                  worktreeName,
-                  worktreePath,
-                  tabRepoPath,
-                  true,
-                );
-              } else {
-                ipcRenderer.send(
-                  'remove-worktree',
-                  worktreePath,
-                  tabRepoPath,
-                  true,
-                );
-              }
-            },
-            onCancel() {
-              console.log('Cancel');
-            },
-          });
-        }
       }
     };
 
