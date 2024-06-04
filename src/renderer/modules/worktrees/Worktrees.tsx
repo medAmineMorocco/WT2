@@ -232,7 +232,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     };
 
     const onFinish = (values: any) => {
-      console.log('Received values of form: ', values);
       let worktreeName: any;
       if (createWorktreeMode === 'new-branch') {
         worktreeName = values.name;

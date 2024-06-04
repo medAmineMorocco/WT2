@@ -303,7 +303,6 @@ function sendNotification(msg: string) {
 }
 
 ipcMain.on('play-workflow', async function (event, workflow) {
-  console.log('workflow to play', workflow);
   stopExecution = false;
   focusedWindow = BrowserWindow.getFocusedWindow();
   event.sender.send('workflow-started');
@@ -371,7 +370,6 @@ ipcMain.on('play-workflow', async function (event, workflow) {
 });
 
 ipcMain.on('stop-workflow', function (event) {
-  console.log('stop workflow');
   stopExecution = true;
   event.sender.send('workflow-stopped');
 });

@@ -181,9 +181,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               );
             }
           },
-          onCancel() {
-            console.log('Cancel');
-          },
         });
       } else {
         notification.error({
@@ -278,7 +275,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   const onFinish = (values: any) => {
-    console.log('Success:', values);
     ipcRenderer.send(
       'rename-worktree',
       form.getFieldValue('oldWorktreeName'),
@@ -293,7 +289,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   const onFinishMoveWorktree = (values: any) => {
-    console.log('Success:', values);
     ipcRenderer.send(
       'move-worktree-to-folder',
       form.getFieldValue('nameWorktreeToMove'),

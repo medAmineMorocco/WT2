@@ -196,11 +196,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         cancelText: 'No',
         centered: true,
         onOk() {
-          console.log('OK');
           ipcRenderer.send('remove-workflow', record.id, tabRepoPath);
-        },
-        onCancel() {
-          console.log('Cancel');
         },
       });
     };
@@ -223,7 +219,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const stopWorkflow = (record: any) => {
     return () => {
-      console.log('stop', record);
       ipcRenderer.send('stop-workflow', record);
       setPlayingWorkflow(null);
     };
@@ -238,7 +233,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         return item;
       }),
     );
-    console.log('workflows', workflows);
   };
 
   const handleWorktreesChange = (values: any[], workflow: any) => {
@@ -253,7 +247,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         return item;
       }),
     );
-    console.log('workflows', workflows);
   };
 
   const columns = [

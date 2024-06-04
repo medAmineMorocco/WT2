@@ -59,7 +59,6 @@ export default function AddWorkflow({
   }, [notification, onCloseAdd, tabRepoPath]);
 
   const onFinish = (values: any) => {
-    console.log('Received values of form:', values);
     ipcRenderer.send(
       'add-workflow',
       values.name,

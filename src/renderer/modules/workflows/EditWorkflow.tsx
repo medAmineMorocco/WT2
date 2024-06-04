@@ -75,7 +75,6 @@ export default function EditWorkflow({
   }, [form, workflow, openEdit]);
 
   const onFinish = (values: any) => {
-    console.log('Received values of form:', values);
     ipcRenderer.send(
       'update-workflow',
       values.id,
