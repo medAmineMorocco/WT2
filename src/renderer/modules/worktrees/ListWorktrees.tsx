@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Dropdown,
   Tooltip,
   Space,
   theme,
   App as AntdApp,
   Form,
   Typography,
+  Cascader,
 } from 'antd';
 import {
   MoreOutlined,
@@ -32,39 +32,45 @@ import MoveWorktree from './MoveWorktree';
 
 const { useToken } = theme;
 
-let items = [
+const items = [
   {
     label: 'Rename',
-    key: '-2',
+    value: '-2',
     icon: <EditOutlined />,
   },
   {
     label: 'Open in Explorer',
-    key: '-1',
+    value: '-1',
     icon: <ExportOutlined />,
   },
   {
     label: 'Open in Terminal',
-    key: '-3',
+    value: '-3',
     icon: <CodeOutlined />,
   },
   {
     label: 'Open in',
-    key: '0',
+    value: '0',
     icon: <FolderOpenOutlined />,
+    children: [
+      {
+        value: '',
+        label: '',
+      },
+    ],
   },
   {
     label: 'Copy',
-    key: '1',
+    value: '1',
     icon: <CopyOutlined />,
     children: [
       {
-        key: '1-2',
+        value: '1-2',
         label: 'name',
       },
       {
         label: 'path',
-        key: '1-3',
+        value: '1-3',
       },
     ],
   },
@@ -86,6 +92,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
   const [repositoryInTerminal, setRepositoryInTerminal] = useState(null);
 
+  const [enabledEditors, setEnabledEditors] = useState([]);
+
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
@@ -94,24 +102,19 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   useEffect(() => {
     const storedEditors = window.localStorage.getItem('editors');
     if (storedEditors) {
-      const enabledEditors = JSON.parse(storedEditors)
+      const enabledEditorsReceived = JSON.parse(storedEditors)
         .filter((editor: any) => editor.enabled === true)
         .map((editor: any) => {
           editor.icon = {
             ...editorIconsMap[editor.icon],
             props: {
-              width: '22px',
-              height: '22px',
+              width: '24px',
+              height: '24px',
             },
           };
           return editor;
         });
-      items = items.map((item: any) => {
-        if (item.key === '0') {
-          item.children = enabledEditors;
-        }
-        return item;
-      });
+      setEnabledEditors(enabledEditorsReceived);
     }
   }, []);
 
@@ -274,7 +277,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     setIsModalOpen(false);
   };
 
-  const onFinish = (values: any) => {
+  const onFinish = () => {
     ipcRenderer.send(
       'rename-worktree',
       form.getFieldValue('oldWorktreeName'),
@@ -288,7 +291,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     setIsMoveModalOpen(false);
   };
 
-  const onFinishMoveWorktree = (values: any) => {
+  const onFinishMoveWorktree = () => {
     ipcRenderer.send(
       'move-worktree-to-folder',
       form.getFieldValue('nameWorktreeToMove'),
@@ -303,13 +306,13 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         ...items,
         {
           label: 'Delete',
-          key: '2',
+          value: '2',
           icon: <DeleteOutlined />,
           disabled: true,
         },
         {
           label: 'Unlock',
-          key: '3',
+          value: '3',
           icon: <UnlockOutlined />,
         },
       ];
@@ -318,27 +321,27 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ...items,
       {
         label: 'Change Folder',
-        key: '5',
+        value: '5',
         icon: <FolderEditIcon size={16} />,
       },
       {
         label: 'Delete',
-        key: '2',
+        value: '2',
         icon: <DeleteOutlined />,
         children: [
           {
             label: 'worktree',
-            key: '2-0',
+            value: '2-0',
           },
           {
             label: 'worktree and local branch',
-            key: '2-1',
+            value: '2-1',
           },
         ],
       },
       {
         label: 'Lock',
-        key: '4',
+        value: '4',
         icon: <LockOutlined />,
       },
     ];
@@ -351,95 +354,96 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const onClickWorktree = (worktree: any) => {
     return (event: any) => {
-      if (event.key === '-3') {
+      const key = event[event.length - 1];
+      if (key === '-3') {
         setRepositoryInTerminal(worktree.path);
         setOpenTerminalModal(true);
         return;
       }
-      if (event.key === '-2') {
+      if (key === '-2') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
         form.setFieldValue('oldWorktreePath', worktree.path);
         form.setFieldValue('newWorktreeName', worktree.name);
         return;
       }
-      if (event.key === '-1') {
+      if (key === '-1') {
         ipcRenderer.send('open-explorer', worktree.path);
         return;
       }
-      if (event.key === '0-2') {
+      if (key === '0-2') {
         ipcRenderer.send('open-intellij', worktree.path);
         return;
       }
-      if (event.key === '0-3') {
+      if (key === '0-3') {
         ipcRenderer.send('open-webstorm', worktree.path);
         return;
       }
-      if (event.key === '0-4') {
+      if (key === '0-4') {
         ipcRenderer.send('open-rider', worktree.path);
         return;
       }
-      if (event.key === '0-5') {
+      if (key === '0-5') {
         ipcRenderer.send('open-pycharm', worktree.path);
         return;
       }
-      if (event.key === '0-6') {
+      if (key === '0-6') {
         ipcRenderer.send('open-clion', worktree.path);
         return;
       }
-      if (event.key === '0-7') {
+      if (key === '0-7') {
         ipcRenderer.send('open-phpstorm', worktree.path);
         return;
       }
-      if (event.key === '0-8') {
+      if (key === '0-8') {
         ipcRenderer.send('open-rubymine', worktree.path);
         return;
       }
-      if (event.key === '0-9') {
+      if (key === '0-9') {
         ipcRenderer.send('open-goland', worktree.path);
         return;
       }
-      if (event.key === '0-10') {
+      if (key === '0-10') {
         ipcRenderer.send('open-vscode', worktree.path);
         return;
       }
-      if (event.key === '0-11') {
+      if (key === '0-11') {
         ipcRenderer.send('open-eclipse', worktree.path);
         return;
       }
-      if (event.key === '0-12') {
+      if (key === '0-12') {
         ipcRenderer.send('open-brackets', worktree.path);
         return;
       }
-      if (event.key === '0-13') {
+      if (key === '0-13') {
         ipcRenderer.send('open-android-studio', worktree.path);
         return;
       }
-      if (event.key === '0-14') {
+      if (key === '0-14') {
         ipcRenderer.send('open-xcode', worktree.path);
         return;
       }
-      if (event.key === '0-15') {
+      if (key === '0-15') {
         ipcRenderer.send('open-sublime', worktree.path);
         return;
       }
-      if (event.key === '0-16') {
+      if (key === '0-16') {
         ipcRenderer.send('open-vim', worktree.path);
         return;
       }
-      if (event.key === '1-2') {
+      if (key === '1-2') {
         navigator.clipboard.writeText(worktree.name);
         return;
       }
-      if (event.key === '1-3') {
+      if (key === '1-3') {
         navigator.clipboard.writeText(worktree.path);
         return;
       }
-      if (event.key === '2-0') {
+      if (key === '2-0') {
         ipcRenderer.send('remove-worktree', worktree.path, tabRepoPath, false);
         return;
       }
-      if (event.key === '2-1') {
+      if (key === '2-1') {
         ipcRenderer.send(
           'remove-worktree-local-branch',
           worktree.name,
@@ -449,7 +453,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         );
         return;
       }
-      if (event.key === '3') {
+      if (key === '3') {
         ipcRenderer.send(
           'change-lock-worktree',
           false,
@@ -458,7 +462,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         );
         return;
       }
-      if (event.key === '4') {
+      if (key === '4') {
         ipcRenderer.send(
           'change-lock-worktree',
           true,
@@ -467,12 +471,32 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         );
         return;
       }
-      if (event.key === '5') {
+      if (key === '5') {
         setIsMoveModalOpen(true);
         form.setFieldValue('nameWorktreeToMove', worktree.name);
         form.setFieldValue('newWorktreePath', worktree.path);
       }
     };
+  };
+
+  const loadData = (selectedOptions: any[]) => {
+    const targetOption = selectedOptions[selectedOptions.length - 1];
+
+    if (targetOption.value === '0') {
+      targetOption.children = enabledEditors.map((editor: any) => {
+        editor.value = editor.key;
+        return editor;
+      });
+    }
+  };
+
+  const renderOption = (option: any) => {
+    return (
+      <Space>
+        {option.icon && React.cloneElement(option.icon)}
+        <span>{option.label}</span>
+      </Space>
+    );
   };
 
   return (
@@ -508,14 +532,13 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 {worktree.name}
               </span>
             </Space>
-            <Dropdown
-              menu={{
-                items: getMenuItems(worktree.isLocked),
-                onClick: onClickWorktree(worktree),
-              }}
-              trigger={['click']}
-              placement="bottom"
-              destroyPopupOnHide
+            <Cascader
+              options={getMenuItems(worktree.isLocked)}
+              onChange={onClickWorktree(worktree)}
+              loadData={loadData}
+              optionRender={renderOption}
+              expandTrigger="hover"
+              popupClassName="worktree-menu"
             >
               <Tooltip
                 title="actions"
@@ -525,7 +548,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               >
                 <MoreOutlined style={{ cursor: 'pointer' }} />
               </Tooltip>
-            </Dropdown>
+            </Cascader>
           </li>
         ))}
       </ul>
