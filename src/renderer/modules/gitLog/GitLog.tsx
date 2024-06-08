@@ -1,7 +1,8 @@
-import { Modal, Typography, notification, Space, Select } from 'antd';
+import { Modal, Typography, notification, Space, Select, Result } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
+import { LoadingOutlined } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
 
@@ -22,13 +23,18 @@ export default function GitLog({
 
   const [gitLog, setGitLog] = useState('');
 
+  const [loading, setLoading] = useState<boolean>(true);
+
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
     ipcRenderer.send('get-worktrees', tabRepoPath);
 
     const onReceiveGitLog = (event: any, code: number, result: any) => {
       if (code === 0) {
-        setGitLog(result);
+        setTimeout(() => {
+          setLoading(false);
+          setGitLog(result);
+        }, 50);
       } else {
         notification.error({
           message: 'Unable to get log',
@@ -61,6 +67,7 @@ export default function GitLog({
   }, [tabRepoPath]);
 
   const handleChange = (value: string) => {
+    setLoading(true);
     ipcRenderer.send('show-git-log', tabRepoPath, value);
   };
 
@@ -85,7 +92,7 @@ export default function GitLog({
         <strong>Git Log</strong>
       </Space>
       <div
-        style={{ width: '96%', height: 'calc(100% - 94px)', padding: '22px' }}
+        style={{ width: '100%', height: 'calc(100% - 94px)', padding: '12px' }}
       >
         <div style={{ marginBottom: '16px', textAlign: 'center' }}>
           <Select
@@ -95,7 +102,22 @@ export default function GitLog({
             style={{ width: 220 }}
           />
         </div>
-        <LogUI output={gitLog} />
+        {loading && (
+          <div
+            style={{
+              height: '100%',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+            }}
+          >
+            <Result
+              icon={<LoadingOutlined spin />}
+              title="Loading git log ... Sit back and relax 😉"
+            />
+          </div>
+        )}
+        {!loading && <LogUI output={gitLog} />}
       </div>
     </Modal>
   );
