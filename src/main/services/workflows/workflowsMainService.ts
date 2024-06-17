@@ -27,39 +27,43 @@ function save(
     },
     commands: mappedCommands,
   };
-  const baseDir = `${dir}\\.git\\${conf.appPath}\\${workflow.id}`;
-  if (!fs.existsSync(path.normalize(baseDir))) {
-    fs.mkdirSync(path.normalize(baseDir));
+  const baseDir = path.normalize(
+    path.join(dir, '.git', conf.appPath, workflow.id),
+  );
+  if (!fs.existsSync(baseDir)) {
+    fs.mkdirSync(baseDir);
   }
-  const targetDir = `${baseDir}\\details.json`;
-  fs.writeFileSync(path.normalize(targetDir), JSON.stringify(workflow));
+  const targetDir = path.normalize(path.join(baseDir, 'details.json'));
+  fs.writeFileSync(targetDir, JSON.stringify(workflow));
 }
 
 function saveAll(workflows: any[], dir: string) {
   workflows.forEach((workflow: any) => {
     workflow.id = new Date().getTime().toString();
-    const baseDir = `${dir}\\.git\\${conf.appPath}\\${workflow.id}`;
-    if (!fs.existsSync(path.normalize(baseDir))) {
-      fs.mkdirSync(path.normalize(baseDir));
+    const baseDir = path.normalize(
+      path.join(dir, '.git', conf.appPath, workflow.id),
+    );
+    if (!fs.existsSync(baseDir)) {
+      fs.mkdirSync(baseDir);
     }
-    const targetDir = `${baseDir}\\details.json`;
-    fs.writeFileSync(path.normalize(targetDir), JSON.stringify(workflow));
+    const targetDir = path.normalize(path.join(baseDir, 'details.json'));
+    fs.writeFileSync(targetDir, JSON.stringify(workflow));
   });
 }
 
 function remove(id: string, dir: string) {
-  const targetDir = `${dir}\\.git\\${conf.appPath}\\${id}`;
-  fs.rmSync(path.normalize(targetDir), { recursive: true, force: true });
+  const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, id));
+  fs.rmSync(targetDir, { recursive: true, force: true });
 }
 
 function findAll(dir: string) {
-  const baseDir = `${dir}\\.git\\${conf.appPath}`;
+  const baseDir = path.normalize(path.join(dir, '.git', conf.appPath));
   return fs
-    .readdirSync(path.normalize(baseDir), { withFileTypes: true })
+    .readdirSync(baseDir, { withFileTypes: true })
     .filter((dirent: any) => dirent.isDirectory())
     .map((dirent: any) => dirent.name)
     .map((id: string) => {
-      const targetDir = `${baseDir}\\${id}\\details.json`;
+      const targetDir = path.normalize(path.join(baseDir, id, 'details.json'));
       const workflow = JSON.parse(fs.readFileSync(targetDir, 'utf-8'));
       workflow.key = workflow.id;
       return workflow;
