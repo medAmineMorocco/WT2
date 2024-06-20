@@ -49,6 +49,7 @@ function duplicate(workflow: any, dir: string) {
 }
 
 function saveAll(workflows: any[], dir: string) {
+  let count = 0;
   workflows.forEach((workflow: any) => {
     workflow.id = new Date().getTime().toString();
     const baseDir = path.normalize(
@@ -59,7 +60,9 @@ function saveAll(workflows: any[], dir: string) {
     }
     const targetDir = path.normalize(path.join(baseDir, 'details.json'));
     fs.writeFileSync(targetDir, JSON.stringify(workflow));
+    count += 1;
   });
+  return count;
 }
 
 function remove(id: string, dir: string) {

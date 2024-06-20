@@ -78,9 +78,15 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onWorkflowsImported = (event: any, code: number) => {
+    const onWorkflowsImported = (event: any, code: number, result: any) => {
       if (code === 0) {
         ipcRenderer.send('get-workflows', tabRepoPath);
+
+        notification.success({
+          message: `${result} workflow(s) have been imported`,
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
       }
     };
 

@@ -462,8 +462,8 @@ ipcMain.on(
   'import-workflows',
   async function (event, workflows: any[], dir: string) {
     try {
-      workflowsMainService.saveAll(workflows, dir);
-      event.sender.send('workflows-imported', 0);
+      const count = workflowsMainService.saveAll(workflows, dir);
+      event.sender.send('workflows-imported', 0, count);
     } catch (err: any) {
       event.sender.send('workflows-imported', -1, err.message);
     }
