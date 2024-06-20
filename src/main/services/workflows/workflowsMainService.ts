@@ -37,6 +37,17 @@ function save(
   fs.writeFileSync(targetDir, JSON.stringify(workflow));
 }
 
+function duplicate(workflow: any, dir: string) {
+  const workflowName = `${workflow.name} copy`;
+  save(
+    '',
+    workflowName,
+    workflow.command.value,
+    workflow.commands?.map((cmd: any) => cmd.value),
+    dir,
+  );
+}
+
 function saveAll(workflows: any[], dir: string) {
   workflows.forEach((workflow: any) => {
     workflow.id = new Date().getTime().toString();
@@ -72,6 +83,7 @@ function findAll(dir: string) {
 
 export default {
   save,
+  duplicate,
   saveAll,
   remove,
   findAll,

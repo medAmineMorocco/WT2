@@ -18,7 +18,13 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
-import { PlayIcon, StopIcon, Edit02Icon, Delete02Icon } from 'hugeicons-react';
+import {
+  PlayIcon,
+  StopIcon,
+  Edit02Icon,
+  Delete02Icon,
+  Copy01Icon,
+} from 'hugeicons-react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import EditWorkflow from './EditWorkflow';
@@ -130,12 +136,19 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
+    const onWorkflowDuplicated = (event: any, code: number) => {
+      if (code === 0) {
+        ipcRenderer.send('get-workflows', tabRepoPath);
+      }
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflows-imported', onWorkflowsImported);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
     ipcRenderer.on('workflow-removed', onWorkflowRemoved);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('workflows-to-import-found', onWorkflowsToImportFound);
+    ipcRenderer.on('workflow-duplicated', onWorkflowDuplicated);
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
@@ -144,6 +157,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('workflow-removed');
       ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('workflows-to-import-found');
+      ipcRenderer.removeAllListeners('workflow-duplicated');
     };
   }, [notification, tabRepoPath]);
 
@@ -166,6 +180,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     return () => {
       setWorkflowToEdit(record);
       setOpenEdit(true);
+    };
+  };
+
+  const duplicateWorkflow = (record: any) => {
+    return () => {
+      ipcRenderer.send('duplicate-workflow', record, tabRepoPath);
     };
   };
 
@@ -306,6 +326,24 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               style={{
                 cursor: !playingWorkflow ? 'pointer' : 'no-drop',
                 color: !playingWorkflow ? colorError : colorTextDisabled,
+              }}
+              className={!playingWorkflow ? 'icon-action' : ''}
+            />
+          </Tooltip>
+          <Tooltip
+            placement="top"
+            title="Duplicate workflow"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <Copy01Icon
+              size={16}
+              onClick={
+                !playingWorkflow ? duplicateWorkflow(record) : () => null
+              }
+              style={{
+                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
+                color: !playingWorkflow ? colorPrimary : colorTextDisabled,
               }}
               className={!playingWorkflow ? 'icon-action' : ''}
             />

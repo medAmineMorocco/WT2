@@ -19,7 +19,6 @@ function updateWorktreesStates(
   });
 }
 
-
 let focusedWindow: BrowserWindow | null;
 let worktreesStates: any[] = [];
 let logStates: any[] = [];
@@ -391,6 +390,15 @@ ipcMain.on(
     }
   },
 );
+
+ipcMain.on('duplicate-workflow', function (event, workflow: any, dir: string) {
+  try {
+    workflowsMainService.duplicate(workflow, dir);
+    event.sender.send('workflow-duplicated', 0);
+  } catch (err: any) {
+    event.sender.send('workflow-duplicated', -1, err.message);
+  }
+});
 
 ipcMain.on(
   'update-workflow',
