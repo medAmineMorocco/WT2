@@ -91,6 +91,18 @@ export default function AddWorkflow({
               whitespace: true,
               message: 'Please enter the name of your workflow.',
             },
+            () => ({
+              validator(_, value) {
+                if (value && value.includes('/')) {
+                  return Promise.reject(
+                    new Error(
+                      'The name of workflow should not contains / character !',
+                    ),
+                  );
+                }
+                return Promise.resolve();
+              },
+            }),
           ]}
         >
           <Input
