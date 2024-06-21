@@ -383,7 +383,7 @@ ipcMain.on(
     dir: string,
   ) {
     try {
-      workflowsMainService.save('', name, mainCommand, commands, dir);
+      workflowsMainService.save(name, mainCommand, commands, dir);
       event.sender.send('workflow-created', 0);
     } catch (err: any) {
       event.sender.send('workflow-created', -1, err.message);
@@ -404,14 +404,14 @@ ipcMain.on(
   'update-workflow',
   function (
     event,
-    id: string,
-    name: string,
+    name,
+    newName: string,
     mainCommand: string,
     commands: string[],
     dir: string,
   ) {
     try {
-      workflowsMainService.save(id, name, mainCommand, commands, dir);
+      workflowsMainService.update(name, newName, mainCommand, commands, dir);
       event.sender.send('workflow-updated', 0);
     } catch (err: any) {
       event.sender.send('workflow-updated', -1, err.message);

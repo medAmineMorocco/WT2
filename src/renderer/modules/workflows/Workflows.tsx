@@ -132,12 +132,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       result: any,
     ) => {
       if (code === 0) {
-        setWorkflowsToImport(
-          JSON.parse(result).map((workflow: any) => {
-            workflow.key = workflow.id;
-            return workflow;
-          }),
-        );
+        setWorkflowsToImport(JSON.parse(result));
         setOpenImport(true);
       }
     };
@@ -222,7 +217,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         cancelText: 'No',
         centered: true,
         onOk() {
-          ipcRenderer.send('remove-workflow', record.id, tabRepoPath);
+          ipcRenderer.send('remove-workflow', record.name, tabRepoPath);
         },
       });
     };
@@ -267,7 +262,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     );
     setWorkflows(
       workflows.map((item: any) => {
-        if (item.id === workflow.id) {
+        if (item.name === workflow.name) {
           item.worktrees = valuesMapped;
         }
         return item;

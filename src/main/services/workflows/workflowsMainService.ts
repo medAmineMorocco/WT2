@@ -4,7 +4,6 @@ const fs = require('fs');
 const { conf } = require('../../conf/conf');
 
 function save(
-  id: string,
   name: string,
   mainCommand: string,
   commands: string[],
@@ -19,7 +18,6 @@ function save(
         };
       });
   const workflow = {
-    id: id !== '' ? id : new Date().getTime().toString(),
     name,
     command: {
       key: '0',
@@ -28,7 +26,7 @@ function save(
     commands: mappedCommands,
   };
   const baseDir = path.normalize(
-    path.join(dir, '.git', conf.appPath, workflow.id),
+    path.join(dir, '.git', conf.appPath, workflow.name),
   );
   if (!fs.existsSync(baseDir)) {
     fs.mkdirSync(baseDir);
@@ -40,7 +38,6 @@ function save(
 function duplicate(workflow: any, dir: string) {
   const workflowName = `${workflow.name} copy`;
   save(
-    '',
     workflowName,
     workflow.command.value,
     workflow.commands?.map((cmd: any) => cmd.value),
@@ -51,9 +48,8 @@ function duplicate(workflow: any, dir: string) {
 function saveAll(workflows: any[], dir: string) {
   let count = 0;
   workflows.forEach((workflow: any) => {
-    workflow.id = new Date().getTime().toString();
     const baseDir = path.normalize(
-      path.join(dir, '.git', conf.appPath, workflow.id),
+      path.join(dir, '.git', conf.appPath, workflow.name),
     );
     if (!fs.existsSync(baseDir)) {
       fs.mkdirSync(baseDir);
@@ -65,9 +61,20 @@ function saveAll(workflows: any[], dir: string) {
   return count;
 }
 
-function remove(id: string, dir: string) {
-  const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, id));
+function remove(name: string, dir: string) {
+  const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, name));
   fs.rmSync(targetDir, { recursive: true, force: true });
+}
+
+function update(
+  name: string,
+  newName: string,
+  mainCommand: string,
+  commands: string[],
+  dir: string,
+) {
+  remove(name, dir);
+  save(newName, mainCommand, commands, dir);
 }
 
 function findAll(dir: string) {
@@ -76,10 +83,12 @@ function findAll(dir: string) {
     .readdirSync(baseDir, { withFileTypes: true })
     .filter((dirent: any) => dirent.isDirectory())
     .map((dirent: any) => dirent.name)
-    .map((id: string) => {
-      const targetDir = path.normalize(path.join(baseDir, id, 'details.json'));
+    .map((name: string) => {
+      const targetDir = path.normalize(
+        path.join(baseDir, name, 'details.json'),
+      );
       const workflow = JSON.parse(fs.readFileSync(targetDir, 'utf-8'));
-      workflow.key = workflow.id;
+      workflow.key = workflow.name;
       return workflow;
     });
 }
@@ -87,6 +96,7 @@ function findAll(dir: string) {
 export default {
   save,
   duplicate,
+  update,
   saveAll,
   remove,
   findAll,

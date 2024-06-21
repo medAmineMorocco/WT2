@@ -77,7 +77,7 @@ export default function EditWorkflow({
   const onFinish = (values: any) => {
     ipcRenderer.send(
       'update-workflow',
-      values.id,
+      workflow.name,
       values.name,
       values.command,
       values.commands,
