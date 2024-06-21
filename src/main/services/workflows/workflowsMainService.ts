@@ -28,9 +28,10 @@ function save(
   const baseDir = path.normalize(
     path.join(dir, '.git', conf.appPath, workflow.name),
   );
-  if (!fs.existsSync(baseDir)) {
-    fs.mkdirSync(baseDir);
+  if (fs.existsSync(baseDir)) {
+    throw new Error('A workflow with this name already exists.');
   }
+  fs.mkdirSync(baseDir);
   const targetDir = path.normalize(path.join(baseDir, 'details.json'));
   fs.writeFileSync(targetDir, JSON.stringify(workflow));
 }
