@@ -37,7 +37,16 @@ function save(
 }
 
 function duplicate(workflow: any, dir: string) {
-  const workflowName = `${workflow.name} copy`;
+  let workflowName = `${workflow.name} copy`;
+  let workflowDir = path.normalize(
+    path.join(dir, '.git', conf.appPath, workflowName),
+  );
+  while (fs.existsSync(workflowDir)) {
+    workflowName += ' copy';
+    workflowDir = path.normalize(
+      path.join(dir, '.git', conf.appPath, workflowName),
+    );
+  }
   save(
     workflowName,
     workflow.command.value,
