@@ -2,7 +2,6 @@ import { ConfigProvider, Layout, Menu, MenuProps, theme } from 'antd';
 import {
   RollbackOutlined,
   NotificationOutlined,
-  CodeOutlined,
   ApiOutlined,
   ClearOutlined,
 } from '@ant-design/icons';
@@ -10,7 +9,6 @@ import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import EditorSettings from './EditorSettings';
 import NotificationSettings from './NotificationSettings';
-import TerminalSettings from './TerminalSettings';
 import CacheSettings from './CacheSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
@@ -26,11 +24,6 @@ const itemsMenu: MenuProps['items'] = [
     key: '0',
     label: 'Notifications',
     icon: <NotificationOutlined />,
-  },
-  {
-    key: '1',
-    label: 'Terminal',
-    icon: <CodeOutlined />,
   },
   {
     key: '2',
@@ -68,9 +61,6 @@ export default function Settings() {
     }
     if (keyNavigation === '0') {
       return <NotificationSettings />;
-    }
-    if (keyNavigation === '1') {
-      return <TerminalSettings />;
     }
     if (keyNavigation === '2') {
       return <EditorSettings />;

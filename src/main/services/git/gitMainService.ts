@@ -1,6 +1,4 @@
 import { execSync } from 'child_process';
-import { BrowserWindow } from 'electron';
-import settingsMainService from '../settings/settingsMainService';
 
 function showLog(directory: string, branch: string) {
   // eslint-disable-next-line no-async-promise-executor
@@ -9,12 +7,6 @@ function showLog(directory: string, branch: string) {
       cwd: directory,
       shell: true,
     } as any;
-    const terminal = await settingsMainService.getActualTerminal(
-      BrowserWindow.getFocusedWindow(),
-    );
-    if (terminal) {
-      options.shell = terminal;
-    }
     try {
       const command = branch
         ? `git log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`
@@ -51,12 +43,6 @@ function executeCommand(command: string, directory: string) {
       cwd: directory,
       shell: true,
     } as any;
-    const terminal = await settingsMainService.getActualTerminal(
-      BrowserWindow.getFocusedWindow(),
-    );
-    if (terminal) {
-      options.shell = terminal;
-    }
     try {
       const stdout = execSync(command, options);
       resolve(stdout);

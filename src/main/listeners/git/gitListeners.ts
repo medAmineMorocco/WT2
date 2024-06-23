@@ -1,7 +1,6 @@
-import { BrowserWindow, ipcMain } from 'electron';
+import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
 import gitMainService from '../../services/git/gitMainService';
-import settingsMainService from '../../services/settings/settingsMainService';
 
 ipcMain.on(
   'show-git-log',
@@ -66,12 +65,6 @@ ipcMain.on(
       signal: abortController.signal,
     };
 
-    const terminal = await settingsMainService.getActualTerminal(
-      BrowserWindow.getFocusedWindow(),
-    );
-    if (terminal) {
-      options.shell = terminal;
-    }
     const commandProcess = spawn(command, [], options);
 
     commandProcess.stdout.on('data', (data: any) => {

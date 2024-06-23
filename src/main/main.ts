@@ -20,7 +20,6 @@ import './listeners/workflows/workflowsListeners';
 import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
-import './listeners/settings/settingsListeners';
 import './listeners/git/gitListeners';
 
 const Store = require('electron-store');

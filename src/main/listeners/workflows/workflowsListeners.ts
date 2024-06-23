@@ -2,7 +2,6 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
-import settingsMainService from '../../services/settings/settingsMainService';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -41,10 +40,6 @@ function executeCommand(
       signal: abortController.signal,
     };
 
-    const terminal = await settingsMainService.getActualTerminal(focusedWindow);
-    if (terminal) {
-      options.shell = terminal;
-    }
     const commandProcess = spawn(command.value, [], options);
 
     commandProcess.stdout.on('data', (data: any) => {
