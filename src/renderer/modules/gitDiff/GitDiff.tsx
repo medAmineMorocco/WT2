@@ -1,5 +1,8 @@
 import {
+  Badge,
   Button,
+  Checkbox,
+  Divider,
   FloatButton,
   Grid,
   Input,
@@ -18,6 +21,7 @@ import {
   LoadingOutlined,
   NodeIndexOutlined,
   TagOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -42,6 +46,8 @@ const configuration: Diff2HtmlUIConfig = {
   outputFormat: 'side-by-side',
   highlight: true,
 };
+
+const options = ['added', 'deleted', 'modified'];
 
 export default function GitDiff({
   isModalOpen,
@@ -78,13 +84,17 @@ export default function GitDiff({
     false,
   );
 
-  const [branches, setBranches] = useState([]);
+  const [refs, setRefs] = useState<any>([]);
 
-  const [tags, setTags] = useState([]);
+  const [diffFilters, setDiffFilters] = useState<any[]>(options);
 
-  const [worktrees, setWorktrees] = useState([]);
+  const [diffStats, setDiffStats] = useState<any>();
+
+  const [leftMode, setLeftMode] = useState('worktree');
 
   const [val1, setVal1] = useState<string | null>();
+
+  const [rightMode, setRightMode] = useState('worktree');
 
   const [val2, setVal2] = useState<string | null>();
 
@@ -95,6 +105,10 @@ export default function GitDiff({
   const [responsiveWidth, setResponsiveWidth] = useState<string>();
 
   const screens = useBreakpoint();
+
+  const checkAll = options.length === diffFilters.length;
+  const indeterminate =
+    diffFilters.length > 0 && diffFilters.length < options.length;
 
   const mapToSelectOptions = (strings: string[]) => {
     return strings.map((branch: string) => {
@@ -132,9 +146,7 @@ export default function GitDiff({
   }, [screens]);
 
   useEffect(() => {
-    ipcRenderer.send('list-branches', tabRepoPath);
-    ipcRenderer.send('list-tags', tabRepoPath);
-    ipcRenderer.send('list-worktrees', tabRepoPath);
+    ipcRenderer.send('list-refs', tabRepoPath);
     const onReceiveGitDiff = (event: any, code: number, result: any) => {
       if (code === 0) {
         setDiff(result);
@@ -152,35 +164,11 @@ export default function GitDiff({
       }
     };
 
-    const onReceiveBranches = (event: any, code: number, result: any) => {
+    const onReceiveRefs = (event: any, code: number, result: any) => {
       if (code === 0) {
-        setBranches(result);
-      } else {
-        notification.error({
-          message: 'Unable to get branches',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
-          placement: 'bottomLeft',
-        });
-      }
-    };
-
-    const onReceiveTags = (event: any, code: number, result: any) => {
-      if (code === 0) {
-        setTags(result);
-      } else {
-        notification.error({
-          message: 'Unable to get tags',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
-          placement: 'bottomLeft',
-        });
-      }
-    };
-
-    const onReceiveWorktrees = (event: any, code: number, result: any) => {
-      if (code === 0) {
-        setWorktrees(result);
-        setLeftOptions(mapToSelectOptions(result));
-        setRightOptions(mapToSelectOptions(result));
+        setRefs(result);
+        setLeftOptions(mapToSelectOptions(result.worktrees));
+        setRightOptions(mapToSelectOptions(result.worktrees));
       } else {
         notification.error({
           message: 'Unable to get worktrees',
@@ -190,56 +178,62 @@ export default function GitDiff({
       }
     };
 
+    const onReceiveDiffStats = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setDiffStats(result);
+      }
+    };
+
     ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
-    ipcRenderer.on('receive-branches', onReceiveBranches);
-    ipcRenderer.on('receive-tags', onReceiveTags);
-    ipcRenderer.on('receive-worktrees', onReceiveWorktrees);
+    ipcRenderer.on('receive-refs', onReceiveRefs);
+    ipcRenderer.on('receive-diff-stats', onReceiveDiffStats);
 
     return () => {
       ipcRenderer.removeAllListeners('receive-git-diff');
-      ipcRenderer.removeAllListeners('receive-branches');
-      ipcRenderer.removeAllListeners('receive-tags');
-      ipcRenderer.removeAllListeners('receive-worktrees');
+      ipcRenderer.removeAllListeners('receive-refs');
+      ipcRenderer.removeAllListeners('receive-diff-stats');
     };
   }, [isDarkMode, tabRepoPath]);
 
   const onLeftModeChange = (e: RadioChangeEvent) => {
     const val = e.target.value;
+    setLeftMode(val);
     setVal1(null);
     if (val === 'commit') {
       setIsLeftInputFocus(true);
     } else if (val === 'branch') {
       setLeftPlaceholder('Select a branch');
       setIsLeftInputFocus(false);
-      setLeftOptions(mapToSelectOptions(branches));
+      setLeftOptions(mapToSelectOptions(refs.branches));
     } else if (val === 'tag') {
       setLeftPlaceholder('Select a tag');
       setIsLeftInputFocus(false);
-      setLeftOptions(mapToSelectOptions(tags));
+      setLeftOptions(mapToSelectOptions(refs.tags));
     } else if (val === 'worktree') {
       setLeftPlaceholder('Select a worktree');
       setIsLeftInputFocus(false);
-      setLeftOptions(mapToSelectOptions(worktrees));
+      setLeftOptions(mapToSelectOptions(refs.worktrees));
     }
   };
 
   const onRightModeChange = (e: RadioChangeEvent) => {
     const val = e.target.value;
+    setRightMode(val);
     setVal2(null);
     if (val === 'commit') {
       setIsRightInputFocus(true);
     } else if (val === 'branch') {
       setRightPlaceholder('Select a branch');
       setIsRightInputFocus(false);
-      setRightOptions(mapToSelectOptions(branches));
+      setRightOptions(mapToSelectOptions(refs.branches));
     } else if (val === 'tag') {
       setRightPlaceholder('Select a tag');
       setIsRightInputFocus(false);
-      setRightOptions(mapToSelectOptions(tags));
+      setRightOptions(mapToSelectOptions(refs.tags));
     } else if (val === 'worktree') {
       setRightPlaceholder('Select a worktree');
       setIsRightInputFocus(false);
-      setRightOptions(mapToSelectOptions(worktrees));
+      setRightOptions(mapToSelectOptions(refs.worktrees));
     }
   };
 
@@ -253,11 +247,67 @@ export default function GitDiff({
 
   const findDifference = () => {
     setLoading(true);
-    ipcRenderer.send('show-git-diff', val1, val2, tabRepoPath);
+    ipcRenderer.send(
+      'show-git-diff',
+      val1,
+      val2,
+      diffFilters,
+      checkAll,
+      tabRepoPath,
+    );
+    ipcRenderer.send(
+      'git-diff-stats',
+      val1,
+      val2,
+      diffFilters,
+      checkAll,
+      tabRepoPath,
+    );
   };
 
   const onThemeChange = () => {
-    drawDiff(diff);
+    if (diff) {
+      drawDiff(diff);
+    }
+  };
+
+  const clear = () => {
+    const targetElement = document.getElementById('git-diff');
+    if (targetElement) {
+      targetElement.innerHTML = '';
+    }
+    setDiffMode(false);
+  };
+  const filter = () => {
+    const targetElement = document.getElementById('git-diff');
+    if (targetElement) {
+      targetElement.innerHTML = '';
+    }
+    setLoading(true);
+    ipcRenderer.send(
+      'show-git-diff',
+      val1,
+      val2,
+      diffFilters,
+      checkAll,
+      tabRepoPath,
+    );
+    ipcRenderer.send(
+      'git-diff-stats',
+      val1,
+      val2,
+      diffFilters,
+      checkAll,
+      tabRepoPath,
+    );
+  };
+
+  const onChangeFilter = (checkedValues: any[]) => {
+    setDiffFilters(checkedValues);
+  };
+
+  const onCheckAllChange = (e: any) => {
+    setDiffFilters(e.target.checked ? options : []);
   };
 
   useHotkeys('shift+t', onThemeChange, {
@@ -271,10 +321,11 @@ export default function GitDiff({
       onCancel={handleCancel}
       destroyOnClose
       className="git-log-modal"
-      width="calc(100% - 216px)"
+      width="100%"
       style={{
         position: 'absolute',
         right: '8px',
+        left: '8px',
         top: '48px',
         height: 'calc(100% - 56px)',
         paddingBottom: 0,
@@ -284,199 +335,301 @@ export default function GitDiff({
         <GitCompareIcon size={16} />
         <strong>Git Diff</strong>
       </Space>
-      <div
-        style={{
-          width: '96%',
-          height: 'calc(100% - 46px)',
-          padding: '22px',
-        }}
-      >
-        {loading && (
-          <div
-            style={{
-              height: '100%',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-            }}
-          >
-            <Result
-              icon={<LoadingOutlined spin />}
-              title="Loading diff content... Sit back and relax 😉"
-            />
-          </div>
-        )}
-        <div
-          id="git-diff"
-          style={{
-            position: 'absolute',
-            left: '26px',
-            right: '26px',
-            top: '54px',
-            height: '90%',
-            overflowY: 'auto',
-          }}
-          className="diff-container"
-        />
-        {!loading && diffMode && (
-          <FloatButton.BackTop
-            target={() => document.querySelector('.diff-container')}
-          />
-        )}
-        {!loading && !diffMode && (
-          <div style={{ display: 'flex', gap: '8px', height: '80%' }}>
-            <div
-              style={{
-                width: 0,
-                flexGrow: 1,
-                border: '1px dashed',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-              }}
-            >
-              <Space direction="vertical" style={{ width: responsiveWidth }}>
-                <div>
-                  <Radio.Group
-                    style={responsiveStyle}
-                    defaultValue="worktree"
-                    buttonStyle="solid"
-                    onChange={onLeftModeChange}
-                  >
-                    <Radio.Button value="worktree">
-                      <Space>
-                        <BranchesOutlined />
-                        <span>Worktree</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="commit">
-                      <Space>
-                        <NodeIndexOutlined />
-                        <span>Commit</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="branch">
-                      <Space>
-                        <ForkOutlined />
-                        <span>Branch</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="tag">
-                      <Space>
-                        <TagOutlined />
-                        <span>Tag</span>
-                      </Space>
-                    </Radio.Button>
-                  </Radio.Group>
-                </div>
-                <div>
-                  {isLeftInputFocus === true && (
-                    <Input
-                      value={val1}
-                      placeholder="commit hash"
-                      onChange={(e) => onLeftValueChange(e.target.value)}
-                    />
-                  )}
-                  {isLeftInputFocus === false && (
-                    <Select
-                      placeholder={leftPlaceholder}
-                      onChange={onLeftValueChange}
-                      value={val1}
-                      options={leftOptions}
-                      showSearch
-                      style={{ width: '100%' }}
-                    />
-                  )}
-                </div>
-              </Space>
-            </div>
 
+      <div style={{ display: 'flex', height: '98%' }}>
+        <div style={{ width: '246px', padding: '22px', paddingLeft: 0 }}>
+          <div>
+            <Space>
+              <strong>{val1}</strong>
+              {val1 && leftMode && <i>({leftMode})</i>}
+              {(val1 || val2) && <SwapOutlined />}
+              <strong>{val2}</strong>
+              {val2 && rightMode && <i>({rightMode})</i>}
+            </Space>
+          </div>
+          <br />
+          <div style={{ display: 'flex' }}>
+            <div>
+              <div>
+                <Checkbox
+                  value="all"
+                  indeterminate={indeterminate}
+                  onChange={onCheckAllChange}
+                  checked={checkAll}
+                  style={{ marginBottom: '8px' }}
+                >
+                  All
+                </Checkbox>
+              </div>
+              <div>
+                <Checkbox.Group value={diffFilters} onChange={onChangeFilter}>
+                  <Space direction="vertical">
+                    <Checkbox value="added">Added</Checkbox>
+                    <Checkbox value="deleted">Deleted</Checkbox>
+                    <Checkbox value="modified">Modified</Checkbox>
+                  </Space>
+                </Checkbox.Group>
+              </div>
+            </div>
             <div
               style={{
-                width: 0,
                 flexGrow: 1,
-                border: '1px dashed',
                 display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
+                flexDirection: 'column',
+                rowGap: '8px',
+                justifyContent: 'space-evenly',
+                alignItems: 'flex-end',
+                color: 'white',
               }}
             >
-              <Space direction="vertical" style={{ width: responsiveWidth }}>
-                <div>
-                  <Radio.Group
-                    defaultValue="worktree"
-                    buttonStyle="solid"
-                    style={responsiveStyle}
-                    onChange={onRightModeChange}
-                  >
-                    <Radio.Button value="worktree">
-                      <Space>
-                        <BranchesOutlined />
-                        <span>Worktree</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="commit">
-                      <Space>
-                        <NodeIndexOutlined />
-                        <span>Commit</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="branch">
-                      <Space>
-                        <ForkOutlined />
-                        <span>Branch</span>
-                      </Space>
-                    </Radio.Button>
-                    <Radio.Button value="tag">
-                      <Space>
-                        <TagOutlined />
-                        <span>Tag</span>
-                      </Space>
-                    </Radio.Button>
-                  </Radio.Group>
-                </div>
-                <div>
-                  {isRightInputFocus === true && (
-                    <Input
-                      value={val2}
-                      placeholder="commit hash"
-                      onChange={(e) => onRightValueChange(e.target.value)}
-                    />
-                  )}
-                  {isRightInputFocus === false && (
-                    <Select
-                      placeholder={rightPlaceholder}
-                      onChange={onRightValueChange}
-                      value={val2}
-                      options={rightOptions}
-                      showSearch
-                      style={{ width: '100%' }}
-                    />
-                  )}
-                </div>
-              </Space>
+              {!loading && diffStats && (
+                <Badge
+                  count={diffStats.all ? diffStats.all : 0}
+                  showZero
+                  color="#FAAD14"
+                />
+              )}
+              {!loading && diffStats && (
+                <Badge
+                  count={diffStats.added ? diffStats.added : 0}
+                  showZero
+                  color="#FAAD14"
+                />
+              )}
+              {!loading && diffStats && (
+                <Badge
+                  count={diffStats.deleted ? diffStats.deleted : 0}
+                  showZero
+                  color="#FAAD14"
+                />
+              )}
+              {!loading && diffStats && (
+                <Badge
+                  count={diffStats.modified ? diffStats.modified : 0}
+                  showZero
+                  color="#FAAD14"
+                />
+              )}
             </div>
           </div>
-        )}
-        {!loading && !diffMode && (
+          <br />
+          {diffMode && (
+            <Space>
+              <Button onClick={clear} disabled={loading} type="link">
+                Clear
+              </Button>
+
+              <Button onClick={filter} disabled={loading} type="primary">
+                Filter
+              </Button>
+            </Space>
+          )}
+        </div>
+        <Divider type="vertical" style={{ height: '100%' }} />
+
+        <div style={{ flexGrow: 1 }}>
           <div
             style={{
-              marginTop: '5%',
-              display: 'flex',
-              justifyContent: 'center',
+              position: 'relative',
+              width: '96%',
+              height: 'calc(100% - 46px)',
+              padding: '22px',
             }}
           >
-            <Button
-              type="primary"
-              onClick={findDifference}
-              disabled={
-                !val1 || /^\s*$/.test(val1) || !val2 || /^\s*$/.test(val2)
-              }
-            >
-              Compare
-            </Button>
+            {loading && (
+              <div
+                style={{
+                  height: '100%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+              >
+                <Result
+                  icon={<LoadingOutlined spin />}
+                  title="Loading diff content... Sit back and relax 😉"
+                />
+              </div>
+            )}
+            <div
+              id="git-diff"
+              style={{
+                position: 'absolute',
+                left: '26px',
+                right: '26px',
+                top: '22px',
+                height: '90%',
+                overflowY: 'auto',
+              }}
+              className="diff-container"
+            />
+            {!loading && diffMode && (
+              <FloatButton.BackTop
+                target={() => document.querySelector('.diff-container')}
+              />
+            )}
+            {!loading && !diffMode && (
+              <div style={{ display: 'flex', gap: '8px', height: '80%' }}>
+                <div
+                  style={{
+                    width: 0,
+                    flexGrow: 1,
+                    border: '1px dashed',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Space
+                    direction="vertical"
+                    style={{ width: responsiveWidth }}
+                  >
+                    <div>
+                      <Radio.Group
+                        style={responsiveStyle}
+                        defaultValue="worktree"
+                        buttonStyle="solid"
+                        onChange={onLeftModeChange}
+                      >
+                        <Radio.Button value="worktree">
+                          <Space>
+                            <BranchesOutlined />
+                            <span>Worktree</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="commit">
+                          <Space>
+                            <NodeIndexOutlined />
+                            <span>Commit</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="branch">
+                          <Space>
+                            <ForkOutlined />
+                            <span>Branch</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="tag">
+                          <Space>
+                            <TagOutlined />
+                            <span>Tag</span>
+                          </Space>
+                        </Radio.Button>
+                      </Radio.Group>
+                    </div>
+                    <div>
+                      {isLeftInputFocus === true && (
+                        <Input
+                          value={val1}
+                          placeholder="commit hash"
+                          onChange={(e) => onLeftValueChange(e.target.value)}
+                        />
+                      )}
+                      {isLeftInputFocus === false && (
+                        <Select
+                          placeholder={leftPlaceholder}
+                          onChange={onLeftValueChange}
+                          value={val1}
+                          options={leftOptions}
+                          showSearch
+                          style={{ width: '100%' }}
+                        />
+                      )}
+                    </div>
+                  </Space>
+                </div>
+
+                <div
+                  style={{
+                    width: 0,
+                    flexGrow: 1,
+                    border: '1px dashed',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                >
+                  <Space
+                    direction="vertical"
+                    style={{ width: responsiveWidth }}
+                  >
+                    <div>
+                      <Radio.Group
+                        defaultValue="worktree"
+                        buttonStyle="solid"
+                        style={responsiveStyle}
+                        onChange={onRightModeChange}
+                      >
+                        <Radio.Button value="worktree">
+                          <Space>
+                            <BranchesOutlined />
+                            <span>Worktree</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="commit">
+                          <Space>
+                            <NodeIndexOutlined />
+                            <span>Commit</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="branch">
+                          <Space>
+                            <ForkOutlined />
+                            <span>Branch</span>
+                          </Space>
+                        </Radio.Button>
+                        <Radio.Button value="tag">
+                          <Space>
+                            <TagOutlined />
+                            <span>Tag</span>
+                          </Space>
+                        </Radio.Button>
+                      </Radio.Group>
+                    </div>
+                    <div>
+                      {isRightInputFocus === true && (
+                        <Input
+                          value={val2}
+                          placeholder="commit hash"
+                          onChange={(e) => onRightValueChange(e.target.value)}
+                        />
+                      )}
+                      {isRightInputFocus === false && (
+                        <Select
+                          placeholder={rightPlaceholder}
+                          onChange={onRightValueChange}
+                          value={val2}
+                          options={rightOptions}
+                          showSearch
+                          style={{ width: '100%' }}
+                        />
+                      )}
+                    </div>
+                  </Space>
+                </div>
+              </div>
+            )}
+            {!loading && !diffMode && (
+              <div
+                style={{
+                  marginTop: '5%',
+                  display: 'flex',
+                  justifyContent: 'center',
+                }}
+              >
+                <Button
+                  type="primary"
+                  onClick={findDifference}
+                  disabled={
+                    !val1 || /^\s*$/.test(val1) || !val2 || /^\s*$/.test(val2)
+                  }
+                >
+                  Compare
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </Modal>
   );

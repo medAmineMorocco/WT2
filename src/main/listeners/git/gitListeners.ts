@@ -16,12 +16,50 @@ ipcMain.on(
 
 ipcMain.on(
   'show-git-diff',
-  async function (event, val1: string, val2: string, directory: string) {
+  async function (
+    event,
+    val1: string,
+    val2: string,
+    diffFilters: string,
+    isAll: boolean,
+    directory: string,
+  ) {
     try {
-      const gitDiff = await gitMainService.showDiff(val1, val2, directory);
+      const gitDiff = await gitMainService.showDiff(
+        val1,
+        val2,
+        diffFilters,
+        isAll,
+        directory,
+      );
       event.sender.send('receive-git-diff', 0, gitDiff);
     } catch (err: any) {
       event.sender.send('receive-git-diff', -1, err.message);
+    }
+  },
+);
+
+ipcMain.on(
+  'git-diff-stats',
+  async function (
+    event,
+    val1: string,
+    val2: string,
+    diffFilters: string,
+    isAll: boolean,
+    directory: string,
+  ) {
+    try {
+      const stats = await gitMainService.diffStats(
+        val1,
+        val2,
+        diffFilters,
+        isAll,
+        directory,
+      );
+      event.sender.send('receive-diff-stats', 0, stats);
+    } catch (err: any) {
+      event.sender.send('receive-diff-stats', -1, err.message);
     }
   },
 );
@@ -50,6 +88,15 @@ ipcMain.on('list-worktrees', async function (event, directory: string) {
     event.sender.send('receive-worktrees', 0, worktrees);
   } catch (err: any) {
     event.sender.send('receive-worktrees', -1, err.message);
+  }
+});
+
+ipcMain.on('list-refs', async function (event, directory: string) {
+  try {
+    const refs = await gitMainService.listRefs(directory);
+    event.sender.send('receive-refs', 0, refs);
+  } catch (err: any) {
+    event.sender.send('receive-refs', -1, err.message);
   }
 });
 

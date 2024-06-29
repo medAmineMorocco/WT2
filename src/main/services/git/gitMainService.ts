@@ -19,7 +19,13 @@ function showLog(directory: string, branch: string) {
   });
 }
 
-function showDiff(val1: string, val2: string, directory: string) {
+function showDiff(
+  val1: string,
+  val2: string,
+  diffFilters: string,
+  isAll: boolean,
+  directory: string,
+) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options = {
@@ -28,8 +34,102 @@ function showDiff(val1: string, val2: string, directory: string) {
       shell: true,
     } as any;
     try {
-      const stdout = execSync(`git diff ${val1} ${val2}`, options);
+      let command = `git diff ${val1} ${val2}`;
+      if (isAll) {
+        const stdout = execSync(command, options);
+        resolve(stdout.toString());
+      }
+      command += ' --diff-filter=';
+      if (diffFilters.includes('added')) {
+        command += 'A';
+      }
+      if (diffFilters.includes('deleted')) {
+        command += 'D';
+      }
+      if (diffFilters.includes('modified')) {
+        command += 'M';
+      }
+      const stdout = execSync(command, options);
       resolve(stdout.toString());
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+function diffStats(
+  val1: string,
+  val2: string,
+  diffFilters: string,
+  isAll: boolean,
+  directory: string,
+) {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const options = {
+      cwd: directory,
+      shell: true,
+    } as any;
+    try {
+      const stats = {} as any;
+      let command = `git diff ${val1} ${val2} --name-only`;
+      let commandAll = command;
+
+      let stdout;
+      let files;
+
+      commandAll += ' --diff-filter=';
+      if (diffFilters.includes('added')) {
+        command += ' --diff-filter=A';
+        commandAll += 'A';
+
+        stdout = execSync(command, options);
+        files = stdout
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        stats.added = files.length;
+      }
+      if (diffFilters.includes('deleted')) {
+        command += ' --diff-filter=D';
+        commandAll += 'D';
+
+        stdout = execSync(command, options);
+        files = stdout
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        stats.deleted = files.length;
+      }
+      if (diffFilters.includes('modified')) {
+        command += ' --diff-filter=M';
+        commandAll += 'M';
+
+        stdout = execSync(command, options);
+        files = stdout
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        stats.modified = files.length;
+      }
+
+      if (isAll) {
+        stdout = execSync(command, options);
+        files = stdout
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        stats.all = files.length;
+      } else {
+        stdout = execSync(commandAll, options);
+        files = stdout
+          .toString()
+          .split('\n')
+          .filter((line) => line.trim() !== '');
+        stats.all = files.length;
+      }
+
+      resolve(stats);
     } catch (error) {
       reject(error);
     }
@@ -133,11 +233,26 @@ function listWorktrees(directory: string) {
   });
 }
 
+async function listRefs(directory: string) {
+  // eslint-disable-next-line no-useless-catch
+  try {
+    const refs = {} as any;
+    refs.branches = await listBranches(directory);
+    refs.tags = await listTags(directory);
+    refs.worktrees = await listWorktrees(directory);
+    return refs;
+  } catch (err) {
+    throw err;
+  }
+}
+
 export default {
   showLog,
   showDiff,
+  diffStats,
   executeCommand,
   listBranches,
   listTags,
   listWorktrees,
+  listRefs,
 };
