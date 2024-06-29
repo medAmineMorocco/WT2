@@ -1,10 +1,9 @@
-/**
- * Modfied version of [termynal.js](https://github.com/ines/termynal/blob/master/termynal.css).
- *
- * @author Ines Montani <ines@ines.io>
- * @version 0.0.1
- * @license MIT
- */
+@font-face {
+  font-family: 'ExpletusSans-Regular';
+  src: url('assets/fonts/ExpletusSans-Regular.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
  .react-terminal-wrapper {
   width: 100%;
   background: #252a33;
