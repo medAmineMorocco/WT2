@@ -340,10 +340,14 @@ export default function GitDiff({
         <div style={{ width: '246px', padding: '22px', paddingLeft: 0 }}>
           <div>
             <Space>
-              <strong>{val1}</strong>
+              <strong>
+                {leftMode === 'commit' ? val1?.substring(0, 6) : val1}
+              </strong>
               {val1 && leftMode && <i>({leftMode})</i>}
               {(val1 || val2) && <SwapOutlined />}
-              <strong>{val2}</strong>
+              <strong>
+                {rightMode === 'commit' ? val2?.substring(0, 6) : val2}
+              </strong>
               {val2 && rightMode && <i>({rightMode})</i>}
             </Space>
           </div>
@@ -387,6 +391,7 @@ export default function GitDiff({
                   count={diffStats.all ? diffStats.all : 0}
                   showZero
                   color="#FAAD14"
+                  overflowCount={1000}
                 />
               )}
               {!loading && diffStats && (
@@ -394,6 +399,7 @@ export default function GitDiff({
                   count={diffStats.added ? diffStats.added : 0}
                   showZero
                   color="#FAAD14"
+                  overflowCount={1000}
                 />
               )}
               {!loading && diffStats && (
@@ -401,6 +407,7 @@ export default function GitDiff({
                   count={diffStats.deleted ? diffStats.deleted : 0}
                   showZero
                   color="#FAAD14"
+                  overflowCount={1000}
                 />
               )}
               {!loading && diffStats && (
@@ -408,6 +415,7 @@ export default function GitDiff({
                   count={diffStats.modified ? diffStats.modified : 0}
                   showZero
                   color="#FAAD14"
+                  overflowCount={1000}
                 />
               )}
             </div>
