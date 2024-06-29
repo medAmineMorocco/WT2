@@ -366,7 +366,11 @@ export default function GitDiff({
                 </Checkbox>
               </div>
               <div>
-                <Checkbox.Group value={diffFilters} onChange={onChangeFilter}>
+                <Checkbox.Group
+                  value={diffFilters}
+                  onChange={onChangeFilter}
+                  disabled={loading}
+                >
                   <Space direction="vertical">
                     <Checkbox value="added">Added</Checkbox>
                     <Checkbox value="deleted">Deleted</Checkbox>
