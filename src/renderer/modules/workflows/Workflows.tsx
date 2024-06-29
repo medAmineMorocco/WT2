@@ -426,7 +426,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <div>
           <Space>
             <PartitionOutlined />
-            <Badge count={workflows.length} offset={[10, 0]} title="total">
+            <Badge
+              count={workflows.length}
+              offset={[10, 0]}
+              title="total"
+              color="#FAAD14"
+            >
               <strong>Workflows</strong>
             </Badge>
           </Space>
