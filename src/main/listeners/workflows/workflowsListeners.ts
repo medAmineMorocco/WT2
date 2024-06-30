@@ -1,5 +1,7 @@
 import { spawn } from 'child_process';
 import path from 'path';
+import iconv from 'iconv-lite';
+import chardet from 'chardet';
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 
@@ -24,6 +26,14 @@ let logStates: any[] = [];
 
 let stopExecution = false;
 let abortController: AbortController;
+
+function setEncoding(buffer: any) {
+  const defaultEncoding = chardet.detect(buffer);
+  return iconv
+    .decode(buffer, defaultEncoding !== 'UTF-8' ? 'cp437' : 'utf8')
+    .toString();
+}
+
 function executeCommand(
   command: any,
   normalizedPath: string,
@@ -50,9 +60,9 @@ function executeCommand(
         if (item.label === worktreeLabel) {
           let log = '';
           if (item.data[command.key]) {
-            log = item.data[command.key].output + data.toString();
+            log = item.data[command.key].output + setEncoding(data);
           } else {
-            log = data.toString();
+            log = setEncoding(data);
           }
           item.data[command.key] = {
             command: command.value,
@@ -70,7 +80,7 @@ function executeCommand(
           if (!item.data[command.key]) {
             item.data[command.key] = {
               command: command.value,
-              output: data.toString(),
+              output: setEncoding(data),
             };
           }
         }
@@ -95,7 +105,7 @@ function executeCommand(
           if (!item.data[command.key]) {
             item.data[command.key] = {
               command: command.value,
-              output: err.toString(),
+              output: setEncoding(err),
             };
           }
         }
