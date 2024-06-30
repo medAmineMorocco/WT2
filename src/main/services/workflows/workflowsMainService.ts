@@ -31,9 +31,18 @@ function save(
   if (fs.existsSync(baseDir)) {
     throw new Error('A workflow with this name already exists.');
   }
-  fs.mkdirSync(baseDir);
-  const targetDir = path.normalize(path.join(baseDir, 'details.json'));
-  fs.writeFileSync(targetDir, JSON.stringify(workflow));
+  try {
+    fs.mkdirSync(baseDir);
+    const targetDir = path.normalize(path.join(baseDir, 'details.json'));
+    fs.writeFileSync(targetDir, JSON.stringify(workflow));
+  } catch (err: any) {
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      throw new Error(
+        'Insufficient permissions detected.Please ensure you have appropriate permissions set for the .git directory.',
+      );
+    }
+    throw err;
+  }
 }
 
 function duplicate(workflow: any, dir: string) {
@@ -64,17 +73,35 @@ function saveAll(workflows: any[], dir: string) {
     if (fs.existsSync(baseDir)) {
       throw new Error('A workflow with this name already exists.');
     }
-    fs.mkdirSync(baseDir);
-    const targetDir = path.normalize(path.join(baseDir, 'details.json'));
-    fs.writeFileSync(targetDir, JSON.stringify(workflow));
-    count += 1;
+    try {
+      fs.mkdirSync(baseDir);
+      const targetDir = path.normalize(path.join(baseDir, 'details.json'));
+      fs.writeFileSync(targetDir, JSON.stringify(workflow));
+      count += 1;
+    } catch (err: any) {
+      if (err.code === 'EACCES' || err.code === 'EPERM') {
+        throw new Error(
+          'Insufficient permissions detected.Please ensure you have appropriate permissions set for the .git directory.',
+        );
+      }
+      throw err;
+    }
   });
   return count;
 }
 
 function remove(name: string, dir: string) {
-  const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, name));
-  fs.rmSync(targetDir, { recursive: true, force: true });
+  try {
+    const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, name));
+    fs.rmSync(targetDir, { recursive: true, force: true });
+  } catch (err: any) {
+    if (err.code === 'EACCES' || err.code === 'EPERM') {
+      throw new Error(
+        'Insufficient permissions detected.Please ensure you have appropriate permissions set for the .git directory.',
+      );
+    }
+    throw err;
+  }
 }
 
 function update(
