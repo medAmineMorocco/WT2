@@ -109,6 +109,19 @@ export default function Log() {
 
   const onChangeTab = (activeKey: string) => {
     setActiveTabKey(activeKey);
+    const tabsDiv = document.getElementsByClassName('log-tabs');
+    if (tabsDiv) {
+      const contentHolderDiv = tabsDiv[0].querySelector(
+        '.ant-tabs-content-holder',
+      );
+      if (contentHolderDiv) {
+        contentHolderDiv.scroll({
+          top: 0,
+          left: 0,
+          behavior: 'smooth',
+        });
+      }
+    }
   };
 
   useHotkeys('shift+f', () => toggleFullScreenMode(), {
