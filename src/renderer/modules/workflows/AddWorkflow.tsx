@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   App as AntdApp,
   Button,
@@ -27,6 +27,8 @@ export default function AddWorkflow({
 }) {
   const { notification } = AntdApp.useApp();
 
+  const [loadingCreateWorkflow, setLoadingCreateWorkflow] = useState(false);
+
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
@@ -40,9 +42,11 @@ export default function AddWorkflow({
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        setLoadingCreateWorkflow(false);
         onCloseAdd();
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
+        setLoadingCreateWorkflow(false);
         notification.error({
           message: 'Unable to Create Workflow',
           description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -59,6 +63,7 @@ export default function AddWorkflow({
   }, [notification, onCloseAdd, tabRepoPath]);
 
   const onFinish = (values: any) => {
+    setLoadingCreateWorkflow(true);
     ipcRenderer.send(
       'add-workflow',
       values.name,
@@ -182,7 +187,12 @@ export default function AddWorkflow({
           )}
         </Form.List>
         <Form.Item>
-          <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loadingCreateWorkflow}
+            icon={<CheckOutlined />}
+          >
             Create Workflow
           </Button>
         </Form.Item>

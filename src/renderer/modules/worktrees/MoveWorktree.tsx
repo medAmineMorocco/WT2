@@ -8,11 +8,13 @@ export default function MoveWorktree({
   form,
   onFinish,
   handleCancel,
+  loading,
 }: {
   isModalOpen: boolean;
   form: any;
   onFinish: any;
   handleCancel: any;
+  loading: boolean;
 }) {
   const [osSeparator, setOsSeparator] = useState('');
 
@@ -80,7 +82,12 @@ export default function MoveWorktree({
         </Space>
         <Form.Item name="nameWorktreeToMove" hidden />
         <Form.Item style={{ marginRight: 0 }}>
-          <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            icon={<CheckOutlined />}
+          >
             Move
           </Button>
         </Form.Item>

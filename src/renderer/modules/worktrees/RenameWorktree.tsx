@@ -7,11 +7,13 @@ export default function RenameWorktree({
   form,
   onFinish,
   handleCancel,
+  loading,
 }: {
   isModalOpen: boolean;
   form: any;
   onFinish: any;
   handleCancel: any;
+  loading: boolean;
 }) {
   return (
     <Modal
@@ -58,7 +60,12 @@ export default function RenameWorktree({
         <Form.Item name="oldWorktreeName" hidden />
         <Form.Item name="oldWorktreePath" hidden />
         <Form.Item style={{ marginRight: 0 }}>
-          <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loading}
+            icon={<EditOutlined />}
+          >
             Rename
           </Button>
         </Form.Item>

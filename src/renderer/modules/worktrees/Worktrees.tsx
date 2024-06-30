@@ -66,6 +66,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
 
     const [pathSeparator, setPathSeparator] = useState<string>('');
 
+    const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
+
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
     }, [activeTab]);
@@ -82,9 +84,11 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             placement: 'bottomLeft',
             duration: 1,
           });
+          setLoadingCreateWorktree(false);
           ipcRenderer.send('get-worktrees', tabRepoPath);
           setIsModalOpen(false);
         } else {
+          setLoadingCreateWorktree(false);
           notification.error({
             message: 'Unable to Create Worktree',
             description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -314,6 +318,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         setIsModalOpen(false);
         return;
       }
+      setLoadingCreateWorktree(true);
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
@@ -636,6 +641,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     type="primary"
                     htmlType="submit"
                     style={{ width: '100%' }}
+                    loading={loadingCreateWorktree}
                   >
                     Create Worktree
                   </Button>

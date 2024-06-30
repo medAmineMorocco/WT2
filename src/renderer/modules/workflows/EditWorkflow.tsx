@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   App as AntdApp,
   Button,
@@ -31,6 +31,8 @@ export default function EditWorkflow({
 
   const { notification } = AntdApp.useApp();
 
+  const [loadingEditWorkflow, setLoadingEditWorkflow] = useState(false);
+
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
@@ -44,9 +46,11 @@ export default function EditWorkflow({
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        setLoadingEditWorkflow(false);
         onCloseEdit();
         ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
+        setLoadingEditWorkflow(false);
         notification.error({
           message: 'Unable to Update Workflow',
           description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -75,6 +79,7 @@ export default function EditWorkflow({
   }, [form, workflow, openEdit]);
 
   const onFinish = (values: any) => {
+    setLoadingEditWorkflow(true);
     ipcRenderer.send(
       'update-workflow',
       workflow.name,
@@ -201,7 +206,12 @@ export default function EditWorkflow({
           )}
         </Form.List>
         <Form.Item>
-          <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={loadingEditWorkflow}
+            icon={<CheckOutlined />}
+          >
             Edit Workflow
           </Button>
         </Form.Item>

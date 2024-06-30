@@ -94,6 +94,10 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [enabledEditors, setEnabledEditors] = useState([]);
 
+  const [loadingRenameWorktree, setLoadingRenameWorktree] = useState(false);
+
+  const [loadingMoveWorktree, setLoadingMoveWorktree] = useState(false);
+
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
@@ -201,9 +205,11 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        setLoadingRenameWorktree(false);
         setIsModalOpen(false);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
+        setLoadingRenameWorktree(false);
         notification.error({
           message: 'Unable to Rename Worktree',
           description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -245,9 +251,11 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        setLoadingMoveWorktree(false);
         setIsMoveModalOpen(false);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
+        setLoadingMoveWorktree(false);
         notification.error({
           message: 'Unable to Move Worktree to folder',
           description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -278,6 +286,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   const onFinish = () => {
+    setLoadingRenameWorktree(true);
     ipcRenderer.send(
       'rename-worktree',
       form.getFieldValue('oldWorktreeName'),
@@ -292,6 +301,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   };
 
   const onFinishMoveWorktree = () => {
+    setLoadingMoveWorktree(true);
     ipcRenderer.send(
       'move-worktree-to-folder',
       form.getFieldValue('nameWorktreeToMove'),
@@ -566,6 +576,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           form={form}
           onFinish={onFinish}
           handleCancel={handleCancel}
+          loading={loadingRenameWorktree}
         />
       )}
       {isMoveModalOpen && (
@@ -574,6 +585,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           form={form}
           onFinish={onFinishMoveWorktree}
           handleCancel={handleCancelMoveWorktree}
+          loading={loadingMoveWorktree}
         />
       )}
     </>
