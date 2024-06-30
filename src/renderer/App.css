@@ -270,6 +270,7 @@ body {
 
 .react-terminal-line {
   white-space: pre-wrap !important;
+  overflow-wrap: break-word;
 }
 
 .terminal-ui .xterm-rows {
