@@ -340,15 +340,23 @@ export default function GitDiff({
         <div style={{ width: '246px', padding: '22px', paddingLeft: 0 }}>
           <div>
             <Space>
-              <strong>
-                {leftMode === 'commit' ? val1?.substring(0, 6) : val1}
-              </strong>
-              {val1 && leftMode && <i>({leftMode})</i>}
-              {(val1 || val2) && <SwapOutlined />}
-              <strong>
-                {rightMode === 'commit' ? val2?.substring(0, 6) : val2}
-              </strong>
-              {val2 && rightMode && <i>({rightMode})</i>}
+              {val1 ? (
+                <strong>
+                  {leftMode === 'commit' ? val1?.substring(0, 6) : val1}
+                </strong>
+              ) : (
+                <strong>Source</strong>
+              )}
+              {leftMode && <i>({leftMode})</i>}
+              <SwapOutlined />
+              {val2 ? (
+                <strong>
+                  {rightMode === 'commit' ? val2?.substring(0, 6) : val2}
+                </strong>
+              ) : (
+                <strong>Target</strong>
+              )}
+              {rightMode && <i>({rightMode})</i>}
             </Space>
           </div>
           <br />
