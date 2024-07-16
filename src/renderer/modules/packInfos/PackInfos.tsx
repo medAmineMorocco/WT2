@@ -42,7 +42,7 @@ export default function PackInfos({ isDarkMode }: { isDarkMode: boolean }) {
         <div style={{ textAlign: 'center' }}>
           <Space>
             <Award05Icon size={24} color="#FAAD14" />
-            <strong>Pro Version</strong>
+            <strong>Pro</strong>
           </Space>
         </div>
       );
