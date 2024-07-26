@@ -1,13 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Button,
-  Layout,
-  message,
-  Progress,
-  theme,
-  Tour,
-  TourProps,
-} from 'antd';
+import { Button, Layout, message, Progress, theme } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -92,7 +84,13 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   });
 
   useEffect(() => {
-    const onSelectRepo = (event: any, isGitRepo: boolean, isWorktree: boolean, path: string, name: string) => {
+    const onSelectRepo = (
+      event: any,
+      isGitRepo: boolean,
+      isWorktree: boolean,
+      path: string,
+      name: string,
+    ) => {
       setLoading(true);
       if (!isGitRepo) {
         message.destroy();
@@ -152,54 +150,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 
-  const steps: TourProps['steps'] = [
-    {
-      title: 'Create a new worktree',
-      description: 'Put your files here.',
-      cover: (
-        <img
-          alt="tour.png"
-          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
-        />
-      ),
-      target: () => ref1.current,
-      placement: 'rightTop',
-    },
-    {
-      title: 'Create a new workflow',
-      description: 'Save your changes.',
-      cover: (
-        <img
-          alt="tour.png"
-          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
-        />
-      ),
-      target: () => ref2.current,
-      placement: 'left',
-    },
-    {
-      title: 'Watch execution of the workflow',
-      description: 'Click to see other actions.',
-      cover: (
-        <img
-          alt="tour.png"
-          height="180"
-          src="https://www.litmus.com/wp-content/uploads/2021/02/ease-applied-to-tween-with-bouncein-example.gif"
-        />
-      ),
-      target: () => ref3.current,
-      placement: 'bottom',
-    },
-  ];
-
-  const isFirstTimeOpenApp = () => {
-    return !window.localStorage.getItem('fistTime');
-  };
-
-  const onCloseTour = () => {
-    window.localStorage.setItem('fistTime', 'true');
-  };
-
   if (loading) {
     return (
       <Layout
@@ -240,7 +190,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
             </Content>
           </Layout>
         </Layout>
-        <Tour open={isFirstTimeOpenApp()} onClose={onCloseTour} steps={steps} />
       </motion.div>
     );
   }
