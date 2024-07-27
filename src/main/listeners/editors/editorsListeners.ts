@@ -1,27 +1,12 @@
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { ipcMain, shell } from 'electron';
 import { exec } from 'child_process';
 import path from 'path';
+import fs from 'fs';
+import copyDirectory from '../../services/utils/fileService';
+import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 
-async function getEditorCommandOrGetDefault(
-  editorLabel: string,
-  defaultEditorCommand: string,
-) {
-  let command = defaultEditorCommand;
-
-  const editors =
-    await BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
-      'localStorage.getItem("editors");',
-      true,
-    );
-  if (editors) {
-    const foundEditor = JSON.parse(editors).find(
-      (editor: any) => editor.label === editorLabel,
-    );
-    if (foundEditor && foundEditor.path) {
-      command = foundEditor.path;
-    }
-  }
-  return command;
+async function getEditor(editorLabel: string) {
+  return editorsCst.find((editor: any) => editor.label === editorLabel);
 }
 
 function openInEditor(editorCommand: string, dir: string, event: any) {
@@ -32,82 +17,45 @@ function openInEditor(editorCommand: string, dir: string, event: any) {
   });
 }
 
+async function copySettings(editor: any, worktreePath: string, dir: string) {
+  if (editor.settingsFolder) {
+    if (!fs.existsSync(path.join(worktreePath, editor.settingsFolder))) {
+      const projectEditorSettingsFolder = path.join(dir, editor.settingsFolder);
+      await copyDirectory(
+        projectEditorSettingsFolder,
+        path.join(worktreePath, editor.settingsFolder),
+      );
+    }
+  }
+  if (editor.settingsFile) {
+    if (!fs.existsSync(path.join(worktreePath, editor.settingsFile))) {
+      const projectEditorSettingsFile = path.join(dir, editor.settingsFile);
+      fs.copyFileSync(
+        projectEditorSettingsFile,
+        path.join(worktreePath, editor.settingsFile),
+      );
+    }
+  }
+}
+
 ipcMain.on('open-explorer', function (event, dir) {
   const normalizedPath = path.normalize(dir);
   shell.openPath(normalizedPath);
 });
 
-ipcMain.on('open-intellij', async function (event, dir: string) {
-  const command = await getEditorCommandOrGetDefault('Intellij', 'idea');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-webstorm', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Webstorm', 'webstorm');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-rider', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Rider', 'rider');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-pycharm', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('PyCharm', 'pycharm');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-clion', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('CLion', 'clion');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-phpstorm', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('PhpStorm', 'phpstorm');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-rubymine', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('RubyMine', 'rubymine');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-goland', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('GoLand', 'goland');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-vscode', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Visual Studio', 'code');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-eclipse', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Eclipse', 'eclipse');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-brackets', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Brackets', 'brackets');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-android-studio', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Android Studio', 'open');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-xcode', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Xcode', 'open');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-sublime', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Sublime Text', 'subl');
-  openInEditor(command, dir, event);
-});
-
-ipcMain.on('open-vim', async function (event, dir) {
-  const command = await getEditorCommandOrGetDefault('Vim', 'vim');
-  openInEditor(command, dir, event);
-});
+ipcMain.on(
+  'open-editor',
+  async function (
+    event,
+    editorName: string,
+    worktreePath: string,
+    dir: string,
+  ) {
+    const editor = await getEditor(editorName);
+    if (editor) {
+      const command = editor.path || editor.defaultCommand;
+      await copySettings(editor, worktreePath, dir);
+      openInEditor(command, worktreePath, event);
+    }
+  },
+);

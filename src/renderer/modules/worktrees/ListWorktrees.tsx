@@ -382,63 +382,74 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         return;
       }
       if (key === '0-2') {
-        ipcRenderer.send('open-intellij', worktree.path);
+        ipcRenderer.send('open-editor', 'Intellij', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-3') {
-        ipcRenderer.send('open-webstorm', worktree.path);
+        ipcRenderer.send('open-editor', 'Webstorm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-4') {
-        ipcRenderer.send('open-rider', worktree.path);
+        ipcRenderer.send('open-editor', 'Rider', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-5') {
-        ipcRenderer.send('open-pycharm', worktree.path);
+        ipcRenderer.send('open-editor', 'PyCharm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-6') {
-        ipcRenderer.send('open-clion', worktree.path);
+        ipcRenderer.send('open-editor', 'CLion', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-7') {
-        ipcRenderer.send('open-phpstorm', worktree.path);
+        ipcRenderer.send('open-editor', 'PhpStorm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-8') {
-        ipcRenderer.send('open-rubymine', worktree.path);
+        ipcRenderer.send('open-editor', 'RubyMine', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-9') {
-        ipcRenderer.send('open-goland', worktree.path);
+        ipcRenderer.send('open-editor', 'GoLand', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-10') {
-        ipcRenderer.send('open-vscode', worktree.path);
+        ipcRenderer.send(
+          'open-editor',
+          'Visual Studio',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-11') {
-        ipcRenderer.send('open-eclipse', worktree.path);
+        ipcRenderer.send('open-editor', 'Eclipse', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-12') {
-        ipcRenderer.send('open-brackets', worktree.path);
+        ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-13') {
-        ipcRenderer.send('open-android-studio', worktree.path);
+        ipcRenderer.send(
+          'open-editor',
+          'Android Studio',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-14') {
-        ipcRenderer.send('open-xcode', worktree.path);
+        ipcRenderer.send(
+          'open-editor',
+          'Sublime Text',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-15') {
-        ipcRenderer.send('open-sublime', worktree.path);
-        return;
-      }
-      if (key === '0-16') {
-        ipcRenderer.send('open-vim', worktree.path);
+        ipcRenderer.send('open-editor', 'Vim', worktree.path, tabRepoPath);
         return;
       }
       if (key === '1-2') {
