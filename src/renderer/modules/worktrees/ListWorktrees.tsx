@@ -25,7 +25,7 @@ import {
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon } from 'hugeicons-react';
 import TabService from '../../services/tab/TabService';
-import { editorIconsMap } from '../config/EditorsConfig';
+import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
 import RenameWorktree from './RenameWorktree';
 import MoveWorktree from './MoveWorktree';
@@ -105,21 +105,22 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   useEffect(() => {
     const storedEditors = window.localStorage.getItem('editors');
-    if (storedEditors) {
-      const enabledEditorsReceived = JSON.parse(storedEditors)
-        .filter((editor: any) => editor.enabled === true)
-        .map((editor: any) => {
-          editor.icon = {
-            ...editorIconsMap[editor.icon],
-            props: {
-              width: '24px',
-              height: '24px',
-            },
-          };
-          return editor;
-        });
-      setEnabledEditors(enabledEditorsReceived);
-    }
+    const editors = storedEditors
+      ? JSON.parse(storedEditors)
+      : JSON.parse(JSON.stringify(editorsCst));
+    const enabledEditorsReceived = editors
+      .filter((editor: any) => editor.enabled === true)
+      .map((editor: any) => {
+        editor.icon = {
+          ...editorIconsMap[editor.icon],
+          props: {
+            width: '24px',
+            height: '24px',
+          },
+        };
+        return editor;
+      });
+    setEnabledEditors(enabledEditorsReceived);
   }, []);
 
   useEffect(() => {
@@ -422,10 +423,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         );
         return;
       }
-      if (key === '0-11') {
-        ipcRenderer.send('open-editor', 'Eclipse', worktree.path, tabRepoPath);
-        return;
-      }
       if (key === '0-12') {
         ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
         return;
@@ -446,10 +443,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           worktree.path,
           tabRepoPath,
         );
-        return;
-      }
-      if (key === '0-15') {
-        ipcRenderer.send('open-editor', 'Vim', worktree.path, tabRepoPath);
         return;
       }
       if (key === '1-2') {

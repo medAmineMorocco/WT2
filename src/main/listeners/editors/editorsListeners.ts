@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron';
+import { BrowserWindow, ipcMain, shell } from 'electron';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
@@ -6,11 +6,19 @@ import copyDirectory from '../../services/utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 
 async function getEditor(editorLabel: string) {
-  return editorsCst.find((editor: any) => editor.label === editorLabel);
+  const storedEditors =
+    await BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
+      'localStorage.getItem("editors");',
+      true,
+    );
+  const editors = storedEditors
+    ? JSON.parse(storedEditors)
+    : JSON.parse(JSON.stringify(editorsCst));
+  return editors.find((editor: any) => editor.label === editorLabel);
 }
 
 function openInEditor(editorCommand: string, dir: string, event: any) {
-  exec(`${editorCommand} ${dir}`, (error) => {
+  exec(`"${editorCommand}" ${dir}`, (error) => {
     if (error) {
       event.sender.send('open-editor-error', error.toString());
     }
@@ -19,7 +27,10 @@ function openInEditor(editorCommand: string, dir: string, event: any) {
 
 async function copySettings(editor: any, worktreePath: string, dir: string) {
   if (editor.settingsFolder) {
-    if (!fs.existsSync(path.join(worktreePath, editor.settingsFolder))) {
+    if (
+      !fs.existsSync(path.join(worktreePath, editor.settingsFolder)) &&
+      fs.existsSync(path.join(dir, editor.settingsFolder))
+    ) {
       const projectEditorSettingsFolder = path.join(dir, editor.settingsFolder);
       await copyDirectory(
         projectEditorSettingsFolder,
@@ -28,7 +39,10 @@ async function copySettings(editor: any, worktreePath: string, dir: string) {
     }
   }
   if (editor.settingsFile) {
-    if (!fs.existsSync(path.join(worktreePath, editor.settingsFile))) {
+    if (
+      !fs.existsSync(path.join(worktreePath, editor.settingsFile)) &&
+      fs.existsSync(path.join(dir, editor.settingsFile))
+    ) {
       const projectEditorSettingsFile = path.join(dir, editor.settingsFile);
       fs.copyFileSync(
         projectEditorSettingsFile,
@@ -53,7 +67,10 @@ ipcMain.on(
   ) {
     const editor = await getEditor(editorName);
     if (editor) {
-      const command = editor.path || editor.defaultCommand;
+      const command =
+        editor.path !== ''
+          ? path.normalize(editor.path)
+          : editor.defaultCommand;
       await copySettings(editor, worktreePath, dir);
       openInEditor(command, worktreePath, event);
     }

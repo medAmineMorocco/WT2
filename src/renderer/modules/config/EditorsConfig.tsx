@@ -8,12 +8,9 @@ import PhpstormIcon from '../../components/editors/PhpStormIcon';
 import RubymineIcon from '../../components/editors/RubyMineIcon';
 import GoLandIcon from '../../components/editors/GoLandIcon';
 import VsCodeIcon from '../../components/editors/VsCodeIcon';
-import EclipseIcon from '../../components/editors/EclipseIcon';
 import BracketsIcon from '../../components/editors/BracketsIcon';
 import AndroidStudioIcon from '../../components/editors/AndroidStudioIcon';
-import XcodeIcon from '../../components/editors/XcodeIcon';
 import SublimeIcon from '../../components/editors/SublimeIcon';
-import VimIcon from '../../components/editors/VimIcon';
 
 export const editorIconsMap = {
   IntellijIcon: <IntellijIcon width="30px" height="30px" />,
@@ -25,12 +22,9 @@ export const editorIconsMap = {
   RubymineIcon: <RubymineIcon width="30px" height="30px" />,
   GoLandIcon: <GoLandIcon width="30px" height="30px" />,
   VsCodeIcon: <VsCodeIcon width="30px" height="30px" />,
-  EclipseIcon: <EclipseIcon width="30px" height="30px" />,
   BracketsIcon: <BracketsIcon width="30px" height="30px" />,
   AndroidStudioIcon: <AndroidStudioIcon width="30px" height="30px" />,
-  XcodeIcon: <XcodeIcon width="30px" height="30px" />,
   SublimeIcon: <SublimeIcon width="30px" height="30px" />,
-  VimIcon: <VimIcon width="30px" height="30px" />,
 };
 
 export const editorsCst = [
@@ -134,17 +128,6 @@ export const editorsCst = [
     enabled: true,
   },
   {
-    key: '0-11',
-    label: 'Eclipse',
-    icon: 'EclipseIcon',
-    path: '',
-    defaultCommand: 'eclipse',
-    settingsFolder: '.settings',
-    description:
-      'Create and manage Java projects with ease, leveraging a wide range of plugins and tools for software development.',
-    enabled: true,
-  },
-  {
     key: '0-12',
     label: 'Brackets',
     icon: 'BracketsIcon',
@@ -160,7 +143,7 @@ export const editorsCst = [
     label: 'Android Studio',
     icon: 'AndroidStudioIcon',
     path: '',
-    defaultCommand: 'open',
+    defaultCommand: 'studio',
     settingsFolder: '.idea',
     description:
       'Develop Android applications seamlessly, taking advantage of specialized tools and integrations for Android app development.',
@@ -175,16 +158,6 @@ export const editorsCst = [
     settingsFolder: '.sublime-project',
     description:
       'Seamlessly work on coding projects ranging from simple scripts to complex software applications.',
-    enabled: true,
-  },
-  {
-    key: '0-15',
-    label: 'Vim',
-    icon: 'VimIcon',
-    path: '',
-    defaultCommand: 'vim',
-    description:
-      'Handle coding tasks efficiently, from quick edits to large-scale software development, using its powerful modal editing features.',
     enabled: true,
   },
 ];
