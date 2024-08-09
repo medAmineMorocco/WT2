@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useMemo, useState } from 'react';
+import React, { forwardRef, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Button,
   Form,
@@ -67,6 +67,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const [pathSeparator, setPathSeparator] = useState<string>('');
 
     const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
+
+    const selectTagRef = useRef(null);
+
+    const selectBranchRef = useRef(null);
 
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
@@ -373,6 +377,18 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       ipcRenderer.send('choose-worktrees-dir');
     };
 
+    const onSelectTagChange = () => {
+      if (selectTagRef.current) {
+        selectTagRef.current.blur();
+      }
+    };
+
+    const onSelectBranchChange = () => {
+      if (selectBranchRef.current) {
+        selectBranchRef.current.blur();
+      }
+    };
+
     return (
       <Sider
         theme="light"
@@ -532,10 +548,12 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     ]}
                   >
                     <Select
+                      ref={selectBranchRef}
                       allowClear
                       showSearch
                       placeholder="Select branch"
                       options={branches}
+                      onChange={onSelectBranchChange}
                     />
                   </Form.Item>
                 )}
@@ -565,10 +583,12 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     ]}
                   >
                     <Select
+                      ref={selectTagRef}
                       allowClear
                       showSearch
                       placeholder="Select tag"
                       options={tags}
+                      onChange={onSelectTagChange}
                     />
                   </Form.Item>
                 )}
