@@ -164,8 +164,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       } else if (result.includes('--force')) {
         modal.confirm({
           title: withLocalBranch
-            ? 'Staged changes have been found in the worktree. Confirm deletion of this worktree and local branch ?'
-            : 'Staged changes have been found in the worktree. Confirm deletion of this worktree ?',
+            ? 'changes have been found in the worktree. Confirm deletion of this worktree and local branch ?'
+            : 'changes have been found in the worktree. Confirm deletion of this worktree ?',
           icon: <ExclamationCircleFilled />,
           okText: 'Yes',
           okType: 'danger',
