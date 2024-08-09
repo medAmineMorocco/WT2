@@ -640,9 +640,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
                       title={
-                        worktreesFolder +
-                        pathSeparator +
-                        form.getFieldValue('name')
+                        worktreesFolder + pathSeparator + getWorktreeName()
                       }
                       placement="bottom"
                     >
