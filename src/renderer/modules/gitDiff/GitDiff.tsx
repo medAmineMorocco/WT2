@@ -24,7 +24,7 @@ import {
   SwapOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitCompareIcon } from 'hugeicons-react';
 import {
   Diff2HtmlUI,
@@ -105,6 +105,10 @@ export default function GitDiff({
   const [responsiveWidth, setResponsiveWidth] = useState<string>();
 
   const screens = useBreakpoint();
+
+  const leftSelectRef = useRef(null);
+
+  const rightSelectRef = useRef(null);
 
   const checkAll = options.length === diffFilters.length;
   const indeterminate =
@@ -247,10 +251,18 @@ export default function GitDiff({
 
   const onLeftValueChange = (val: any) => {
     setVal1(val);
+    if (leftSelectRef.current) {
+      // @ts-ignore
+      leftSelectRef.current.blur();
+    }
   };
 
   const onRightValueChange = (val: any) => {
     setVal2(val);
+    if (rightSelectRef.current) {
+      // @ts-ignore
+      rightSelectRef.current.blur();
+    }
   };
 
   const findDifference = () => {
@@ -555,6 +567,7 @@ export default function GitDiff({
                       )}
                       {isLeftInputFocus === false && (
                         <Select
+                          ref={leftSelectRef}
                           placeholder={leftPlaceholder}
                           onChange={onLeftValueChange}
                           value={val1}
@@ -624,6 +637,7 @@ export default function GitDiff({
                       )}
                       {isRightInputFocus === false && (
                         <Select
+                          ref={rightSelectRef}
                           placeholder={rightPlaceholder}
                           onChange={onRightValueChange}
                           value={val2}
