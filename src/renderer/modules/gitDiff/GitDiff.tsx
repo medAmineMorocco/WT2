@@ -31,10 +31,10 @@ import {
   Diff2HtmlUIConfig,
 } from 'diff2html/lib/ui/js/diff2html-ui';
 import { ColorSchemeType } from 'diff2html/lib/types';
+import { style } from 'dynamic-import';
 import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
 import 'highlight.js/styles/github.min.css';
-import 'highlight.js/styles/github-dark.min.css';
 import 'diff2html/bundles/css/diff2html.min.css';
 import { useItemsContext } from '../../TabsContext';
 
@@ -109,6 +109,14 @@ export default function GitDiff({
   const checkAll = options.length === diffFilters.length;
   const indeterminate =
     diffFilters.length > 0 && diffFilters.length < options.length;
+
+  useEffect(() => {
+    if (isDarkMode) {
+      style.import(['http://localhost:3000/styles/github-dark.min.css']);
+    } else {
+      style.unload(['http://localhost:3000/styles/github-dark.min.css']);
+    }
+  }, [isDarkMode]);
 
   const mapToSelectOptions = (strings: string[]) => {
     return strings.map((branch: string) => {

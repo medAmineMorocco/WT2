@@ -4825,6 +4825,11 @@ duplexer@^0.1.2:
   resolved "https://registry.npmjs.org/duplexer/-/duplexer-0.1.2.tgz"
   integrity sha512-jtD6YG370ZCIi/9GTaJKQxWTZD045+4R4hTk/x1UyoqadyJ9x9CgSi1RlVDQF8U2sxLLSnFkCaMihqljHIWgMg==
 
+dynamic-import@^0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/dynamic-import/-/dynamic-import-0.1.1.tgz#1b6cb724bab240a5d87f6ab389d7b0c6359c5dd3"
+  integrity sha512-4kn7ZjPCf1h/eiH85wLGpj9ovwWfvmAK2LvgJzwPsdlhxlFRZF24bZMddsVBpcZZvTFsMmPEw9o3DlG305ctYQ==
+
 eastasianwidth@^0.2.0:
   version "0.2.0"
   resolved "https://registry.npmjs.org/eastasianwidth/-/eastasianwidth-0.2.0.tgz"

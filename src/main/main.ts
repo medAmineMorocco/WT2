@@ -22,6 +22,7 @@ import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
 
+const http = require('http');
 const Store = require('electron-store');
 
 const store = new Store();
@@ -154,6 +155,17 @@ app.on('window-all-closed', () => {
 app
   .whenReady()
   .then(() => {
+    const server = http.createServer((_: any, res: any) => {
+      const filePath = path.join(__dirname, 'styles', 'github-dark.min.css');
+
+      fs.readFile(filePath, (err, content) => {
+        res.writeHead(200, { 'Content-Type': 'text/css' });
+        res.end(content, 'utf-8');
+      });
+    });
+
+    server.listen(3000);
+
     createWindow();
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
