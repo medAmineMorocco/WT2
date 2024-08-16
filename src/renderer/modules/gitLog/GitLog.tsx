@@ -1,6 +1,6 @@
 import { Modal, Typography, notification, Space, Select, Result } from 'antd';
 import { ipcRenderer } from 'electron';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
 import { LoadingOutlined } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
@@ -25,6 +25,8 @@ export default function GitLog({
 
   const [loading, setLoading] = useState<boolean>(true);
 
+  const selectWorktreeRef = useRef(null);
+
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
     ipcRenderer.send('get-worktrees', tabRepoPath);
@@ -34,7 +36,7 @@ export default function GitLog({
         setTimeout(() => {
           setLoading(false);
           setGitLog(result);
-        }, 50);
+        }, 4);
       } else {
         notification.error({
           message: 'Unable to get log',
@@ -68,6 +70,10 @@ export default function GitLog({
 
   const handleChange = (value: string) => {
     setLoading(true);
+    if (selectWorktreeRef.current) {
+      // @ts-ignore
+      selectWorktreeRef.current.blur();
+    }
     ipcRenderer.send('show-git-log', tabRepoPath, value);
   };
 
@@ -96,6 +102,7 @@ export default function GitLog({
       >
         <div style={{ marginBottom: '16px', textAlign: 'center' }}>
           <Select
+            ref={selectWorktreeRef}
             placeholder="Select a worktree"
             options={worktrees}
             onChange={handleChange}
