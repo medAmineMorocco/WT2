@@ -287,7 +287,15 @@ export default function GitDiff({
 
   const onThemeChange = () => {
     if (diff) {
-      drawDiff(diff);
+      const targetElement = document.getElementById('git-diff');
+      if (targetElement) {
+        targetElement.innerHTML = '';
+      }
+      setLoading(true);
+      setTimeout(() => {
+        drawDiff(diff);
+        setLoading(false);
+      }, 4);
     }
   };
 
