@@ -232,16 +232,20 @@ body {
   border: 1px solid #424242;
 }
 
-.git-log-modal div[tabindex="0"] {
+.git-log-modal div[tabindex="0"], .generator-modal div[tabindex="0"] {
   height: 100%;
 }
 
-.git-log-modal .ant-modal-content {
+.git-log-modal .ant-modal-content, .generator-modal .ant-modal-content {
   height: 100%;
 }
 
-.git-log-modal .ant-modal-content .ant-modal-body {
+.git-log-modal .ant-modal-content .ant-modal-body, .generator-modal .ant-modal-content .ant-modal-body {
   height: 100%;
+}
+
+.generator-modal .ant-modal-content {
+  padding: 16px;
 }
 
 .react-terminal-wrapper {
@@ -388,3 +392,10 @@ body {
   overflow: hidden !important;
 }
 
+.form-item-without-margin-bottom {
+  margin-bottom: 0;
+}
+
+:where(.css-dev-only-do-not-override-1kuana8).ant-breadcrumb {
+  color: rgba(0, 0, 0, 0.88);
+}

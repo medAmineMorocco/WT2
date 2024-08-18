@@ -8,6 +8,127 @@ import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
 import playWorkflow from './processesListeners';
 
+let focusedWindow: BrowserWindow | null;
+
+const RESOURCES_PATH = app.isPackaged
+  ? path.join(process.resourcesPath, 'assets')
+  : path.join(__dirname, '../../assets');
+
+const getAssetPath = (...paths: string[]): string => {
+  return path.join(RESOURCES_PATH, ...paths);
+};
+
+function sendNotification(msg: string) {
+  const notification = new Notification({
+    title: msg,
+    body: 'You can review the results now.',
+    icon: getAssetPath('icon.png'),
+  });
+  notification.show();
+
+  notification.on('click', () => {
+    focusedWindow?.focus();
+  });
+}
+
+ipcMain.on(
+  'run-generator',
+  async function (
+    event,
+    generatorName: string,
+    parameters: any[],
+    generatedAtWorktree: any,
+    dir: string,
+  ) {
+    stopExecution = false;
+    focusedWindow = BrowserWindow.getFocusedWindow();
+    let options = '';
+    Object.entries(parameters).forEach(([key, value]) => {
+      options += ` --${key} ${value}`;
+    });
+    const hygenModulePath = require.resolve('hygen');
+    const hygenPath = path.normalize(
+      path.join(
+        path.dirname(hygenModulePath),
+        'node_modules',
+        '..',
+        '..',
+        '..',
+        '.bin',
+        'hygen',
+      ),
+    );
+    const templatesPath = path.normalize(
+      path.join(dir, '.git', conf.generatorPath, '_templates'),
+    );
+    process.env.HYGEN_TMPLS = templatesPath;
+
+    const command = {
+      key: '0',
+      value: `${hygenPath} cli ${generatorName} ${options}`,
+    };
+    const workflow = {
+      name: generatorName,
+      command,
+      commands: [],
+      mode: 'sequential',
+      worktrees: [generatedAtWorktree],
+    } as any;
+    event.sender.send('workflow-started');
+    const commands = [workflow.command, ...workflow.commands];
+    event.sender.send('workflow-started-with-commands', [
+      { value: `run generator ${generatorName}` },
+    ]);
+    worktreesStates = workflow.worktrees.map((worktree: any) => {
+      return {
+        title: worktree.label,
+        current: -1,
+        status: 'wait',
+      };
+    });
+    event.sender.send('workflow-started-states-updated', worktreesStates);
+    logStates = workflow.worktrees.map((worktree: any, index: number) => {
+      return {
+        label: worktree.label,
+        key: index.toString(),
+        data: {},
+      };
+    });
+    event.sender.send('workflow-started-log-received', logStates);
+    executeProcessesForDirectoriesInSeries(commands, workflow.worktrees, event)
+      .then(async () => {
+        event.sender.send('workflow-stopped');
+        const notificationsEnabled =
+          (await focusedWindow?.webContents.executeJavaScript(
+            'localStorage.getItem("notificationsEnabled");',
+            true,
+          )) === 'true';
+        // eslint-disable-next-line promise/always-return
+        if (!focusedWindow?.isFocused() && notificationsEnabled) {
+          sendNotification(
+            `Your generator ${workflow.name} has finished executing.`,
+          );
+        }
+      })
+      .catch((error) => {
+        console.error('An error occurred:', error);
+      });
+  },
+);
+
+async function showWorklowFinishedNotification(workflowName: string) {
+  focusedWindow = BrowserWindow.getFocusedWindow();
+  const notificationsEnabled =
+    (await focusedWindow?.webContents.executeJavaScript(
+      'localStorage.getItem("notificationsEnabled");',
+      true,
+    )) === 'true';
+  // eslint-disable-next-line promise/always-return
+  if (!focusedWindow?.isFocused() && notificationsEnabled) {
+    sendNotification(`Your workflow ${workflowName} has finished executing.`);
+  }
+}
+
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
   await playWorkflow(event, workflow, dir);
