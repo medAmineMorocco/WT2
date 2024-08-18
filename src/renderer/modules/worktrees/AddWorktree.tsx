@@ -135,7 +135,7 @@ export default function AddWorktree({
       ipcRenderer.removeAllListeners('worktrees-folder-found');
       ipcRenderer.removeAllListeners('selected-worktrees-dir');
     };
-  }, [form, handleCancel, notification, tabRepoPath]);
+  }, [form, notification, tabRepoPath]);
 
   useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {
