@@ -77,12 +77,16 @@ function executeCommand(
     commandProcess.stderr.on('data', (data: any) => {
       logStates = logStates.map((item) => {
         if (item.label === worktreeLabel) {
-          if (!item.data[command.key]) {
-            item.data[command.key] = {
-              command: command.value,
-              output: setEncoding(data),
-            };
+          let log = '';
+          if (item.data[command.key]) {
+            log = item.data[command.key].output + setEncoding(data);
+          } else {
+            log = setEncoding(data);
           }
+          item.data[command.key] = {
+            command: command.value,
+            output: log,
+          };
         }
         return item;
       });
