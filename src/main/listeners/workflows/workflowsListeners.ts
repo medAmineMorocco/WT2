@@ -95,6 +95,17 @@ function executeCommand(
 
     commandProcess.on('exit', (code: any, signal: any) => {
       if (code === 0) {
+        logStates = logStates.map((item) => {
+          if (item.label === worktreeLabel) {
+            item.data[command.key] = {
+              command: command.value,
+              output: item.data[command.key].output,
+              status: 'finished',
+            };
+          }
+          return item;
+        });
+        event.sender.send('workflow-started-log-received', logStates);
         resolve('finish command');
       }
       if (code !== 0 && signal === 'SIGTERM') {
@@ -106,12 +117,16 @@ function executeCommand(
     commandProcess.on('error', (err: any) => {
       logStates = logStates.map((item) => {
         if (item.label === worktreeLabel) {
-          if (!item.data[command.key]) {
-            item.data[command.key] = {
-              command: command.value,
-              output: setEncoding(err),
-            };
+          let log = '';
+          if (item.data[command.key]) {
+            log = item.data[command.key].output + setEncoding(err);
+          } else {
+            log = setEncoding(err);
           }
+          item.data[command.key] = {
+            command: command.value,
+            output: log,
+          };
         }
         return item;
       });

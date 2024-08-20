@@ -52,21 +52,27 @@ export default function LogFullscreen({
               <Alert
                 showIcon
                 icon={
-                  <Typography.Text
-                    copyable={{
-                      text: commandLog.command,
-                      icon: <CodeOutlined />,
-                    }}
-                  />
+                  commandLog.status && commandLog.status === 'finished' ? (
+                    <Typography.Text
+                      copyable={{
+                        text: commandLog.command,
+                        icon: <CodeOutlined />,
+                      }}
+                    />
+                  ) : (
+                    <CodeOutlined />
+                  )
                 }
                 message={commandLog.command}
                 action={
-                  <Typography.Text
-                    copyable={{
-                      text: removeANSI(commandLog.output),
-                      icon: <FileOutlined />,
-                    }}
-                  />
+                  commandLog.status && commandLog.status === 'finished' ? (
+                    <Typography.Text
+                      copyable={{
+                        text: removeANSI(commandLog.output),
+                        icon: <FileOutlined />,
+                      }}
+                    />
+                  ) : null
                 }
                 type="info"
                 style={{
