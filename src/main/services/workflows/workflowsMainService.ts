@@ -92,7 +92,9 @@ function saveAll(workflows: any[], dir: string) {
 
 function remove(name: string, dir: string) {
   try {
-    const targetDir = path.normalize(path.join(dir, '.git', conf.appPath, name));
+    const targetDir = path.normalize(
+      path.join(dir, '.git', conf.appPath, name),
+    );
     fs.rmSync(targetDir, { recursive: true, force: true });
   } catch (err: any) {
     if (err.code === 'EACCES' || err.code === 'EPERM') {
@@ -111,10 +113,6 @@ function update(
   commands: string[],
   dir: string,
 ) {
-  const baseDir = path.normalize(path.join(dir, '.git', conf.appPath, newName));
-  if (fs.existsSync(baseDir)) {
-    throw new Error('A workflow with this name already exists.');
-  }
   remove(name, dir);
   save(newName, mainCommand, commands, dir);
 }
