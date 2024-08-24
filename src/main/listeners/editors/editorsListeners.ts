@@ -18,9 +18,12 @@ async function getEditor(editorLabel: string) {
 }
 
 function openInEditor(editorCommand: string, dir: string, event: any) {
-  exec(`"${editorCommand}" ${dir}`, (error) => {
+  exec(`"${editorCommand}" ${dir}`, (error, stdout) => {
     if (error) {
       event.sender.send('open-editor-error', error.toString());
+    }
+    if (stdout) {
+      event.sender.send('open-editor-error', stdout.toString());
     }
   });
 }

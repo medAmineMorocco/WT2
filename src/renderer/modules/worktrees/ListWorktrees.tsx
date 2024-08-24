@@ -128,7 +128,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
-        message: 'Unable to Open Web Editor',
+        message: 'Error During Web Editor Launch',
         description: <Typography.Text copyable>{error}</Typography.Text>,
         placement: 'bottomLeft',
       });
