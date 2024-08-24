@@ -524,7 +524,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               color: token.colorTextBase,
             }}
           >
-            <Space>
+            <Space style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}>
               {/* eslint-disable-next-line no-nested-ternary */}
               {worktree.isLocked ? (
                 <LockOutlined />
@@ -543,7 +543,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               <span
                 style={{ color: worktree.prunable ? token.colorError : '' }}
               >
-                {worktree.name}
+                <Tooltip
+                  title={worktree.name}
+                  placement="right"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  {worktree.name}
+                </Tooltip>
               </span>
             </Space>
             <Cascader
