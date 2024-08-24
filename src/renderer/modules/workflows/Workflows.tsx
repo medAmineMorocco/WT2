@@ -35,6 +35,7 @@ import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
 
+const MIN_SCREEN_HEIGHT = 997;
 const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const {
     token: {
@@ -422,7 +423,10 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         color: token.colorTextBase,
       }}
     >
-      <Flex gap={screenHeight < 1080 ? 'middle' : 'large'} vertical>
+      <Flex
+        gap={screenHeight >= MIN_SCREEN_HEIGHT ? 'large' : 'middle'}
+        vertical
+      >
         <div>
           <Space>
             <PartitionOutlined />
@@ -497,11 +501,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           columns={columns}
           dataSource={workflows}
           pagination={{
-            pageSize: screenHeight < 1080 ? 3 : 4,
+            pageSize: screenHeight >= MIN_SCREEN_HEIGHT ? 4 : 3,
             position: ['bottomLeft'],
           }}
           bordered
-          size={screenHeight < 1080 ? 'middle' : 'large'}
+          size={screenHeight >= MIN_SCREEN_HEIGHT ? 'large' : 'middle'}
         />
       </Flex>
     </div>
