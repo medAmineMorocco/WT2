@@ -116,9 +116,9 @@ export default function GitDiff({
 
   useEffect(() => {
     if (isDarkMode) {
-      style.import(['http://localhost:3000/styles/github-dark.min.css']);
+      style.import(['http://localhost:3201/styles/github-dark.min.css']);
     } else {
-      style.unload(['http://localhost:3000/styles/github-dark.min.css']);
+      style.unload(['http://localhost:3201/styles/github-dark.min.css']);
     }
   }, [isDarkMode]);
 
