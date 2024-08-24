@@ -20,7 +20,10 @@ function findAll(directory: string) {
           const lineBySpace = line.split(/\s+/g);
           const pathRep = lineBySpace[0];
           const head = lineBySpace[1];
-          const name = lineBySpace[2].replace('[', '').replace(']', '');
+          let name = '';
+          if (lineBySpace[2]) {
+            name = lineBySpace[2].replace('[', '').replace(']', '');
+          }
           const isLocked = lineBySpace[3] === 'locked';
           const prunable = lineBySpace[3] === 'prunable';
 
