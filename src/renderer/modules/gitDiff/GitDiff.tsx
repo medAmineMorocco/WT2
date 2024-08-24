@@ -366,28 +366,44 @@ export default function GitDiff({
 
       <div style={{ display: 'flex', height: '98%' }}>
         <div style={{ width: '246px', padding: '22px', paddingLeft: 0 }}>
-          <div>
-            <Space>
-              {val1 ? (
-                <strong>
-                  {leftMode === 'commit' ? val1?.substring(0, 6) : val1}
-                </strong>
-              ) : (
-                <strong>Source</strong>
-              )}
-              {leftMode && <i>({leftMode})</i>}
-              <SwapOutlined />
-              {val2 ? (
-                <strong>
-                  {rightMode === 'commit' ? val2?.substring(0, 6) : val2}
-                </strong>
-              ) : (
-                <strong>Target</strong>
-              )}
-              {rightMode && <i>({rightMode})</i>}
-            </Space>
+          <Divider orientation="left" orientationMargin="0">
+            Comparison
+          </Divider>
+          <div style={{ textAlign: 'left' }}>
+            {val1 ? (
+              <Typography.Text
+                copyable={{
+                  text: val1,
+                }}
+              >
+                {leftMode === 'commit' ? val1?.substring(0, 6) : val1}
+              </Typography.Text>
+            ) : (
+              <strong>Source</strong>
+            )}
+            {leftMode && <i> ({leftMode})</i>}
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            <SwapOutlined />
+          </div>
+          <div style={{ textAlign: 'left' }}>
+            {val2 ? (
+              <Typography.Text
+                copyable={{
+                  text: val2,
+                }}
+              >
+                {rightMode === 'commit' ? val2?.substring(0, 6) : val2}
+              </Typography.Text>
+            ) : (
+              <strong>Target</strong>
+            )}
+            {rightMode && <i> ({rightMode})</i>}
           </div>
           <br />
+          <Divider orientation="left" orientationMargin="0">
+            Filters / Statistics
+          </Divider>
           <div style={{ display: 'flex' }}>
             <div>
               <div>
@@ -570,6 +586,7 @@ export default function GitDiff({
                         <Input
                           value={val1}
                           placeholder="commit hash"
+                          allowClear
                           onChange={(e) => onLeftValueChange(e.target.value)}
                         />
                       )}
@@ -640,6 +657,7 @@ export default function GitDiff({
                         <Input
                           value={val2}
                           placeholder="commit hash"
+                          allowClear
                           onChange={(e) => onRightValueChange(e.target.value)}
                         />
                       )}
