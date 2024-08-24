@@ -31,6 +31,7 @@ export default function LogUI({ output }: { output: string }) {
       convertEol: true,
       disableStdin: true,
       fontWeight: '200',
+      scrollback: 9999999, // Increase the number to retain more lines
       theme: {
         background: isDarkMode ? '#1f1f1f' : 'white',
         foreground: isDarkMode ? 'white' : 'black',
