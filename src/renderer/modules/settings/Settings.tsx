@@ -4,12 +4,16 @@ import {
   NotificationOutlined,
   ApiOutlined,
   ClearOutlined,
+  CodeOutlined,
+  NodeIndexOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import EditorSettings from './EditorSettings';
 import NotificationSettings from './NotificationSettings';
 import CacheSettings from './CacheSettings';
+import GitSettings from './GitSettings';
+import ShellSettings from './ShellSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -32,6 +36,16 @@ const itemsMenu: MenuProps['items'] = [
   },
   {
     key: '3',
+    label: 'Shell',
+    icon: <CodeOutlined />,
+  },
+  {
+    key: '4',
+    label: 'Git',
+    icon: <NodeIndexOutlined />,
+  },
+  {
+    key: '5',
     label: 'Clear cache',
     icon: <ClearOutlined />,
   },
@@ -63,7 +77,13 @@ export default function Settings() {
       return <NotificationSettings />;
     }
     if (keyNavigation === '2') {
-      return <EditorSettings />;
+      return <EditorSettings isDarkMode={isDarkMode} />;
+    }
+    if (keyNavigation === '3') {
+      return <ShellSettings />;
+    }
+    if (keyNavigation === '4') {
+      return <GitSettings />;
     }
     return <CacheSettings />;
   };
