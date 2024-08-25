@@ -1,5 +1,7 @@
 import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
+import chardet from 'chardet';
+import iconv from 'iconv-lite';
 import gitMainService from '../../services/git/gitMainService';
 
 ipcMain.on(
@@ -100,6 +102,13 @@ ipcMain.on('list-refs', async function (event, directory: string) {
   }
 });
 
+function setEncoding(buffer: any) {
+  const defaultEncoding = chardet.detect(buffer);
+  return iconv
+    .decode(buffer, defaultEncoding !== 'UTF-8' ? 'cp437' : 'utf8')
+    .toString();
+}
+
 let abortController: AbortController;
 ipcMain.on(
   'execute-command',
@@ -115,18 +124,18 @@ ipcMain.on(
     const commandProcess = spawn(command, [], options);
 
     commandProcess.stdout.on('data', (data: any) => {
-      event.sender.send('command-receive-data', 0, data.toString());
+      event.sender.send('command-receive-data', 0, setEncoding(data));
     });
 
     commandProcess.stderr.on('data', (data: any) => {
-      event.sender.send('command-receive-data', 0, data.toString());
+      event.sender.send('command-receive-data', 0, setEncoding(data));
     });
 
     commandProcess.on('error', (err: any) => {
-      event.sender.send('command-receive-data', 0, err.toString());
+      event.sender.send('command-receive-data', 0, setEncoding(err));
     });
 
-    commandProcess.on('exit', (code: any) => {
+    commandProcess.on('exit', () => {
       event.sender.send('command-finished');
     });
   },
