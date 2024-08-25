@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Form, Input, Modal } from 'antd';
+import { Button, Dropdown, Form, Input, Modal, Typography } from 'antd';
 import {
   BranchesOutlined,
   EditOutlined,
@@ -8,7 +8,11 @@ import {
 import { CheckCard } from '@ant-design/pro-components';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 
-export default function EditorSettings() {
+export default function EditorSettings({
+  isDarkMode,
+}: {
+  isDarkMode: boolean;
+}) {
   const [form] = Form.useForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editors, setEditors] = useState<any[]>([]);
@@ -63,7 +67,7 @@ export default function EditorSettings() {
 
   return (
     <>
-      <div style={{ color: 'rgba(0, 0, 0, 0.45)', marginBottom: '8px' }}>
+      <div style={{ marginBottom: '16px' }}>
         Customize your experience by enabling only the editors you want to work
         with.
       </div>
@@ -76,10 +80,9 @@ export default function EditorSettings() {
           return (
             <CheckCard
               key={editor.key}
-              className="editor-card"
+              className={`editor-card ${isDarkMode ? 'editor-card-dark' : 'editor-card-light'} ${editor.enabled ? 'editor-card-checked' : 'editor-card-unchecked'}`}
               avatar={editor.iconTag}
               title={editor.label}
-              description={editor.description}
               onChange={(checked) => {
                 onChangeStatus(editor, checked);
               }}
@@ -102,7 +105,10 @@ export default function EditorSettings() {
                   }}
                 >
                   <EllipsisOutlined
-                    style={{ fontSize: 22, color: 'rgba(0,0,0,0.5)' }}
+                    style={{
+                      fontSize: 22,
+                      color: isDarkMode ? 'white' : 'rgba(0,0,0,0.5)',
+                    }}
                     onClick={(e) => e.stopPropagation()}
                   />
                 </Dropdown>
@@ -145,6 +151,25 @@ export default function EditorSettings() {
                 Edit
               </Button>
             </Form.Item>
+            <div style={{ marginTop: '16px' }}>
+              <div>Example of path:</div>
+              <ul>
+                <li>
+                  <strong>Windows: </strong>
+                  <Typography.Text copyable>
+                    C:\Program Files\Git\bin\git.exe
+                  </Typography.Text>
+                </li>
+                <li>
+                  <strong>Linux: </strong>
+                  <Typography.Text copyable>/usr/bin/git</Typography.Text>
+                </li>
+                <li>
+                  <strong>MacOS: </strong>
+                  <Typography.Text copyable>/usr/bin/git</Typography.Text>
+                </li>
+              </ul>
+            </div>
           </Form>
         </Modal>
       </div>

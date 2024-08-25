@@ -156,6 +156,10 @@ body {
   width: 100%;
 }
 
+.editor-card:last-child {
+  margin-right: 16px;
+}
+
 .editor-card-container {
   position: relative;
   border: 1px solid;
@@ -192,6 +196,34 @@ body {
 
 .editor-card .ant-pro-checkcard-description {
   text-align: left;
+}
+
+.editor-card-light .ant-pro-checkcard-title {
+  color: rgba(0, 0, 0, 0.88);
+}
+
+.editor-card-dark .ant-pro-checkcard-title {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.editor-card-light.editor-card-checked {
+  background-color: #e6f4ff;
+  border-color: #1677ff;
+}
+
+.editor-card-light.editor-card-unchecked {
+  background-color: #ffffff;
+  border: 1px solid #d9d9d9;
+}
+
+.editor-card-dark.editor-card-checked {
+  background-color: #111a2c;
+  border-color: #1668dc;
+}
+
+.editor-card-dark.editor-card-unchecked {
+  background-color: #141414;
+  border: 1px solid #424242;
 }
 
 .git-log-modal div[tabindex="-1"] {

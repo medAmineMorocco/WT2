@@ -35,8 +35,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'idea',
     settingsFolder: '.idea',
-    description:
-      'Import and manage Java projects effortlessly, utilizing advanced tools for code analysis, debugging, and version control',
     enabled: true,
   },
   {
@@ -46,8 +44,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'webstorm',
     settingsFolder: '.idea',
-    description:
-      'Create and manage web development projects effortlessly, leveraging specialized tools and features tailored for front-end and back-end development in WebStorm.',
     enabled: true,
   },
   {
@@ -57,8 +53,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'rider',
     settingsFolder: '.idea',
-    description:
-      "Effortlessly manage and develop .NET projects, including ASP.NET, Xamarin, and Unity, using Rider's powerful IDE tailored for .NET development.",
     enabled: true,
   },
   {
@@ -68,8 +62,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'pycharm',
     settingsFolder: '.idea',
-    description:
-      "Efficiently develop Python projects with PyCharm's intelligent code completion, debugging, and version control features tailored for Python development.",
     enabled: true,
   },
   {
@@ -79,8 +71,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'clion',
     settingsFolder: '.idea',
-    description:
-      "Seamlessly develop C and C++ projects with CLion's advanced coding assistance, refactorings, and integrated debugger tailored for C and C++ development.",
     enabled: true,
   },
   {
@@ -90,8 +80,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'phpstorm',
     settingsFolder: '.idea',
-    description:
-      "Effortlessly develop PHP projects with PhpStorm's intelligent code completion, refactorings, and comprehensive framework support tailored for PHP development.",
     enabled: true,
   },
   {
@@ -101,8 +89,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'rubymine',
     settingsFolder: '.idea',
-    description:
-      "Effortlessly develop Ruby and Rails projects with RubyMine's intelligent code completion, refactorings, and comprehensive framework support tailored for Ruby development.",
     enabled: true,
   },
   {
@@ -112,8 +98,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'goland',
     settingsFolder: '.idea',
-    description:
-      "Effortlessly develop Go projects with GoLand's intelligent code completion, refactorings, and comprehensive support tailored specifically for Go development.",
     enabled: true,
   },
   {
@@ -123,8 +107,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'code',
     settingsFolder: '.vscode',
-    description:
-      'Edit various programming projects with ease, from web development to cloud-based applications.',
     enabled: true,
   },
   {
@@ -134,8 +116,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'brackets',
     settingsFile: '.brackets.json',
-    description:
-      'Build and design responsive websites and web applications using intuitive features tailored for web development.',
     enabled: true,
   },
   {
@@ -145,8 +125,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'studio',
     settingsFolder: '.idea',
-    description:
-      'Develop Android applications seamlessly, taking advantage of specialized tools and integrations for Android app development.',
     enabled: true,
   },
   {
@@ -156,8 +134,6 @@ export const editorsCst = [
     path: '',
     defaultCommand: 'subl',
     settingsFolder: '.sublime-project',
-    description:
-      'Seamlessly work on coding projects ranging from simple scripts to complex software applications.',
     enabled: true,
   },
 ];
