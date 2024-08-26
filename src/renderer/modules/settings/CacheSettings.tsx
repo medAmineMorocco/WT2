@@ -1,9 +1,28 @@
 import { App as AntdApp, Button, Form } from 'antd';
 import { ExclamationCircleFilled } from '@ant-design/icons';
-import React from 'react';
 
 export default function CacheSettings() {
   const { modal } = AntdApp.useApp();
+
+  function clearLocalStorageExcept(exceptions: string[]): void {
+    const keysToKeep = new Set<string>(exceptions);
+
+    const keysToRemove: string[] = [];
+
+    // eslint-disable-next-line no-plusplus
+    for (let i = 0; i < window.localStorage.length; i++) {
+      const key = window.localStorage.key(i);
+
+      if (key && !keysToKeep.has(key)) {
+        keysToRemove.push(key);
+      }
+    }
+
+    // eslint-disable-next-line no-restricted-syntax
+    for (const key of keysToRemove) {
+      window.localStorage.removeItem(key);
+    }
+  }
 
   const clear = () => {
     modal.confirm({
@@ -14,7 +33,7 @@ export default function CacheSettings() {
       cancelText: 'No',
       centered: true,
       onOk() {
-        window.localStorage.clear();
+        clearLocalStorageExcept(['shellPath', 'gitExecutablePath']);
       },
     });
   };

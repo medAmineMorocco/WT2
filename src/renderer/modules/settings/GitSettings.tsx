@@ -1,20 +1,25 @@
 import { Form, Input, Typography } from 'antd';
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 
 export default function GitSettings() {
+  const [form] = Form.useForm();
+
   useEffect(() => {
-    const storedGitExecutable = window.localStorage.getItem('git-executable');
+    const storedGitExecutable =
+      window.localStorage.getItem('gitExecutablePath');
     if (storedGitExecutable) {
-      console.log('storedGitExecutable', storedGitExecutable);
+      form.setFieldValue('gitExecutablePath', storedGitExecutable);
     }
 
     return () => {
-      console.log('save git settings');
+      const gitExecutablePath = form.getFieldValue('gitExecutablePath');
+      window.localStorage.setItem('gitExecutablePath', gitExecutablePath || '');
     };
-  }, []);
+  }, [form]);
 
   return (
     <Form
+      form={form}
       layout="horizontal"
       colon={false}
       labelCol={{ span: 10 }}
@@ -22,6 +27,7 @@ export default function GitSettings() {
     >
       <Form.Item
         label="Git executable"
+        name="gitExecutablePath"
         extra={
           <div>
             <div>
