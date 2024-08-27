@@ -126,7 +126,7 @@ export default function LogFullscreen({
       }
       centered
       open={isFullScreenMode}
-      className="fullSsceen-modal"
+      className="fullscreen-modal"
       width="100vw"
       style={{ height: '98vh' }}
       closeIcon={

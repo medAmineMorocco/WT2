@@ -38,10 +38,12 @@ body {
   padding-right: 0;
 }
 
+.fullscreen-modal div[tabindex="-1"] {
+  height: 100%;
+}
 
-.fullSsceen-modal > .ant-modal-content {
-  height: 98%;
-  top: 1vh;
+.fullscreen-modal .ant-modal-content {
+  height: 100%;
 }
 
 .icon-action:active {
