@@ -4,6 +4,7 @@ import iconv from 'iconv-lite';
 import chardet from 'chardet';
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
+import gitMainService from '../../services/git/gitMainService';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -44,9 +45,10 @@ function executeCommand(
 
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
+    const shell = await gitMainService.getShell();
     const options: any = {
       cwd: normalizedPath,
-      shell: true,
+      shell: shell || true,
       signal: abortController.signal,
     };
 
@@ -115,13 +117,16 @@ function executeCommand(
       }
     });
     commandProcess.on('error', (err: any) => {
+      const encoder = new TextEncoder();
       logStates = logStates.map((item) => {
         if (item.label === worktreeLabel) {
           let log = '';
           if (item.data[command.key]) {
-            log = item.data[command.key].output + setEncoding(err);
+            log =
+              item.data[command.key].output +
+              setEncoding(encoder.encode(err.message));
           } else {
-            log = setEncoding(err);
+            log = setEncoding(encoder.encode(err.message));
           }
           item.data[command.key] = {
             command: command.value,

@@ -114,10 +114,10 @@ ipcMain.on(
   'execute-command',
   async function (event, command: string, directory: string) {
     abortController = new AbortController();
-
+    const shell = await gitMainService.getShell();
     const options: any = {
       cwd: directory,
-      shell: true,
+      shell: shell || true,
       signal: abortController.signal,
     };
 
@@ -132,7 +132,12 @@ ipcMain.on(
     });
 
     commandProcess.on('error', (err: any) => {
-      event.sender.send('command-receive-data', 0, setEncoding(err));
+      const encoder = new TextEncoder();
+      event.sender.send(
+        'command-receive-data',
+        0,
+        setEncoding(encoder.encode(err.message)),
+      );
     });
 
     commandProcess.on('exit', () => {

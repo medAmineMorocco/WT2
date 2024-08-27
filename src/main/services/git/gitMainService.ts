@@ -10,6 +10,13 @@ async function gitCommand() {
   return storedGitExecutable || 'git';
 }
 
+function getShell() {
+  return BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
+    'localStorage.getItem("shellPath");',
+    true,
+  );
+}
+
 function showLog(directory: string, branch: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -152,9 +159,10 @@ function diffStats(
 function executeCommand(command: string, directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
+    const shell = await getShell();
     const options = {
       cwd: directory,
-      shell: true,
+      shell: shell || true,
     } as any;
     try {
       const stdout = execSync(command, options);
@@ -275,4 +283,5 @@ export default {
   listWorktrees,
   listRefs,
   gitCommand,
+  getShell,
 };
