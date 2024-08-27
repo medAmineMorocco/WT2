@@ -16,6 +16,7 @@ export default function EditorSettings({
   const [form] = Form.useForm();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editors, setEditors] = useState<any[]>([]);
+  const [editorToEdit, setEditorToEdit] = useState<any>([]);
 
   useEffect(() => {
     const storedEditors = window.localStorage.getItem('editors');
@@ -34,6 +35,7 @@ export default function EditorSettings({
     setIsModalOpen(false);
   };
   const onEditPathEditor = (editor: any) => {
+    setEditorToEdit(editor);
     form.setFieldValue('path', editor.path);
     form.setFieldValue('editorName', editor.label);
     setIsModalOpen(true);
@@ -157,16 +159,20 @@ export default function EditorSettings({
                 <li>
                   <strong>Windows: </strong>
                   <Typography.Text copyable>
-                    C:\Program Files\Git\bin\git.exe
+                    {editorToEdit.pathWindows}
                   </Typography.Text>
                 </li>
                 <li>
                   <strong>Linux: </strong>
-                  <Typography.Text copyable>/usr/bin/git</Typography.Text>
+                  <Typography.Text copyable>
+                    {editorToEdit.pathLinux}
+                  </Typography.Text>
                 </li>
                 <li>
                   <strong>MacOS: </strong>
-                  <Typography.Text copyable>/usr/bin/git</Typography.Text>
+                  <Typography.Text copyable>
+                    {editorToEdit.pathMacOs}
+                  </Typography.Text>
                 </li>
               </ul>
             </div>

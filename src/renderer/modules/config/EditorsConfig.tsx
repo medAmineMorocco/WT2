@@ -36,6 +36,9 @@ export const editorsCst = [
     defaultCommand: 'idea',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\IntelliJ IDEA\\bin\\idea.bat',
+    pathLinux: '/opt/intellij-idea/bin/idea',
+    pathMacOs: '/Applications/IntelliJ IDEA.app/Contents/MacOS/idea',
   },
   {
     key: '0-3',
@@ -45,6 +48,9 @@ export const editorsCst = [
     defaultCommand: 'webstorm',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\WebStorm\\bin\\webstorm.bat',
+    pathLinux: '/opt/webstorm/bin/webstorm',
+    pathMacOs: '/Applications/WebStorm.app/Contents/MacOS/webstorm',
   },
   {
     key: '0-4',
@@ -54,6 +60,9 @@ export const editorsCst = [
     defaultCommand: 'rider',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\Rider\\bin\\rider.bat',
+    pathLinux: '/opt/rider/bin/ride',
+    pathMacOs: '/Applications/Rider.app/Contents/MacOS/rider',
   },
   {
     key: '0-5',
@@ -63,6 +72,9 @@ export const editorsCst = [
     defaultCommand: 'pycharm',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\PyCharm\\bin\\pycharm.bat',
+    pathLinux: '/opt/pycharm/bin/pycharm',
+    pathMacOs: '/Applications/PyCharm.app/Contents/MacOS/pycharm',
   },
   {
     key: '0-6',
@@ -72,6 +84,9 @@ export const editorsCst = [
     defaultCommand: 'clion',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\CLion\\bin\\clion.bat',
+    pathLinux: '/opt/clion/bin/clion',
+    pathMacOs: '/Applications/CLion.app/Contents/MacOS/clion',
   },
   {
     key: '0-7',
@@ -81,6 +96,9 @@ export const editorsCst = [
     defaultCommand: 'phpstorm',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\PhpStorm\\bin\\phpstorm.bat',
+    pathLinux: '/opt/phpstorm/bin/phpstorm',
+    pathMacOs: '/Applications/PhpStorm.app/Contents/MacOS/phpstorm',
   },
   {
     key: '0-8',
@@ -90,6 +108,9 @@ export const editorsCst = [
     defaultCommand: 'rubymine',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\RubyMine\\bin\\rubymine.bat',
+    pathLinux: '/opt/rubymine/bin/rubymine',
+    pathMacOs: '/Applications/RubyMine.app/Contents/MacOS/rubymine',
   },
   {
     key: '0-9',
@@ -99,6 +120,9 @@ export const editorsCst = [
     defaultCommand: 'goland',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\JetBrains\\GoLand\\bin\\goland.bat',
+    pathLinux: '/opt/goland/bin/goland',
+    pathMacOs: '/Applications/GoLand.app/Contents/MacOS/goland',
   },
   {
     key: '0-10',
@@ -108,6 +132,10 @@ export const editorsCst = [
     defaultCommand: 'code',
     settingsFolder: '.vscode',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\Microsoft VS Code\\bin\\code.cmd',
+    pathLinux: '/usr/share/code/code',
+    pathMacOs:
+      '/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code',
   },
   {
     key: '0-12',
@@ -117,6 +145,9 @@ export const editorsCst = [
     defaultCommand: 'brackets',
     settingsFile: '.brackets.json',
     enabled: true,
+    pathWindows: 'C:\\Program Files (x86)\\Brackets\\brackets.exe',
+    pathLinux: '/opt/brackets/brackets',
+    pathMacOs: '/Applications/Brackets.app/Contents/MacOS/Brackets',
   },
   {
     key: '0-13',
@@ -126,6 +157,9 @@ export const editorsCst = [
     defaultCommand: 'studio',
     settingsFolder: '.idea',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\Android\\Android Studio\\bin\\studio.bat',
+    pathLinux: '/opt/android-studio/bin/studio.sh',
+    pathMacOs: '/Applications/Android Studio.app/Contents/MacOS/studio',
   },
   {
     key: '0-14',
@@ -135,5 +169,8 @@ export const editorsCst = [
     defaultCommand: 'subl',
     settingsFolder: '.sublime-project',
     enabled: true,
+    pathWindows: 'C:\\Program Files\\Sublime Text\\subl.exe',
+    pathLinux: '/opt/sublime_text/subl',
+    pathMacOs: '/Applications/Sublime Text.app/Contents/SharedSupport/bin/subl',
   },
 ];
