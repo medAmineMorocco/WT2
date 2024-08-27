@@ -1,12 +1,15 @@
 import path from 'path';
 import * as os from 'os';
+import gitMainService from '../git/gitMainService';
 
 const { exec, execSync } = require('child_process');
 
 function findAll(directory: string) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     exec(
-      'git worktree list',
+      `"${gitCommand}" worktree list`,
       {
         cwd: directory,
       },
@@ -47,14 +50,16 @@ function add(
   createWorktreeMode: string,
   dir: string,
 ) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     let command: string;
     if (createWorktreeMode === 'existing-branch') {
-      command = `git worktree add ${worktreePath} ${name}`;
+      command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
     } else if (createWorktreeMode === 'existing-tag') {
-      command = `git branch ${name.replaceAll('.', '-')} ${name}`;
+      command = `"${gitCommand}" branch ${name.replaceAll('.', '-')} ${name}`;
     } else {
-      command = `git worktree add -b ${name} ${worktreePath}`;
+      command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
     }
     exec(
       command,
@@ -69,7 +74,7 @@ function add(
           try {
             // eslint-disable-next-line no-param-reassign
             name = name.replaceAll('.', '-');
-            execSync(`git worktree add ${worktreePath} ${name}`, {
+            execSync(`"${gitCommand}" worktree add ${worktreePath} ${name}`, {
               cwd: dir,
             });
           } catch (e) {
@@ -83,10 +88,12 @@ function add(
 }
 
 function remove(worktreePath: string, dir: string, force: boolean) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     const command = force
-      ? `git worktree remove ${worktreePath} --force`
-      : `git worktree remove ${worktreePath}`;
+      ? `"${gitCommand}" worktree remove ${worktreePath} --force`
+      : `"${gitCommand}" worktree remove ${worktreePath}`;
     exec(
       command,
       {
@@ -108,10 +115,12 @@ function removeWithLocalBranch(
   dir: string,
   force: boolean,
 ) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     const command = force
-      ? `git worktree remove ${worktreePath} --force`
-      : `git worktree remove ${worktreePath}`;
+      ? `"${gitCommand}" worktree remove ${worktreePath} --force`
+      : `"${gitCommand}" worktree remove ${worktreePath}`;
     exec(
       command,
       {
@@ -122,7 +131,7 @@ function removeWithLocalBranch(
           reject(error);
         }
         exec(
-          `git branch -d ${name}`,
+          `"${gitCommand}" branch -d ${name}`,
           {
             cwd: dir,
           },
@@ -144,12 +153,14 @@ function rename(
   oldWorktreePath: string,
   dir: string,
 ) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     const newWorktreePath = path.normalize(
       path.join(oldWorktreePath, '..', newName),
     );
     exec(
-      `git worktree move ${oldName} ${newWorktreePath} && git branch -m ${oldName} ${newName}`,
+      `"${gitCommand}" worktree move ${oldName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
       {
         cwd: dir,
       },
@@ -164,9 +175,11 @@ function rename(
 }
 
 function prune(dir: string) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     exec(
-      'git worktree prune',
+      `"${gitCommand}" worktree prune`,
       {
         cwd: dir,
       },
@@ -181,10 +194,12 @@ function prune(dir: string) {
 }
 
 function changeLock(toLock: boolean, worktreeName: string, dir: string) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     const command = toLock
-      ? `git worktree lock ${worktreeName}`
-      : `git worktree unlock ${worktreeName}`;
+      ? `"${gitCommand}" worktree lock ${worktreeName}`
+      : `"${gitCommand}" worktree unlock ${worktreeName}`;
     exec(
       command,
       {
@@ -220,9 +235,11 @@ function moveWorktreeToFolder(
   newWorktreePath: string,
   dir: string,
 ) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     exec(
-      `git worktree move ${name} ${newWorktreePath}`,
+      `"${gitCommand}" worktree move ${name} ${newWorktreePath}`,
       {
         cwd: dir,
       },

@@ -1,9 +1,13 @@
+import gitMainService from '../git/gitMainService';
+
 const { exec } = require('child_process');
 
 function findAll(directory: string) {
-  return new Promise((resolve, reject) => {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     exec(
-      'git branch --format=%(refname:short)',
+      `"${gitCommand}" branch --format=%(refname:short)`,
       {
         cwd: directory,
       },

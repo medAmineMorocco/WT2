@@ -1,4 +1,14 @@
 import { execSync } from 'child_process';
+import { BrowserWindow } from 'electron';
+
+async function gitCommand() {
+  const storedGitExecutable =
+    await BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
+      'localStorage.getItem("gitExecutablePath");',
+      true,
+    );
+  return storedGitExecutable || 'git';
+}
 
 function showLog(directory: string, branch: string) {
   // eslint-disable-next-line no-async-promise-executor
@@ -8,9 +18,10 @@ function showLog(directory: string, branch: string) {
       shell: true,
     } as any;
     try {
+      const gitCmd = await gitCommand();
       const command = branch
-        ? `git log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`
-        : 'git log --oneline --decorate --all --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"';
+        ? `"${gitCmd}" log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`
+        : `"${gitCmd}" log --oneline --decorate --all --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`;
       const stdout = execSync(command, options);
       resolve(stdout);
     } catch (error) {
@@ -34,7 +45,8 @@ function showDiff(
       shell: true,
     } as any;
     try {
-      let command = `git diff ${val1} ${val2}`;
+      const gitCmd = await gitCommand();
+      let command = `"${gitCmd}" diff ${val1} ${val2}`;
       if (isAll) {
         const stdout = execSync(command, options);
         resolve(stdout.toString());
@@ -71,8 +83,9 @@ function diffStats(
       shell: true,
     } as any;
     try {
+      const gitCmd = await gitCommand();
       const stats = {} as any;
-      let command = `git diff ${val1} ${val2} --name-only`;
+      let command = `"${gitCmd}" diff ${val1} ${val2} --name-only`;
       let commandAll = command;
 
       let stdout;
@@ -160,15 +173,19 @@ function listBranches(directory: string) {
       shell: true,
     } as any;
     try {
+      const gitCmd = await gitCommand();
       const allBranches = execSync(
-        'git branch --format="%(refname:short)"',
+        `"${gitCmd}" branch --format="%(refname:short)"`,
         options,
       )
         .toString()
         .trim()
         .split('\n');
 
-      const worktreeOutput = execSync('git worktree list --porcelain', options);
+      const worktreeOutput = execSync(
+        `"${gitCmd}" worktree list --porcelain`,
+        options,
+      );
 
       const worktreeBranches = worktreeOutput
         .toString()
@@ -196,7 +213,8 @@ function listTags(directory: string) {
       shell: true,
     } as any;
     try {
-      const stdout = execSync('git tag', options)
+      const gitCmd = await gitCommand();
+      const stdout = execSync(`"${gitCmd}" tag`, options)
         .toString()
         .trim()
         .split('\n')
@@ -216,8 +234,9 @@ function listWorktrees(directory: string) {
       shell: true,
     } as any;
     try {
+      const gitCmd = await gitCommand();
       const worktreesOutput = execSync(
-        'git worktree list --porcelain',
+        `"${gitCmd}" worktree list --porcelain`,
         options,
       );
       const worktreeBranches = worktreesOutput
@@ -255,4 +274,5 @@ export default {
   listTags,
   listWorktrees,
   listRefs,
+  gitCommand,
 };
