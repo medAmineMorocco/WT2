@@ -524,7 +524,10 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               color: token.colorTextBase,
             }}
           >
-            <Space style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}>
+            <Space
+              className="worktree-container"
+              style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
+            >
               {/* eslint-disable-next-line no-nested-ternary */}
               {worktree.isLocked ? (
                 <LockOutlined />

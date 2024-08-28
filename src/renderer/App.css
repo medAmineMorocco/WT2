@@ -54,6 +54,11 @@ body {
   transition: all 0.3s linear;
 }
 
+.worktree-container > .ant-space-item:nth-child(2) {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+}
+
 .worktree-item,.worktree-item-dark {
   display: flex;
   justify-content: space-between;
