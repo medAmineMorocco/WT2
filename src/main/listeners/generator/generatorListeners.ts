@@ -1,34 +1,37 @@
 import { dialog, ipcMain } from 'electron';
 import path from 'path';
 import generatorService from '../../services/generator/generatorMainService';
+import utils from '../../utils/utils';
 
 ipcMain.on(
   'add-generator',
-  function (event, generator: any, directory: string) {
+  async function (event, generator: any, directory: string) {
     try {
       generatorService.save(generator, directory);
       event.sender.send('generator-created', 0);
     } catch (err: any) {
-      event.sender.send('generator-created', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('generator-created', -1, encoded);
     }
   },
 );
 
 ipcMain.on(
   'duplicate-generator',
-  function (event, generator: any, directory: string) {
+  async function (event, generator: any, directory: string) {
     try {
       generatorService.duplicate(generator, directory);
       event.sender.send('generator-duplicated', 0);
     } catch (err: any) {
-      event.sender.send('generator-duplicated', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('generator-duplicated', -1, encoded);
     }
   },
 );
 
 ipcMain.on(
   'update-generator',
-  function (
+  async function (
     event,
     generatorName: string,
     newGenerator: any,
@@ -38,35 +41,42 @@ ipcMain.on(
       generatorService.update(generatorName, newGenerator, directory);
       event.sender.send('generator-updated', 0);
     } catch (err: any) {
-      event.sender.send('generator-updated', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('generator-updated', -1, encoded);
     }
   },
 );
 
-ipcMain.on('get-generators', function (event, dir: string) {
+ipcMain.on('get-generators', async function (event, dir: string) {
   try {
     const generators = generatorService.findAll(dir);
     event.sender.send('generators-found', 0, JSON.stringify(generators));
   } catch (err: any) {
-    event.sender.send('generators-found', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('generators-found', -1, encoded);
   }
 });
 
-ipcMain.on('remove-generator', function (event, name: string, dir: string) {
-  try {
-    generatorService.remove(name, dir);
-    event.sender.send('generator-removed', 0);
-  } catch (err: any) {
-    event.sender.send('generator-removed', -1, err.message);
-  }
-});
+ipcMain.on(
+  'remove-generator',
+  async function (event, name: string, dir: string) {
+    try {
+      generatorService.remove(name, dir);
+      event.sender.send('generator-removed', 0);
+    } catch (err: any) {
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('generator-removed', -1, encoded);
+    }
+  },
+);
 
-ipcMain.on('get-generator', function (event, name: string, dir: string) {
+ipcMain.on('get-generator', async function (event, name: string, dir: string) {
   try {
     const generator = generatorService.get(name, dir);
     event.sender.send('generator-found-by-name', 0, generator);
   } catch (err: any) {
-    event.sender.send('generator-found-by-name', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('generator-found-by-name', -1, encoded);
   }
 });
 
@@ -87,7 +97,8 @@ ipcMain.on('open-dialog-import-generators', async function (event) {
       );
     }
   } catch (err: any) {
-    event.sender.send('generators-to-import-found', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('generators-to-import-found', -1, encoded);
   }
 });
 
@@ -98,7 +109,8 @@ ipcMain.on(
       const count = generatorService.saveAll(generators, dir);
       event.sender.send('generators-imported', 0, count);
     } catch (err: any) {
-      event.sender.send('generators-imported', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('generators-imported', -1, encoded);
     }
   },
 );
