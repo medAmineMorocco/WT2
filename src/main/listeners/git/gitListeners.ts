@@ -116,17 +116,17 @@ ipcMain.on(
     const commandProcess = spawn(command, [], options);
 
     commandProcess.stdout.on('data', async (data: any) => {
-      const encoded = await utils.setEncoding(data);
+      const encoded = await utils.setStoredEncoding(data);
       event.sender.send('command-receive-data', 0, encoded);
     });
 
     commandProcess.stderr.on('data', async (data: any) => {
-      const encoded = await utils.setEncoding(data);
+      const encoded = await utils.setStoredEncoding(data);
       event.sender.send('command-receive-data', 0, encoded);
     });
 
     commandProcess.on('error', async (err: any) => {
-      const encoded = await utils.setEncoding(Buffer.from(err.message));
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
       event.sender.send('command-receive-data', 0, encoded);
     });
 

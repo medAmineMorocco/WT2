@@ -19,7 +19,7 @@ ipcMain.on(
       event.sender.send(
         'worktree-created',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },
@@ -39,7 +39,7 @@ ipcMain.on(
       event.sender.send(
         'worktree-removed',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
         worktreePath,
         null,
         false,
@@ -63,7 +63,7 @@ ipcMain.on(
       event.sender.send(
         'worktree-removed',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
         worktreePath,
         name,
         true,
@@ -87,7 +87,7 @@ ipcMain.on(
       event.sender.send(
         'worktree-renamed',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },
@@ -101,7 +101,7 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
     event.sender.send(
       'worktrees-found',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
   intervalIds.push(
@@ -113,7 +113,7 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
         event.sender.send(
           'worktrees-found',
           -1,
-          utils.setEncoding(Buffer.from(err.message)),
+          utils.setStoredEncoding(Buffer.from(err.message)),
         );
       }
     }, 10000),
@@ -134,7 +134,7 @@ ipcMain.on('prune-worktrees', async function (event, directory: string) {
     event.sender.send(
       'worktrees-pruned',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -155,7 +155,7 @@ ipcMain.on(
         'worktrees-changed-lock',
         -1,
         toLock,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },
@@ -174,7 +174,7 @@ ipcMain.on('get-worktrees-folder', async function (event, directory: string) {
     event.sender.send(
       'worktrees-folder-found',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -198,7 +198,7 @@ ipcMain.on(
       event.sender.send(
         'worktree-moved-to-folder',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },

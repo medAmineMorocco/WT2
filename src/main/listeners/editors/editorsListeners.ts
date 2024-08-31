@@ -23,7 +23,7 @@ async function openInEditor(editorCommand: string, dir: string, event: any) {
   };
   exec(`"${editorCommand}" ${dir}`, options, async (error, stdout, stderr) => {
     if (stderr) {
-      const encoded = await utils.setEncoding(stderr);
+      const encoded = await utils.setStoredEncoding(stderr);
       event.sender.send('open-editor-error', encoded);
     }
   });

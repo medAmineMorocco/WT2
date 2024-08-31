@@ -27,13 +27,14 @@ let logStates: any[] = [];
 let stopExecution = false;
 let abortController: AbortController;
 
-function executeCommand(
+async function executeCommand(
   command: any,
   normalizedPath: string,
   worktreeLabel: string,
   event: any,
 ) {
   abortController = new AbortController();
+  const storedEncoding = await utils.getStorageItem('encoding');
 
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -53,12 +54,12 @@ function executeCommand(
       logStates = await Promise.all(
         logStates.map(async (item) => {
           if (item.label === worktreeLabel) {
-            const encoded = await utils.setEncoding(data);
+            const encoded = utils.setEncoding(data, storedEncoding);
             let log = '';
             if (item.data[command.key]) {
-              log = item.data[command.key]
-                ? item.data[command.key].output + encoded
-                : '';
+              log =
+                (item.data[command.key] ? item.data[command.key].output : '') +
+                encoded;
             } else {
               log = encoded;
             }
@@ -79,12 +80,12 @@ function executeCommand(
       logStates = await Promise.all(
         logStates.map(async (item) => {
           if (item.label === worktreeLabel) {
-            const encoded = await utils.setEncoding(data);
+            const encoded = utils.setEncoding(data, storedEncoding);
             let log = '';
             if (item.data[command.key]) {
-              log = item.data[command.key]
-                ? item.data[command.key].output + encoded
-                : '';
+              log =
+                (item.data[command.key] ? item.data[command.key].output : '') +
+                encoded;
             } else {
               log = encoded;
             }
@@ -128,12 +129,15 @@ function executeCommand(
       logStates = await Promise.all(
         logStates.map(async (item) => {
           if (item.label === worktreeLabel) {
-            const encoded = await utils.setEncoding(Buffer.from(err.message));
+            const encoded = utils.setEncoding(
+              Buffer.from(err.message),
+              storedEncoding,
+            );
             let log = '';
             if (item.data[command.key]) {
-              log = item.data[command.key]
-                ? item.data[command.key].output + encoded
-                : '';
+              log =
+                (item.data[command.key] ? item.data[command.key].output : '') +
+                encoded;
             } else {
               log = encoded;
             }
@@ -430,7 +434,7 @@ ipcMain.on(
       event.sender.send(
         'workflow-created',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },
@@ -444,7 +448,7 @@ ipcMain.on('duplicate-workflow', function (event, workflow: any, dir: string) {
     event.sender.send(
       'workflow-duplicated',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -466,7 +470,7 @@ ipcMain.on(
       event.sender.send(
         'workflow-updated',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },
@@ -480,7 +484,7 @@ ipcMain.on('remove-workflow', function (event, name: string, dir: string) {
     event.sender.send(
       'workflow-removed',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -493,7 +497,7 @@ ipcMain.on('get-workflows', function (event, dir: string) {
     event.sender.send(
       'workflows-found',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -518,7 +522,7 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
     event.sender.send(
       'workflows-to-import-found',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
@@ -533,7 +537,7 @@ ipcMain.on(
       event.sender.send(
         'workflows-imported',
         -1,
-        utils.setEncoding(Buffer.from(err.message)),
+        utils.setStoredEncoding(Buffer.from(err.message)),
       );
     }
   },

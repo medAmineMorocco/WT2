@@ -10,7 +10,7 @@ ipcMain.on('get-branches', async function (event, directory: string) {
     event.sender.send(
       'branches-found',
       -1,
-      utils.setEncoding(Buffer.from(err.message)),
+      utils.setStoredEncoding(Buffer.from(err.message)),
     );
   }
 });
