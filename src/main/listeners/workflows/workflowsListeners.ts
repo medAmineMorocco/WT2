@@ -46,46 +46,58 @@ function executeCommand(
 
     const commandProcess = spawn(command.value, [], options);
 
-    commandProcess.stdout.on('data', (data: any) => {
+    commandProcess.stdout.on('data', async (data: any) => {
       if (stopExecution) {
         abortController.abort();
       }
-      logStates = logStates.map(async (item) => {
-        if (item.label === worktreeLabel) {
-          const encoded = await utils.setEncoding(data);
-          let log = '';
-          if (item.data[command.key]) {
-            log = item.data[command.key].output + encoded;
-          } else {
-            log = encoded;
+      logStates = await Promise.all(
+        logStates.map(async (item) => {
+          if (item.label === worktreeLabel) {
+            const encoded = await utils.setEncoding(data);
+            let log = '';
+            if (item.data[command.key]) {
+              log = item.data[command.key]
+                ? item.data[command.key].output + encoded
+                : '';
+            } else {
+              log = encoded;
+            }
+            item.data[command.key] = {
+              command: command.value.includes('hygen')
+                ? 'run generator'
+                : command.value,
+              output: log,
+            };
           }
-          item.data[command.key] = {
-            command: command.value,
-            output: log,
-          };
-        }
-        return item;
-      });
+          return item;
+        }),
+      );
       event.sender.send('workflow-started-log-received', logStates);
     });
 
-    commandProcess.stderr.on('data', (data: any) => {
-      logStates = logStates.map(async (item) => {
-        if (item.label === worktreeLabel) {
-          const encoded = await utils.setEncoding(data);
-          let log = '';
-          if (item.data[command.key]) {
-            log = item.data[command.key].output + encoded;
-          } else {
-            log = encoded;
+    commandProcess.stderr.on('data', async (data: any) => {
+      logStates = await Promise.all(
+        logStates.map(async (item) => {
+          if (item.label === worktreeLabel) {
+            const encoded = await utils.setEncoding(data);
+            let log = '';
+            if (item.data[command.key]) {
+              log = item.data[command.key]
+                ? item.data[command.key].output + encoded
+                : '';
+            } else {
+              log = encoded;
+            }
+            item.data[command.key] = {
+              command: command.value.includes('hygen')
+                ? 'run generator'
+                : command.value,
+              output: log,
+            };
           }
-          item.data[command.key] = {
-            command: command.value,
-            output: log,
-          };
-        }
-        return item;
-      });
+          return item;
+        }),
+      );
       event.sender.send('workflow-started-log-received', logStates);
     });
 
@@ -95,7 +107,9 @@ function executeCommand(
           if (item.label === worktreeLabel) {
             item.data[command.key] = {
               command: command.value,
-              output: item.data[command.key].output,
+              output: item.data[command.key]
+                ? item.data[command.key].output
+                : '',
               status: 'finished',
             };
           }
@@ -110,23 +124,29 @@ function executeCommand(
         reject(new Error(code));
       }
     });
-    commandProcess.on('error', (err: any) => {
-      logStates = logStates.map(async (item) => {
-        if (item.label === worktreeLabel) {
-          const encoded = await utils.setEncoding(Buffer.from(err.message));
-          let log = '';
-          if (item.data[command.key]) {
-            log = item.data[command.key].output + encoded;
-          } else {
-            log = encoded;
+    commandProcess.on('error', async (err: any) => {
+      logStates = await Promise.all(
+        logStates.map(async (item) => {
+          if (item.label === worktreeLabel) {
+            const encoded = await utils.setEncoding(Buffer.from(err.message));
+            let log = '';
+            if (item.data[command.key]) {
+              log = item.data[command.key]
+                ? item.data[command.key].output + encoded
+                : '';
+            } else {
+              log = encoded;
+            }
+            item.data[command.key] = {
+              command: command.value.includes('hygen')
+                ? 'run generator'
+                : command.value,
+              output: log,
+            };
           }
-          item.data[command.key] = {
-            command: command.value,
-            output: log,
-          };
-        }
-        return item;
-      });
+          return item;
+        }),
+      );
       event.sender.send('workflow-started-log-received', logStates);
       reject(new Error(err.toString()));
     });
