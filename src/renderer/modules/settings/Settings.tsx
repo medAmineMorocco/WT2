@@ -6,6 +6,7 @@ import {
   ClearOutlined,
   CodeOutlined,
   NodeIndexOutlined,
+  FontSizeOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
@@ -14,6 +15,7 @@ import NotificationSettings from './NotificationSettings';
 import CacheSettings from './CacheSettings';
 import GitSettings from './GitSettings';
 import ShellSettings from './ShellSettings';
+import EncodingSettings from './EncodingSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -46,6 +48,11 @@ const itemsMenu: MenuProps['items'] = [
   },
   {
     key: '5',
+    label: 'Encoding',
+    icon: <FontSizeOutlined />,
+  },
+  {
+    key: '6',
     label: 'Clear cache',
     icon: <ClearOutlined />,
   },
@@ -84,6 +91,9 @@ export default function Settings() {
     }
     if (keyNavigation === '4') {
       return <GitSettings />;
+    }
+    if (keyNavigation === '5') {
+      return <EncodingSettings />;
     }
     return <CacheSettings />;
   };

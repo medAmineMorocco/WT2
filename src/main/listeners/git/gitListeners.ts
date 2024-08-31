@@ -1,8 +1,7 @@
 import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
-import chardet from 'chardet';
-import iconv from 'iconv-lite';
 import gitMainService from '../../services/git/gitMainService';
+import utils from '../../utils/utils';
 
 ipcMain.on(
   'show-git-log',
@@ -102,13 +101,6 @@ ipcMain.on('list-refs', async function (event, directory: string) {
   }
 });
 
-function setEncoding(buffer: any) {
-  const defaultEncoding = chardet.detect(buffer);
-  return iconv
-    .decode(buffer, defaultEncoding !== 'UTF-8' ? 'cp437' : 'utf8')
-    .toString();
-}
-
 let abortController: AbortController;
 ipcMain.on(
   'execute-command',
@@ -123,21 +115,19 @@ ipcMain.on(
 
     const commandProcess = spawn(command, [], options);
 
-    commandProcess.stdout.on('data', (data: any) => {
-      event.sender.send('command-receive-data', 0, setEncoding(data));
+    commandProcess.stdout.on('data', async (data: any) => {
+      const encoded = await utils.setEncoding(data);
+      event.sender.send('command-receive-data', 0, encoded);
     });
 
-    commandProcess.stderr.on('data', (data: any) => {
-      event.sender.send('command-receive-data', 0, setEncoding(data));
+    commandProcess.stderr.on('data', async (data: any) => {
+      const encoded = await utils.setEncoding(data);
+      event.sender.send('command-receive-data', 0, encoded);
     });
 
-    commandProcess.on('error', (err: any) => {
-      const encoder = new TextEncoder();
-      event.sender.send(
-        'command-receive-data',
-        0,
-        setEncoding(encoder.encode(err.message)),
-      );
+    commandProcess.on('error', async (err: any) => {
+      const encoded = await utils.setEncoding(Buffer.from(err.message));
+      event.sender.send('command-receive-data', 0, encoded);
     });
 
     commandProcess.on('exit', () => {

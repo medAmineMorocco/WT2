@@ -1,10 +1,9 @@
 import { spawn } from 'child_process';
 import path from 'path';
-import iconv from 'iconv-lite';
-import chardet from 'chardet';
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import gitMainService from '../../services/git/gitMainService';
+import utils from '../../utils/utils';
 
 function updateWorktreesStates(
   worktreesStates: any[],
@@ -27,13 +26,6 @@ let logStates: any[] = [];
 
 let stopExecution = false;
 let abortController: AbortController;
-
-function setEncoding(buffer: any) {
-  const defaultEncoding = chardet.detect(buffer);
-  return iconv
-    .decode(buffer, defaultEncoding !== 'UTF-8' ? 'cp437' : 'utf8')
-    .toString();
-}
 
 function executeCommand(
   command: any,
@@ -58,13 +50,14 @@ function executeCommand(
       if (stopExecution) {
         abortController.abort();
       }
-      logStates = logStates.map((item) => {
+      logStates = logStates.map(async (item) => {
         if (item.label === worktreeLabel) {
+          const encoded = await utils.setEncoding(data);
           let log = '';
           if (item.data[command.key]) {
-            log = item.data[command.key].output + setEncoding(data);
+            log = item.data[command.key].output + encoded;
           } else {
-            log = setEncoding(data);
+            log = encoded;
           }
           item.data[command.key] = {
             command: command.value,
@@ -77,13 +70,14 @@ function executeCommand(
     });
 
     commandProcess.stderr.on('data', (data: any) => {
-      logStates = logStates.map((item) => {
+      logStates = logStates.map(async (item) => {
         if (item.label === worktreeLabel) {
+          const encoded = await utils.setEncoding(data);
           let log = '';
           if (item.data[command.key]) {
-            log = item.data[command.key].output + setEncoding(data);
+            log = item.data[command.key].output + encoded;
           } else {
-            log = setEncoding(data);
+            log = encoded;
           }
           item.data[command.key] = {
             command: command.value,
@@ -117,16 +111,14 @@ function executeCommand(
       }
     });
     commandProcess.on('error', (err: any) => {
-      const encoder = new TextEncoder();
-      logStates = logStates.map((item) => {
+      logStates = logStates.map(async (item) => {
         if (item.label === worktreeLabel) {
+          const encoded = await utils.setEncoding(Buffer.from(err.message));
           let log = '';
           if (item.data[command.key]) {
-            log =
-              item.data[command.key].output +
-              setEncoding(encoder.encode(err.message));
+            log = item.data[command.key].output + encoded;
           } else {
-            log = setEncoding(encoder.encode(err.message));
+            log = encoded;
           }
           item.data[command.key] = {
             command: command.value,
@@ -415,7 +407,11 @@ ipcMain.on(
       workflowsMainService.save(name, mainCommand, commands, dir);
       event.sender.send('workflow-created', 0);
     } catch (err: any) {
-      event.sender.send('workflow-created', -1, err.message);
+      event.sender.send(
+        'workflow-created',
+        -1,
+        utils.setEncoding(Buffer.from(err.message)),
+      );
     }
   },
 );
@@ -425,7 +421,11 @@ ipcMain.on('duplicate-workflow', function (event, workflow: any, dir: string) {
     workflowsMainService.duplicate(workflow, dir);
     event.sender.send('workflow-duplicated', 0);
   } catch (err: any) {
-    event.sender.send('workflow-duplicated', -1, err.message);
+    event.sender.send(
+      'workflow-duplicated',
+      -1,
+      utils.setEncoding(Buffer.from(err.message)),
+    );
   }
 });
 
@@ -443,7 +443,11 @@ ipcMain.on(
       workflowsMainService.update(name, newName, mainCommand, commands, dir);
       event.sender.send('workflow-updated', 0);
     } catch (err: any) {
-      event.sender.send('workflow-updated', -1, err.message);
+      event.sender.send(
+        'workflow-updated',
+        -1,
+        utils.setEncoding(Buffer.from(err.message)),
+      );
     }
   },
 );
@@ -453,7 +457,11 @@ ipcMain.on('remove-workflow', function (event, name: string, dir: string) {
     workflowsMainService.remove(name, dir);
     event.sender.send('workflow-removed', 0);
   } catch (err: any) {
-    event.sender.send('workflow-removed', -1, err.message);
+    event.sender.send(
+      'workflow-removed',
+      -1,
+      utils.setEncoding(Buffer.from(err.message)),
+    );
   }
 });
 
@@ -462,7 +470,11 @@ ipcMain.on('get-workflows', function (event, dir: string) {
     const workflows = workflowsMainService.findAll(dir);
     event.sender.send('workflows-found', 0, JSON.stringify(workflows));
   } catch (err: any) {
-    event.sender.send('workflows-found', -1, err.message);
+    event.sender.send(
+      'workflows-found',
+      -1,
+      utils.setEncoding(Buffer.from(err.message)),
+    );
   }
 });
 
@@ -483,7 +495,11 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
       );
     }
   } catch (err: any) {
-    event.sender.send('workflows-to-import-found', -1, err.message);
+    event.sender.send(
+      'workflows-to-import-found',
+      -1,
+      utils.setEncoding(Buffer.from(err.message)),
+    );
   }
 });
 
@@ -494,7 +510,11 @@ ipcMain.on(
       const count = workflowsMainService.saveAll(workflows, dir);
       event.sender.send('workflows-imported', 0, count);
     } catch (err: any) {
-      event.sender.send('workflows-imported', -1, err.message);
+      event.sender.send(
+        'workflows-imported',
+        -1,
+        utils.setEncoding(Buffer.from(err.message)),
+      );
     }
   },
 );

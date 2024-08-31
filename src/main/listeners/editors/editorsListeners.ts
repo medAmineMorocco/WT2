@@ -1,29 +1,30 @@
-import { BrowserWindow, ipcMain, shell } from 'electron';
+import { ipcMain, shell } from 'electron';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
 import copyDirectory from '../../services/utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
+import utils from '../../utils/utils';
+import gitMainService from '../../services/git/gitMainService';
 
 async function getEditor(editorLabel: string) {
-  const storedEditors =
-    await BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
-      'localStorage.getItem("editors");',
-      true,
-    );
+  const storedEditors = await utils.getStorageItem('editors');
   const editors = storedEditors
     ? JSON.parse(storedEditors)
     : JSON.parse(JSON.stringify(editorsCst));
   return editors.find((editor: any) => editor.label === editorLabel);
 }
 
-function openInEditor(editorCommand: string, dir: string, event: any) {
-  exec(`"${editorCommand}" ${dir}`, (error, stdout) => {
-    if (error) {
-      event.sender.send('open-editor-error', error.toString());
-    }
-    if (stdout) {
-      event.sender.send('open-editor-error', stdout.toString());
+async function openInEditor(editorCommand: string, dir: string, event: any) {
+  const shellPath = await gitMainService.getShell();
+  const options: any = {
+    shell: shellPath || true,
+    encoding: 'buffer',
+  };
+  exec(`"${editorCommand}" ${dir}`, options, async (error, stdout, stderr) => {
+    if (stderr) {
+      const encoded = await utils.setEncoding(stderr);
+      event.sender.send('open-editor-error', encoded);
     }
   });
 }

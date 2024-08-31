@@ -1,20 +1,13 @@
 import { execSync } from 'child_process';
-import { BrowserWindow } from 'electron';
+import utils from '../../utils/utils';
 
 async function gitCommand() {
-  const storedGitExecutable =
-    await BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
-      'localStorage.getItem("gitExecutablePath");',
-      true,
-    );
+  const storedGitExecutable = await utils.getStorageItem('gitExecutablePath');
   return storedGitExecutable || 'git';
 }
 
 function getShell() {
-  return BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
-    'localStorage.getItem("shellPath");',
-    true,
-  );
+  return utils.getStorageItem('shellPath');
 }
 
 function showLog(directory: string, branch: string) {
