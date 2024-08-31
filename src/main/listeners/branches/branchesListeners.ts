@@ -7,10 +7,7 @@ ipcMain.on('get-branches', async function (event, directory: string) {
     const branches = await branchesMainService.findAll(directory);
     event.sender.send('branches-found', 0, JSON.stringify(branches));
   } catch (err: any) {
-    event.sender.send(
-      'branches-found',
-      -1,
-      utils.setStoredEncoding(Buffer.from(err.message)),
-    );
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('branches-found', -1, encoded);
   }
 });

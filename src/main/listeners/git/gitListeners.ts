@@ -10,7 +10,8 @@ ipcMain.on(
       const gitLog = await gitMainService.showLog(directory, branch);
       event.sender.send('receive-git-log', 0, gitLog);
     } catch (err: any) {
-      event.sender.send('receive-git-log', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('receive-git-log', -1, encoded);
     }
   },
 );
@@ -35,7 +36,8 @@ ipcMain.on(
       );
       event.sender.send('receive-git-diff', 0, gitDiff);
     } catch (err: any) {
-      event.sender.send('receive-git-diff', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('receive-git-diff', -1, encoded);
     }
   },
 );
@@ -60,7 +62,8 @@ ipcMain.on(
       );
       event.sender.send('receive-diff-stats', 0, stats);
     } catch (err: any) {
-      event.sender.send('receive-diff-stats', -1, err.message);
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('receive-diff-stats', -1, encoded);
     }
   },
 );
@@ -70,7 +73,8 @@ ipcMain.on('list-branches', async function (event, directory: string) {
     const branches = await gitMainService.listBranches(directory);
     event.sender.send('receive-branches', 0, branches);
   } catch (err: any) {
-    event.sender.send('receive-branches', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('receive-branches', -1, encoded);
   }
 });
 
@@ -79,7 +83,8 @@ ipcMain.on('list-tags', async function (event, directory: string) {
     const tags = await gitMainService.listTags(directory);
     event.sender.send('receive-tags', 0, tags);
   } catch (err: any) {
-    event.sender.send('receive-tags', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('receive-tags', -1, encoded);
   }
 });
 
@@ -88,7 +93,8 @@ ipcMain.on('list-worktrees', async function (event, directory: string) {
     const worktrees = await gitMainService.listWorktrees(directory);
     event.sender.send('receive-worktrees', 0, worktrees);
   } catch (err: any) {
-    event.sender.send('receive-worktrees', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('receive-worktrees', -1, encoded);
   }
 });
 
@@ -97,7 +103,8 @@ ipcMain.on('list-refs', async function (event, directory: string) {
     const refs = await gitMainService.listRefs(directory);
     event.sender.send('receive-refs', 0, refs);
   } catch (err: any) {
-    event.sender.send('receive-refs', -1, err.message);
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('receive-refs', -1, encoded);
   }
 });
 

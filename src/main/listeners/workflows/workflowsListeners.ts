@@ -427,7 +427,7 @@ ipcMain.on('stop-workflow', function (event) {
 
 ipcMain.on(
   'add-workflow',
-  function (
+  async function (
     event,
     name: string,
     mainCommand: string,
@@ -438,31 +438,28 @@ ipcMain.on(
       workflowsMainService.save(name, mainCommand, commands, dir);
       event.sender.send('workflow-created', 0);
     } catch (err: any) {
-      event.sender.send(
-        'workflow-created',
-        -1,
-        utils.setStoredEncoding(Buffer.from(err.message)),
-      );
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('workflow-created', -1, encoded);
     }
   },
 );
 
-ipcMain.on('duplicate-workflow', function (event, workflow: any, dir: string) {
-  try {
-    workflowsMainService.duplicate(workflow, dir);
-    event.sender.send('workflow-duplicated', 0);
-  } catch (err: any) {
-    event.sender.send(
-      'workflow-duplicated',
-      -1,
-      utils.setStoredEncoding(Buffer.from(err.message)),
-    );
-  }
-});
+ipcMain.on(
+  'duplicate-workflow',
+  async function (event, workflow: any, dir: string) {
+    try {
+      workflowsMainService.duplicate(workflow, dir);
+      event.sender.send('workflow-duplicated', 0);
+    } catch (err: any) {
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('workflow-duplicated', -1, encoded);
+    }
+  },
+);
 
 ipcMain.on(
   'update-workflow',
-  function (
+  async function (
     event,
     name,
     newName: string,
@@ -474,38 +471,32 @@ ipcMain.on(
       workflowsMainService.update(name, newName, mainCommand, commands, dir);
       event.sender.send('workflow-updated', 0);
     } catch (err: any) {
-      event.sender.send(
-        'workflow-updated',
-        -1,
-        utils.setStoredEncoding(Buffer.from(err.message)),
-      );
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('workflow-updated', -1, encoded);
     }
   },
 );
 
-ipcMain.on('remove-workflow', function (event, name: string, dir: string) {
-  try {
-    workflowsMainService.remove(name, dir);
-    event.sender.send('workflow-removed', 0);
-  } catch (err: any) {
-    event.sender.send(
-      'workflow-removed',
-      -1,
-      utils.setStoredEncoding(Buffer.from(err.message)),
-    );
-  }
-});
+ipcMain.on(
+  'remove-workflow',
+  async function (event, name: string, dir: string) {
+    try {
+      workflowsMainService.remove(name, dir);
+      event.sender.send('workflow-removed', 0);
+    } catch (err: any) {
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('workflow-removed', -1, encoded);
+    }
+  },
+);
 
-ipcMain.on('get-workflows', function (event, dir: string) {
+ipcMain.on('get-workflows', async function (event, dir: string) {
   try {
     const workflows = workflowsMainService.findAll(dir);
     event.sender.send('workflows-found', 0, JSON.stringify(workflows));
   } catch (err: any) {
-    event.sender.send(
-      'workflows-found',
-      -1,
-      utils.setStoredEncoding(Buffer.from(err.message)),
-    );
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('workflows-found', -1, encoded);
   }
 });
 
@@ -526,11 +517,8 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
       );
     }
   } catch (err: any) {
-    event.sender.send(
-      'workflows-to-import-found',
-      -1,
-      utils.setStoredEncoding(Buffer.from(err.message)),
-    );
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('workflows-to-import-found', -1, encoded);
   }
 });
 
@@ -541,11 +529,8 @@ ipcMain.on(
       const count = workflowsMainService.saveAll(workflows, dir);
       event.sender.send('workflows-imported', 0, count);
     } catch (err: any) {
-      event.sender.send(
-        'workflows-imported',
-        -1,
-        utils.setStoredEncoding(Buffer.from(err.message)),
-      );
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      event.sender.send('workflows-imported', -1, encoded);
     }
   },
 );
