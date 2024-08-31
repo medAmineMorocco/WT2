@@ -77,7 +77,7 @@ ipcMain.on(
     event.sender.send('workflow-started');
     const commands = [workflow.command, ...workflow.commands];
     event.sender.send('workflow-started-with-commands', [
-      { value: `run generator ${generatorName}` },
+      { title: `run generator ${generatorName}` },
     ]);
     worktreesStates = workflow.worktrees.map((worktree: any) => {
       return {
