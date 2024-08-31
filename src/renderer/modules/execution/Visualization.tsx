@@ -43,13 +43,7 @@ export default function Visualization() {
 
   useEffect(() => {
     const onReceiveCommands = (event: any, executedCommands: any[]) => {
-      setCommands(
-        executedCommands.map((command) => {
-          return {
-            title: command.value,
-          };
-        }),
-      );
+      setCommands(executedCommands);
     };
     const onReceiveStatesUpdated = (
       event: any,

@@ -351,7 +351,14 @@ ipcMain.on('play-workflow', async function (event, workflow) {
   focusedWindow = BrowserWindow.getFocusedWindow();
   event.sender.send('workflow-started');
   const commands = [workflow.command, ...workflow.commands];
-  event.sender.send('workflow-started-with-commands', commands);
+  event.sender.send(
+    'workflow-started-with-commands',
+    commands.map((command) => {
+      return {
+        title: command.value,
+      };
+    }),
+  );
   worktreesStates = workflow.worktrees.map((worktree: any) => {
     return {
       title: worktree.label,
