@@ -65,7 +65,7 @@ ipcMain.on(
 
     const command = {
       key: '0',
-      value: `${hygenPath} cli ${generatorName} ${options}`,
+      value: `${hygenPath} cli "${generatorName}" ${options}`,
     };
     const workflow = {
       name: generatorName,
