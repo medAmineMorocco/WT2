@@ -144,7 +144,7 @@ export default function AddGenerator({
 
   const [files, setFiles] = useState<any[]>([]);
 
-  const [injectChecked, setInjectChecked] = useState();
+  const [injectChecked, setInjectChecked] = useState<boolean>();
 
   const [choicesQuestion, setChoicesQuestion] = useState<boolean>();
 
@@ -270,6 +270,7 @@ export default function AddGenerator({
   const cancelEditFile = () => {
     setEditFileMode(false);
     setFileKeyToEdit(null);
+    setInjectChecked(false);
     resetFileForm();
   };
 
@@ -283,6 +284,7 @@ export default function AddGenerator({
     setFiles(newFiles);
     resetFileForm();
     setEditFileMode(false);
+    setInjectChecked(false);
   };
 
   const editFile = (key: string) => {
@@ -293,6 +295,7 @@ export default function AddGenerator({
           fileForm.setFieldValue(field, value);
         }
       });
+      setInjectChecked(fileForm.getFieldValue('inject'));
       setFileContent(fileToEdit.fileContent);
       setEditFileMode(true);
       setFileKeyToEdit(key);
