@@ -503,23 +503,6 @@ export default function AddGenerator({
                     }
                   />
                 </Form.Item>
-                <Form.Item
-                  name="shell"
-                  className="form-item-without-margin-bottom"
-                >
-                  <Input
-                    addonBefore={
-                      <Tooltip
-                        title="Shell actions give you the ability to trigger any shell commands."
-                        placement="top"
-                        mouseEnterDelay={0}
-                        mouseLeaveDelay={0}
-                      >
-                        shell
-                      </Tooltip>
-                    }
-                  />
-                </Form.Item>
                 <div>
                   <Form.Item
                     name="force"
