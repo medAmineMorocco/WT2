@@ -4,6 +4,7 @@ import {
   Checkbox,
   Divider,
   Drawer,
+  Empty,
   Form,
   Input,
   Select,
@@ -188,16 +189,24 @@ export default function RunGenerator({
         >
           <Select options={worktrees} allowClear showSearch />
         </Form.Item>
-        <Divider orientation="left">Parameters</Divider>
-        {generator &&
-          generator.parameters?.map((parameter: any) =>
+        <Divider orientation="left" orientationMargin="0">
+          Parameters
+        </Divider>
+        {generator.parameters && generator.parameters.length > 0 ? (
+          generator.parameters.map((parameter: any) =>
             buildInput(
               parameter.key,
               parameter.parameterName,
               parameter.parameterType,
               parameter.parameterValues,
             ),
-          )}
+          )
+        ) : (
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description="No parameters defined for this generator"
+          />
+        )}
 
         <Form.Item>
           <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
