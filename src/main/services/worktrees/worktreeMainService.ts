@@ -44,6 +44,19 @@ function findAll(directory: string) {
   });
 }
 
+async function branchExists(branchName: string, dir: string) {
+  try {
+    const gitCommand = await gitMainService.gitCommand();
+    execSync(`"${gitCommand}" rev-parse --verify refs/heads/${branchName}`, {
+      stdio: 'ignore',
+      cwd: dir,
+    });
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
 function add(
   name: string,
   worktreePath: string,
@@ -57,7 +70,18 @@ function add(
     if (createWorktreeMode === 'existing-branch') {
       command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
     } else if (createWorktreeMode === 'existing-tag') {
-      command = `"${gitCommand}" branch ${name.replaceAll('.', '-')} ${name}`;
+      const branchNameForTag = name.replaceAll('.', '-');
+      const branchExist = await branchExists(branchNameForTag, dir);
+      if (!branchExist) {
+        try {
+          execSync(`"${gitCommand}" branch ${branchNameForTag} ${name}`, {
+            cwd: dir,
+          });
+        } catch (e) {
+          reject(e);
+        }
+      }
+      command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
     } else {
       command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
     }
@@ -69,17 +93,6 @@ function add(
       async (error: any, stdout: any) => {
         if (error) {
           reject(error);
-        }
-        if (createWorktreeMode === 'existing-tag') {
-          try {
-            // eslint-disable-next-line no-param-reassign
-            name = name.replaceAll('.', '-');
-            execSync(`"${gitCommand}" worktree add ${worktreePath} ${name}`, {
-              cwd: dir,
-            });
-          } catch (e) {
-            reject(e);
-          }
         }
         resolve(stdout);
       },
