@@ -243,6 +243,17 @@ function getWorktreesFolder(dir: string) {
   });
 }
 
+function getWorktreesSeparator() {
+  return new Promise((resolve, reject) => {
+    try {
+      const separator = os.platform() === 'win32' ? '\\' : '/';
+      resolve(separator);
+    } catch (err: any) {
+      reject(err.toString());
+    }
+  });
+}
+
 function moveWorktreeToFolder(
   name: string,
   newWorktreePath: string,
@@ -275,5 +286,6 @@ export default {
   prune,
   changeLock,
   getWorktreesFolder,
+  getWorktreesSeparator,
   moveWorktreeToFolder,
 };

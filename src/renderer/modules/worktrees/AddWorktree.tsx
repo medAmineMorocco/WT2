@@ -54,7 +54,13 @@ export default function AddWorktree({
   }, [activeTab]);
 
   useEffect(() => {
-    ipcRenderer.send('get-worktrees-folder', tabRepoPath);
+    const activeTabValue = TabService.getTab(activeTab);
+    if (activeTabValue.worktreesPath) {
+      ipcRenderer.send('get-worktrees-separator', tabRepoPath);
+      setWorktreesFolder(activeTabValue.worktreesPath);
+    } else {
+      ipcRenderer.send('get-worktrees-folder', tabRepoPath);
+    }
 
     const onWorktreeCreated = (event: any, code: number, result: any) => {
       if (code === 0) {
@@ -112,6 +118,12 @@ export default function AddWorktree({
       }
     };
 
+    const onWorktreesSeparatorFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setPathSeparator(result);
+      }
+    };
+
     const onSelectWorktreesDir = (
       event: any,
       code: number,
@@ -126,6 +138,7 @@ export default function AddWorktree({
     ipcRenderer.on('branches-found', onBranchesFound);
     ipcRenderer.on('receive-tags', onTagsFound);
     ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
+    ipcRenderer.on('worktrees-separator-found', onWorktreesSeparatorFound);
     ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
 
     return () => {
@@ -133,6 +146,7 @@ export default function AddWorktree({
       ipcRenderer.removeAllListeners('branches-found');
       ipcRenderer.removeAllListeners('receive-tags');
       ipcRenderer.removeAllListeners('worktrees-folder-found');
+      ipcRenderer.removeAllListeners('worktrees-separator-found');
       ipcRenderer.removeAllListeners('selected-worktrees-dir');
     };
   }, [form, notification, tabRepoPath]);
@@ -232,6 +246,7 @@ export default function AddWorktree({
       ...activeTabValue,
       preHook: values.preHook,
       postHook: values.postHook,
+      worktreesPath: worktreesFolder,
     };
     window.localStorage.setItem(activeTab, JSON.stringify(activeTabNewValue));
 

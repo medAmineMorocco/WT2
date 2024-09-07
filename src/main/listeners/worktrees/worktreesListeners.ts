@@ -159,6 +159,16 @@ ipcMain.on('get-worktrees-folder', async function (event, directory: string) {
   }
 });
 
+ipcMain.on('get-worktrees-separator', async function (event) {
+  try {
+    const separator = await worktreeMainService.getWorktreesSeparator();
+    event.sender.send('worktrees-separator-found', 0, separator);
+  } catch (err: any) {
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('worktrees-separator-found', -1, encoded);
+  }
+});
+
 ipcMain.on(
   'move-worktree-to-folder',
   async function (
