@@ -715,8 +715,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <div>
           <Badge
             count={mode === 'workflows' ? workflows.length : generators.length}
-            offset={[0, 0]}
             showZero
+            style={{ right: mode === 'workflows' ? '100%' : 0 }}
             title="total"
             color="#FAAD14"
           >
