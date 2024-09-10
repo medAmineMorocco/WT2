@@ -7,6 +7,7 @@ import {
   Form,
   Typography,
   Cascader,
+  notification,
 } from 'antd';
 import {
   MoreOutlined,
@@ -21,6 +22,7 @@ import {
   UnlockOutlined,
   CodeOutlined,
   CloseOutlined,
+  LoadingOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon } from 'hugeicons-react';
@@ -79,7 +81,9 @@ const items = [
 export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const { token } = useToken();
 
-  const { modal, notification } = AntdApp.useApp();
+  const { modal } = AntdApp.useApp();
+
+  const [api, contextHolder] = notification.useNotification();
 
   const [form] = Form.useForm();
 
@@ -155,11 +159,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       withLocalBranch: boolean,
     ) => {
       if (code === 0) {
-        notification.success({
-          message: 'Worktree Successfully Removed',
-          placement: 'bottomLeft',
-          duration: 0.5,
-        });
+        setTimeout(() => {
+          api.success({
+            key: 'updatable',
+            message: 'Worktree Successfully Removed',
+            placement: 'bottomLeft',
+            duration: 0.5,
+          });
+        }, 500);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else if (result.includes('--force')) {
         modal.confirm({
@@ -191,11 +198,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           },
         });
       } else {
-        notification.error({
-          message: 'Unable to Remove Worktree',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
-          placement: 'bottomLeft',
-        });
+        setTimeout(() => {
+          api.error({
+            key: 'updatable',
+            message: 'Unable to Remove Worktree',
+            description: <Typography.Text copyable>{result}</Typography.Text>,
+            placement: 'bottomLeft',
+          });
+        }, 500);
       }
     };
 
@@ -454,10 +464,26 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         return;
       }
       if (key === '2-0') {
+        api.open({
+          key: 'updatable',
+          icon: <LoadingOutlined />,
+          message:
+            'Your worktree is being deleted. Please wait a moment while we complete the process.',
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
         ipcRenderer.send('remove-worktree', worktree.path, tabRepoPath, false);
         return;
       }
       if (key === '2-1') {
+        api.open({
+          key: 'updatable',
+          icon: <LoadingOutlined />,
+          message:
+            'Your worktree is being deleted. Please wait a moment while we complete the process.',
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
         ipcRenderer.send(
           'remove-worktree-local-branch',
           worktree.name,
@@ -515,6 +541,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   return (
     <>
+      {contextHolder}
       <ul style={{ marginTop: '4px', paddingLeft: '8px', paddingRight: '2px' }}>
         {worktrees.map((worktree: any) => (
           <li
