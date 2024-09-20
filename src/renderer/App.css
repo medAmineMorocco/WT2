@@ -399,3 +399,12 @@ body {
 :where(.css-dev-only-do-not-override-1kuana8).ant-breadcrumb {
   color: rgba(0, 0, 0, 0.88);
 }
+
+.workflows-segmented .ant-segmented-item-label {
+  display: flex;
+}
+
+.workflows-segmented .ant-segmented-item-icon {
+  display: flex;
+  align-items: center;
+}

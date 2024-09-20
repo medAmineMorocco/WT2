@@ -721,6 +721,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             color="#FAAD14"
           >
             <Segmented
+              className="workflows-segmented"
               options={[
                 {
                   label: <strong>Workflows</strong>,
