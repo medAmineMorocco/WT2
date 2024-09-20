@@ -27,14 +27,14 @@ ipcMain.on(
     directory: string,
   ) {
     try {
-      const gitDiff = await gitMainService.showDiff(
+      const gitDiffCompressed = await gitMainService.showDiff(
         val1,
         val2,
         diffFilters,
         isAll,
         directory,
       );
-      event.sender.send('receive-git-diff', 0, gitDiff);
+      event.sender.send('receive-git-diff', 0, gitDiffCompressed);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
       event.sender.send('receive-git-diff', -1, encoded);

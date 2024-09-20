@@ -33,6 +33,7 @@ import {
 import { ColorSchemeType } from 'diff2html/lib/types';
 import { style } from 'dynamic-import';
 import { useHotkeys } from 'react-hotkeys-hook';
+import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import 'highlight.js/styles/github.min.css';
 import 'diff2html/bundles/css/diff2html.min.css';
@@ -45,6 +46,7 @@ const configuration: Diff2HtmlUIConfig = {
   fileListToggle: false,
   outputFormat: 'side-by-side',
   highlight: true,
+  diffMaxChanges: 5000,
 };
 
 const options = ['added', 'deleted', 'modified'];
@@ -161,8 +163,9 @@ export default function GitDiff({
     ipcRenderer.send('list-refs', tabRepoPath);
     const onReceiveGitDiff = (event: any, code: number, result: any) => {
       if (code === 0) {
-        setDiff(result);
-        drawDiff(result);
+        const decompressed = pako.ungzip(result, { to: 'string' });
+        setDiff(decompressed);
+        drawDiff(decompressed);
         setLoading(false);
         setDiffMode(true);
       } else {

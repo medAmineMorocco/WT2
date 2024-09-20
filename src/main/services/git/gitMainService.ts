@@ -1,6 +1,8 @@
 import { execSync } from 'child_process';
 import utils from '../../utils/utils';
 
+const zlib = require('zlib');
+
 async function gitCommand() {
   const storedGitExecutable = await utils.getStorageItem('gitExecutablePath');
   return storedGitExecutable || 'git';
@@ -49,7 +51,8 @@ function showDiff(
       let command = `"${gitCmd}" diff ${val1} ${val2}`;
       if (isAll) {
         const stdout = execSync(command, options);
-        resolve(stdout.toString());
+        const compressed = zlib.gzipSync(stdout.toString());
+        resolve(compressed);
       }
       command += ' --diff-filter=';
       if (diffFilters.includes('added')) {
@@ -62,7 +65,8 @@ function showDiff(
         command += 'M';
       }
       const stdout = execSync(command, options);
-      resolve(stdout.toString());
+      const compressed = zlib.gzipSync(stdout.toString());
+      resolve(compressed);
     } catch (error) {
       reject(error);
     }
