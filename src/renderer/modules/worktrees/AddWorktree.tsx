@@ -440,7 +440,7 @@ export default function AddWorktree({
           label="Pre-hook"
           name="preHook"
           tooltip={{
-            title: `command will be executed in ${tabRepoPath}`,
+            title: `command will be executed in main worktree : ${tabRepoPath}`,
             icon: <InfoCircleOutlined />,
             placement: 'right',
           }}
