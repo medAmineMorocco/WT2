@@ -49,12 +49,20 @@ export default function TerminalInteractive({
     };
   }, []);
 
+  function removeANSI(str: string) {
+    return str.replace(
+      // eslint-disable-next-line no-control-regex
+      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+      '',
+    );
+  }
+
   useEffect(() => {
     const onReceiveCommandOutput = (event: any, code: number, result: any) => {
       const ld = [...lineData];
       ld.push(
         <TerminalOutput key={new Date().getTime().toString()}>
-          {result}
+          {removeANSI(result)}
         </TerminalOutput>,
       );
       if (!commandFinished) {
