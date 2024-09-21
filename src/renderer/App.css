@@ -312,7 +312,12 @@ body {
   overflow-wrap: break-word;
 }
 
+.xterm-helper-textarea {
+  display: none;
+}
+
 .terminal-ui .xterm-rows {
+  cursor: auto;
   font-family: "Fira Mono", Consolas, Menlo, Monaco, "Courier New", Courier, monospace !important;
 }
 
