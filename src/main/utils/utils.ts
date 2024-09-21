@@ -10,11 +10,14 @@ function getStorageItem(key: string) {
 
 async function setStoredEncoding(buffer: any) {
   const storedEncoding = await getStorageItem('encoding');
-  return iconv.decode(buffer, storedEncoding.toLowerCase() || 'utf-8');
+  return iconv.decode(
+    buffer,
+    storedEncoding ? storedEncoding.toLowerCase() : 'utf-8',
+  );
 }
 
 function setEncoding(buffer: any, encoding: string) {
-  return iconv.decode(buffer, encoding.toLowerCase() || 'utf-8');
+  return iconv.decode(buffer, encoding ? encoding.toLowerCase() : 'utf-8');
 }
 
 export default {
