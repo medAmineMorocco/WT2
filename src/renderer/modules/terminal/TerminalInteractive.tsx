@@ -59,15 +59,14 @@ export default function TerminalInteractive({
 
   useEffect(() => {
     const onReceiveCommandOutput = (event: any, code: number, result: any) => {
-      const ld = [...lineData];
-      ld.push(
-        <TerminalOutput key={new Date().getTime().toString()}>
-          {removeANSI(result)}
-        </TerminalOutput>,
-      );
-      if (!commandFinished) {
-        setLineData(ld);
-      }
+      const removedAnsi = removeANSI(result);
+      setLineData((prevLineData) => {
+        const updatedLineData = [...prevLineData];
+        updatedLineData.push(
+          <TerminalOutput key={Math.random()}>{removedAnsi}</TerminalOutput>,
+        );
+        return updatedLineData;
+      });
     };
 
     const onCommandFinished = (event: any) => {
