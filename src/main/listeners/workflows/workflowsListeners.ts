@@ -50,6 +50,7 @@ async function executeCommand(
     commandProcess.stdout.on('data', async (data: any) => {
       if (stopExecution) {
         abortController.abort();
+        commandProcess.kill('SIGKILL');
       }
       logStates = await Promise.all(
         logStates.map(async (item) => {

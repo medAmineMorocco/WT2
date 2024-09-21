@@ -109,6 +109,7 @@ ipcMain.on('list-refs', async function (event, directory: string) {
 });
 
 let abortController: AbortController;
+let commandProcess: any;
 ipcMain.on(
   'execute-command',
   async function (event, command: string, directory: string) {
@@ -120,7 +121,7 @@ ipcMain.on(
       signal: abortController.signal,
     };
 
-    const commandProcess = spawn(command, [], options);
+    commandProcess = spawn(command, [], options);
 
     commandProcess.stdout.on('data', async (data: any) => {
       const encoded = await utils.setStoredEncoding(data);
@@ -145,5 +146,6 @@ ipcMain.on(
 
 ipcMain.on('stop-command', function (event) {
   abortController.abort();
+  commandProcess.kill('SIGKILL');
   event.sender.send('command-stopped');
 });
