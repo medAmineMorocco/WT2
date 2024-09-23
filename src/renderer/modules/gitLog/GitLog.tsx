@@ -3,9 +3,9 @@ import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
 import { LoadingOutlined } from '@ant-design/icons';
+import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
-import pako from 'pako';
 
 export default function GitLog({
   isModalOpen,

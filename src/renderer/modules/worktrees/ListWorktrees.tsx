@@ -166,37 +166,56 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             placement: 'bottomLeft',
             duration: 0.5,
           });
-        }, 500);
+        }, 50);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else if (result.includes('--force')) {
-        modal.confirm({
-          title: withLocalBranch
-            ? 'changes have been found in the worktree. Confirm deletion of this worktree and local branch ?'
-            : 'changes have been found in the worktree. Confirm deletion of this worktree ?',
-          icon: <ExclamationCircleFilled />,
-          okText: 'Yes',
-          okType: 'danger',
-          cancelText: 'No',
-          centered: true,
-          onOk() {
-            if (withLocalBranch) {
-              ipcRenderer.send(
-                'remove-worktree-local-branch',
-                worktreeName,
-                worktreePath,
-                tabRepoPath,
-                true,
-              );
-            } else {
-              ipcRenderer.send(
-                'remove-worktree',
-                worktreePath,
-                tabRepoPath,
-                true,
-              );
-            }
-          },
-        });
+        setTimeout(() => {
+          api.destroy('updatable');
+          modal.confirm({
+            title: withLocalBranch
+              ? 'changes have been found in the worktree. Confirm deletion of this worktree and local branch ?'
+              : 'changes have been found in the worktree. Confirm deletion of this worktree ?',
+            icon: <ExclamationCircleFilled />,
+            okText: 'Yes',
+            okType: 'danger',
+            cancelText: 'No',
+            centered: true,
+            onOk() {
+              if (withLocalBranch) {
+                api.open({
+                  key: 'updatable',
+                  icon: <LoadingOutlined />,
+                  message:
+                    'Your worktree is being deleted. Please wait a moment while we complete the process.',
+                  placement: 'bottomLeft',
+                  duration: 0.5,
+                });
+                ipcRenderer.send(
+                  'remove-worktree-local-branch',
+                  worktreeName,
+                  worktreePath,
+                  tabRepoPath,
+                  true,
+                );
+              } else {
+                api.open({
+                  key: 'updatable',
+                  icon: <LoadingOutlined />,
+                  message:
+                    'Your worktree is being deleted. Please wait a moment while we complete the process.',
+                  placement: 'bottomLeft',
+                  duration: 0.5,
+                });
+                ipcRenderer.send(
+                  'remove-worktree',
+                  worktreePath,
+                  tabRepoPath,
+                  true,
+                );
+              }
+            },
+          });
+        }, 500);
       } else {
         setTimeout(() => {
           api.error({
