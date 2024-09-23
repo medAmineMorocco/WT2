@@ -5,6 +5,7 @@ import { GitBranchIcon } from 'hugeicons-react';
 import { LoadingOutlined } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
+import pako from 'pako';
 
 export default function GitLog({
   isModalOpen,
@@ -35,7 +36,8 @@ export default function GitLog({
       if (code === 0) {
         setTimeout(() => {
           setLoading(false);
-          setGitLog(result);
+          const decompressed = pako.ungzip(result, { to: 'string' });
+          setGitLog(decompressed);
         }, 4);
       } else {
         notification.error({

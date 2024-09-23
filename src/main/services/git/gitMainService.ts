@@ -25,7 +25,8 @@ function showLog(directory: string, branch: string) {
         ? `"${gitCmd}" log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`
         : `"${gitCmd}" log --oneline --decorate --all --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`;
       const stdout = execSync(command, options);
-      resolve(stdout);
+      const compressed = zlib.gzipSync(stdout.toString());
+      resolve(compressed);
     } catch (error) {
       reject(error);
     }
