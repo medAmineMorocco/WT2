@@ -133,18 +133,7 @@ export default function EditorSettings({
             requiredMark="optional"
             form={form}
           >
-            <Form.Item
-              label="Path"
-              name="path"
-              rules={[
-                {
-                  required: true,
-                  whitespace: true,
-                  message: 'Please enter the name of your worktree.',
-                },
-              ]}
-              style={{ flex: 1 }}
-            >
+            <Form.Item label="Path" name="path" style={{ flex: 1 }}>
               <Input prefix={<BranchesOutlined />} allowClear />
             </Form.Item>
             <Form.Item name="editorName" hidden />
