@@ -2,6 +2,7 @@ import { dialog, ipcMain } from 'electron';
 import path from 'path';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import utils from '../../utils/utils';
+import gitMainService from '../../services/git/gitMainService';
 
 const intervalIds: any[] = [];
 ipcMain.on(
@@ -90,8 +91,9 @@ ipcMain.on(
 );
 
 ipcMain.on('get-worktrees', async function (event, directory: string) {
+  const gitCommand = await gitMainService.gitCommand();
   try {
-    const worktrees = await worktreeMainService.findAll(directory);
+    const worktrees = await worktreeMainService.findAll(directory, gitCommand);
     event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
@@ -100,7 +102,10 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
   intervalIds.push(
     setInterval(async () => {
       try {
-        const worktrees = await worktreeMainService.findAll(directory);
+        const worktrees = await worktreeMainService.findAll(
+          directory,
+          gitCommand,
+        );
         event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
       } catch (err: any) {
         const encoded = await utils.setStoredEncoding(Buffer.from(err.message));

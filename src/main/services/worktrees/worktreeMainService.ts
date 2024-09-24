@@ -4,10 +4,9 @@ import gitMainService from '../git/gitMainService';
 
 const { exec, execSync } = require('child_process');
 
-function findAll(directory: string) {
+function findAll(directory: string, gitCommand: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
     exec(
       `"${gitCommand}" worktree list`,
       {
