@@ -90,7 +90,7 @@ export default function TerminalInteractive({
 
   function onInput(input: string) {
     let ld = [...lineData];
-    ld.push(<TerminalInput>{input}</TerminalInput>);
+    ld.push(<TerminalInput key={Math.random()}>{input}</TerminalInput>);
     if (input.toLocaleLowerCase().trim() === 'clear') {
       ld = [];
     } else if (input) {

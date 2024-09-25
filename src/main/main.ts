@@ -21,6 +21,7 @@ import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
+import './listeners/terminal/terminalListeners';
 
 const http = require('http');
 const Store = require('electron-store');

@@ -6,6 +6,7 @@ import React, {
   ChangeEvent,
   ReactNode,
 } from 'react';
+import { ipcRenderer } from 'electron';
 import TerminalInput from './linetypes/TerminalInput';
 import TerminalOutput from './linetypes/TerminalOutput';
 import './style.css';
@@ -46,10 +47,6 @@ function Terminal({
 
   const scrollIntoViewRef = useRef<HTMLDivElement>(null);
 
-  const updateCurrentLineInput = (event: ChangeEvent<HTMLInputElement>) => {
-    setCurrentLineInput(event.target.value);
-  };
-
   // Calculates the total width in pixels of the characters to the right of the cursor.
   // Create a temporary span element to measure the width of the characters.
   const calculateInputWidth = (
@@ -69,6 +66,40 @@ function Terminal({
     return -width;
   };
 
+  useEffect(() => {
+    const onReceiveAutocompleteResults = (
+      event: any,
+      filesNames: string[],
+      searchedInput: string,
+    ) => {
+      if (filesNames && filesNames.length > 0) {
+        const newCurrentLineInput = currentLineInput.replace(
+          searchedInput,
+          `${filesNames[0]} `,
+        );
+        setCurrentLineInput(newCurrentLineInput);
+        setCursorPos(0);
+      }
+      const terminalInput = document.getElementsByClassName(
+        'terminal-hidden-input',
+      );
+      if (terminalInput.length > 0) {
+        const terminalInputElement = terminalInput[0] as any;
+        terminalInputElement.focus();
+      }
+    };
+
+    ipcRenderer.on('autocomplete-results', onReceiveAutocompleteResults);
+
+    return () => {
+      ipcRenderer.removeAllListeners('autocomplete-results');
+    };
+  }, [currentLineInput]);
+
+  const updateCurrentLineInput = (event: ChangeEvent<HTMLInputElement>) => {
+    setCurrentLineInput(event.target.value);
+  };
+
   const clamp = (value: number, min: number, max: number) => {
     if (value > max) return max;
     if (value < min) return min;
@@ -78,6 +109,13 @@ function Terminal({
   const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!onInput) {
       return;
+    }
+    if (event.key === 'Tab') {
+      if (currentLineInput && currentLineInput.trim() !== '') {
+        const splitted = currentLineInput.split(' ');
+        const lastWord = splitted[splitted.length - 1];
+        ipcRenderer.send('autocomplete', name, lastWord);
+      }
     }
     if (event.key === 'Enter') {
       onInput(currentLineInput);
