@@ -102,6 +102,11 @@ const data = {
       shortcut2: 'U',
     },
     {
+      title: 'Clear Word',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: 'Backspace',
+    },
+    {
       title: 'Go to Start of Input',
       shortcut1: 'Home',
     },
