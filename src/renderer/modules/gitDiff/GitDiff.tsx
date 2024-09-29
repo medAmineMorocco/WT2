@@ -6,6 +6,7 @@ import {
   FloatButton,
   Grid,
   Input,
+  InputNumber,
   Modal,
   notification,
   Radio,
@@ -13,6 +14,7 @@ import {
   Result,
   Select,
   Space,
+  Tooltip,
   Typography,
 } from 'antd';
 import {
@@ -24,7 +26,13 @@ import {
   SwapOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { GitCompareIcon } from 'hugeicons-react';
 import {
   Diff2HtmlUI,
@@ -40,6 +48,17 @@ import 'diff2html/bundles/css/diff2html.min.css';
 import { useItemsContext } from '../../TabsContext';
 
 const { useBreakpoint } = Grid;
+
+const outputFormatOptions = [
+  { value: 'side-by-side', label: 'Side by Side' },
+  { value: 'line-by-line', label: 'Line by Line' },
+];
+
+const matchingTypeOptions = [
+  { value: 'words', label: 'Words' },
+  { value: 'lines', label: 'Lines' },
+  { value: 'none', label: 'None' },
+];
 
 const configuration: Diff2HtmlUIConfig = {
   drawFileList: true,
@@ -66,7 +85,7 @@ export default function GitDiff({
 
   const { isDarkMode } = useItemsContext();
 
-  const [diff, setDiff] = useState();
+  const [diff, setDiff] = useState<string>();
 
   const [diffMode, setDiffMode] = useState(false);
 
@@ -112,6 +131,11 @@ export default function GitDiff({
 
   const rightSelectRef = useRef(null);
 
+  const [outputFormat, setOutputFormat] = useState<string>('side-by-side');
+  const [matchingType, setMatchingType] = useState<string>('none');
+  const [wordsThreshold, setWordsThreshold] = useState<number | null>(0.25);
+  const [maxDiff, setMaxDiff] = useState<number | null>(2500);
+
   const checkAll = options.length === diffFilters.length;
   const indeterminate =
     diffFilters.length > 0 && diffFilters.length < options.length;
@@ -133,17 +157,35 @@ export default function GitDiff({
     });
   };
 
-  const drawDiff = (dif: string) => {
-    const targetElement = document.getElementById('git-diff');
-    if (targetElement) {
-      configuration.colorScheme = isDarkMode
-        ? ColorSchemeType.DARK
-        : ColorSchemeType.LIGHT;
-      const diff2htmlUi = new Diff2HtmlUI(targetElement, dif, configuration);
-      diff2htmlUi.draw();
-      diff2htmlUi.highlightCode();
-    }
-  };
+  const drawDiff = useCallback(
+    (dif: string) => {
+      const targetElement = document.getElementById('git-diff');
+      if (targetElement) {
+        configuration.colorScheme = isDarkMode
+          ? ColorSchemeType.DARK
+          : ColorSchemeType.LIGHT;
+        if (outputFormat) {
+          // @ts-ignore
+          configuration.outputFormat = outputFormat;
+        }
+        if (matchingType) {
+          // @ts-ignore
+          configuration.matching = matchingType;
+        }
+        if (wordsThreshold) {
+          configuration.matchWordsThreshold = wordsThreshold;
+        }
+        if (maxDiff) {
+          configuration.matchingMaxComparisons = maxDiff;
+        }
+        console.log('configuration', configuration);
+        const diff2htmlUi = new Diff2HtmlUI(targetElement, dif, configuration);
+        diff2htmlUi.draw();
+        diff2htmlUi.highlightCode();
+      }
+    },
+    [isDarkMode, matchingType, maxDiff, outputFormat, wordsThreshold],
+  );
 
   useEffect(() => {
     if (screens.xl === false) {
@@ -208,7 +250,7 @@ export default function GitDiff({
       ipcRenderer.removeAllListeners('receive-refs');
       ipcRenderer.removeAllListeners('receive-diff-stats');
     };
-  }, [isDarkMode, tabRepoPath]);
+  }, [drawDiff, isDarkMode, tabRepoPath]);
 
   const onLeftModeChange = (e: RadioChangeEvent) => {
     const val = e.target.value;
@@ -403,7 +445,6 @@ export default function GitDiff({
             )}
             {rightMode && <i> ({rightMode})</i>}
           </div>
-          <br />
           <Divider orientation="left" orientationMargin="0">
             Filters / Statistics
           </Divider>
@@ -479,6 +520,74 @@ export default function GitDiff({
               )}
             </div>
           </div>
+          <Divider orientation="left" orientationMargin="0">
+            Options
+          </Divider>
+
+          <Space direction="vertical">
+            <Space>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title="Output format of the HTML, either line by line or side by side"
+                placement="top"
+              >
+                <span>Output Format</span>
+              </Tooltip>
+              <Select
+                value={outputFormat}
+                onChange={setOutputFormat}
+                options={outputFormatOptions}
+              />
+            </Space>
+            <Space>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title="Level of matching for the comparison algorithm"
+                placement="top"
+              >
+                <span>Matching Type</span>
+              </Tooltip>
+              <Select
+                value={matchingType}
+                onChange={setMatchingType}
+                options={matchingTypeOptions}
+              />
+            </Space>
+            <Space>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title="Similarity threshold for the matching algorithm"
+                placement="top"
+              >
+                <span>Words Threshold</span>
+              </Tooltip>
+              <InputNumber
+                value={wordsThreshold}
+                onChange={(val) => setWordsThreshold(val)}
+                min={0}
+              />
+            </Space>
+            <Space>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title="Maximum number of comparison performed by the matching algorithm in a block of changes"
+                placement="top"
+              >
+                <span>Max Comparisons</span>
+              </Tooltip>
+              <InputNumber
+                value={maxDiff}
+                onChange={(val) => setMaxDiff(val)}
+                min={0}
+              />
+            </Space>
+          </Space>
+
+          <br />
           <br />
           {diffMode && (
             <Space>
@@ -487,7 +596,7 @@ export default function GitDiff({
               </Button>
 
               <Button onClick={filter} disabled={loading} type="primary">
-                Filter
+                Compare
               </Button>
             </Space>
           )}
