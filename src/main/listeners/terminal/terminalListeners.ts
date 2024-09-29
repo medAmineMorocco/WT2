@@ -9,8 +9,6 @@ ipcMain.on('autocomplete', (event, directory: string, input: string) => {
 
     const filteredFiles = files.filter((file) => file.startsWith(input));
 
-    console.log('filteredFiles', input, filteredFiles);
-
     event.sender.send('autocomplete-results', filteredFiles, input);
   } catch (err) {
     event.sender.send('autocomplete-results', [], input);

@@ -21,9 +21,10 @@ function showLog(directory: string, branch: string) {
     } as any;
     try {
       const gitCmd = await gitCommand();
+      const gitLogFormat = await utils.getStorageItem('gitLogFormat');
       const command = branch
-        ? `"${gitCmd}" log ${branch} --oneline --decorate --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`
-        : `"${gitCmd}" log --oneline --decorate --all --graph --color=always --format="%C(auto)%h %C(auto)%d %C(auto)%ai %C(bold)%s %C(auto)<%an>"`;
+        ? `"${gitCmd}" log ${branch} --oneline --decorate --graph --color=always --format="${gitLogFormat}"`
+        : `"${gitCmd}" log --oneline --decorate --all --graph --color=always --format="${gitLogFormat}"`;
       const stdout = execSync(command, options);
       const compressed = zlib.gzipSync(stdout.toString());
       resolve(compressed);

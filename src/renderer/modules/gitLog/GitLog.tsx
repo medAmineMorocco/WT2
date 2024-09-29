@@ -102,14 +102,25 @@ export default function GitLog({
       <div
         style={{ width: '100%', height: 'calc(100% - 94px)', padding: '12px' }}
       >
-        <div style={{ marginBottom: '16px', textAlign: 'center' }}>
-          <Select
-            ref={selectWorktreeRef}
-            placeholder="Select a worktree"
-            options={worktrees}
-            onChange={handleChange}
-            style={{ width: 220 }}
-          />
+        <div style={{ marginBottom: '16px' }}>
+          <Space>
+            <Select
+              ref={selectWorktreeRef}
+              placeholder="Worktree"
+              options={worktrees}
+              onChange={handleChange}
+              allowClear
+              style={{ width: 220 }}
+            />
+            <Select
+              placeholder="Author"
+              options={[]}
+              onChange={handleChange}
+              showSearch
+              allowClear
+              style={{ width: 220 }}
+            />
+          </Space>
         </div>
         {loading && (
           <div
