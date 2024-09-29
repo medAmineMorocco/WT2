@@ -5,9 +5,9 @@ import utils from '../../utils/utils';
 
 ipcMain.on(
   'show-git-log',
-  async function (event, directory: string, branch: string) {
+  async function (event, directory: string, branch: string, author: string) {
     try {
-      const gitLog = await gitMainService.showLog(directory, branch);
+      const gitLog = await gitMainService.showLog(directory, branch, author);
       event.sender.send('receive-git-log', 0, gitLog);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
@@ -95,6 +95,16 @@ ipcMain.on('list-worktrees', async function (event, directory: string) {
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
     event.sender.send('receive-worktrees', -1, encoded);
+  }
+});
+
+ipcMain.on('list-authors', async function (event, directory: string) {
+  try {
+    const authors = await gitMainService.listAuthors(directory);
+    event.sender.send('receive-authors', 0, authors);
+  } catch (err: any) {
+    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+    event.sender.send('receive-authors', -1, encoded);
   }
 });
 

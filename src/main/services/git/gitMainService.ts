@@ -12,7 +12,7 @@ function getShell() {
   return utils.getStorageItem('shellPath');
 }
 
-function showLog(directory: string, branch: string) {
+function showLog(directory: string, branch: string, author: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options = {
@@ -23,8 +23,8 @@ function showLog(directory: string, branch: string) {
       const gitCmd = await gitCommand();
       const gitLogFormat = await utils.getStorageItem('gitLogFormat');
       const command = branch
-        ? `"${gitCmd}" log ${branch} --oneline --decorate --graph --color=always --format="${gitLogFormat}"`
-        : `"${gitCmd}" log --oneline --decorate --all --graph --color=always --format="${gitLogFormat}"`;
+        ? `"${gitCmd}" log ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --color=always --format="${gitLogFormat}"`
+        : `"${gitCmd}" log --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --color=always --format="${gitLogFormat}"`;
       const stdout = execSync(command, options);
       const compressed = zlib.gzipSync(stdout.toString());
       resolve(compressed);
@@ -272,6 +272,32 @@ async function listRefs(directory: string) {
   }
 }
 
+async function listAuthors(directory: string) {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const options = {
+      cwd: directory,
+      shell: true,
+    } as any;
+    try {
+      const gitCmd = await gitCommand();
+      const output = execSync(
+        `"${gitCmd}" shortlog -s -n --all --no-merges`,
+        options,
+      );
+      const authors = output
+        .toString()
+        .trim()
+        .split('\n')
+        .map((line) => line.trim().replace(/^\d+\s+/, '')) // Remove commit counts
+        .filter(Boolean); // Remove any empty lines
+      resolve(authors);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
 export default {
   showLog,
   showDiff,
@@ -280,6 +306,7 @@ export default {
   listBranches,
   listTags,
   listWorktrees,
+  listAuthors,
   listRefs,
   gitCommand,
   getShell,

@@ -21,16 +21,22 @@ export default function GitLog({
   }, [activeTab]);
 
   const [worktrees, setWorktrees] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<any[]>([]);
 
   const [gitLog, setGitLog] = useState('');
 
   const [loading, setLoading] = useState<boolean>(true);
 
   const selectWorktreeRef = useRef(null);
+  const selectAuthorRef = useRef(null);
+
+  const [selectedWorktree, setSelectedWorktree] = useState<string | null>(null);
+  const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
 
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
     ipcRenderer.send('get-worktrees', tabRepoPath);
+    ipcRenderer.send('list-authors', tabRepoPath);
 
     const onReceiveGitLog = (event: any, code: number, result: any) => {
       if (code === 0) {
@@ -40,6 +46,7 @@ export default function GitLog({
           setGitLog(decompressed);
         }, 4);
       } else {
+        setLoading(false);
         notification.error({
           message: 'Unable to get log',
           description: <Typography.Text copyable>{result}</Typography.Text>,
@@ -61,22 +68,43 @@ export default function GitLog({
       }
     };
 
+    const onAuthorsFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setAuthors(
+          result.map((item: any) => {
+            return {
+              label: item,
+              value: item,
+            };
+          }),
+        );
+      }
+    };
+
     ipcRenderer.on('receive-git-log', onReceiveGitLog);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
+    ipcRenderer.on('receive-authors', onAuthorsFound);
 
     return () => {
       ipcRenderer.removeAllListeners('receive-git-log');
       ipcRenderer.removeAllListeners('worktrees-found');
+      ipcRenderer.removeAllListeners('receive-authors');
     };
   }, [tabRepoPath]);
 
-  const handleChange = (value: string) => {
+  const handleChange = (worktree: string | null, author: string | null) => {
+    setSelectedWorktree(worktree);
+    setSelectedAuthor(author);
     setLoading(true);
     if (selectWorktreeRef.current) {
       // @ts-ignore
       selectWorktreeRef.current.blur();
     }
-    ipcRenderer.send('show-git-log', tabRepoPath, value);
+    if (selectAuthorRef.current) {
+      // @ts-ignore
+      selectAuthorRef.current.blur();
+    }
+    ipcRenderer.send('show-git-log', tabRepoPath, worktree, author);
   };
 
   return (
@@ -106,16 +134,19 @@ export default function GitLog({
           <Space>
             <Select
               ref={selectWorktreeRef}
+              value={selectedWorktree}
               placeholder="Worktree"
               options={worktrees}
-              onChange={handleChange}
+              onChange={(val: string) => handleChange(val, selectedAuthor)}
               allowClear
               style={{ width: 220 }}
             />
             <Select
+              ref={selectAuthorRef}
+              value={selectedAuthor}
               placeholder="Author"
-              options={[]}
-              onChange={handleChange}
+              options={authors}
+              onChange={(val: string) => handleChange(selectedWorktree, val)}
               showSearch
               allowClear
               style={{ width: 220 }}
