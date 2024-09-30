@@ -22,15 +22,11 @@ import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
 import './listeners/terminal/terminalListeners';
+import './listeners/trial/trialListeners';
 
 const http = require('http');
-const Store = require('electron-store');
 
-const store = new Store();
 const { conf } = require('./conf/conf');
-
-const TRIAL_PERIOD_DAYS = 7;
-const PRO_VERSION = false;
 
 class AppUpdater {
   constructor() {
@@ -104,13 +100,6 @@ const createWindow = async () => {
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
-    }
-    if (!PRO_VERSION) {
-      let trialStartDate = store.get('trialStartDate');
-      if (!trialStartDate) {
-        trialStartDate = new Date();
-        store.set('trialStartDate', trialStartDate.toLocaleString());
-      }
     }
     if (process.platform === 'win32') {
       app.setAppUserModelId(app.name);
@@ -243,30 +232,4 @@ ipcMain.on('change-theme', async function (event, isDarkMode, activeTab) {
 ipcMain.on('get-os-separator', async function (event) {
   const separator = os.platform() === 'win32' ? '\\' : '/';
   event.sender.send('os-separator-found', separator);
-});
-
-ipcMain.on('check-trial-expiration', function (event) {
-  if (PRO_VERSION) {
-    event.sender.send('is-expired', PRO_VERSION, false, null);
-  } else {
-    let trialStartDate = store.get('trialStartDate');
-    if (!trialStartDate) {
-      trialStartDate = new Date();
-      store.set('trialStartDate', trialStartDate.toLocaleString());
-    }
-
-    const currentDate = new Date();
-    const daysSinceStart = Math.floor(
-      (currentDate.getTime() - new Date(trialStartDate).getTime()) /
-        (1000 * 60 * 60 * 24),
-    );
-    const daysRemaining = TRIAL_PERIOD_DAYS - daysSinceStart;
-
-    event.sender.send(
-      'is-expired',
-      PRO_VERSION,
-      daysSinceStart > TRIAL_PERIOD_DAYS,
-      daysRemaining,
-    );
-  }
 });
