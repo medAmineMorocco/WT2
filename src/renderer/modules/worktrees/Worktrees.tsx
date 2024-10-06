@@ -291,7 +291,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 padding: '16px',
               }}
             >
-              <PackInfos isDarkMode={isDarkMode} />
+              <PackInfos />
             </div>
             <Tag
               style={{

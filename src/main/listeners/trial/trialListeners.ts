@@ -52,6 +52,13 @@ function formatDate(date: Date) {
   return `${day}/${month}/${year}`;
 }
 
+function formatToReadbleDate(date: Date) {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const year = date.getFullYear();
+  return `${year}-${month}-${day}`;
+}
+
 // Function to encrypt data
 function encryptData(data: any) {
   const cipher = crypto.createCipheriv(algorithm, key, iv);
@@ -97,6 +104,7 @@ ipcMain.on('check-trial-expiration', function (event) {
       PRO_VERSION,
       daysSinceStart > TRIAL_PERIOD_DAYS,
       daysRemaining,
+      formatToReadbleDate(decryptedTrialData.startTrialDate),
     );
   }
 });

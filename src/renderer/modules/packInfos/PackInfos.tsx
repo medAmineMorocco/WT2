@@ -1,18 +1,20 @@
 import { Button, Card, Modal, Result, Space, Statistic } from 'antd';
 import { Award05Icon } from 'hugeicons-react';
-import { HourglassOutlined } from '@ant-design/icons';
+import { HourglassOutlined, HourglassFilled } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ipcRenderer } from 'electron';
 import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
 
 const PAYMENT_URL = 'https://ant.design/components/overview';
 
-export default function PackInfos({ isDarkMode }: { isDarkMode: boolean }) {
+export default function PackInfos() {
   const [isProVersion, setIsProVersion] = useState<boolean>();
 
   const [isExpired, setIsExpired] = useState<boolean>(false);
 
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
+
+  const [startTrialDate, setStartTrialDate] = useState<string | null>(null);
 
   useEffect(() => {
     ipcRenderer.send('check-trial-expiration');
@@ -21,11 +23,13 @@ export default function PackInfos({ isDarkMode }: { isDarkMode: boolean }) {
       isProVersionReceived: boolean,
       isExpiredReceived: boolean,
       daysRemainingReceived: number,
+      startTrialDateReceived: string,
     ) => {
       setIsProVersion(isProVersionReceived);
       setIsExpired(isExpiredReceived);
       if (!isExpiredReceived) {
         setDaysRemaining(daysRemainingReceived);
+        setStartTrialDate(startTrialDateReceived);
       }
     };
 
@@ -88,21 +92,22 @@ export default function PackInfos({ isDarkMode }: { isDarkMode: boolean }) {
             </Button>
           </Space>,
         ]}
+        title="Free Trial"
         bordered
-        style={{
-          backgroundColor: isDarkMode ? 'black' : '#f5f5f5',
-          boxShadow: 'none',
-        }}
+        type="inner"
       >
         <Statistic
-          title="Free Trial"
+          title={null}
+          prefix={
+            daysRemaining === 1 ? <HourglassOutlined /> : <HourglassFilled />
+          }
           value={daysRemaining || ''}
-          prefix={<HourglassOutlined />}
           suffix="Days"
         />
+        <small>Started on {startTrialDate}</small>
       </Card>
     );
-  }, [daysRemaining, isDarkMode, isExpired, isProVersion]);
+  }, [daysRemaining, isExpired, isProVersion, startTrialDate]);
 
   return <div>{content}</div>;
 }
