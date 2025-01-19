@@ -61,6 +61,9 @@ const configuration: webpack.Configuration = {
       NODE_ENV: 'production',
       DEBUG_PROD: false,
       START_MINIMIZED: false,
+      TRIAL_PERIOD_DAYS: 5,
+      BACKEND_BASE_URL: 'https://worktreewise-subscriptions.vercel.app',
+      FILE_WHERE_TO_STORE_SUBSCRIPTION: '.sys_cache_75h4kF.tmp',
     }),
 
     new webpack.DefinePlugin({

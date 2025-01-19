@@ -4,9 +4,16 @@ import os from 'os';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
+import axios from 'axios';
 
-const PRO_VERSION = false;
-const TRIAL_PERIOD_DAYS = 5;
+const TRIAL_PERIOD_DAYS: number = Number(process.env.TRIAL_PERIOD_DAYS) || 5;
+const BACKEND_BASE_URL: string = process.env.BACKEND_BASE_URL || '';
+const FILE_WHERE_TO_STORE_SUBSCRIPTION: string =
+  process.env.FILE_WHERE_TO_STORE_SUBSCRIPTION || '';
+const subscriptionOrTrialFilePath = path.join(
+  os.homedir(),
+  FILE_WHERE_TO_STORE_SUBSCRIPTION,
+);
 
 // Encryption Setup (same as before)
 const algorithm = 'aes-256-cbc';
@@ -22,11 +29,11 @@ function decryptData(encryptedData: any, ivHex: any) {
 }
 
 function parseStringToDate(dateString: string) {
-  const [day, month, year] = dateString.split('/');
+  const [year, month, day] = dateString.split('-');
   return new Date(`${year}-${month}-${day}T00:00:00Z`);
 }
 
-function loadAndDecryptTrialData(filePath: string) {
+function loadAndDecryptData(filePath: string) {
   if (!fs.existsSync(filePath)) {
     return null;
   }
@@ -37,26 +44,7 @@ function loadAndDecryptTrialData(filePath: string) {
   );
 
   // Convert decrypted string back to object
-  const parsedData = JSON.parse(decryptedData);
-
-  // Convert the startTrialDate string back to a Date object
-  parsedData.startTrialDate = parseStringToDate(parsedData.startTrialDate);
-
-  return parsedData;
-}
-
-function formatDate(date: Date) {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${day}/${month}/${year}`;
-}
-
-function formatToReadbleDate(date: Date) {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const year = date.getFullYear();
-  return `${year}-${month}-${day}`;
+  return JSON.parse(decryptedData);
 }
 
 // Function to encrypt data
@@ -67,44 +55,91 @@ function encryptData(data: any) {
   return { iv: iv.toString('hex'), encryptedData: encrypted };
 }
 
+function getPackInfos() {
+  return loadAndDecryptData(subscriptionOrTrialFilePath);
+}
+
 ipcMain.on('check-trial-expiration', function (event) {
-  if (PRO_VERSION) {
-    event.sender.send('is-expired', PRO_VERSION, false, null);
+  const currentDate = new Date();
+  const packInfos = getPackInfos();
+  if (!packInfos) {
+    event.sender.send('is-expired', null, null);
+    return;
+  }
+  if (packInfos.pack !== 'Free Trial') {
+    event.sender.send('is-expired', packInfos.pack, packInfos);
   } else {
-    const trialFilePath = path.join(os.homedir(), '.sys_cache_75h4kF.tmp');
-    let decryptedTrialData = loadAndDecryptTrialData(trialFilePath);
-
-    const currentDate = new Date();
-    if (!decryptedTrialData) {
-      decryptedTrialData = {
-        startTrialDate: currentDate,
-      };
-
-      const trialData = {
-        startTrialDate: formatDate(currentDate),
-      };
-
-      const encryptedTrialData = encryptData(JSON.stringify(trialData));
-
-      fs.writeFileSync(trialFilePath, JSON.stringify(encryptedTrialData));
-
-      if (process.platform === 'win32') {
-        execSync(`attrib +H "${trialFilePath}"`);
-      }
-    }
-
-    const daysSinceStart = Math.floor(
-      (currentDate.getTime() - decryptedTrialData.startTrialDate.getTime()) /
+    const { startTrialDate } = packInfos;
+    const daysSinceStart = Math.abs(
+      (currentDate.getTime() - parseStringToDate(startTrialDate).getTime()) /
         (1000 * 60 * 60 * 24),
     );
-    const daysRemaining = TRIAL_PERIOD_DAYS - daysSinceStart;
+    const daysRemaining = Math.trunc(TRIAL_PERIOD_DAYS - daysSinceStart);
 
-    event.sender.send(
-      'is-expired',
-      PRO_VERSION,
-      daysSinceStart > TRIAL_PERIOD_DAYS,
-      daysRemaining,
-      formatToReadbleDate(decryptedTrialData.startTrialDate),
-    );
+    const infos = {
+      isExpiredReceived: daysSinceStart > TRIAL_PERIOD_DAYS,
+      daysRemainingReceived: daysRemaining,
+      startTrialDateReceived: startTrialDate,
+    };
+
+    event.sender.send('is-expired', packInfos.pack, infos);
   }
 });
+
+ipcMain.on(
+  'verify-subscription',
+  async function (event, trialOrSubscription, email, licence) {
+    try {
+      const response = await axios.get(
+        trialOrSubscription === 'trial'
+          ? `${BACKEND_BASE_URL}/api/trials`
+          : `${BACKEND_BASE_URL}/api/subscriptions`,
+        {
+          params: {
+            email,
+            licence,
+          },
+        },
+      );
+      const packInfos = {
+        pack: response.data.pack,
+        email: response.data.email,
+      } as any;
+      if (response.data && response.data.pack === 'Free Trial') {
+        const { infos } = response.data;
+        packInfos.startTrialDate = infos.startTrialDate;
+      }
+
+      const encryptedPackInfos = encryptData(JSON.stringify(packInfos));
+      if (fs.existsSync(subscriptionOrTrialFilePath)) {
+        fs.unlinkSync(subscriptionOrTrialFilePath);
+      }
+      fs.writeFileSync(
+        subscriptionOrTrialFilePath,
+        JSON.stringify(encryptedPackInfos),
+      );
+
+      if (process.platform === 'win32') {
+        execSync(`attrib +H "${subscriptionOrTrialFilePath}"`);
+      }
+
+      event.sender.send(
+        'is-subscribed',
+        response.data.valid,
+        response.data,
+        response.data.reason,
+      );
+    } catch (error: any) {
+      if (error.response) {
+        // The request was made, and the server responded with a status code not in the range of 2xx
+        event.sender.send('is-subscribed', false, error.response.data);
+      } else if (error.request) {
+        // The request was made, but no response was received
+        event.sender.send('is-subscribed', false, error.request);
+      } else {
+        // Something else happened during the request
+        event.sender.send('is-subscribed', false, error.message);
+      }
+    }
+  },
+);

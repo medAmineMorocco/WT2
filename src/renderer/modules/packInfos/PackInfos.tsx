@@ -1,14 +1,35 @@
-import { Button, Card, Modal, Result, Space, Statistic } from 'antd';
+import {
+  Button,
+  Card,
+  Form,
+  Input,
+  Modal,
+  Result,
+  Segmented,
+  Space,
+  Statistic,
+  theme,
+  Typography,
+} from 'antd';
 import { Award05Icon } from 'hugeicons-react';
-import { HourglassOutlined, HourglassFilled } from '@ant-design/icons';
+import {
+  HourglassOutlined,
+  HourglassFilled,
+  UserOutlined,
+  KeyOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ipcRenderer } from 'electron';
+import iconImage from './icon.png';
 import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
 
-const PAYMENT_URL = 'https://ant.design/components/overview';
+const { useToken } = theme;
 
 export default function PackInfos() {
-  const [isProVersion, setIsProVersion] = useState<boolean>();
+  const { token } = useToken();
+
+  const [pack, setPack] = useState<string | null>();
 
   const [isExpired, setIsExpired] = useState<boolean>(false);
 
@@ -16,42 +37,199 @@ export default function PackInfos() {
 
   const [startTrialDate, setStartTrialDate] = useState<string | null>(null);
 
+  const [packInfos, setPackInfos] = useState<any | null>();
+
+  const [isLoading, setLoading] = useState<boolean>(false);
+
+  const [isSubscriptionModalClosable, setIsSubscriptionModalClosable] =
+    useState<boolean>(false);
+
+  const [errorReason, setErrorReason] = useState<string | null>();
+
   useEffect(() => {
     ipcRenderer.send('check-trial-expiration');
     const onReceiveExpirationInfos = (
       event: any,
-      isProVersionReceived: boolean,
-      isExpiredReceived: boolean,
-      daysRemainingReceived: number,
-      startTrialDateReceived: string,
+      packReceived: string,
+      infos: any,
     ) => {
-      setIsProVersion(isProVersionReceived);
-      setIsExpired(isExpiredReceived);
-      if (!isExpiredReceived) {
-        setDaysRemaining(daysRemainingReceived);
+      setPack(packReceived);
+      setPackInfos(infos);
+      if (packReceived === 'Free Trial') {
+        const {
+          isExpiredReceived,
+          daysRemainingReceived,
+          startTrialDateReceived,
+        } = infos;
+        setIsExpired(isExpiredReceived);
         setStartTrialDate(startTrialDateReceived);
+        setIsSubscriptionModalClosable(false);
+        if (!isExpiredReceived) {
+          setDaysRemaining(daysRemainingReceived);
+        }
+      }
+    };
+
+    const onReceiveSubscriptionInfos = (
+      event: any,
+      isSubscribedOrHasTrial: boolean,
+      _infos: any,
+      errorReasonReceived: string,
+    ) => {
+      setLoading(false);
+      setErrorReason(errorReasonReceived);
+      if (isSubscribedOrHasTrial) {
+        ipcRenderer.send('check-trial-expiration');
       }
     };
 
     ipcRenderer.on('is-expired', onReceiveExpirationInfos);
+    ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
 
     return () => {
       ipcRenderer.removeAllListeners('is-expired');
+      ipcRenderer.removeAllListeners('is-subscribed');
     };
   }, []);
 
+  const onGoPro = () => {
+    setIsSubscriptionModalClosable(true);
+  };
+
+  const onCloseSubscriptionModal = () => {
+    setIsSubscriptionModalClosable(false);
+  };
+
+  const onFinish = (values: any) => {
+    setLoading(true);
+    setErrorReason(null);
+    ipcRenderer.send(
+      'verify-subscription',
+      values.trialOrSubscription,
+      values.email,
+      values.licence,
+    );
+  };
+
   const content = useMemo(() => {
-    if (isProVersion) {
+    if (pack !== 'Free Trial' && packInfos) {
       return (
         <div style={{ textAlign: 'center' }}>
-          <Space>
-            <Award05Icon size={24} color="#FAAD14" />
-            <strong>Pro</strong>
+          <Space direction="vertical">
+            <Space>
+              <UserOutlined />
+              <small>{packInfos.email}</small>
+            </Space>
+            <Space>
+              <Award05Icon size={24} color="#FAAD14" />
+              <strong>{packInfos.pack}</strong>
+            </Space>
           </Space>
         </div>
       );
     }
-    if (isExpired) {
+    if (!packInfos || isSubscriptionModalClosable) {
+      return (
+        <Modal
+          className="trial-expired-modal"
+          open
+          onCancel={onCloseSubscriptionModal}
+          closeIcon={isSubscriptionModalClosable}
+          footer={null}
+          centered
+          width="50%"
+        >
+          <div style={{ position: 'relative' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                marginBottom: '24px',
+              }}
+            >
+              <img
+                alt="worktreewise-icon"
+                src={iconImage}
+                width={86}
+                height={86}
+              />
+              <div
+                style={{ fontFamily: 'ExpletusSans-Regular', fontSize: '2rem' }}
+              >
+                WorktreeWise
+              </div>
+            </div>
+
+            <Form
+              onFinish={onFinish}
+              name="login"
+              initialValues={{ remember: true }}
+              disabled={isLoading}
+              style={{ width: '100%' }}
+            >
+              <Form.Item name="trialOrSubscription" initialValue="subscription">
+                <Segmented
+                  block
+                  options={[
+                    {
+                      label: <div style={{ padding: 2 }}>Subscription</div>,
+                      value: 'subscription',
+                    },
+                    {
+                      label: <div style={{ padding: 2 }}>Free Trial</div>,
+                      value: 'trial',
+                    },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item
+                name="email"
+                rules={[
+                  { required: true, message: 'Please input your Email !' },
+                  { type: 'email' },
+                ]}
+              >
+                <Input prefix={<UserOutlined />} placeholder="Email" />
+              </Form.Item>
+              <Form.Item
+                name="licence"
+                rules={[
+                  {
+                    required: true,
+                    message: 'Please input your Licence Key !',
+                  },
+                ]}
+              >
+                <Input prefix={<KeyOutlined />} placeholder="Licence Key" />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  block
+                  type="primary"
+                  htmlType="submit"
+                  loading={isLoading}
+                >
+                  Verify
+                </Button>
+              </Form.Item>
+            </Form>
+            <div style={{ position: 'absolute' }}>
+              {errorReason ? (
+                <Space align="start">
+                  <WarningOutlined style={{ color: token.colorErrorText }} />
+                  <Typography.Text type="danger">{errorReason}</Typography.Text>
+                </Space>
+              ) : (
+                <span />
+              )}
+            </div>
+          </div>
+        </Modal>
+      );
+    }
+    if (pack === 'Free Trial' && isExpired) {
       return (
         <Modal
           className="trial-expired-modal"
@@ -69,9 +247,9 @@ export default function PackInfos() {
               <Button
                 size="large"
                 type="primary"
-                onClick={() => window.open(PAYMENT_URL, '_blank')}
+                onClick={() => setIsSubscriptionModalClosable(true)}
               >
-                Upgrade
+                Go Pro
               </Button>
             }
           />
@@ -83,11 +261,7 @@ export default function PackInfos() {
         actions={[
           <Space>
             <Award05Icon size={24} color="#FAAD14" />
-            <Button
-              onClick={() => window.open(PAYMENT_URL, '_blank')}
-              type="link"
-              style={{ padding: '0' }}
-            >
+            <Button onClick={onGoPro} type="link" style={{ padding: '0' }}>
               Go Pro
             </Button>
           </Space>,
@@ -107,7 +281,17 @@ export default function PackInfos() {
         <small>Started on {startTrialDate}</small>
       </Card>
     );
-  }, [daysRemaining, isExpired, isProVersion, startTrialDate]);
+  }, [
+    pack,
+    packInfos,
+    isSubscriptionModalClosable,
+    isExpired,
+    daysRemaining,
+    startTrialDate,
+    isLoading,
+    errorReason,
+    token.colorErrorText,
+  ]);
 
   return <div>{content}</div>;
 }
