@@ -197,7 +197,9 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
     let name;
     let isGitRepo = false;
     let isWorktree = false;
+    let isCanceled = false;
     if (result.canceled) {
+      isCanceled = true;
       pathDir = null;
       name = null;
     } else {
@@ -217,6 +219,7 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
     }
     event.sender.send(
       `selected-repo-${keyTab}`,
+      isCanceled,
       isGitRepo,
       isWorktree,
       pathDir,

@@ -86,11 +86,15 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   useEffect(() => {
     const onSelectRepo = (
       event: any,
+      isCanceled: boolean,
       isGitRepo: boolean,
       isWorktree: boolean,
       path: string,
       name: string,
     ) => {
+      if (isCanceled) {
+        return;
+      }
       setLoading(true);
       if (!isGitRepo) {
         message.destroy();
