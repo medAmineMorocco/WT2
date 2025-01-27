@@ -95,6 +95,7 @@ ipcMain.on(
           ? `${BACKEND_BASE_URL}/api/trials`
           : `${BACKEND_BASE_URL}/api/subscriptions`,
         {
+          timeout: 5000,
           params: {
             email,
             licence,
@@ -130,15 +131,38 @@ ipcMain.on(
         response.data.reason,
       );
     } catch (error: any) {
+      if (error.code === 'ECONNREFUSED') {
+        event.sender.send(
+          'is-subscribed',
+          false,
+          null,
+          'Failed to connect to the server. Please verify your network and try again.',
+        );
+        return;
+      }
+      if (error.code === 'ECONNABORTED') {
+        event.sender.send(
+          'is-subscribed',
+          false,
+          null,
+          'The request timed out. Please check your network and try again.',
+        );
+        return;
+      }
       if (error.response) {
         // The request was made, and the server responded with a status code not in the range of 2xx
-        event.sender.send('is-subscribed', false, error.response.data);
+        event.sender.send('is-subscribed', false, null, error.response.data);
       } else if (error.request) {
         // The request was made, but no response was received
-        event.sender.send('is-subscribed', false, error.request);
+        event.sender.send(
+          'is-subscribed',
+          false,
+          null,
+          "We couldn't get a response from the server. Please verify your network or try again",
+        );
       } else {
         // Something else happened during the request
-        event.sender.send('is-subscribed', false, error.message);
+        event.sender.send('is-subscribed', false, null, error.message);
       }
     }
   },
