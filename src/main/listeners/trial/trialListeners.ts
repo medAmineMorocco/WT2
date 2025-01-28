@@ -100,7 +100,7 @@ ipcMain.on(
       url: fullUrl,
     });
 
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
       request.abort();
       event.sender.send(
         'is-subscribed',
@@ -143,12 +143,14 @@ ipcMain.on(
           execSync(`attrib +H "${subscriptionOrTrialFilePath}"`);
         }
 
+        clearTimeout(timeoutId);
         event.sender.send('is-subscribed', data.valid, data, data.reason);
       });
     });
 
     request.on('error', (error: any) => {
       if (error.message === 'net::ERR_CONNECTION_REFUSED') {
+        clearTimeout(timeoutId);
         event.sender.send(
           'is-subscribed',
           false,
@@ -156,6 +158,7 @@ ipcMain.on(
           'Failed to connect to the server. Please verify your network and try again.',
         );
       } else {
+        clearTimeout(timeoutId);
         event.sender.send('is-subscribed', false, null, error.message);
       }
     });
