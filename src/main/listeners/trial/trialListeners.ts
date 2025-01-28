@@ -1,10 +1,9 @@
-import { ipcMain } from 'electron';
+import { ipcMain, net } from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
-import axios from 'axios';
 
 const TRIAL_PERIOD_DAYS: number = Number(process.env.TRIAL_PERIOD_DAYS) || 5;
 const BACKEND_BASE_URL: string = process.env.BACKEND_BASE_URL || '';
@@ -89,81 +88,78 @@ ipcMain.on('check-trial-expiration', function (event) {
 ipcMain.on(
   'verify-subscription',
   async function (event, trialOrSubscription, email, licence) {
-    try {
-      const response = await axios.get(
-        trialOrSubscription === 'trial'
-          ? `${BACKEND_BASE_URL}/api/trials`
-          : `${BACKEND_BASE_URL}/api/subscriptions`,
-        {
-          timeout: 5000,
-          params: {
-            email,
-            licence,
-          },
-        },
-      );
-      const packInfos = {
-        pack: response.data.pack,
-        email: response.data.email,
-      } as any;
-      if (response.data && response.data.pack === 'Free Trial') {
-        const { infos } = response.data;
-        packInfos.startTrialDate = infos.startTrialDate;
-      }
+    const requestURL =
+      trialOrSubscription === 'trial'
+        ? `${BACKEND_BASE_URL}/api/trials`
+        : `${BACKEND_BASE_URL}/api/subscriptions`;
 
-      const encryptedPackInfos = encryptData(JSON.stringify(packInfos));
-      if (fs.existsSync(subscriptionOrTrialFilePath)) {
-        fs.unlinkSync(subscriptionOrTrialFilePath);
-      }
-      fs.writeFileSync(
-        subscriptionOrTrialFilePath,
-        JSON.stringify(encryptedPackInfos),
-      );
+    const fullUrl = `${requestURL}?email=${email}&licence=${licence}`;
 
-      if (process.platform === 'win32') {
-        execSync(`attrib +H "${subscriptionOrTrialFilePath}"`);
-      }
+    const request = net.request({
+      method: 'GET',
+      url: fullUrl,
+    });
 
+    setTimeout(() => {
+      request.abort();
       event.sender.send(
         'is-subscribed',
-        response.data.valid,
-        response.data,
-        response.data.reason,
+        false,
+        null,
+        'The request timed out. Please check your network and try again.',
       );
-    } catch (error: any) {
-      if (error.code === 'ECONNREFUSED') {
+    }, 8000);
+
+    request.on('response', (response) => {
+      let body = '';
+
+      response.on('data', (chunk) => {
+        body += chunk.toString();
+      });
+
+      response.on('end', () => {
+        const data = JSON.parse(body);
+        const packInfos = {
+          pack: data.pack,
+          email: data.email,
+        } as any;
+
+        if (data.pack === 'Free Trial') {
+          const { infos } = data;
+          packInfos.startTrialDate = infos.startTrialDate;
+        }
+
+        const encryptedPackInfos = encryptData(JSON.stringify(packInfos));
+        if (fs.existsSync(subscriptionOrTrialFilePath)) {
+          fs.unlinkSync(subscriptionOrTrialFilePath);
+        }
+
+        fs.writeFileSync(
+          subscriptionOrTrialFilePath,
+          JSON.stringify(encryptedPackInfos),
+        );
+
+        if (process.platform === 'win32') {
+          execSync(`attrib +H "${subscriptionOrTrialFilePath}"`);
+        }
+
+        event.sender.send('is-subscribed', data.valid, data, data.reason);
+      });
+    });
+
+    request.on('error', (error: any) => {
+      if (error.message === 'net::ERR_CONNECTION_REFUSED') {
         event.sender.send(
           'is-subscribed',
           false,
           null,
           'Failed to connect to the server. Please verify your network and try again.',
         );
-        return;
-      }
-      if (error.code === 'ECONNABORTED') {
-        event.sender.send(
-          'is-subscribed',
-          false,
-          null,
-          'The request timed out. Please check your network and try again.',
-        );
-        return;
-      }
-      if (error.response) {
-        // The request was made, and the server responded with a status code not in the range of 2xx
-        event.sender.send('is-subscribed', false, null, error.response.data);
-      } else if (error.request) {
-        // The request was made, but no response was received
-        event.sender.send(
-          'is-subscribed',
-          false,
-          null,
-          "We couldn't get a response from the server. Please verify your network or try again",
-        );
       } else {
-        // Something else happened during the request
         event.sender.send('is-subscribed', false, null, error.message);
       }
-    }
+    });
+
+    request.end();
   },
 );
