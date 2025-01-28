@@ -170,6 +170,7 @@ export default function PackInfos() {
             >
               <Form.Item name="trialOrSubscription" initialValue="subscription">
                 <Segmented
+                  disabled={isLoading}
                   block
                   options={[
                     {
