@@ -46,7 +46,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   useEffect(() => {
     setInterval(() => {
       setPercent(percent + 50);
-    }, 100);
+    }, 10);
   });
 
   useEffect(() => {
@@ -55,7 +55,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
-      }, 1500);
+      }, 900);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
       ipcRenderer.send('clear-interval');

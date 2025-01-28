@@ -14,7 +14,7 @@ function Loader({ isDarkMode }: { isDarkMode: boolean }) {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{
-          duration: 0.4,
+          duration: 0.2,
           ease: 'easeInOut',
         }}
         d="M13.3102 17.736C15.0066 7.94067 24.3225 1.3752 34.1178 3.07159L93.2377 13.3102C103.033 15.0066 109.599 24.3225 107.902 34.1178L97.6635 93.2377C95.9671 103.033 86.6513 109.599 76.856 107.902L17.736 97.6635C7.94068 95.9671 1.3752 86.6513 3.07159 76.856L13.3102 17.736Z"
@@ -24,7 +24,7 @@ function Loader({ isDarkMode }: { isDarkMode: boolean }) {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{
-          duration: 0.4,
+          duration: 0.2,
           delay: 0.2,
           ease: 'easeInOut',
         }}
@@ -35,8 +35,8 @@ function Loader({ isDarkMode }: { isDarkMode: boolean }) {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{
-          duration: 0.4,
-          delay: 0.5,
+          duration: 0.2,
+          delay: 0.3,
           ease: 'easeInOut',
         }}
         exit={{ opacity: 0 }}
@@ -47,8 +47,8 @@ function Loader({ isDarkMode }: { isDarkMode: boolean }) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{
-          duration: 0.4,
-          delay: 0.5,
+          duration: 0.2,
+          delay: 0.3,
           ease: 'easeInOut',
         }}
         fill={!isDarkMode ? 'black' : 'white'}
