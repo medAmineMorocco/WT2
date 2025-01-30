@@ -59,7 +59,6 @@ function getPackInfos() {
 }
 
 ipcMain.on('check-trial-expiration', function (event) {
-  const currentDate = new Date();
   const packInfos = getPackInfos();
   if (!packInfos) {
     event.sender.send('is-expired', null, null);
@@ -68,6 +67,7 @@ ipcMain.on('check-trial-expiration', function (event) {
   if (packInfos.pack !== 'Free Trial') {
     event.sender.send('is-expired', packInfos.pack, packInfos);
   } else {
+    const currentDate = new Date();
     const { startTrialDate } = packInfos;
     const daysSinceStart = Math.abs(
       (currentDate.getTime() - parseStringToDate(startTrialDate).getTime()) /

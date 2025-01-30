@@ -112,7 +112,7 @@ export default function PackInfos() {
   };
 
   const content = useMemo(() => {
-    if (pack !== 'Free Trial' && packInfos) {
+    if (pack !== 'Free Trial' && packInfos && packInfos.pack) {
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">
@@ -128,7 +128,7 @@ export default function PackInfos() {
         </div>
       );
     }
-    if (!packInfos || isSubscriptionModalClosable) {
+    if (!packInfos || packInfos.pack === null || isSubscriptionModalClosable) {
       return (
         <Modal
           className="trial-expired-modal"
