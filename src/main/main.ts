@@ -23,6 +23,7 @@ import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
 import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
+import './listeners/logging/loggingListeners';
 
 const http = require('http');
 

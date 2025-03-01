@@ -24,6 +24,7 @@ import {
   SunOutlined,
   SettingOutlined,
   ApartmentOutlined,
+  FileSyncOutlined,
 } from '@ant-design/icons';
 import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';
@@ -272,6 +273,14 @@ function Hello() {
     navigate('/settings');
   };
 
+  const openLogsPage = () => {
+    navigate('/logs');
+  };
+
+  useHotkeys('shift+l', openLogsPage, {
+    preventDefault: true,
+  });
+
   useHotkeys('shift+s', openSettingsPage, {
     preventDefault: true,
   });
@@ -337,6 +346,19 @@ function Hello() {
           <Tooltip
             title={
               <Space>
+                <span>Activity Logs</span>
+                <small style={{ color: 'grey' }}>Shift+L</small>
+              </Space>
+            }
+            placement="left"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <FloatButton icon={<FileSyncOutlined />} onClick={openLogsPage} />
+          </Tooltip>
+          <Tooltip
+            title={
+              <Space>
                 <span>Settings</span>
                 <small style={{ color: 'grey' }}>Shift+S</small>
               </Space>
@@ -353,7 +375,7 @@ function Hello() {
           <Tooltip
             title={
               <Space>
-                <span>Keyboard shortcuts</span>
+                <span>Keyboard Shortcuts</span>
                 <small style={{ color: 'grey' }}>Shift+K</small>
               </Space>
             }
@@ -369,7 +391,7 @@ function Hello() {
           <Tooltip
             title={
               <Space>
-                <span>{isDarkMode ? 'Light theme' : 'Dark theme'}</span>
+                <span>{isDarkMode ? 'Light Theme' : 'Dark Theme'}</span>
                 <small style={{ color: 'grey' }}>Shift+T</small>
               </Space>
             }
@@ -393,6 +415,7 @@ function Hello() {
 }
 
 const Settings = React.lazy(() => import('./modules/settings/Settings'));
+const Logs = React.lazy(() => import('./modules/logs/Logs'));
 export default function App() {
   return (
     <Router>
@@ -408,6 +431,7 @@ export default function App() {
               }
             />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/logs" element={<Logs />} />
           </Routes>
         </AntdApp>
       </Suspense>
