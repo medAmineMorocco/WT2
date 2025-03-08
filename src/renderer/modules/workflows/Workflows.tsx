@@ -851,6 +851,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         )}
         {mode === 'generators' && (
           <Table
+            className="generators-table"
             columns={columnsGenerator}
             dataSource={generators}
             pagination={{

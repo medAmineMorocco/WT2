@@ -117,6 +117,10 @@ body {
   margin: 8px 0;
 }
 
+.generators-table.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 8px 0;
+}
+
 .import-area-dark-container {
   background-color: black;
 }
