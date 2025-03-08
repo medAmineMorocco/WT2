@@ -311,7 +311,20 @@ function Hello() {
 
   return (
     <ConfigProvider
-      theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
+      theme={{
+        algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
+        token: {
+          colorBgLayout: isDarkMode ? 'black' : '#e5e5e53b'
+        },
+        components: {
+          Select: {
+            optionActiveBg: isDarkMode ? '#E5E5E524' : '#34343424',
+          },
+          Segmented: {
+            trackBg: isDarkMode ? '#E5E5E524' : '#34343424',
+          },
+        },
+    }}
     >
       <AntdApp>
         <Tabs
