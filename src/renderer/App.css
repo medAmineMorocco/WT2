@@ -400,8 +400,12 @@ body {
   margin-bottom: 0;
 }
 
-:where(.css-dev-only-do-not-override-1kuana8).ant-breadcrumb {
-  color: rgba(0, 0, 0, 0.88);
+.ant-breadcrumb, .ant-breadcrumb-separator {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+html[data-color-scheme="dark"] .ant-breadcrumb, html[data-color-scheme="dark"] .ant-breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.88) !important;
 }
 
 .workflows-segmented .ant-segmented-item-label {
