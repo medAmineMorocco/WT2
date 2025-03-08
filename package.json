@@ -97,6 +97,7 @@
   },
   "dependencies": {
     "@ant-design/pro-components": "2.7.15",
+    "@sentry/electron": "^6.1.0",
     "@xterm/addon-fit": "^0.10.0",
     "@xterm/xterm": "^5.5.0",
     "ansi-colors": "^4.1.3",

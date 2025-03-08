@@ -21,7 +21,6 @@ function getLogs() {
   try {
     return JSON.parse(fs.readFileSync(logFilePath, 'utf-8'));
   } catch (error) {
-    console.error('Failed to read logs:', error);
     return [];
   }
 }

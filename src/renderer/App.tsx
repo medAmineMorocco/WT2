@@ -28,10 +28,15 @@ import {
 } from '@ant-design/icons';
 import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';
+import * as Sentry from '@sentry/electron/renderer';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
 import KeyboardShortcuts from './modules/KeyboardShortcuts';
+
+Sentry.init({
+  dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
+});
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 

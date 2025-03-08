@@ -14,6 +14,7 @@ import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
 import fs from 'fs';
 import os from 'os';
+import * as Sentry from '@sentry/electron/main';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
@@ -24,6 +25,10 @@ import './listeners/git/gitListeners';
 import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
 import './listeners/logging/loggingListeners';
+
+Sentry.init({
+  dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
+});
 
 const http = require('http');
 
