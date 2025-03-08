@@ -498,6 +498,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           workflow={workflowToEdit}
         />
         <Table
+          className="workflows-table"
           columns={columns}
           dataSource={workflows}
           pagination={{

@@ -15,27 +15,18 @@ body {
   margin: 0;
 }
 
-:where(.css-dev-only-do-not-override-jop9zq).ant-layout .ant-layout-sider-trigger {
-  position: absolute;
+.ant-layout-sider-trigger {
+  position: absolute !important;
 }
 
-:where(.css-dev-only-do-not-override-1rqnfsa).ant-layout .ant-layout-sider-trigger {
-  position: absolute;
-}
-
-:where(.css-dev-only-do-not-override-1kuana8).ant-layout .ant-layout-sider-trigger {
-  text-align: right;
-  padding-right: 8px;
-}
-
-:where(.css-dev-only-do-not-override-1jknxed).ant-layout .ant-layout-sider-light .ant-layout-sider-trigger {
-  text-align: right;
+.ant-layout-sider-trigger {
+  text-align: right !important;
   padding-right: 8px;
 }
 
 .ant-layout-sider.ant-layout-sider-collapsed .ant-layout-sider-trigger {
-  text-align: center;
-  padding-right: 0;
+  text-align: center !important;
+  padding-right: 0 !important;
 }
 
 .fullscreen-modal div[tabindex="-1"] {
@@ -74,11 +65,7 @@ body {
   background-color: rgba(255, 255, 255, 0.08)
 }
 
-:where(.css-dev-only-do-not-override-1rqnfsa).ant-steps.ant-steps-label-vertical .ant-steps-item-content {
-  margin-top: 0;
-}
-
-:where(.css-dev-only-do-not-override-jop9zq).ant-steps.ant-steps-label-vertical .ant-steps-item-content {
+.steps-visualization.ant-steps.ant-steps-label-vertical .ant-steps-item-content {
   margin-top: 0;
 }
 
@@ -111,11 +98,7 @@ body {
   background-color: black;
 }
 
-:where(.css-dev-only-do-not-override-1rqnfsa).ant-table-wrapper .ant-table-pagination.ant-pagination {
-  margin: 8px 0;
-}
-
-:where(.css-dev-only-do-not-override-jop9zq).ant-table-wrapper .ant-table-pagination.ant-pagination {
+.workflows-table.ant-table-wrapper .ant-table-pagination.ant-pagination {
   margin: 8px 0;
 }
 

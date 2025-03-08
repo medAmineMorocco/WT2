@@ -82,6 +82,7 @@ export default function Visualization() {
           </Tag>
           <div style={{ flex: 1 }}>
             <Steps
+              className="steps-visualization"
               status={config[item.status].status}
               size="small"
               labelPlacement="vertical"
