@@ -19,13 +19,6 @@ export default function ImportWorkflow({
       workflows.filter((item: any) => newSelectedRowKeys.includes(item.key)),
     );
   };
-  const expandedRowRender = (el: any) => (
-    <Table
-      columns={[{ title: 'Command(s)', dataIndex: 'value', key: 'key' }]}
-      dataSource={[el.command, ...el.commands]}
-      pagination={false}
-    />
-  );
 
   return (
     <Modal
@@ -47,8 +40,17 @@ export default function ImportWorkflow({
             title: 'Name',
             dataIndex: 'name',
           },
+          {
+            title: 'Command(s)',
+            render: (el: any) => (
+              <ul>
+                {[el.command, ...el.commands].map((cmd: any) => (
+                  <li>{cmd.value}</li>
+                ))}
+              </ul>
+            ),
+          },
         ]}
-        expandable={{ expandedRowRender }}
         dataSource={workflows}
         pagination={false}
         scroll={{ y: 400 }}
