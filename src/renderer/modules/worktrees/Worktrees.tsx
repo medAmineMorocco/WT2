@@ -25,6 +25,7 @@ import GitLog from '../gitLog/GitLog';
 import PackInfos from '../packInfos/PackInfos';
 import GitDiff from '../gitDiff/GitDiff';
 import AddWorktree from './AddWorktree';
+import { useItemsContext } from '../../TabsContext';
 
 const { Sider } = Layout;
 const { useToken } = theme;
@@ -47,6 +48,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     const [openGitLog, setOpenGitLog] = useState(false);
 
     const [openGitDiff, setOpenGitDiff] = useState(false);
+
+    const { isWorkflowPlaying } = useItemsContext();
 
     const tabRepoPath = useMemo(() => {
       return TabService.getTabRepoPath(activeTab);
@@ -87,6 +90,9 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
     useHotkeys(
       'shift+w',
       () => {
+        if (isWorkflowPlaying) {
+          return;
+        }
         if (collapsed) {
           setCollapsed(false);
           showModal();
@@ -180,7 +186,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
               <Tooltip
                 title={
                   <Space>
-                    <span>Add new worktree</span>
+                    <span>Add New Worktree</span>
                     <small style={{ color: 'grey' }}>Shift+W</small>
                   </Space>
                 }
@@ -190,6 +196,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 <Button
                   type="primary"
                   size="small"
+                  disabled={isWorkflowPlaying}
                   onClick={showModal}
                   ref={ref}
                   icon={<SisternodeOutlined />}
