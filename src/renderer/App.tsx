@@ -71,7 +71,7 @@ function Hello() {
   }, [isDarkMode]);
 
   const onThemeChange = () => {
-    setIsDarkMode((previousValue) => !previousValue);
+    setIsDarkMode((previousValue: any) => !previousValue);
   };
 
   useHotkeys('shift+t', onThemeChange, {
@@ -160,6 +160,7 @@ function Hello() {
       return;
     }
 
+    // eslint-disable-next-line no-restricted-syntax
     for (const tabKey of tabs) {
       const tabLabel = TabService.getTabLabel(tabKey);
       const tabRepoPath = TabService.getTabRepoPath(tabKey);
@@ -224,6 +225,7 @@ function Hello() {
   };
 
   const add = () => {
+    // eslint-disable-next-line no-plusplus
     const newActiveKey = `tab${newTabIndex.current++}`;
     const newPanes = [...items];
     newPanes.push({
