@@ -561,7 +561,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   return (
     <>
       {contextHolder}
-      <ul style={{ marginTop: '4px', paddingLeft: '8px', paddingRight: '2px' }}>
+      <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
         {worktrees.map((worktree: any) => (
           <li
             key={worktree.name}

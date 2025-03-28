@@ -9,7 +9,7 @@ import {
   Typography,
   Tag,
   theme,
-  Divider,
+  Collapse,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -83,7 +83,10 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       };
     }, [form, notification, tabRepoPath]);
 
-    const showModal = () => {
+    const showModal = (event: any) => {
+      if (event) {
+        event.stopPropagation();
+      }
       setIsModalOpen(true);
     };
 
@@ -95,9 +98,9 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         }
         if (collapsed) {
           setCollapsed(false);
-          showModal();
+          showModal(null);
         } else {
-          showModal();
+          showModal(null);
         }
       },
       { preventDefault: true },
@@ -106,12 +109,13 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       preventDefault: true,
     });
 
-    const onClickPrune = () => {
+    const onClickPrune = (event: any) => {
+      event.stopPropagation();
       setPruneLoading(true);
       ipcRenderer.send('prune-worktrees', tabRepoPath);
     };
 
-    useHotkeys('shift+p', () => onClickPrune(), {
+    useHotkeys('shift+p', onClickPrune, {
       preventDefault: true,
     });
 
@@ -152,57 +156,58 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
       >
         {!collapsed && (
           <>
-            <div
-              style={{
-                marginTop: '16px',
-                display: 'flex',
-                paddingRight: '4px',
-              }}
-            >
-              <Space style={{ flexGrow: 1 }}>
-                <strong style={{ marginLeft: '8px' }}>Worktrees</strong>
-                {!pruneLoading ? (
-                  <Tooltip
-                    title={
-                      <Space>
-                        <span>Prune worktrees</span>
-                        <small style={{ color: 'grey' }}>Shift+P</small>
-                      </Space>
-                    }
-                    mouseEnterDelay={0}
-                    mouseLeaveDelay={0}
-                  >
-                    <SyncOutlined
-                      className="icon-action"
-                      style={{ cursor: 'pointer' }}
-                      onClick={onClickPrune}
-                    />
-                  </Tooltip>
-                ) : (
-                  <LoadingOutlined />
-                )}
-              </Space>
-
-              <Tooltip
-                title={
+            <Collapse ghost defaultActiveKey={['1']}>
+              <Collapse.Panel
+                extra={
                   <Space>
-                    <span>Add New Worktree</span>
-                    <small style={{ color: 'grey' }}>Shift+W</small>
+                    {!pruneLoading ? (
+                      <Tooltip
+                        title={
+                          <Space>
+                            <span>Prune worktrees</span>
+                            <small style={{ color: 'grey' }}>Shift+P</small>
+                          </Space>
+                        }
+                        mouseEnterDelay={0}
+                        mouseLeaveDelay={0}
+                      >
+                        <SyncOutlined
+                          className="icon-action"
+                          style={{ cursor: 'pointer' }}
+                          onClick={onClickPrune}
+                        />
+                      </Tooltip>
+                    ) : (
+                      <LoadingOutlined />
+                    )}
+                    <Tooltip
+                      title={
+                        <Space>
+                          <span>Add New Worktree</span>
+                          <small style={{ color: 'grey' }}>Shift+W</small>
+                        </Space>
+                      }
+                      mouseEnterDelay={0}
+                      mouseLeaveDelay={0}
+                    >
+                      <Button
+                        type="primary"
+                        size="small"
+                        disabled={isWorkflowPlaying}
+                        onClick={showModal}
+                        ref={ref}
+                        icon={<SisternodeOutlined />}
+                      />
+                    </Tooltip>
                   </Space>
                 }
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
+                header={<strong>Worktrees</strong>}
+                className="worktrees-panel-header"
+                key="1"
               >
-                <Button
-                  type="primary"
-                  size="small"
-                  disabled={isWorkflowPlaying}
-                  onClick={showModal}
-                  ref={ref}
-                  icon={<SisternodeOutlined />}
-                />
-              </Tooltip>
-            </div>
+                <ListWorktrees isDarkMode={isDarkMode} />
+              </Collapse.Panel>
+            </Collapse>
             {openGitLog && (
               <GitLog isModalOpen={openGitLog} handleCancel={onCloseGitLog} />
             )}
@@ -222,10 +227,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
         )}
         {!collapsed && (
           <>
-            <div style={{ height: '40%', overflowY: 'auto' }}>
-              <ListWorktrees isDarkMode={isDarkMode} />
-            </div>
-            <Divider style={{ margin: 0 }} />
             <ul style={{ marginTop: 0, paddingLeft: '0' }}>
               <li
                 key="git-log"
