@@ -18,7 +18,6 @@ import {
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
-import { GitBranchIcon, GitCompareIcon } from 'hugeicons-react';
 import ListWorktrees from './ListWorktrees';
 import TabService from '../../services/tab/TabService';
 import GitLog from '../gitLog/GitLog';
@@ -253,7 +252,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       paddingLeft: '8px',
                       fontWeight: 'bold',
                     }}
-                    icon={<GitBranchIcon size={16} />}
                   >
                     Git Log
                   </Button>
@@ -284,7 +282,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       paddingLeft: '8px',
                       fontWeight: 'bold',
                     }}
-                    icon={<GitCompareIcon size={16} />}
                   >
                     Git Diff
                   </Button>
