@@ -141,10 +141,18 @@ export default function GitDiff({
     diffFilters.length > 0 && diffFilters.length < options.length;
 
   useEffect(() => {
+    let serverPort = Number(window.localStorage.getItem('server-port'));
+    if (!serverPort) {
+      serverPort = 3201;
+    }
     if (isDarkMode) {
-      style.import(['http://localhost:3201/styles/github-dark.min.css']);
+      style.import([
+        `http://localhost:${serverPort}/styles/github-dark.min.css`,
+      ]);
     } else {
-      style.unload(['http://localhost:3201/styles/github-dark.min.css']);
+      style.unload([
+        `http://localhost:${serverPort}/styles/github-dark.min.css`,
+      ]);
     }
   }, [isDarkMode]);
 
@@ -178,7 +186,6 @@ export default function GitDiff({
         if (maxDiff) {
           configuration.matchingMaxComparisons = maxDiff;
         }
-        console.log('configuration', configuration);
         const diff2htmlUi = new Diff2HtmlUI(targetElement, dif, configuration);
         diff2htmlUi.draw();
         diff2htmlUi.highlightCode();

@@ -109,6 +109,7 @@
     "electron-log": "^4.4.8",
     "electron-store": "8.2.0",
     "electron-updater": "^6.1.4",
+    "find-open-port": "^2.0.3",
     "framer-motion": "^11.0.12",
     "highlight.js": "^11.9.0",
     "hugeicons-react": "^0.2.0",
