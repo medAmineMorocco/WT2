@@ -11,6 +11,8 @@ interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
   submenu?: DarwinMenuItemConstructorOptions[] | Menu;
 }
 
+const DOCUMENTATION_PAGE_URL: string = process.env.DOCUMENTATION_PAGE_URL || '';
+
 export default class MenuBuilder {
   mainWindow: BrowserWindow;
 
@@ -163,9 +165,7 @@ export default class MenuBuilder {
         {
           label: 'Documentation',
           click() {
-            shell.openExternal(
-              'https://github.com/electron/electron/tree/main/docs#readme',
-            );
+            shell.openExternal(DOCUMENTATION_PAGE_URL);
           },
         },
         {
@@ -254,9 +254,7 @@ export default class MenuBuilder {
           {
             label: 'Documentation',
             click() {
-              shell.openExternal(
-                'https://github.com/electron/electron/tree/main/docs#readme',
-              );
+              shell.openExternal(DOCUMENTATION_PAGE_URL);
             },
           },
         ],
