@@ -180,6 +180,13 @@ export default function PackInfos() {
                     {
                       label: <div style={{ padding: 2 }}>Free Trial</div>,
                       value: 'trial',
+                      disabled:
+                        (pack === 'Free Trial' && isExpired) ||
+                        (pack === 'Free Trial' &&
+                          !isExpired &&
+                          daysRemaining &&
+                          daysRemaining >= 0) ||
+                        false,
                     },
                   ]}
                 />
