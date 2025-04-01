@@ -1,4 +1,4 @@
-import { ipcMain, net } from 'electron';
+import { app, ipcMain, net } from 'electron';
 import path from 'path';
 import os from 'os';
 import fs from 'fs';
@@ -15,6 +15,8 @@ const subscriptionOrTrialFilePath = path.join(
   os.homedir(),
   FILE_WHERE_TO_STORE_SUBSCRIPTION,
 );
+
+const secondFilePath = path.join(app.getPath('userData'), '.cache_store.tmp');
 
 // Encryption Setup (same as before)
 const algorithm = 'aes-256-cbc';
@@ -56,8 +58,34 @@ function encryptData(data: any) {
   return { iv: iv.toString('hex'), encryptedData: encrypted };
 }
 
+function syncFiles() {
+  if (
+    !fs.existsSync(subscriptionOrTrialFilePath) &&
+    fs.existsSync(secondFilePath)
+  ) {
+    fs.writeFileSync(
+      subscriptionOrTrialFilePath,
+      fs.readFileSync(secondFilePath, 'utf-8'),
+    );
+  }
+  if (
+    !fs.existsSync(secondFilePath) &&
+    fs.existsSync(subscriptionOrTrialFilePath)
+  ) {
+    fs.writeFileSync(
+      secondFilePath,
+      fs.readFileSync(subscriptionOrTrialFilePath, 'utf-8'),
+    );
+  }
+}
+
 function getPackInfos() {
-  return loadAndDecryptData(subscriptionOrTrialFilePath);
+  let packInfos = loadAndDecryptData(subscriptionOrTrialFilePath);
+  if (!packInfos) {
+    packInfos = loadAndDecryptData(secondFilePath);
+  }
+  syncFiles();
+  return packInfos;
 }
 
 ipcMain.on('check-trial-expiration', function (event) {
@@ -142,13 +170,20 @@ ipcMain.on(
           fs.unlinkSync(subscriptionOrTrialFilePath);
         }
 
+        if (fs.existsSync(secondFilePath)) {
+          fs.unlinkSync(secondFilePath);
+        }
+
         fs.writeFileSync(
           subscriptionOrTrialFilePath,
           JSON.stringify(encryptedPackInfos),
         );
 
+        fs.writeFileSync(secondFilePath, JSON.stringify(encryptedPackInfos));
+
         if (process.platform === 'win32') {
           execSync(`attrib +H "${subscriptionOrTrialFilePath}"`);
+          execSync(`attrib +H "${secondFilePath}"`);
         }
 
         clearTimeout(timeoutId);
