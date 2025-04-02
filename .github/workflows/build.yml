@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm install
 
+      - name: List files in src/renderer (for debugging)
+        run: ls -alR src/renderer
+
       - name: Build application
         run: npm run build
 
