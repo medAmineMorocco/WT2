@@ -434,8 +434,8 @@ function Hello() {
   );
 }
 
-const Settings = React.lazy(() => import('./modules/settings/Settings.tsx'));
-const Logs = React.lazy(() => import('./modules/logs/Logs.tsx'));
+const Settings = React.lazy(() => import('./modules/settings/Settings'));
+const Logs = React.lazy(() => import('./modules/appLogs/Logs'));
 export default function App() {
   return (
     <Router>
