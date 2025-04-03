@@ -154,7 +154,18 @@ ipcMain.on(
       });
 
       response.on('end', () => {
-        const data = JSON.parse(body);
+        let data;
+        try {
+          data = JSON.parse(body);
+        } catch (e) {
+          event.sender.send(
+            'is-subscribed',
+            false,
+            null,
+            'Failed to connect to the server. Please verify your network and try again.',
+          );
+          return;
+        }
         const packInfos = {
           pack: data.pack,
           email: data.email,
