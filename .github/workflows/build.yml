@@ -34,12 +34,6 @@ jobs:
       - name: List files in src/renderer (for debugging)
         run: ls -alR src/renderer
 
-      - name: Clean build directory
-        run: npm run clean  # Clean up old build files
-
-      - name: Build application
-        run: npm run build
-
       - name: Package application
         env:
           CSC_LINK: ${{ secrets.CSC_LINK || ''  }}
