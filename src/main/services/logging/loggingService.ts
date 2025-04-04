@@ -9,8 +9,22 @@ const logFilePath = path.join(
   'worktreewise_logs.json',
 );
 
+function truncateJsonLog(filePath: string, keep = 100) {
+  const content = fs.readFileSync(filePath, 'utf-8');
+  const json = JSON.parse(content);
+
+  const trimmed = json.slice(-keep);
+  fs.writeFileSync(filePath, JSON.stringify(trimmed), 'utf-8');
+}
+
 if (!fs.existsSync(logFilePath)) {
   fs.writeFileSync(logFilePath, JSON.stringify([]), 'utf-8');
+} else {
+  const stats = fs.statSync(logFilePath);
+  // 250 KB
+  if (stats.size > 250 * 1024) {
+    truncateJsonLog(logFilePath);
+  }
 }
 
 function getLogs() {
