@@ -6,7 +6,6 @@ import { execSync } from 'child_process';
 import crypto from 'crypto';
 import loggingService from '../../services/logging/loggingService';
 import LogLevel from '../../enums/LogLevel';
-import utils from '../../utils/utils';
 
 const TRIAL_PERIOD_DAYS: number = Number(process.env.TRIAL_PERIOD_DAYS) || 5;
 const BACKEND_BASE_URL: string = process.env.BACKEND_BASE_URL || '';
@@ -91,49 +90,47 @@ function getPackInfos() {
   return packInfos;
 }
 
-ipcMain.on(
-  'check-trial-expiration',
-  async function (event, currentVersion: string) {
-    const packInfos = await getPackInfos();
-    if (!packInfos) {
-      event.sender.send('is-expired', null, null);
-      return;
-    }
-    if (packInfos.pack !== 'Free Trial') {
-      if (packInfos.version === currentVersion) {
-        event.sender.send('is-expired', packInfos.pack, packInfos);
-      } else {
-        event.sender.send('is-expired', null, null);
-      }
+ipcMain.on('check-trial-expiration', async function (event) {
+  const packInfos = await getPackInfos();
+  if (!packInfos) {
+    event.sender.send('is-expired', null, null);
+    return;
+  }
+  if (packInfos.pack !== 'Free Trial') {
+    const currentVersion = process.env.VERSION;
+    if (packInfos.version === currentVersion) {
+      event.sender.send('is-expired', packInfos.pack, packInfos);
     } else {
-      const currentDate = new Date();
-      const { startTrialDate } = packInfos;
-      const daysSinceStart = Math.abs(
-        (currentDate.getTime() - parseStringToDate(startTrialDate).getTime()) /
-          (1000 * 60 * 60 * 24),
-      );
-      const daysRemaining = Math.trunc(TRIAL_PERIOD_DAYS - daysSinceStart);
-
-      const infos = {
-        isExpiredReceived: daysSinceStart > TRIAL_PERIOD_DAYS,
-        daysRemainingReceived: daysRemaining,
-        startTrialDateReceived: startTrialDate,
-      };
-
-      event.sender.send('is-expired', packInfos.pack, infos);
+      event.sender.send('is-expired', null, null);
     }
-  },
-);
+  } else {
+    const currentDate = new Date();
+    const { startTrialDate } = packInfos;
+    const daysSinceStart = Math.abs(
+      (currentDate.getTime() - parseStringToDate(startTrialDate).getTime()) /
+        (1000 * 60 * 60 * 24),
+    );
+    const daysRemaining = Math.trunc(TRIAL_PERIOD_DAYS - daysSinceStart);
+
+    const infos = {
+      isExpiredReceived: daysSinceStart > TRIAL_PERIOD_DAYS,
+      daysRemainingReceived: daysRemaining,
+      startTrialDateReceived: startTrialDate,
+    };
+
+    event.sender.send('is-expired', packInfos.pack, infos);
+  }
+});
 
 ipcMain.on(
   'verify-subscription',
-  async function (event, trialOrSubscription, email, licence) {
+  function (event, trialOrSubscription, email, licence) {
     loggingService.logMessage(
       '-',
       `Verifying ${trialOrSubscription === 'trial' ? 'trial' : 'subscription'} for email ${email} and licence ${licence}`,
       LogLevel.INFO,
     );
-    const version = await utils.getStorageItem('version');
+    const version = process.env.VERSION;
 
     const requestURL =
       trialOrSubscription === 'trial'

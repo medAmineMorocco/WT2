@@ -47,8 +47,7 @@ export default function PackInfos() {
   const [errorReason, setErrorReason] = useState<string | null>();
 
   useEffect(() => {
-    const currentVersion = window.localStorage.getItem('version') || '';
-    ipcRenderer.send('check-trial-expiration', currentVersion);
+    ipcRenderer.send('check-trial-expiration');
     const onReceiveExpirationInfos = (
       event: any,
       packReceived: string,
@@ -80,7 +79,7 @@ export default function PackInfos() {
       setLoading(false);
       setErrorReason(errorReasonReceived);
       if (isSubscribedOrHasTrial) {
-        ipcRenderer.send('check-trial-expiration', currentVersion);
+        ipcRenderer.send('check-trial-expiration');
       }
     };
 
