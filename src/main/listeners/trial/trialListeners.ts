@@ -113,6 +113,7 @@ ipcMain.on('check-trial-expiration', async function (event) {
     const daysRemaining = Math.trunc(TRIAL_PERIOD_DAYS - daysSinceStart);
 
     const infos = {
+      email: packInfos.email,
       isExpiredReceived: daysSinceStart > TRIAL_PERIOD_DAYS,
       daysRemainingReceived: daysRemaining,
       startTrialDateReceived: startTrialDate,

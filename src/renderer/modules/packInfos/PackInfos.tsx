@@ -1,14 +1,17 @@
 import {
   Button,
   Card,
+  Dropdown,
   Form,
   Input,
+  MenuProps,
   Modal,
   Result,
   Segmented,
   Space,
   Statistic,
   theme,
+  Tooltip,
   Typography,
 } from 'antd';
 import { Award05Icon } from 'hugeicons-react';
@@ -18,6 +21,7 @@ import {
   UserOutlined,
   KeyOutlined,
   WarningOutlined,
+  UserSwitchOutlined,
 } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { ipcRenderer } from 'electron';
@@ -25,6 +29,19 @@ import iconImage from './icon.png';
 import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
 
 const { useToken } = theme;
+
+const userActions: MenuProps['items'] = [
+  {
+    label: (
+      <Space>
+        <UserSwitchOutlined />
+        <span>Switch User</span>
+      </Space>
+    ),
+    danger: true,
+    key: '0',
+  },
+];
 
 export default function PackInfos() {
   const { token } = useToken();
@@ -56,6 +73,7 @@ export default function PackInfos() {
       setPack(packReceived);
       setPackInfos(infos);
       if (packReceived === 'Free Trial') {
+        console.log('infos', infos);
         const {
           isExpiredReceived,
           daysRemainingReceived,
@@ -111,14 +129,37 @@ export default function PackInfos() {
     );
   };
 
+  const handleMenuClick: MenuProps['onClick'] = (e) => {
+    if (e.key === '0') {
+      setIsSubscriptionModalClosable(true);
+    }
+  };
+
   const content = useMemo(() => {
-    if (pack !== 'Free Trial' && packInfos && packInfos.pack) {
+    console.log('pack', pack, packInfos, isSubscriptionModalClosable);
+    if (pack !== 'Free Trial' && packInfos && packInfos.pack && !isSubscriptionModalClosable) {
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">
             <Space>
-              <UserOutlined />
-              <small>{packInfos.email && packInfos.email.split('@')[0]}</small>
+              <Dropdown
+                menu={{
+                  items: userActions,
+                  onClick: handleMenuClick,
+                }}
+                trigger={['click']}
+              >
+                <UserOutlined />
+              </Dropdown>
+              <Tooltip
+                title={packInfos.email}
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <small>
+                  {packInfos.email && packInfos.email.split('@')[0]}
+                </small>
+              </Tooltip>
             </Space>
             <Space>
               <Award05Icon size={24} color="#FAAD14" />
@@ -267,11 +308,25 @@ export default function PackInfos() {
     return (
       <Card
         actions={[
-          <Space>
-            <Award05Icon size={24} color="#FAAD14" />
-            <Button onClick={onGoPro} type="link" style={{ padding: '0' }}>
-              Go Pro
-            </Button>
+          <Space direction="vertical">
+            <Space>
+              <UserOutlined />
+              <Tooltip
+                title={packInfos.email}
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <small>
+                  {packInfos.email && packInfos.email.split('@')[0]}
+                </small>
+              </Tooltip>
+            </Space>
+            <Space>
+              <Award05Icon size={24} color="#FAAD14" />
+              <Button onClick={onGoPro} type="link" style={{ padding: '0' }}>
+                Go Pro
+              </Button>
+            </Space>
           </Space>,
         ]}
         title="Free Trial"
