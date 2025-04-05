@@ -47,7 +47,8 @@ export default function PackInfos() {
   const [errorReason, setErrorReason] = useState<string | null>();
 
   useEffect(() => {
-    ipcRenderer.send('check-trial-expiration');
+    const currentVersion = window.localStorage.getItem('version') || '';
+    ipcRenderer.send('check-trial-expiration', currentVersion);
     const onReceiveExpirationInfos = (
       event: any,
       packReceived: string,
@@ -79,7 +80,7 @@ export default function PackInfos() {
       setLoading(false);
       setErrorReason(errorReasonReceived);
       if (isSubscribedOrHasTrial) {
-        ipcRenderer.send('check-trial-expiration');
+        ipcRenderer.send('check-trial-expiration', currentVersion);
       }
     };
 
@@ -118,7 +119,7 @@ export default function PackInfos() {
           <Space direction="vertical">
             <Space>
               <UserOutlined />
-              <small>{packInfos.email}</small>
+              <small>{packInfos.email && packInfos.email.split('@')[0]}</small>
             </Space>
             <Space>
               <Award05Icon size={24} color="#FAAD14" />

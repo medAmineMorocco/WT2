@@ -35,6 +35,11 @@ const http = require('http');
 const findPort = require('find-open-port');
 const { conf } = require('./conf/conf');
 
+const rootPath = path.join(__dirname, '../..');
+const releasePath = path.join(rootPath, 'release');
+const appPath = path.join(releasePath, 'app');
+const appPackagePath = path.join(appPath, 'package.json');
+
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
@@ -135,6 +140,13 @@ const createWindow = async () => {
         await mainWindow?.webContents.executeJavaScript(
           `localStorage.setItem("server-port", ${port});`,
         );
+        const { version } = JSON.parse(
+          fs.readFileSync(appPackagePath, 'utf-8'),
+        );
+        await mainWindow?.webContents.executeJavaScript(
+          `localStorage.setItem("version", '${version}');`,
+        );
+
         server.listen(port);
       })
       .catch(() => {
