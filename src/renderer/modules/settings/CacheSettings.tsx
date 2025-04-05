@@ -33,7 +33,12 @@ export default function CacheSettings() {
       cancelText: 'No',
       centered: true,
       onOk() {
-        clearLocalStorageExcept(['shellPath', 'gitExecutablePath']);
+        clearLocalStorageExcept([
+          'shellPath',
+          'gitExecutablePath',
+          'version',
+          'server-port',
+        ]);
       },
     });
   };
