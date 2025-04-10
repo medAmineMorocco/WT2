@@ -830,37 +830,43 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           />
         )}
         {mode === 'workflows' && (
-        <div
-          style={{
-            flexGrow: 1,
-            flexShrink: 0,
-            height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
-          }}
-        >
-          <Table
+          <div
+            style={{
+              flexGrow: 1,
+              flexShrink: 0,
+              height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
+            }}
+          >
+            <Table
             key={uuid}
-            className="workflows-table"
-            columns={columns}
-            dataSource={workflows}
-            pagination={false}
-            scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
-            bordered
-            size="middle"
-          />
-        </div>
+              className="workflows-table"
+              columns={columns}
+              dataSource={workflows}
+              pagination={false}
+              scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
+              bordered
+              size="middle"
+            />
+          </div>
         )}
         {mode === 'generators' && (
-          <Table
-            className="generators-table"
-            columns={columnsGenerator}
-            dataSource={generators}
-            pagination={{
-              pageSize: screenHeight >= MIN_SCREEN_HEIGHT ? 4 : 3,
-              position: ['bottomLeft'],
+          <div
+            style={{
+              flexGrow: 1,
+              flexShrink: 0,
+              height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
             }}
-            bordered
-            size={screenHeight >= MIN_SCREEN_HEIGHT ? 'large' : 'middle'}
-          />
+          >
+            <Table
+              className="generators-table"
+              columns={columnsGenerator}
+              dataSource={generators}
+              pagination={false}
+              scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
+              bordered
+              size="middle"
+            />
+          </div>
         )}
       </Flex>
     </div>
