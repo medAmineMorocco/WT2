@@ -9,6 +9,7 @@ import gitMainService from '../../services/git/gitMainService';
 import playWorkflow from './processesListeners';
 
 let focusedWindow: BrowserWindow | null;
+const { conf } = require('../../conf/conf');
 
 const RESOURCES_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'assets')
@@ -40,7 +41,7 @@ ipcMain.on(
     generatedAtWorktree: any,
     dir: string,
   ) {
-    stopExecution = false;
+    setStopExecution(false);
     focusedWindow = BrowserWindow.getFocusedWindow();
     let options = '';
     Object.entries(parameters).forEach(([key, value]) => {
@@ -79,21 +80,23 @@ ipcMain.on(
     event.sender.send('workflow-started-with-commands', [
       { title: `run generator ${generatorName}` },
     ]);
-    worktreesStates = workflow.worktrees.map((worktree: any) => {
+    const worktreesStates = workflow.worktrees.map((worktree: any) => {
       return {
         title: worktree.label,
         current: -1,
         status: 'wait',
       };
     });
-    event.sender.send('workflow-started-states-updated', worktreesStates);
-    logStates = workflow.worktrees.map((worktree: any, index: number) => {
+    setWorktreesStates(worktreesStates);
+    event.sender.send('workflow-started-states-updated', getWorktreesStates());
+    const logStates = workflow.worktrees.map((worktree: any, index: number) => {
       return {
         label: worktree.label,
         key: index.toString(),
         data: {},
       };
     });
+    setLogStates(logStates);
     event.sender.send('workflow-started-log-received', logStates);
     executeProcessesForDirectoriesInSeries(commands, workflow.worktrees, event)
       .then(async () => {

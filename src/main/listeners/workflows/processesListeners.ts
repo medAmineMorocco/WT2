@@ -54,6 +54,11 @@ async function getNewlogStates(
         if (status) {
           item.data[command.key].status = status;
         }
+        if (command.value.includes('hygen')) {
+          item.data[command.key].output = item.data[
+            command.key
+          ]?.output.replace(/Loaded templates: .*\n/, 'Loaded templates:\n');
+        }
       }
       return item;
     }),
