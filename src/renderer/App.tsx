@@ -316,14 +316,17 @@ function Hello() {
       theme={{
         algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
         token: {
-          colorBgLayout: isDarkMode ? 'black' : '#e5e5e53b'
+          colorBgLayout: isDarkMode ? 'black' : '#3434340f',
         },
         components: {
           Select: {
             optionActiveBg: isDarkMode ? '#E5E5E524' : '#34343424',
           },
           Segmented: {
-            trackBg: isDarkMode ? '#E5E5E524' : '#34343424',
+            trackBg: isDarkMode ? '#E5E5E524' : '#3434340f',
+          },
+          Table: {
+            headerBg: isDarkMode ? '#E5E5E524' : '#3434340f',
           },
         },
     }}

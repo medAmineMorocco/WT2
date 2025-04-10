@@ -35,7 +35,6 @@ import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
 
-const MIN_SCREEN_HEIGHT = 997;
 const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const {
     token: {
@@ -162,10 +161,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('workflow-duplicated');
     };
   }, [notification, tabRepoPath]);
-
-  const screenHeight = useMemo(() => {
-    return window.innerHeight;
-  }, []);
 
   const showDrawer = () => {
     setOpenAdd(true);
@@ -423,10 +418,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         color: token.colorTextBase,
       }}
     >
-      <Flex
-        gap={screenHeight >= MIN_SCREEN_HEIGHT ? 'large' : 'middle'}
-        vertical
-      >
+      <Flex gap="middle" vertical style={{ height: '100%' }}>
         <div>
           <Space>
             <PartitionOutlined />
@@ -497,17 +489,23 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           onCloseEdit={onCloseEdit}
           workflow={workflowToEdit}
         />
-        <Table
-          className="workflows-table"
-          columns={columns}
-          dataSource={workflows}
-          pagination={{
-            pageSize: screenHeight >= MIN_SCREEN_HEIGHT ? 4 : 3,
-            position: ['bottomLeft'],
+        <div
+          style={{
+            flexGrow: 1,
+            flexShrink: 0,
+            height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
           }}
-          bordered
-          size={screenHeight >= MIN_SCREEN_HEIGHT ? 'large' : 'middle'}
-        />
+        >
+          <Table
+            className="workflows-table"
+            columns={columns}
+            dataSource={workflows}
+            pagination={false}
+            scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
+            bordered={true}
+            size="middle"
+          />
+        </div>
       </Flex>
     </div>
   );
