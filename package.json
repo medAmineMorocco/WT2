@@ -112,6 +112,7 @@
     "electron-log": "^4.4.8",
     "electron-store": "8.2.0",
     "electron-updater": "^6.1.4",
+    "execa": "5.1.1",
     "find-open-port": "^2.0.3",
     "framer-motion": "^11.0.12",
     "highlight.js": "^11.9.0",
