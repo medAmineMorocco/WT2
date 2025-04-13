@@ -10,20 +10,24 @@ export default function LogUI({ output }: { output: string }) {
   const { isDarkMode } = useItemsContext();
 
   function calculateColsRows() {
-    const terminalElement = terminalRef.current;
+    const terminalElement = terminalRef.current as any;
 
-    // Get the dimensions of the terminal container
-    const containerWidth = terminalElement.parentElement?.clientWidth;
-    const containerHeight = terminalElement.parentElement?.clientHeight;
+    if (terminalElement) {
+      // Get the dimensions of the terminal container
+      const containerWidth = terminalElement.parentElement?.clientWidth;
+      const containerHeight = terminalElement.parentElement?.clientHeight;
 
-    // Get the dimensions of a single character in the terminal
-    const charWidth = terminalElement.offsetWidth / terminal.cols;
-    const charHeight = terminalElement.offsetHeight / terminal.rows;
+      // Get the dimensions of a single character in the terminal
+      const charWidth = terminalElement.offsetWidth / terminal.cols;
+      const charHeight = terminalElement.offsetHeight / terminal.rows;
 
-    // Calculate the number of columns and rows
-    const cols = Math.floor(containerWidth / charWidth);
-    const rows = Math.floor(containerHeight / charHeight);
-    return { cols, rows };
+      // Calculate the number of columns and rows
+      const cols = Math.floor(containerWidth / charWidth);
+      const rows = Math.floor(containerHeight / charHeight);
+
+      return { cols, rows };
+    }
+    return null;
   }
 
   useEffect(() => {
@@ -50,9 +54,12 @@ export default function LogUI({ output }: { output: string }) {
 
     function handleResize() {
       if (terminal && terminalRef.current) {
-        const { cols, rows } = calculateColsRows();
-        terminal.resize(cols, rows);
-        fitAddon.fit();
+        const result = calculateColsRows();
+        if (result) {
+          const { cols, rows } = result;
+          terminal.resize(cols, rows);
+          fitAddon.fit();
+        }
       }
     }
 
@@ -68,8 +75,11 @@ export default function LogUI({ output }: { output: string }) {
   }, [isDarkMode, output]);
 
   useEffect(() => {
-    const { cols, rows } = calculateColsRows();
-    terminal.resize(cols, rows);
+    const result = calculateColsRows();
+    if (result) {
+      const { cols, rows } = result;
+      terminal.resize(cols, rows);
+    }
   }, []);
 
   return (

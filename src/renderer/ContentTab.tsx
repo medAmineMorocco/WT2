@@ -60,6 +60,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       changeIconOfActiveTab(<FolderOutlined />);
       ipcRenderer.send('clear-interval');
     }
+    // do not touch
   }, [isRepoSelected]);
 
   useEffect(() => {
@@ -70,6 +71,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     } else {
       setIsRepoSelected(false);
     }
+    // do not touch
   }, [keyTab]);
 
   const onimportAreaClick = () => {

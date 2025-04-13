@@ -58,7 +58,7 @@ function Hello() {
 
   useEffect(() => {
     setIsDarkMode(window.localStorage.getItem('isDarkMode') === 'true');
-  }, []);
+  }, [setIsDarkMode]);
 
   useEffect(() => {
     window.localStorage.setItem('isDarkMode', isDarkMode.toString());
@@ -68,7 +68,7 @@ function Hello() {
       const htmlTag = htmlTags[0];
       htmlTag.setAttribute('data-color-scheme', isDarkMode ? 'dark' : 'light');
     }
-  }, [isDarkMode]);
+  }, [activeKey, isDarkMode]);
 
   const onThemeChange = () => {
     setIsDarkMode((previousValue: any) => !previousValue);
@@ -213,6 +213,7 @@ function Hello() {
     }
     updateItems(newItems);
     setActiveKey(TabService.getActiveTab());
+    // do not touch
   }, []);
 
   const onChange = (newActiveKey: string) => {
@@ -329,7 +330,7 @@ function Hello() {
             headerBg: isDarkMode ? '#E5E5E524' : '#3434340f',
           },
         },
-    }}
+      }}
     >
       <AntdApp>
         <Tabs

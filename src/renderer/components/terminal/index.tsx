@@ -4,7 +4,6 @@ import React, {
   useRef,
   KeyboardEvent,
   ChangeEvent,
-  ReactNode,
 } from 'react';
 import { ipcRenderer } from 'electron';
 import TerminalInput from './linetypes/TerminalInput';
@@ -16,20 +15,6 @@ export enum ColorMode {
   Dark,
 }
 
-export interface Props {
-  name?: string;
-  prompt?: string;
-  height?: string;
-  colorMode?: ColorMode;
-  children?: ReactNode;
-  onInput?: ((input: string) => void) | null | undefined;
-  startingInputValue?: string;
-  redBtnCallback?: () => void;
-  yellowBtnCallback?: () => void;
-  greenBtnCallback?: () => void;
-  scrollToPosition?: boolean;
-}
-
 function Terminal({
   name,
   prompt,
@@ -39,7 +24,7 @@ function Terminal({
   children,
   startingInputValue = '',
   scrollToPosition = true,
-}: Props) {
+}: any) {
   const [currentLineInput, setCurrentLineInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
@@ -148,7 +133,9 @@ function Terminal({
       cursorIndex = clamp(cursorIndex, 0, currentLineInput.length);
 
       if (event.key === 'ArrowLeft') {
-        if (cursorIndex > currentLineInput.length - 1) cursorIndex--;
+        if (cursorIndex > currentLineInput.length - 1) {
+          cursorIndex -= 1;
+        }
         charsToRightOfCursor = currentLineInput.slice(
           currentLineInput.length - 1 - cursorIndex,
         );
@@ -200,8 +187,9 @@ function Terminal({
     // keep reference to listeners so we can perform cleanup
     const elListeners: {
       terminalEl: Element;
-      listener: EventListenerOrEventListenerObject;
+      listener: any;
     }[] = [];
+    // eslint-disable-next-line no-restricted-syntax
     for (const terminalEl of document.getElementsByClassName(
       'react-terminal-wrapper',
     )) {
@@ -212,6 +200,7 @@ function Terminal({
       terminalEl?.addEventListener('click', listener);
       elListeners.push({ terminalEl, listener });
     }
+    // eslint-disable-next-line consistent-return
     return function cleanup() {
       elListeners.forEach((elListener) => {
         elListener.terminalEl.removeEventListener('click', elListener.listener);

@@ -149,7 +149,7 @@ export default function AddWorktree({
       ipcRenderer.removeAllListeners('worktrees-separator-found');
       ipcRenderer.removeAllListeners('selected-worktrees-dir');
     };
-  }, [form, notification, tabRepoPath]);
+  }, [activeTab, form, handleCancel, notification, tabRepoPath]);
 
   useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {

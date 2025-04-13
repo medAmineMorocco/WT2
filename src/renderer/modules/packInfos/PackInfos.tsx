@@ -73,7 +73,6 @@ export default function PackInfos() {
       setPack(packReceived);
       setPackInfos(infos);
       if (packReceived === 'Free Trial') {
-        console.log('infos', infos);
         const {
           isExpiredReceived,
           daysRemainingReceived,
@@ -136,8 +135,12 @@ export default function PackInfos() {
   };
 
   const content = useMemo(() => {
-    console.log('pack', pack, packInfos, isSubscriptionModalClosable);
-    if (pack !== 'Free Trial' && packInfos && packInfos.pack && !isSubscriptionModalClosable) {
+    if (
+      pack !== 'Free Trial' &&
+      packInfos &&
+      packInfos.pack &&
+      !isSubscriptionModalClosable
+    ) {
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">

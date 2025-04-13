@@ -116,6 +116,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       .filter((editor: any) => editor.enabled === true)
       .map((editor: any) => {
         editor.icon = {
+          // @ts-ignore
           ...editorIconsMap[editor.icon],
           props: {
             width: '24px',
@@ -309,7 +310,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ipcRenderer.removeAllListeners('worktrees-changed-lock');
       ipcRenderer.removeAllListeners('worktree-moved-to-folder');
     };
-  }, [modal, notification, tabRepoPath]);
+  }, [api, modal, tabRepoPath]);
 
   const handleCancel = () => {
     setIsModalOpen(false);
