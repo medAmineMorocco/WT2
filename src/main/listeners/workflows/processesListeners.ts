@@ -107,6 +107,13 @@ async function executeCommand(
           }
         }, 5000);
       }
+      if (
+        command.value.includes('hygen') &&
+        data &&
+        data.toString().includes('Overwrite?')
+      ) {
+        commandProcess.kill('SIGKILL');
+      }
       logStates = await getNewlogStates(
         worktreeLabel,
         data,
