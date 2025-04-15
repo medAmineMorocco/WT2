@@ -12,6 +12,7 @@ interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
 }
 
 const DOCUMENTATION_PAGE_URL: string = process.env.DOCUMENTATION_PAGE_URL || '';
+const CONTACT_PAGE_URL: string = process.env.CONTACT_PAGE_URL || '';
 
 export default class MenuBuilder {
   mainWindow: BrowserWindow;
@@ -169,6 +170,12 @@ export default class MenuBuilder {
           },
         },
         {
+          label: 'Contact',
+          click() {
+            shell.openExternal(CONTACT_PAGE_URL);
+          },
+        },
+        {
           label: 'Community Discussions',
           click() {
             shell.openExternal('https://www.electronjs.org/community');
@@ -255,6 +262,12 @@ export default class MenuBuilder {
             label: 'Documentation',
             click() {
               shell.openExternal(DOCUMENTATION_PAGE_URL);
+            },
+          },
+          {
+            label: 'Contact',
+            click() {
+              shell.openExternal(CONTACT_PAGE_URL);
             },
           },
         ],

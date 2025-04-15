@@ -1,6 +1,7 @@
 import {
   Button,
   Card,
+  Divider,
   Dropdown,
   Form,
   Input,
@@ -277,6 +278,18 @@ export default function PackInfos() {
                 <span />
               )}
             </div>
+
+            <Divider />
+
+            <Typography.Text>
+              Don’t have a subscription ?{' '}
+              <Typography.Link
+                href={window.localStorage.getItem('PAYMENT_PAGE_URL') || ''}
+                target="_blank"
+              >
+                Buy a license
+              </Typography.Link>
+            </Typography.Text>
           </div>
         </Modal>
       );

@@ -65,6 +65,8 @@ const configuration: webpack.Configuration = {
       BACKEND_BASE_URL: 'https://worktreewise-subscriptions.vercel.app',
       FILE_WHERE_TO_STORE_SUBSCRIPTION: '.sys_cache_75h4kF.tmp',
       DOCUMENTATION_PAGE_URL: 'https://worktreewise-docs.vercel.app/',
+      CONTACT_PAGE_URL: 'https://worktreewise.vercel.app/contact',
+      PAYMENT_PAGE_URL: 'https://worktreewise.vercel.app/pricing',
       VERSION: '1.0.0',
     }),
 

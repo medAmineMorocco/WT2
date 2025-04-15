@@ -135,9 +135,10 @@ const createWindow = async () => {
         await mainWindow?.webContents.executeJavaScript(
           `localStorage.setItem("server-port", ${port});`,
         );
-        const version = process.env.VERSION;
+        const { VERSION, PAYMENT_PAGE_URL } = process.env;
         await mainWindow?.webContents.executeJavaScript(
-          `localStorage.setItem("version", '${version}');`,
+          `localStorage.setItem("VERSION", '${VERSION}');
+                 localStorage.setItem("PAYMENT_PAGE_URL", '${PAYMENT_PAGE_URL}');`,
         );
 
         server.listen(port);

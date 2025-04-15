@@ -36,7 +36,8 @@ export default function CacheSettings() {
         clearLocalStorageExcept([
           'shellPath',
           'gitExecutablePath',
-          'version',
+          'VERSION',
+          'PAYMENT_PAGE_URL',
           'server-port',
         ]);
       },

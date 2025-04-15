@@ -304,7 +304,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                 zIndex: 8,
               }}
             >
-              {window.localStorage.getItem('version') || ''}
+              {window.localStorage.getItem('VERSION') || ''}
             </Tag>
           </>
         )}

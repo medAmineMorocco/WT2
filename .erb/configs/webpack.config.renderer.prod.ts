@@ -106,6 +106,7 @@ const configuration: webpack.Configuration = {
     new webpack.EnvironmentPlugin({
       NODE_ENV: 'production',
       DEBUG_PROD: false,
+      PAYMENT_PAGE_URL: 'https://worktreewise.vercel.app/pricing',
     }),
 
     new MiniCssExtractPlugin({
