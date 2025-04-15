@@ -2,10 +2,8 @@ import {
   Button,
   Card,
   Divider,
-  Dropdown,
   Form,
   Input,
-  MenuProps,
   Modal,
   Result,
   Segmented,
@@ -30,19 +28,6 @@ import iconImage from './icon.png';
 import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
 
 const { useToken } = theme;
-
-const userActions: MenuProps['items'] = [
-  {
-    label: (
-      <Space>
-        <UserSwitchOutlined />
-        <span>Switch User</span>
-      </Space>
-    ),
-    danger: true,
-    key: '0',
-  },
-];
 
 export default function PackInfos() {
   const { token } = useToken();
@@ -129,10 +114,8 @@ export default function PackInfos() {
     );
   };
 
-  const handleMenuClick: MenuProps['onClick'] = (e) => {
-    if (e.key === '0') {
-      setIsSubscriptionModalClosable(true);
-    }
+  const handleSwitchUser = () => {
+    setIsSubscriptionModalClosable(true);
   };
 
   const content = useMemo(() => {
@@ -146,15 +129,14 @@ export default function PackInfos() {
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">
             <Space>
-              <Dropdown
-                menu={{
-                  items: userActions,
-                  onClick: handleMenuClick,
-                }}
-                trigger={['click']}
+              <Tooltip
+                title="Switch User"
+                placement="top"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
               >
-                <UserOutlined />
-              </Dropdown>
+                <UserSwitchOutlined onClick={handleSwitchUser} />
+              </Tooltip>
               <Tooltip
                 title={packInfos.email}
                 mouseEnterDelay={0}
