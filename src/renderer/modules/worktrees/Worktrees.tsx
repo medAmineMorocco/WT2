@@ -246,9 +246,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     onClick={ShowGitLog}
                     style={{
                       display: 'flex',
-                      alignItems: 'center',
+                      justifyContent: 'flex-start',
                       borderRadius: 0,
-                      textAlign: 'left',
                       paddingLeft: '8px',
                       fontWeight: 'bold',
                     }}
@@ -276,9 +275,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                     onClick={ShowGitDiff}
                     style={{
                       display: 'flex',
-                      alignItems: 'center',
+                      justifyContent: 'flex-start',
                       borderRadius: 0,
-                      textAlign: 'left',
                       paddingLeft: '8px',
                       fontWeight: 'bold',
                     }}

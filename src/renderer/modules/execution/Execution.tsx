@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { theme, Space } from 'antd';
+import { theme, Space, Splitter } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { ipcRenderer } from 'electron';
@@ -40,8 +40,10 @@ export default function Execution() {
   }, []);
 
   return (
-    <div style={{ display: 'flex', gap: '8px' }}>
-      <div
+    <Splitter style={{ display: 'flex', gap: '8px' }}>
+      <Splitter.Panel
+        collapsible
+        className="execution-panel-splitter"
         style={{
           flex: 1,
           padding: 12,
@@ -88,8 +90,10 @@ export default function Execution() {
             </div>
           )}
         </div>
-      </div>
-      <div
+      </Splitter.Panel>
+      <Splitter.Panel
+        collapsible
+        className="execution-panel-splitter"
         style={{
           position: 'relative',
           flex: 1,
@@ -129,7 +133,7 @@ export default function Execution() {
             <LogIllustration />
           </div>
         )}
-      </div>
-    </div>
+      </Splitter.Panel>
+    </Splitter>
   );
 }
