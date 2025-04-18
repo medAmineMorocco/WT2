@@ -29,7 +29,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<Boolean | null>(null);
   const [percent, setPercent] = useState(0);
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
@@ -177,8 +177,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       </Layout>
     );
   }
+  if (isRepoSelected && loading === null) {
+    return <div />;
+  }
 
-  if (isRepoSelected) {
+  if (isRepoSelected && loading !== null) {
     return (
       <motion.div
         initial={{ opacity: 0 }}
