@@ -168,21 +168,35 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
     );
     event.sender.send('worktrees-found', -1, encoded);
   }
-  intervalIds.push(
-    setInterval(async () => {
-      try {
-        const worktrees = await worktreeMainService.findAll(
-          directory,
-          gitCommand,
-        );
-        event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
-      } catch (err: any) {
-        const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-        event.sender.send('worktrees-found', -1, encoded);
-      }
-    }, 10000),
-  );
 });
+
+ipcMain.on(
+  'get-worktrees-periodically',
+  async function (event, directory: string) {
+    const gitCommand = await gitMainService.gitCommand();
+    intervalIds.push(
+      setInterval(async () => {
+        try {
+          loggingService.logMessage(
+            directory,
+            'Getting worktrees periodically',
+            LogLevel.INFO,
+          );
+          const worktrees = await worktreeMainService.findAll(
+            directory,
+            gitCommand,
+          );
+          event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
+        } catch (err: any) {
+          const encoded = await utils.setStoredEncoding(
+            Buffer.from(err.message),
+          );
+          event.sender.send('worktrees-found', -1, encoded);
+        }
+      }, 10000),
+    );
+  },
+);
 
 ipcMain.on('clear-interval', function (event) {
   if (intervalIds) {

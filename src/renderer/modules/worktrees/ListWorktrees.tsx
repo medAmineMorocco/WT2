@@ -130,6 +130,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   useEffect(() => {
     ipcRenderer.send('get-worktrees', tabRepoPath);
+    ipcRenderer.send('get-worktrees-periodically', tabRepoPath);
 
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
