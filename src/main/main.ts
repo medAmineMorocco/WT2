@@ -135,10 +135,9 @@ const createWindow = async () => {
         await mainWindow?.webContents.executeJavaScript(
           `localStorage.setItem("server-port", ${port});`,
         );
-        const { VERSION, PAYMENT_PAGE_URL } = process.env;
         await mainWindow?.webContents.executeJavaScript(
-          `localStorage.setItem("VERSION", '${VERSION}');
-                 localStorage.setItem("PAYMENT_PAGE_URL", '${PAYMENT_PAGE_URL}');`,
+          `localStorage.setItem("VERSION", '${process.env.VERSION}');
+                 localStorage.setItem("PAYMENT_PAGE_URL", '${process.env.PAYMENT_PAGE_URL}');`,
         );
 
         server.listen(port);
@@ -155,6 +154,7 @@ const createWindow = async () => {
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
+
   mainWindow.setMinimumSize(800, 800);
 
   const menuBuilder = new MenuBuilder(mainWindow);
