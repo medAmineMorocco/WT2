@@ -145,9 +145,9 @@ const createWindow = async () => {
       });
   });
 
-  mainWindow.on('resize', () => {
-    mainWindow?.setSize(width / 2, height);
-  });
+  // mainWindow.on('resize', () => {
+  //   mainWindow?.setSize(width / 2, height);
+  // });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
