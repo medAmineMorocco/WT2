@@ -73,14 +73,12 @@ ipcMain.on('play-workflow', async function (event, workflow) {
     `Starting workflow ${workflow.name} with commands: ${commands}`,
     LogLevel.INFO,
   );
-  event.sender.send(
-    'workflow-started-with-commands',
-    commands.map((command) => {
-      return {
-        title: command.value,
-      };
-    }),
-  );
+  const commandsTitles = commands.map((command) => {
+    return {
+      title: command.value,
+    };
+  });
+  event.sender.send('workflow-started-with-commands', commandsTitles);
   const worktreesStates = workflow.worktrees.map((worktree: any) => {
     return {
       title: worktree.label,
