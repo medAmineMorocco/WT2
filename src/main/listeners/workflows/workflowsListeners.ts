@@ -1,9 +1,8 @@
 import path from 'path';
 import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
+import log from 'electron-log';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
-import loggingService from '../../services/logging/loggingService';
-import LogLevel from '../../enums/LogLevel';
 import { executeProcessesAtWorktree } from './processesListeners';
 import {
   getStopExecution,
@@ -68,11 +67,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
   focusedWindow = BrowserWindow.getFocusedWindow();
   event.sender.send('workflow-started');
   const commands = [workflow.command, ...workflow.commands];
-  loggingService.logMessage(
-    '-',
-    `Starting workflow ${workflow.name} with commands: ${commands}`,
-    LogLevel.INFO,
-  );
+  log.info(`Starting workflow ${workflow.name} with commands: ${commands}`);
   const commandsTitles = commands.map((command) => {
     return {
       title: command.value,
@@ -144,7 +139,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
 
 ipcMain.on('stop-workflow', function (event) {
   setStopExecution(true);
-  loggingService.logMessage('-', 'Workflow stopped by user', LogLevel.INFO);
+  log.info('Workflow stopped by user');
   event.sender.send('workflow-stopped');
 });
 
@@ -158,21 +153,12 @@ ipcMain.on(
     dir: string,
   ) {
     try {
-      loggingService.logMessage(dir, `Saving workflow ${name}`, LogLevel.INFO);
+      log.info(`Saving workflow ${name}`);
       workflowsMainService.save(name, mainCommand, commands, dir);
-      loggingService.logMessage(
-        dir,
-        `Workflow ${name} saved successfully`,
-        LogLevel.INFO,
-      );
       event.sender.send('workflow-created', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to save workflow ${name}: ${err.message}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to save workflow ${name}: ${err.message}`);
       event.sender.send('workflow-created', -1, encoded);
     }
   },
@@ -182,24 +168,13 @@ ipcMain.on(
   'duplicate-workflow',
   async function (event, workflow: any, dir: string) {
     try {
-      loggingService.logMessage(
-        dir,
-        `Duplicating workflow ${workflow.name}`,
-        LogLevel.INFO,
-      );
+      log.info(`Duplicating workflow ${workflow.name}`);
       workflowsMainService.duplicate(workflow, dir);
-      loggingService.logMessage(
-        dir,
-        `Workflow ${workflow.name} duplicated successfully`,
-        LogLevel.INFO,
-      );
       event.sender.send('workflow-duplicated', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
+      log.error(
         `Failed to duplicate workflow ${workflow.name}: ${err.message}`,
-        LogLevel.ERROR,
       );
       event.sender.send('workflow-duplicated', -1, encoded);
     }
@@ -217,25 +192,12 @@ ipcMain.on(
     dir: string,
   ) {
     try {
-      loggingService.logMessage(
-        dir,
-        `Updating workflow ${name}`,
-        LogLevel.INFO,
-      );
+      log.info(`Updating workflow ${name}`);
       workflowsMainService.update(name, newName, mainCommand, commands, dir);
-      loggingService.logMessage(
-        dir,
-        `Workflow ${name} updated successfully`,
-        LogLevel.INFO,
-      );
       event.sender.send('workflow-updated', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to update workflow ${name}: ${err.message}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to update workflow ${name}: ${err.message}`);
       event.sender.send('workflow-updated', -1, encoded);
     }
   },
@@ -245,25 +207,12 @@ ipcMain.on(
   'remove-workflow',
   async function (event, name: string, dir: string) {
     try {
-      loggingService.logMessage(
-        dir,
-        `Removing workflow ${name}`,
-        LogLevel.INFO,
-      );
+      log.info(`Removing workflow ${name}`);
       workflowsMainService.remove(name, dir);
-      loggingService.logMessage(
-        dir,
-        `Workflow ${name} removed successfully`,
-        LogLevel.INFO,
-      );
       event.sender.send('workflow-removed', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to remove workflow ${name}: ${err.message}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to remove workflow ${name}: ${err.message}`);
       event.sender.send('workflow-removed', -1, encoded);
     }
   },
@@ -271,17 +220,12 @@ ipcMain.on(
 
 ipcMain.on('get-workflows', async function (event, dir: string) {
   try {
-    loggingService.logMessage(dir, 'Getting workflows', LogLevel.INFO);
+    log.info('Getting workflows');
     const workflows = workflowsMainService.findAll(dir);
-    loggingService.logMessage(dir, 'Workflows found', LogLevel.INFO);
     event.sender.send('workflows-found', 0, JSON.stringify(workflows));
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    loggingService.logMessage(
-      dir,
-      `Failed to get workflows: ${err.message}`,
-      LogLevel.ERROR,
-    );
+    log.error(`Failed to get workflows: ${err.message}`);
     event.sender.send('workflows-found', -1, encoded);
   }
 });
@@ -292,20 +236,11 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
   });
 
   try {
-    loggingService.logMessage(
-      '-',
-      'Searching for workflows to import',
-      LogLevel.INFO,
-    );
+    log.info('Searching for workflows to import');
     if (!result.canceled) {
       const [dir] = result.filePaths;
 
       const workflows = workflowsMainService.findAll(path.normalize(dir));
-      loggingService.logMessage(
-        '-',
-        'Workflows to import found',
-        LogLevel.INFO,
-      );
       event.sender.send(
         'workflows-to-import-found',
         0,
@@ -314,11 +249,7 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
     }
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    loggingService.logMessage(
-      '-',
-      `Failed to search for workflows to import: ${err.message}`,
-      LogLevel.ERROR,
-    );
+    log.error(`Failed to search for workflows to import: ${err.message}`);
     event.sender.send('workflows-to-import-found', -1, encoded);
   }
 });
@@ -327,21 +258,12 @@ ipcMain.on(
   'import-workflows',
   async function (event, workflows: any[], dir: string) {
     try {
-      loggingService.logMessage(dir, 'Importing workflows', LogLevel.INFO);
+      log.info('Importing workflows');
       const count = workflowsMainService.saveAll(workflows, dir);
-      loggingService.logMessage(
-        dir,
-        'Workflows imported successfully',
-        LogLevel.INFO,
-      );
       event.sender.send('workflows-imported', 0, count);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to import workflows: ${err.message}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to import workflows: ${err.message}`);
       event.sender.send('workflows-imported', -1, encoded);
     }
   },

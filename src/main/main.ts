@@ -24,7 +24,6 @@ import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
 import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
-import './listeners/logging/loggingListeners';
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
@@ -39,7 +38,6 @@ class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
     autoUpdater.logger = log;
-    autoUpdater.checkForUpdatesAndNotify();
   }
 }
 

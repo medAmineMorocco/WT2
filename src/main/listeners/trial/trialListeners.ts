@@ -4,8 +4,7 @@ import os from 'os';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
-import loggingService from '../../services/logging/loggingService';
-import LogLevel from '../../enums/LogLevel';
+import log from 'electron-log';
 
 const TRIAL_PERIOD_DAYS: number = Number(process.env.TRIAL_PERIOD_DAYS) || 5;
 const BACKEND_BASE_URL: string = process.env.BACKEND_BASE_URL || '';
@@ -126,11 +125,8 @@ ipcMain.on('check-trial-expiration', async function (event) {
 ipcMain.on(
   'verify-subscription',
   function (event, trialOrSubscription, email, licence) {
-    loggingService.logMessage(
-      '-',
-      `Verifying ${trialOrSubscription === 'trial' ? 'trial' : 'subscription'} for email ${email} and licence ${licence}`,
-      LogLevel.INFO,
-    );
+    log.info(`Verifying ${trialOrSubscription === 'trial' ? 'trial' : 'subscription'} for email ${email} and licence ${licence}`);
+
     const version = process.env.VERSION;
 
     const requestURL =
@@ -147,7 +143,7 @@ ipcMain.on(
 
     const timeoutId = setTimeout(() => {
       request.abort();
-      loggingService.logMessage('-', 'Request timed out', LogLevel.ERROR);
+      log.error('Request timed out');
       event.sender.send(
         'is-subscribed',
         false,
@@ -209,17 +205,13 @@ ipcMain.on(
         }
 
         clearTimeout(timeoutId);
-        loggingService.logMessage(
-          '-',
-          `Subscription/Trial verified: ${data.valid}`,
-          LogLevel.INFO,
-        );
+        log.info(`Subscription/Trial verified: ${data.valid}`);
         event.sender.send('is-subscribed', data.valid, data, data.reason);
       });
     });
 
     request.on('error', (error: any) => {
-      loggingService.logMessage('-', `Error: ${error.message}`, LogLevel.ERROR);
+      log.error(`Error: ${error.message}`);
       if (error.message === 'net::ERR_CONNECTION_REFUSED') {
         clearTimeout(timeoutId);
         event.sender.send(

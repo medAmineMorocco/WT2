@@ -2,12 +2,11 @@ import { ipcMain, shell } from 'electron';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
+import log from 'electron-log';
 import copyDirectory from '../../services/utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
-import loggingService from '../../services/logging/loggingService';
-import LogLevel from '../../enums/LogLevel';
 
 async function getEditor(editorLabel: string) {
   const storedEditors = await utils.getStorageItem('editors');
@@ -26,18 +25,10 @@ async function openInEditor(editorCommand: string, dir: string, event: any) {
   exec(`"${editorCommand}" ${dir}`, options, async (error, stdout, stderr) => {
     if (stderr) {
       const encoded = await utils.setStoredEncoding(stderr);
-      loggingService.logMessage(
-        dir,
-        `Failed to open editor: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to open editor: ${encoded}`);
       event.sender.send('open-editor-error', encoded);
     } else {
-      loggingService.logMessage(
-        dir,
-        'Editor opened successfully',
-        LogLevel.INFO,
-      );
+      log.info('Editor opened successfully');
     }
   });
 }
@@ -70,7 +61,7 @@ async function copySettings(editor: any, worktreePath: string, dir: string) {
 }
 
 ipcMain.on('open-explorer', function (event, dir) {
-  loggingService.logMessage(dir, 'Opening explorer', LogLevel.INFO);
+  log.info('Opening explorer');
   const normalizedPath = path.normalize(dir);
   shell.openPath(normalizedPath);
 });
@@ -83,11 +74,7 @@ ipcMain.on(
     worktreePath: string,
     dir: string,
   ) {
-    loggingService.logMessage(
-      dir,
-      `Opening ${editorName} in ${worktreePath}`,
-      LogLevel.INFO,
-    );
+    log.info(`Opening ${editorName} in ${worktreePath}`);
     const editor = await getEditor(editorName);
     if (editor) {
       const command =

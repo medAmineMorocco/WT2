@@ -370,19 +370,6 @@ function Hello() {
           <Tooltip
             title={
               <Space>
-                <span>Activity Logs</span>
-                <small style={{ color: 'grey' }}>Shift+L</small>
-              </Space>
-            }
-            placement="left"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <FloatButton icon={<FileSyncOutlined />} onClick={openLogsPage} />
-          </Tooltip>
-          <Tooltip
-            title={
-              <Space>
                 <span>Settings</span>
                 <small style={{ color: 'grey' }}>Shift+S</small>
               </Space>
@@ -439,7 +426,6 @@ function Hello() {
 }
 
 const Settings = React.lazy(() => import('./modules/settings/Settings'));
-const Logs = React.lazy(() => import('./modules/appLogs/Logs'));
 export default function App() {
   return (
     <Router>
@@ -455,7 +441,6 @@ export default function App() {
               }
             />
             <Route path="/settings" element={<Settings />} />
-            <Route path="/logs" element={<Logs />} />
           </Routes>
         </AntdApp>
       </Suspense>

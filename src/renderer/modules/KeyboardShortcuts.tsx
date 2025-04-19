@@ -29,11 +29,6 @@ const data = {
       shortcut1: 'Shift',
       shortcut2: 'C',
     },
-    {
-      title: 'Activity Logs',
-      shortcut1: 'Shift',
-      shortcut2: 'L',
-    },
   ],
   tabs: [
     {
