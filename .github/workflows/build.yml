@@ -26,11 +26,13 @@ jobs:
       - name: Package Linux application
         run: npm run package:linux
 
-      - name: Upload Linux build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorktreeWise-linux-latest
-          path: release/build/*
+      - name: Upload to GoFile
+        run: |
+          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+            [ -e "$file" ] || continue
+            echo "Uploading $file..."
+            curl -F "file=@$file" https://store1.gofile.io/uploadFile
+          done
 
   build-macos:
     runs-on: macos-latest
@@ -49,11 +51,13 @@ jobs:
       - name: Package macOS application
         run: npm run package:macos
 
-      - name: Upload macOS build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorktreeWise-macos-latest
-          path: release/build/*
+      - name: Upload to GoFile
+        run: |
+          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+            [ -e "$file" ] || continue
+            echo "Uploading $file..."
+            curl -F "file=@$file" https://store1.gofile.io/uploadFile
+          done
 
   build-windows:
     runs-on: windows-latest
@@ -72,8 +76,11 @@ jobs:
       - name: Package Windows application
         run: npm run package:win
 
-      - name: Upload Windows build artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: WorktreeWise-windows-latest
-          path: release/build/*
+      - name: Upload to GoFile
+        shell: bash
+        run: |
+          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+            [ -e "$file" ] || continue
+            echo "Uploading $file..."
+            curl -F "file=@$file" https://store1.gofile.io/uploadFile
+          done
