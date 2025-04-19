@@ -217,7 +217,7 @@ body {
   border: 1px solid #424242;
 }
 
-.git-log-modal div[tabindex="-1"] {
+.git-log-modal div[tabindex="0"] {
   height: 100%;
 }
 
