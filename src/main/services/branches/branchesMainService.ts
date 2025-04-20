@@ -7,7 +7,7 @@ function findAll(directory: string) {
   return new Promise(async (resolve, reject) => {
     const gitCommand = await gitMainService.gitCommand();
     exec(
-      `"${gitCommand}" branch --format=%(refname:short)`,
+      `"${gitCommand}" branch --format="%(refname:short)"`,
       {
         cwd: directory,
       },

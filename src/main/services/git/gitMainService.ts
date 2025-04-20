@@ -177,7 +177,6 @@ function listBranches(directory: string) {
   return new Promise(async (resolve, reject) => {
     const options = {
       cwd: directory,
-      shell: true,
     } as any;
     try {
       const gitCmd = await gitCommand();
