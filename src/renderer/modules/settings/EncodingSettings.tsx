@@ -54,10 +54,8 @@ export default function EncodingSettings() {
   const [form] = Form.useForm();
 
   useEffect(() => {
-    const storedEncoding = window.localStorage.getItem('encoding');
-    if (storedEncoding) {
-      form.setFieldValue('encoding', storedEncoding);
-    }
+    const storedEncoding = window.localStorage.getItem('encoding') || 'utf-8';
+    form.setFieldValue('encoding', storedEncoding);
 
     return () => {
       const encoding = form.getFieldValue('encoding');
