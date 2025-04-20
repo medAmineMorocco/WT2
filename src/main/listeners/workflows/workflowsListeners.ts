@@ -230,30 +230,6 @@ ipcMain.on('get-workflows', async function (event, dir: string) {
   }
 });
 
-ipcMain.on('open-dialog-import-workflows', async function (event) {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
-  });
-
-  try {
-    log.info('Searching for workflows to import');
-    if (!result.canceled) {
-      const [dir] = result.filePaths;
-
-      const workflows = workflowsMainService.findAll(path.normalize(dir));
-      event.sender.send(
-        'workflows-to-import-found',
-        0,
-        JSON.stringify(workflows),
-      );
-    }
-  } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to search for workflows to import: ${err.message}`);
-    event.sender.send('workflows-to-import-found', -1, encoded);
-  }
-});
-
 ipcMain.on(
   'import-workflows',
   async function (event, workflows: any[], dir: string) {

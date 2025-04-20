@@ -241,15 +241,3 @@ ipcMain.on(
     }
   },
 );
-
-ipcMain.on('choose-worktrees-dir', async function (event) {
-  const result = await dialog.showOpenDialog({
-    properties: ['openDirectory'],
-  });
-  log.info('Choosing worktrees directory');
-  if (!result.canceled) {
-    const [dir] = result.filePaths;
-    const name = path.basename(dir);
-    event.sender.send('selected-worktrees-dir', 0, dir, name);
-  }
-});

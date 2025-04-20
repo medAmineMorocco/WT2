@@ -23,6 +23,8 @@ import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
 import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
+import workflowsMainService from './services/workflows/workflowsMainService';
+import utils from './utils/utils';
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
@@ -237,6 +239,48 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
       pathDir,
       name,
     );
+  }
+});
+
+ipcMain.on('choose-worktrees-dir', async function (event) {
+  if (mainWindow) {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+    });
+    log.info('Choosing worktrees directory');
+    if (!result.canceled) {
+      const [dir] = result.filePaths;
+      log.debug(`dir:  ${dir}`);
+      const name = path.basename(dir);
+      log.debug(`name:  ${name}`);
+      event.sender.send('selected-worktrees-dir', 0, dir, name);
+    }
+  }
+});
+
+ipcMain.on('open-dialog-import-workflows', async function (event) {
+  if (mainWindow) {
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+    });
+
+    try {
+      log.info('Searching for workflows to import');
+      if (!result.canceled) {
+        const [dir] = result.filePaths;
+
+        const workflows = workflowsMainService.findAll(path.normalize(dir));
+        event.sender.send(
+          'workflows-to-import-found',
+          0,
+          JSON.stringify(workflows),
+        );
+      }
+    } catch (err: any) {
+      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
+      log.error(`Failed to search for workflows to import: ${err.message}`);
+      event.sender.send('workflows-to-import-found', -1, encoded);
+    }
   }
 });
 
