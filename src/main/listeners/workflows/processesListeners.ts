@@ -1,4 +1,5 @@
 import path from 'path';
+import log from 'electron-log';
 import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
 import {
@@ -33,23 +34,24 @@ async function getNewlogStates(
   command: any,
   status: string | null,
 ) {
+  log.info(
+    `getNewlogStates with params: {worktreeLabel: ${worktreeLabel}} {command: ${JSON.stringify(command)}} {status: ${status}}`,
+  );
   return Promise.all(
     getLogStates().map(async (item: any) => {
       if (item.label === worktreeLabel) {
         const encoded = utils.setEncoding(data, storedEncoding);
-        let log = '';
+        let logOutput = '';
         if (item.data[command.key]) {
-          log =
+          logOutput =
             (item.data[command.key] ? item.data[command.key].output : '') +
             encoded;
         } else {
-          log = encoded;
+          logOutput = encoded;
         }
         item.data[command.key] = {
-          command: command.value.includes('hygen')
-            ? 'run generator'
-            : command.value,
-          output: log,
+          command: command.display ? command.display : command.value,
+          output: logOutput,
         };
         if (status) {
           item.data[command.key].status = status;
@@ -137,6 +139,9 @@ async function executeCommand(
         );
         setLogStates(newlogStates);
         event.sender.send('workflow-started-log-received', newlogStates);
+        if (command.worktreeToCreate) {
+          event.sender.send('worktree-created', 0);
+        }
         resolve('finish command');
       } else if (signal === 'SIGTERM' || signal === 'SIGKILL') {
         reject(new Error('aborted'));
@@ -187,10 +192,7 @@ async function executeCommandAtWorktree(
     }
     let normalizedPath = path.normalize(worktree.path);
     if (command.postHook) {
-      const mainRepoName = path.win32.basename(worktree.path);
-      normalizedPath = path.normalize(
-        worktree.path.replace(mainRepoName, command.worktreeName),
-      );
+      normalizedPath = path.normalize(command.postHookPath);
     }
     // eslint-disable-next-line no-await-in-loop
     await executeCommand(command, normalizedPath, worktree.label, event);

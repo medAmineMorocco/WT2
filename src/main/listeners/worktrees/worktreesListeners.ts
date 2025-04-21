@@ -1,5 +1,4 @@
-import { dialog, ipcMain } from 'electron';
-import path from 'path';
+import { ipcMain } from 'electron';
 import log from 'electron-log';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import utils from '../../utils/utils';

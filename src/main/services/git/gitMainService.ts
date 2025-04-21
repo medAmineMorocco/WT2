@@ -1,4 +1,5 @@
 import { execSync } from 'child_process';
+import log from 'electron-log';
 import utils from '../../utils/utils';
 
 const zlib = require('zlib');
@@ -180,6 +181,8 @@ function listBranches(directory: string) {
     } as any;
     try {
       const gitCmd = await gitCommand();
+      log.debug(`** gitCmd: ${gitCmd}`);
+
       const allBranches = execSync(
         `"${gitCmd}" branch --format="%(refname:short)"`,
         options,
@@ -187,6 +190,7 @@ function listBranches(directory: string) {
         .toString()
         .trim()
         .split('\n');
+      log.debug(`** allBranches: ${allBranches}`);
 
       const worktreeOutput = execSync(
         `"${gitCmd}" worktree list --porcelain`,
@@ -199,10 +203,12 @@ function listBranches(directory: string) {
         .split('\n')
         .filter((line) => line.startsWith('branch '))
         .map((line) => line.split(' ')[1].replace('refs/heads/', ''));
+      log.debug(`** worktreeBranches: ${worktreeBranches}`);
 
       const branchesNotInWorktrees = allBranches.filter(
         (branch) => !worktreeBranches.includes(branch),
       );
+      log.debug(`** branchesNotInWorktrees: ${branchesNotInWorktrees}`);
 
       resolve(branchesNotInWorktrees);
     } catch (error) {
@@ -220,12 +226,34 @@ function listTags(directory: string) {
     } as any;
     try {
       const gitCmd = await gitCommand();
-      const stdout = execSync(`"${gitCmd}" tag`, options)
+      log.debug(`** gitCmd: ${gitCmd}`);
+
+      const allTags = execSync(`"${gitCmd}" tag`, options)
         .toString()
         .trim()
         .split('\n')
         .filter((value) => value !== '');
-      resolve(stdout);
+      log.debug(`** allTags: ${allTags}`);
+
+      const worktreeOutput = execSync(
+        `"${gitCmd}" worktree list --porcelain`,
+        options,
+      );
+
+      const worktreeBranches = worktreeOutput
+        .toString()
+        .trim()
+        .split('\n')
+        .filter((line) => line.startsWith('branch '))
+        .map((line) => line.split(' ')[1].replace('refs/heads/', ''));
+      log.debug(`** worktreeBranches: ${worktreeBranches}`);
+
+      const tagsNotInWorktrees = allTags.filter(
+        (tag) => !worktreeBranches.includes(tag.replaceAll('.', '-')),
+      );
+      log.debug(`** tagsNotInWorktrees: ${tagsNotInWorktrees}`);
+
+      resolve(tagsNotInWorktrees);
     } catch (error) {
       reject(error);
     }

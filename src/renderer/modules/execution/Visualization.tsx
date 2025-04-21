@@ -9,6 +9,8 @@ import {
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
+import log from 'electron-log';
+
 
 const config: any = {
   processing: {
@@ -43,7 +45,7 @@ export default function Visualization() {
 
   useEffect(() => {
     const onReceiveCommands = (event: any, executedCommands: any[]) => {
-      console.log('executedCommands', executedCommands);
+      log.debug('executedCommands: ', JSON.stringify(executedCommands));
       setCommands(executedCommands);
     };
     const onReceiveStatesUpdated = (

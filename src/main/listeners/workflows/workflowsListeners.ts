@@ -1,5 +1,5 @@
 import path from 'path';
-import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import log from 'electron-log';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
@@ -11,6 +11,8 @@ import {
   setStopExecution,
   setWorktreesStates,
 } from './sharedState';
+import worktreeMainService from '../../services/worktrees/worktreeMainService';
+import branchesMainService from '../../services/branches/branchesMainService';
 
 let focusedWindow: BrowserWindow | null;
 
@@ -67,10 +69,12 @@ ipcMain.on('play-workflow', async function (event, workflow) {
   focusedWindow = BrowserWindow.getFocusedWindow();
   event.sender.send('workflow-started');
   const commands = [workflow.command, ...workflow.commands];
-  log.info(`Starting workflow ${workflow.name} with commands: ${commands}`);
+  log.info(
+    `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
+  );
   const commandsTitles = commands.map((command) => {
     return {
-      title: command.value,
+      title: command.display ? command.display : command.value,
     };
   });
   event.sender.send('workflow-started-with-commands', commandsTitles);
@@ -142,6 +146,137 @@ ipcMain.on('stop-workflow', function (event) {
   log.info('Workflow stopped by user');
   event.sender.send('workflow-stopped');
 });
+
+ipcMain.on(
+  'create-worktree-workflow',
+  async function (
+    event,
+    values,
+    createWorktreeMode,
+    worktreeName,
+    worktreesFolder,
+    dir,
+  ) {
+    event.sender.send('workflow-started');
+    const pathSeparator = await worktreeMainService.getWorktreesSeparator();
+    let command: string;
+    if (createWorktreeMode === 'existing-branch') {
+      command = `git worktree add ${worktreesFolder + pathSeparator + worktreeName} ${worktreeName}`;
+    } else if (createWorktreeMode === 'existing-tag') {
+      const branchNameForTag = worktreeName;
+      const branchExist = await worktreeMainService.branchExists(
+        branchNameForTag,
+        dir,
+      );
+      if (!branchExist) {
+        await branchesMainService.add(branchNameForTag, dir);
+      }
+      command = `git worktree add ${worktreesFolder + pathSeparator + branchNameForTag} ${branchNameForTag}`;
+    } else {
+      command = `git worktree add ${worktreesFolder + pathSeparator + worktreeName}`;
+    }
+    const workflow = {
+      name: worktreeName,
+      command: null,
+      commands: [],
+      mode: 'sequential',
+      worktrees: [
+        {
+          label: 'Create Git Worktree',
+          path: dir,
+        },
+      ],
+    } as any;
+    if (values.preHook) {
+      workflow.command = {
+        key: '0',
+        value: values.preHook,
+      };
+      workflow.commands = [
+        {
+          key: '1',
+          value: command,
+          worktreeToCreate: true,
+          display: 'Create Git Worktree',
+        },
+      ];
+    }
+    if (values.postHook && !values.preHook) {
+      workflow.command = {
+        key: '0',
+        value: command,
+        worktreeToCreate: true,
+        display: 'Create Git Worktree',
+      };
+
+      const postHookPath = worktreesFolder + pathSeparator + worktreeName;
+      log.debug(`postHookPath: ${postHookPath}`);
+
+      workflow.commands = [
+        {
+          key: '1',
+          value: values.postHook,
+          postHook: true,
+          postHookPath,
+          worktreeName,
+        },
+      ];
+    }
+    if (values.postHook && values.preHook) {
+      workflow.commands = [
+        {
+          key: '1',
+          value: command,
+          worktreeToCreate: true,
+          display: 'Create Git Worktree',
+        },
+        {
+          key: '2',
+          value: values.postHook,
+          postHook: true,
+          postHookPath: worktreesFolder + pathSeparator + worktreeName,
+          worktreeName,
+        },
+      ];
+    }
+
+    const commands = [workflow.command, ...workflow.commands];
+    log.info(`Starting workflow ${workflow.name} with commands: ${commands}`);
+    const commandsTitles = commands.map((item) => {
+      return {
+        title: item.display ? item.display : item.value,
+      };
+    });
+    event.sender.send('workflow-started-with-commands', commandsTitles);
+    const worktreesStates = workflow.worktrees.map((worktree: any) => {
+      return {
+        title: worktree.label,
+        current: -1,
+        status: 'wait',
+      };
+    });
+    setWorktreesStates(worktreesStates);
+    event.sender.send('workflow-started-states-updated', getWorktreesStates());
+    const logStates = workflow.worktrees.map((worktree: any, index: number) => {
+      return {
+        label: worktree.label,
+        key: index.toString(),
+        data: {},
+      };
+    });
+    setLogStates(logStates);
+    event.sender.send('workflow-started-log-received', logStates);
+    try {
+      await executeProcessesForDirectoriesInSeries(
+        commands,
+        workflow.worktrees,
+        event,
+      );
+    } catch (error) {
+      log.error(error);
+    }
+  },
+);
 
 ipcMain.on(
   'add-workflow',

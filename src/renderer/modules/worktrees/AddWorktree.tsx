@@ -18,6 +18,7 @@ import {
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import log from 'electron-log';
 import TabService from '../../services/tab/TabService';
 
 export default function AddWorktree({
@@ -63,11 +64,11 @@ export default function AddWorktree({
     }
 
     const onWorktreeCreated = (event: any, code: number, result: any) => {
+      log.debug(`code: ${code} result: ${JSON.stringify(result)}`);
       if (code === 0) {
         form.setFieldValue('name', null);
         notification.success({
           message: 'Worktree Created',
-          description: result,
           placement: 'bottomLeft',
           duration: 1,
         });
@@ -118,7 +119,11 @@ export default function AddWorktree({
       }
     };
 
-    const onWorktreesSeparatorFound = (event: any, code: number, result: any) => {
+    const onWorktreesSeparatorFound = (
+      event: any,
+      code: number,
+      result: any,
+    ) => {
       if (code === 0) {
         setPathSeparator(result);
       }
@@ -135,7 +140,7 @@ export default function AddWorktree({
     };
 
     ipcRenderer.on('worktree-created', onWorktreeCreated);
-    ipcRenderer.on('branches-found', onBranchesFound);
+    ipcRenderer.on('receive-branches', onBranchesFound);
     ipcRenderer.on('receive-tags', onTagsFound);
     ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
     ipcRenderer.on('worktrees-separator-found', onWorktreesSeparatorFound);
@@ -143,7 +148,7 @@ export default function AddWorktree({
 
     return () => {
       ipcRenderer.removeAllListeners('worktree-created');
-      ipcRenderer.removeAllListeners('branches-found');
+      ipcRenderer.removeAllListeners('receive-branches');
       ipcRenderer.removeAllListeners('receive-tags');
       ipcRenderer.removeAllListeners('worktrees-folder-found');
       ipcRenderer.removeAllListeners('worktrees-separator-found');
@@ -153,12 +158,6 @@ export default function AddWorktree({
   }, [form, notification, tabRepoPath]);
 
   useEffect(() => {
-    if (createWorktreeMode === 'existing-branch' && isModalOpen) {
-      ipcRenderer.send('get-branches', tabRepoPath);
-    }
-    if (createWorktreeMode === 'existing-tag' && isModalOpen) {
-      ipcRenderer.send('list-tags', tabRepoPath);
-    }
     const activeTabValue = TabService.getTab(activeTab);
     if (activeTabValue.preHook) {
       form.setFieldValue('preHook', activeTabValue.preHook);
@@ -166,80 +165,57 @@ export default function AddWorktree({
     if (activeTabValue.postHook) {
       form.setFieldValue('postHook', activeTabValue.postHook);
     }
+  }, [activeTab, form, isModalOpen, tabRepoPath]);
+
+  useEffect(() => {
+    if (createWorktreeMode === 'existing-branch' && isModalOpen) {
+      ipcRenderer.send('list-branches', tabRepoPath);
+    }
+    if (createWorktreeMode === 'existing-tag' && isModalOpen) {
+      ipcRenderer.send('list-tags', tabRepoPath);
+    }
   }, [activeTab, createWorktreeMode, form, isModalOpen, tabRepoPath]);
 
   const onChangeCreateWorktreeMode = (newVal: string) => {
     setCreateWorktreeMode(newVal);
   };
 
+  function isNotBlank(val: string | null | undefined) {
+    return typeof val === 'string' && val.trim() !== '';
+  }
+
   const onFinish = (values: any) => {
+    log.debug(`values: ${JSON.stringify(values)}`);
     let worktreeName: any;
     if (createWorktreeMode === 'new-branch') {
       worktreeName = values.name;
     } else if (createWorktreeMode === 'existing-branch') {
       worktreeName = values['existing-branch'];
     } else {
-      worktreeName = values['existing-tag'];
+      worktreeName = values['existing-tag'].replaceAll('.', '-');
     }
-    let command: string;
-    if (createWorktreeMode === 'existing-branch') {
-      command = `git worktree add ../${worktreeName} ${worktreeName}`;
-    } else if (createWorktreeMode === 'existing-tag') {
-      command = `git checkout -b ${worktreeName} 744dbb837b809e41fee306c1dafe7d28d1b544c7`;
+
+    if (!isNotBlank(values.preHook) && !isNotBlank(values.postHook)) {
+      log.debug('== create-worktree ==');
+      setLoadingCreateWorktree(true);
+      ipcRenderer.send(
+        'create-worktree',
+        worktreeName,
+        worktreesFolder + pathSeparator + worktreeName,
+        createWorktreeMode,
+        tabRepoPath,
+      );
     } else {
-      command = `git worktree add ../${worktreeName}`;
-    }
-    const workflow = {
-      name: worktreeName,
-      command: null,
-      commands: [],
-      mode: 'sequential',
-      worktrees: [
-        {
-          label: 'create worktree',
-          path: tabRepoPath,
-        },
-      ],
-    } as any;
-    if (values.preHook) {
-      workflow.command = {
-        key: '0',
-        value: values.preHook,
-      };
-      workflow.commands = [
-        {
-          key: '1',
-          value: command,
-        },
-      ];
-    }
-    if (values.postHook && !values.preHook) {
-      workflow.command = {
-        key: '0',
-        value: command,
-      };
-      workflow.commands = [
-        {
-          key: '1',
-          value: values.postHook,
-          postHook: true,
-          worktreeName,
-        },
-      ];
-    }
-    if (values.postHook && values.preHook) {
-      workflow.commands = [
-        {
-          key: '1',
-          value: command,
-        },
-        {
-          key: '2',
-          value: values.postHook,
-          postHook: true,
-          worktreeName,
-        },
-      ];
+      log.debug('== create-worktree-workflow ==');
+      ipcRenderer.send(
+        'create-worktree-workflow',
+        values,
+        createWorktreeMode,
+        worktreeName,
+        worktreesFolder,
+        tabRepoPath,
+      );
+      handleCancel();
     }
 
     const activeTabValue = TabService.getTab(activeTab);
@@ -250,20 +226,6 @@ export default function AddWorktree({
       worktreesPath: worktreesFolder,
     };
     window.localStorage.setItem(activeTab, JSON.stringify(activeTabNewValue));
-
-    if (values.preHook || values.postHook) {
-      ipcRenderer.send('play-workflow', workflow);
-      handleCancel();
-      return;
-    }
-    setLoadingCreateWorktree(true);
-    ipcRenderer.send(
-      'create-worktree',
-      worktreeName,
-      worktreesFolder + pathSeparator + worktreeName,
-      createWorktreeMode,
-      tabRepoPath,
-    );
   };
 
   const getWorktreeName = () => {

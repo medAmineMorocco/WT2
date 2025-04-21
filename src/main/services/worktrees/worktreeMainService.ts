@@ -84,18 +84,14 @@ function add(
     } else {
       command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
     }
-    exec(
-      command,
-      {
+    try {
+      execSync(command, {
         cwd: dir,
-      },
-      async (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+      });
+      resolve('created');
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -287,4 +283,5 @@ export default {
   getWorktreesFolder,
   getWorktreesSeparator,
   moveWorktreeToFolder,
+  branchExists,
 };

@@ -79,7 +79,7 @@ ipcMain.on('list-branches', async function (event, directory: string) {
   try {
     log.info('Getting branches');
     const branches = await gitMainService.listBranches(directory);
-    event.sender.send('receive-branches', 0, branches);
+    event.sender.send('receive-branches', 0, JSON.stringify(branches));
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
     log.error(`Failed to get branches: ${encoded}`);

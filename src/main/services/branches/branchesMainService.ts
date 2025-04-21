@@ -22,6 +22,26 @@ function findAll(directory: string) {
   });
 }
 
+function add(branchName: string, directory: string) {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
+    exec(
+      `"${gitCommand}" branch ${branchName}`,
+      {
+        cwd: directory,
+      },
+      (error: any) => {
+        if (error) {
+          reject(error);
+        }
+        resolve('created');
+      },
+    );
+  });
+}
+
 export default {
   findAll,
+  add,
 };
