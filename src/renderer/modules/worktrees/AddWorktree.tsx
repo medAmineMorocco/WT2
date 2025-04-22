@@ -192,7 +192,7 @@ export default function AddWorktree({
     } else if (createWorktreeMode === 'existing-branch') {
       worktreeName = values['existing-branch'];
     } else {
-      worktreeName = values['existing-tag'].replaceAll('.', '-');
+      worktreeName = values['existing-tag'];
     }
 
     if (!isNotBlank(values.preHook) && !isNotBlank(values.postHook)) {
@@ -211,7 +211,7 @@ export default function AddWorktree({
         'create-worktree-workflow',
         values,
         createWorktreeMode,
-        worktreeName,
+        worktreeName.replaceAll('.', '-'),
         worktreesFolder,
         tabRepoPath,
       );
