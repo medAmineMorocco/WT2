@@ -128,7 +128,12 @@ export default function GitLog({
         <strong>Git Log</strong>
       </Space>
       <div
-        style={{ width: '100%', height: 'calc(100% - 94px)', padding: '12px', paddingLeft: 0 }}
+        style={{
+          width: '100%',
+          height: 'calc(100% - 94px)',
+          padding: '12px',
+          paddingLeft: 0,
+        }}
       >
         <div style={{ marginBottom: '16px' }}>
           <Space>

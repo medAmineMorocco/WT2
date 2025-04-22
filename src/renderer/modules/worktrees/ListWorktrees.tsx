@@ -167,6 +167,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             placement: 'bottomLeft',
             duration: 0.5,
           });
+          setTimeout(() => {
+            api.destroy('updatable');
+          }, 1500);
         }, 50);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else if (result.includes('--force')) {
