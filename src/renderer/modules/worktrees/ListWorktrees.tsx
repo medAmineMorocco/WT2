@@ -11,7 +11,6 @@ import {
 } from 'antd';
 import {
   MoreOutlined,
-  BranchesOutlined,
   EditOutlined,
   FolderOpenOutlined,
   CopyOutlined,
@@ -25,7 +24,7 @@ import {
   LoadingOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
-import { FolderEditIcon } from 'hugeicons-react';
+import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
@@ -589,7 +588,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                   <CloseOutlined style={{ color: token.colorError }} />
                 </Tooltip>
               ) : (
-                <BranchesOutlined />
+                <Tree02Icon size={18} />
               )}
               <span
                 style={{ color: worktree.prunable ? token.colorError : '' }}

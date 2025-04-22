@@ -33,7 +33,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { GitCompareIcon } from 'hugeicons-react';
+import { GitCompareIcon, Tree02Icon } from 'hugeicons-react';
 import {
   Diff2HtmlUI,
   Diff2HtmlUIConfig,
@@ -411,7 +411,7 @@ export default function GitDiff({
         paddingBottom: 0,
       }}
     >
-      <Space>
+      <Space className="git-diff-title">
         <GitCompareIcon size={16} />
         <strong>Git Diff</strong>
       </Space>
@@ -676,7 +676,7 @@ export default function GitDiff({
                       >
                         <Radio.Button value="worktree">
                           <Space>
-                            <BranchesOutlined />
+                            <Tree02Icon size={14} />
                             <span>Worktree</span>
                           </Space>
                         </Radio.Button>
@@ -688,7 +688,7 @@ export default function GitDiff({
                         </Radio.Button>
                         <Radio.Button value="branch">
                           <Space>
-                            <ForkOutlined />
+                            <BranchesOutlined />
                             <span>Branch</span>
                           </Space>
                         </Radio.Button>
@@ -747,7 +747,7 @@ export default function GitDiff({
                       >
                         <Radio.Button value="worktree">
                           <Space>
-                            <BranchesOutlined />
+                            <Tree02Icon size={14} />
                             <span>Worktree</span>
                           </Space>
                         </Radio.Button>
@@ -759,7 +759,7 @@ export default function GitDiff({
                         </Radio.Button>
                         <Radio.Button value="branch">
                           <Space>
-                            <ForkOutlined />
+                            <BranchesOutlined />
                             <span>Branch</span>
                           </Space>
                         </Radio.Button>

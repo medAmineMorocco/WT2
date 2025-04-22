@@ -50,6 +50,21 @@ body {
   text-overflow: ellipsis;
 }
 
+.worktree-container > .ant-space-item:nth-child(1) {
+  display: flex;
+  align-items: center;
+}
+
+.git-diff-title > .ant-space-item:nth-child(1) {
+  display: flex;
+  align-items: center;
+}
+
+.center-huge-icon > .ant-space-item:nth-child(1) {
+  display: flex;
+  align-items: center;
+}
+
 .worktree-item,.worktree-item-dark {
   display: flex;
   justify-content: space-between;
