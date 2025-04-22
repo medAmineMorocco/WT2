@@ -24,7 +24,6 @@ import {
   SunOutlined,
   SettingOutlined,
   ApartmentOutlined,
-  FileSyncOutlined,
 } from '@ant-design/icons';
 import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';

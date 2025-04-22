@@ -24,9 +24,11 @@ async function openInEditor(editorCommand: string, dir: string, event: any) {
   };
   exec(`"${editorCommand}" ${dir}`, options, async (error, stdout, stderr) => {
     if (stderr) {
-      const encoded = await utils.setStoredEncoding(stderr);
-      log.error(`Failed to open editor: ${encoded}`);
-      event.sender.send('open-editor-error', encoded);
+      log.error(`Failed to open editor: ${stderr.toString()}`);
+      event.sender.send(
+        'open-editor-error',
+        'Failed to open the editor. Please check your editor path in the settings and try again.',
+      );
     } else {
       log.info('Editor opened successfully');
     }

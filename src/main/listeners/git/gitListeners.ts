@@ -12,9 +12,8 @@ ipcMain.on(
       const gitLog = await gitMainService.showLog(directory, branch, author);
       event.sender.send('receive-git-log', 0, gitLog);
     } catch (err: any) {
-      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      log.error(`Failed to get git log: ${encoded}`);
-      event.sender.send('receive-git-log', -1, encoded);
+      log.error(`Failed to get git log: ${err.message}`);
+      event.sender.send('receive-git-log', -1, 'Failed to load Git log.');
     }
   },
 );
@@ -40,9 +39,12 @@ ipcMain.on(
       );
       event.sender.send('receive-git-diff', 0, gitDiffCompressed);
     } catch (err: any) {
-      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      log.error(`Failed to get git diff: ${encoded}`);
-      event.sender.send('receive-git-diff', -1, encoded);
+      log.error(`Failed to get git diff: ${err.message}`);
+      event.sender.send(
+        'receive-git-diff',
+        -1,
+        'Failed to display Git diff. Please verify your selections and try again.',
+      );
     }
   },
 );
@@ -68,9 +70,12 @@ ipcMain.on(
       );
       event.sender.send('receive-diff-stats', 0, stats);
     } catch (err: any) {
-      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      log.error(`Failed to get git diff stats: ${encoded}`);
-      event.sender.send('receive-diff-stats', -1, encoded);
+      log.error(`Failed to get git diff stats: ${err.message}`);
+      event.sender.send(
+        'receive-diff-stats',
+        -1,
+        'Failed to retrieve Git diff statistics.',
+      );
     }
   },
 );
@@ -81,9 +86,8 @@ ipcMain.on('list-branches', async function (event, directory: string) {
     const branches = await gitMainService.listBranches(directory);
     event.sender.send('receive-branches', 0, JSON.stringify(branches));
   } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to get branches: ${encoded}`);
-    event.sender.send('receive-branches', -1, encoded);
+    log.error(`Failed to get branches: ${err.message}`);
+    event.sender.send('receive-branches', -1, 'Failed to list branches.');
   }
 });
 
@@ -93,9 +97,8 @@ ipcMain.on('list-tags', async function (event, directory: string) {
     const tags = await gitMainService.listTags(directory);
     event.sender.send('receive-tags', 0, tags);
   } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to get tags: ${encoded}`);
-    event.sender.send('receive-tags', -1, encoded);
+    log.error(`Failed to get tags: ${err.message}`);
+    event.sender.send('receive-tags', -1, 'Failed to list tags.');
   }
 });
 
@@ -105,9 +108,8 @@ ipcMain.on('list-worktrees', async function (event, directory: string) {
     const worktrees = await gitMainService.listWorktrees(directory);
     event.sender.send('receive-worktrees', 0, worktrees);
   } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to get worktrees: ${encoded}`);
-    event.sender.send('receive-worktrees', -1, encoded);
+    log.error(`Failed to get worktrees: ${err.message}`);
+    event.sender.send('receive-worktrees', -1, 'Failed to list worktrees.');
   }
 });
 
@@ -117,9 +119,8 @@ ipcMain.on('list-authors', async function (event, directory: string) {
     const authors = await gitMainService.listAuthors(directory);
     event.sender.send('receive-authors', 0, authors);
   } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to get authors: ${encoded}`);
-    event.sender.send('receive-authors', -1, encoded);
+    log.error(`Failed to get authors: ${err.message}`);
+    event.sender.send('receive-authors', -1, 'Failed to list authors.');
   }
 });
 
@@ -129,9 +130,8 @@ ipcMain.on('list-refs', async function (event, directory: string) {
     const refs = await gitMainService.listRefs(directory);
     event.sender.send('receive-refs', 0, refs);
   } catch (err: any) {
-    const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    log.error(`Failed to get refs: ${encoded}`);
-    event.sender.send('receive-refs', -1, encoded);
+    log.error(`Failed to get refs: ${err.message}`);
+    event.sender.send('receive-refs', -1, 'Failed to list git references.');
   }
 });
 
