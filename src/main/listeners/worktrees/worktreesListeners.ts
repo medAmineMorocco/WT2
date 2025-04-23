@@ -2,6 +2,8 @@ import { ipcMain } from 'electron';
 import log from 'electron-log';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import gitMainService from '../../services/git/gitMainService';
+import { assertWorktreePathIsAvailable } from '../../validators/worktreeValidators';
+import BusinessError from '../../exceptions/BusinessError';
 
 const intervalIds: any[] = [];
 ipcMain.on(
@@ -9,6 +11,7 @@ ipcMain.on(
   async function (event, name, worktreePath, createWorktreeMode, directory) {
     try {
       log.info(`Creating a new worktree ${name} in path ${worktreePath}`);
+      assertWorktreePathIsAvailable(name, worktreePath);
       const result = await worktreeMainService.add(
         name,
         worktreePath,
@@ -20,11 +23,15 @@ ipcMain.on(
       log.error(
         `Failed to create worktree ${name} in path ${worktreePath}: ${err.message}`,
       );
-      event.sender.send(
-        'worktree-created',
-        -1,
-        'Failed to create worktree. Please check your repository and try again.',
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send('worktree-created', -1, err.message);
+      } else {
+        event.sender.send(
+          'worktree-created',
+          -1,
+          'Failed to create worktree. Please check your repository and try again.',
+        );
+      }
     }
   },
 );
