@@ -67,7 +67,6 @@ function sendNotification(msg: string) {
 ipcMain.on('play-workflow', async function (event, workflow) {
   setStopExecution(false);
   focusedWindow = BrowserWindow.getFocusedWindow();
-  event.sender.send('workflow-started');
   const commands = [workflow.command, ...workflow.commands];
   log.info(
     `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
@@ -77,7 +76,6 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       title: command.display ? command.display : command.value,
     };
   });
-  event.sender.send('workflow-started-with-commands', commandsTitles);
   const worktreesStates = workflow.worktrees.map((worktree: any) => {
     return {
       title: worktree.label,
@@ -86,6 +84,7 @@ ipcMain.on('play-workflow', async function (event, workflow) {
     };
   });
   setWorktreesStates(worktreesStates);
+  event.sender.send('workflow-started', commandsTitles, worktreesStates);
   event.sender.send('workflow-started-states-updated', getWorktreesStates());
   const logStates = workflow.worktrees.map((worktree: any, index: number) => {
     return {
@@ -157,7 +156,6 @@ ipcMain.on(
     worktreesFolder,
     dir,
   ) {
-    event.sender.send('workflow-started');
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
     if (createWorktreeMode === 'existing-branch') {
@@ -247,7 +245,7 @@ ipcMain.on(
         title: item.display ? item.display : item.value,
       };
     });
-    event.sender.send('workflow-started-with-commands', commandsTitles);
+    event.sender.send('workflow-started', commandsTitles);
     const worktreesStates = workflow.worktrees.map((worktree: any) => {
       return {
         title: worktree.label,

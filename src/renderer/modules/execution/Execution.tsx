@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { theme, Space, Splitter } from 'antd';
+import { theme, Space, Splitter, StepProps } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { ipcRenderer } from 'electron';
@@ -18,11 +18,21 @@ export default function Execution() {
   const [isWorkflowStarted, setIsWorkflowStarted] = useState<boolean | null>(
     null,
   );
+  const [commands, setCommands] = useState<StepProps[]>([]);
+  const [initialWorktreesStates, setInitialWorktreesStates] = useState<any[]>(
+    [],
+  );
 
   const { token } = useToken();
 
   useEffect(() => {
-    const onWorkflowStarted = () => {
+    const onWorkflowStarted = (
+      event: any,
+      executedCommands: any[],
+      receivedInitialWorktreesStates: any[],
+    ) => {
+      setCommands(executedCommands);
+      setInitialWorktreesStates(receivedInitialWorktreesStates);
       setIsWorkflowStarted(true);
     };
 
@@ -75,7 +85,10 @@ export default function Execution() {
                 ease: 'easeInOut',
               }}
             >
-              <Visualization />
+              <Visualization
+                commands={commands}
+                initialWorktreesStates={initialWorktreesStates}
+              />
             </motion.div>
           ) : (
             <div

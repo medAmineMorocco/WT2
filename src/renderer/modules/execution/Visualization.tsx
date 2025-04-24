@@ -11,7 +11,6 @@ import {
 import { ipcRenderer } from 'electron';
 import log from 'electron-log';
 
-
 const config: any = {
   processing: {
     icon: <SyncOutlined spin />,
@@ -39,28 +38,33 @@ const config: any = {
   },
 };
 
-export default function Visualization() {
-  const [commands, setCommands] = useState<StepProps[]>([]);
-  const [worktreesStates, setWorktreesStates] = useState<any[]>([]);
+export default function Visualization({
+  commands,
+  initialWorktreesStates,
+}: {
+  commands: StepProps[];
+  initialWorktreesStates: any[];
+}) {
+  const [worktreesStates, setWorktreesStates] = useState<any[]>(
+    initialWorktreesStates,
+  );
 
   useEffect(() => {
-    const onReceiveCommands = (event: any, executedCommands: any[]) => {
-      log.debug('executedCommands: ', JSON.stringify(executedCommands));
-      setCommands(executedCommands);
-    };
     const onReceiveStatesUpdated = (
       event: any,
       worktreesStatesUpdated: any[],
     ) => {
+      log.debug(
+        'worktreesStatesUpdated: ',
+        JSON.stringify(worktreesStatesUpdated),
+      );
       setWorktreesStates(worktreesStatesUpdated);
     };
 
-    ipcRenderer.on('workflow-started-with-commands', onReceiveCommands);
     ipcRenderer.on('workflow-started-states-updated', onReceiveStatesUpdated);
 
     return () => {
       ipcRenderer.removeAllListeners('workflow-started-states-updated');
-      ipcRenderer.removeAllListeners('workflow-started-with-commands');
     };
   }, []);
 
