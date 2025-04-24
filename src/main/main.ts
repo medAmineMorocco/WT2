@@ -149,6 +149,12 @@ const createWindow = async () => {
     }
   });
 
+  mainWindow.on('maximize', () => {
+    console.log('mainWindow was maximized');
+    // resolve bug on linux when click on native maximize btn
+    mainWindow?.maximize();
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
