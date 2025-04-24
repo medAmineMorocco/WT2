@@ -25,6 +25,7 @@ import {
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
+import log from 'electron-log';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
@@ -34,11 +35,6 @@ import MoveWorktree from './MoveWorktree';
 const { useToken } = theme;
 
 const items = [
-  {
-    label: 'Rename',
-    value: '-2',
-    icon: <EditOutlined />,
-  },
   {
     label: 'Open in Explorer',
     value: '-1',
@@ -142,6 +138,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onWorktreesFound = (event: any, code: number, result: any) => {
       if (code === 0) {
         setWorktrees(JSON.parse(result));
+        log.debug(`worktrees found: ${result}`);
       } else {
         notification.error({
           message: 'Unable to Fetch Worktrees',
@@ -344,10 +341,18 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     );
   };
 
-  const getMenuItems = (isWorktreeLocked: boolean) => {
+  const getMenuItems = (
+    isWorktreeLocked: boolean,
+    isPrimaryWorktree: boolean,
+  ) => {
     if (isWorktreeLocked) {
       return [
         ...items,
+        {
+          label: 'Rename',
+          value: '-2',
+          icon: <EditOutlined />,
+        },
         {
           label: 'Delete',
           value: '2',
@@ -364,14 +369,22 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     return [
       ...items,
       {
+        label: 'Rename',
+        value: '-2',
+        icon: <EditOutlined />,
+        disabled: isPrimaryWorktree,
+      },
+      {
         label: 'Change Folder',
         value: '5',
         icon: <FolderEditIcon size={16} />,
+        disabled: isPrimaryWorktree,
       },
       {
         label: 'Delete',
         value: '2',
         icon: <DeleteOutlined />,
+        disabled: isPrimaryWorktree,
         children: [
           {
             label: 'worktree',
@@ -387,6 +400,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         label: 'Lock',
         value: '4',
         icon: <LockOutlined />,
+        disabled: isPrimaryWorktree,
       },
     ];
   };
@@ -607,7 +621,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
               </span>
             </Space>
             <Cascader
-              options={getMenuItems(worktree.isLocked)}
+              options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
               onChange={onClickWorktree(worktree)}
               loadData={loadData}
               optionRender={renderOption}

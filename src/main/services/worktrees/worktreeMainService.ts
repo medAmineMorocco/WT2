@@ -1,8 +1,16 @@
 import path from 'path';
 import * as os from 'os';
+import { existsSync, lstatSync } from 'node:fs';
 import gitMainService from '../git/gitMainService';
 
 const { exec, execSync } = require('child_process');
+
+function isPrimaryWorktree(directory: string) {
+  return (
+    existsSync(path.join(directory, '.git')) &&
+    lstatSync(path.join(directory, '.git')).isDirectory()
+  );
+}
 
 function findAll(directory: string, gitCommand: string) {
   // eslint-disable-next-line no-async-promise-executor
@@ -30,6 +38,7 @@ function findAll(directory: string, gitCommand: string) {
           const prunable = lineBySpace[3] === 'prunable';
 
           return {
+            isPrimary: isPrimaryWorktree(pathRep),
             path: pathRep,
             name,
             head,
