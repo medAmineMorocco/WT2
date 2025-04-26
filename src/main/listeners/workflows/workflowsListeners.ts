@@ -6,7 +6,6 @@ import utils from '../../utils/utils';
 import { executeProcessesAtWorktree } from './processesListeners';
 import {
   getStopExecution,
-  getWorktreesStates,
   setLogStates,
   setStopExecution,
   setWorktreesStates,
@@ -96,47 +95,41 @@ ipcMain.on('play-workflow', async function (event, workflow) {
   setLogStates(logStates);
   event.sender.send('workflow-started-log-received', logStates);
   if (workflow.mode === 'parallel') {
-    executeProcessesForDirectoriesInParallel(
+    await executeProcessesForDirectoriesInParallel(
       commands,
       workflow.worktrees,
       event,
-    )
-      .then(async () => {
-        event.sender.send('workflow-stopped');
-        const notificationsEnabled =
-          (await focusedWindow?.webContents.executeJavaScript(
-            'localStorage.getItem("notificationsEnabled");',
-            true,
-          )) === 'true';
-        // eslint-disable-next-line promise/always-return
-        if (!focusedWindow?.isFocused() && notificationsEnabled) {
-          sendNotification(
-            `Your workflow ${workflow.name} has finished executing.`,
-          );
-        }
-      })
-      .catch((error) => {
-        console.error('An error occurred:', error);
-      });
+    );
+    event.sender.send('workflow-stopped');
+    const notificationsEnabled =
+      (await focusedWindow?.webContents.executeJavaScript(
+        'localStorage.getItem("notificationsEnabled");',
+        true,
+      )) === 'true';
+    // eslint-disable-next-line promise/always-return
+    if (!focusedWindow?.isFocused() && notificationsEnabled) {
+      sendNotification(
+        `Your workflow ${workflow.name} has finished executing.`,
+      );
+    }
   } else {
-    executeProcessesForDirectoriesInSeries(commands, workflow.worktrees, event)
-      .then(async () => {
-        event.sender.send('workflow-stopped');
-        const notificationsEnabled =
-          (await focusedWindow?.webContents.executeJavaScript(
-            'localStorage.getItem("notificationsEnabled");',
-            true,
-          )) === 'true';
-        // eslint-disable-next-line promise/always-return
-        if (!focusedWindow?.isFocused() && notificationsEnabled) {
-          sendNotification(
-            `Your workflow ${workflow.name} has finished executing.`,
-          );
-        }
-      })
-      .catch((error) => {
-        console.error('An error occurred:', error);
-      });
+    await executeProcessesForDirectoriesInSeries(
+      commands,
+      workflow.worktrees,
+      event,
+    );
+    event.sender.send('workflow-stopped');
+    const notificationsEnabled =
+      (await focusedWindow?.webContents.executeJavaScript(
+        'localStorage.getItem("notificationsEnabled");',
+        true,
+      )) === 'true';
+    // eslint-disable-next-line promise/always-return
+    if (!focusedWindow?.isFocused() && notificationsEnabled) {
+      sendNotification(
+        `Your workflow ${workflow.name} has finished executing.`,
+      );
+    }
   }
 });
 
@@ -266,15 +259,11 @@ ipcMain.on(
     });
     setLogStates(logStates);
     event.sender.send('workflow-started-log-received', logStates);
-    try {
-      await executeProcessesForDirectoriesInSeries(
-        commands,
-        workflow.worktrees,
-        event,
-      );
-    } catch (error) {
-      log.error(error);
-    }
+    await executeProcessesForDirectoriesInSeries(
+      commands,
+      workflow.worktrees,
+      event,
+    );
   },
 );
 
