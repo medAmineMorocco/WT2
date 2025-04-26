@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execSync } from 'child_process';
 import BusinessError from '../exceptions/BusinessError';
+import gitMainService from '../services/git/gitMainService';
 
 const GIT_WORKTREES_DIR = (repoPath: string) =>
   path.join(repoPath, '.git', 'worktrees');
@@ -74,12 +75,13 @@ export function assertWorktreeIsNotLocked(
   }
 }
 
-export function assertWorktreeIsPrunable(
+export async function assertWorktreeIsPrunable(
   repoPath: string,
   worktreeName: string,
-): void {
+): Promise<void> {
   try {
-    const result = execSync(`git worktree list --porcelain`, {
+    const gitCmd = await gitMainService.gitCommand();
+    const result = execSync(`${gitCmd} worktree list --porcelain`, {
       cwd: repoPath,
       encoding: 'utf-8',
     });

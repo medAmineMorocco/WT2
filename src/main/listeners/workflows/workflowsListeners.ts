@@ -13,6 +13,7 @@ import {
 } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
+import gitMainService from '../../services/git/gitMainService';
 
 let focusedWindow: BrowserWindow | null;
 
@@ -158,8 +159,9 @@ ipcMain.on(
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
+    const gitCmd = await gitMainService.gitCommand();
     if (createWorktreeMode === 'existing-branch') {
-      command = `git worktree add ${worktreesFolder + pathSeparator + worktreeName} ${worktreeName}`;
+      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + worktreeName} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {
       const branchNameForTag = worktreeName;
       const branchExist = await worktreeMainService.branchExists(
@@ -169,9 +171,9 @@ ipcMain.on(
       if (!branchExist) {
         await branchesMainService.add(branchNameForTag, dir);
       }
-      command = `git worktree add ${worktreesFolder + pathSeparator + branchNameForTag} ${branchNameForTag}`;
+      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + branchNameForTag} ${branchNameForTag}`;
     } else {
-      command = `git worktree add ${worktreesFolder + pathSeparator + worktreeName}`;
+      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + worktreeName}`;
     }
     const workflow = {
       name: worktreeName,
@@ -239,7 +241,9 @@ ipcMain.on(
     }
 
     const commands = [workflow.command, ...workflow.commands];
-    log.info(`Starting workflow ${workflow.name} with commands: ${commands}`);
+    log.info(
+      `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
+    );
     const commandsTitles = commands.map((item) => {
       return {
         title: item.display ? item.display : item.value,
