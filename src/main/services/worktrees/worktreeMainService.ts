@@ -2,6 +2,7 @@ import path from 'path';
 import * as os from 'os';
 import { existsSync, lstatSync } from 'node:fs';
 import gitMainService from '../git/gitMainService';
+import { assertWorktreePathIsAvailable } from '../../validators/worktreeValidators';
 
 const { exec, execSync } = require('child_process');
 
@@ -73,27 +74,29 @@ function add(
 ) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    let command: string;
-    if (createWorktreeMode === 'existing-branch') {
-      command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
-    } else if (createWorktreeMode === 'existing-tag') {
-      const branchNameForTag = name.replaceAll('.', '-');
-      const branchExist = await branchExists(branchNameForTag, dir);
-      if (!branchExist) {
-        try {
-          execSync(`"${gitCommand}" branch ${branchNameForTag} ${name}`, {
-            cwd: dir,
-          });
-        } catch (e) {
-          reject(e);
-        }
-      }
-      command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
-    } else {
-      command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
-    }
     try {
+      assertWorktreePathIsAvailable(name, worktreePath);
+
+      const gitCommand = await gitMainService.gitCommand();
+      let command: string;
+      if (createWorktreeMode === 'existing-branch') {
+        command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
+      } else if (createWorktreeMode === 'existing-tag') {
+        const branchNameForTag = name.replaceAll('.', '-');
+        const branchExist = await branchExists(branchNameForTag, dir);
+        if (!branchExist) {
+          try {
+            execSync(`"${gitCommand}" branch ${branchNameForTag} ${name}`, {
+              cwd: dir,
+            });
+          } catch (e) {
+            reject(e);
+          }
+        }
+        command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
+      } else {
+        command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
+      }
       execSync(command, {
         cwd: dir,
       });
