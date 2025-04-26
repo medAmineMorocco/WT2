@@ -64,9 +64,7 @@ function sendNotification(msg: string) {
   });
 }
 
-ipcMain.on('play-workflow', async function (event, workflow) {
-  setStopExecution(false);
-  focusedWindow = BrowserWindow.getFocusedWindow();
+async function playWorkflow(event: any, workflow: any) {
   const commands = [workflow.command, ...workflow.commands];
   log.info(
     `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
@@ -104,36 +102,28 @@ ipcMain.on('play-workflow', async function (event, workflow) {
       workflow.worktrees,
       event,
     );
-    event.sender.send('workflow-stopped');
-    const notificationsEnabled =
-      (await focusedWindow?.webContents.executeJavaScript(
-        'localStorage.getItem("notificationsEnabled");',
-        true,
-      )) === 'true';
-    // eslint-disable-next-line promise/always-return
-    if (!focusedWindow?.isFocused() && notificationsEnabled) {
-      sendNotification(
-        `Your workflow ${workflow.name} has finished executing.`,
-      );
-    }
   } else {
     await executeProcessesForDirectoriesInSeries(
       commands,
       workflow.worktrees,
       event,
     );
-    event.sender.send('workflow-stopped');
-    const notificationsEnabled =
-      (await focusedWindow?.webContents.executeJavaScript(
-        'localStorage.getItem("notificationsEnabled");',
-        true,
-      )) === 'true';
-    // eslint-disable-next-line promise/always-return
-    if (!focusedWindow?.isFocused() && notificationsEnabled) {
-      sendNotification(
-        `Your workflow ${workflow.name} has finished executing.`,
-      );
-    }
+  }
+  event.sender.send('workflow-stopped');
+}
+
+ipcMain.on('play-workflow', async function (event, workflow) {
+  setStopExecution(false);
+  await playWorkflow(event, workflow);
+  focusedWindow = BrowserWindow.getFocusedWindow();
+  const notificationsEnabled =
+    (await focusedWindow?.webContents.executeJavaScript(
+      'localStorage.getItem("notificationsEnabled");',
+      true,
+    )) === 'true';
+  // eslint-disable-next-line promise/always-return
+  if (!focusedWindow?.isFocused() && notificationsEnabled) {
+    sendNotification(`Your workflow ${workflow.name} has finished executing.`);
   }
 });
 
@@ -235,43 +225,7 @@ ipcMain.on(
         },
       ];
     }
-
-    const commands = [workflow.command, ...workflow.commands];
-    log.info(
-      `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
-    );
-    const commandsTitles = commands.map((item) => {
-      return {
-        title: item.display ? item.display : item.value,
-      };
-    });
-    const worktreesStates = workflow.worktrees.map((worktree: any) => {
-      return {
-        title: worktree.label,
-        current: -1,
-        status: 'wait',
-      };
-    });
-    setWorktreesStates(worktreesStates);
-    const logStates = workflow.worktrees.map((worktree: any, index: number) => {
-      return {
-        label: worktree.label,
-        key: index.toString(),
-        data: {},
-      };
-    });
-    setLogStates(logStates);
-    event.sender.send(
-      'workflow-started',
-      commandsTitles,
-      worktreesStates,
-      logStates,
-    );
-    await executeProcessesForDirectoriesInSeries(
-      commands,
-      workflow.worktrees,
-      event,
-    );
+    await playWorkflow(event, workflow);
   },
 );
 
