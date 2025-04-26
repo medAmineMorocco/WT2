@@ -84,7 +84,6 @@ ipcMain.on('play-workflow', async function (event, workflow) {
     };
   });
   setWorktreesStates(worktreesStates);
-  event.sender.send('workflow-started', commandsTitles, worktreesStates);
   const logStates = workflow.worktrees.map((worktree: any, index: number) => {
     return {
       label: worktree.label,
@@ -93,7 +92,12 @@ ipcMain.on('play-workflow', async function (event, workflow) {
     };
   });
   setLogStates(logStates);
-  event.sender.send('workflow-started-log-received', logStates);
+  event.sender.send(
+    'workflow-started',
+    commandsTitles,
+    worktreesStates,
+    logStates,
+  );
   if (workflow.mode === 'parallel') {
     await executeProcessesForDirectoriesInParallel(
       commands,
@@ -249,7 +253,6 @@ ipcMain.on(
       };
     });
     setWorktreesStates(worktreesStates);
-    event.sender.send('workflow-started', commandsTitles, worktreesStates);
     const logStates = workflow.worktrees.map((worktree: any, index: number) => {
       return {
         label: worktree.label,
@@ -258,7 +261,12 @@ ipcMain.on(
       };
     });
     setLogStates(logStates);
-    event.sender.send('workflow-started-log-received', logStates);
+    event.sender.send(
+      'workflow-started',
+      commandsTitles,
+      worktreesStates,
+      logStates,
+    );
     await executeProcessesForDirectoriesInSeries(
       commands,
       workflow.worktrees,

@@ -20,7 +20,7 @@ import { ipcRenderer } from 'electron';
 import LogFullscreen from './LogFullscreen';
 import TerminalUI from '../../components/terminal/TerminalUI';
 
-export default function Log() {
+export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
   const [isFullScreenMode, setFullScreenMode] = useState(false);
 
   const [activeTabKey, setActiveTabKey] = useState('1');
@@ -29,7 +29,7 @@ export default function Log() {
 
   const [logMode, setLogMode] = useState('segment');
 
-  const [logStates, setLogStates] = useState<any[]>();
+  const [logStates, setLogStates] = useState<any[]>(initialLogStates);
 
   function removeANSI(str: string) {
     return str.replace(

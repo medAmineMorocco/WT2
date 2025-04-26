@@ -23,6 +23,8 @@ export default function Execution() {
     [],
   );
 
+  const [initialLogStates, setInitialLogStates] = useState<any[]>([]);
+
   const { token } = useToken();
 
   useEffect(() => {
@@ -30,9 +32,11 @@ export default function Execution() {
       event: any,
       executedCommands: any[],
       receivedInitialWorktreesStates: any[],
+      receivedInitialLogStates: any[],
     ) => {
       setCommands(executedCommands);
       setInitialWorktreesStates(receivedInitialWorktreesStates);
+      setInitialLogStates(receivedInitialLogStates);
       setIsWorkflowStarted(true);
     };
 
@@ -132,7 +136,7 @@ export default function Execution() {
               ease: 'easeInOut',
             }}
           >
-            <Log />
+            <Log initialLogStates={initialLogStates} />
           </motion.div>
         ) : (
           <div
