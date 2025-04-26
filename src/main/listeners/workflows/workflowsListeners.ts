@@ -86,7 +86,6 @@ ipcMain.on('play-workflow', async function (event, workflow) {
   });
   setWorktreesStates(worktreesStates);
   event.sender.send('workflow-started', commandsTitles, worktreesStates);
-  event.sender.send('workflow-started-states-updated', getWorktreesStates());
   const logStates = workflow.worktrees.map((worktree: any, index: number) => {
     return {
       label: worktree.label,
@@ -249,7 +248,6 @@ ipcMain.on(
         title: item.display ? item.display : item.value,
       };
     });
-    event.sender.send('workflow-started', commandsTitles);
     const worktreesStates = workflow.worktrees.map((worktree: any) => {
       return {
         title: worktree.label,
@@ -258,7 +256,7 @@ ipcMain.on(
       };
     });
     setWorktreesStates(worktreesStates);
-    event.sender.send('workflow-started-states-updated', getWorktreesStates());
+    event.sender.send('workflow-started', commandsTitles, worktreesStates);
     const logStates = workflow.worktrees.map((worktree: any, index: number) => {
       return {
         label: worktree.label,
