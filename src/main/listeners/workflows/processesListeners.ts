@@ -280,8 +280,40 @@ async function executeProcessesForDirectoriesInParallel(
   await Promise.all(promises);
 }
 
-export default async function playWorkflow(event: any, workflow: any) {
+export default async function playWorkflow(
+  event: any,
+  workflow: any,
+  dir: string,
+) {
+  const worktreesRepository = (await worktreeMainService.findAll(dir)) as any;
+  const worktreesRepositoryNames = worktreesRepository.map(
+    (worktree: any) => worktree.name,
+  );
+  if (workflow.worktrees && workflow.worktrees.includes(undefined)) {
+    event.sender.send(
+      'workflow-started-failed-worktree-not-found',
+      `Some selected worktrees have been deleted.Please update your selection.`,
+    );
+    event.sender.send('workflow-stopped');
+    return;
+  }
+  const worktreesWorkflow = workflow.worktrees
+    .filter((worktree: any) => worktree.value)
+    .map((worktree: any) => worktree.value);
+  // eslint-disable-next-line no-restricted-syntax
+  for (const worktreesWorkflowElement of worktreesWorkflow) {
+    if (!worktreesRepositoryNames.includes(worktreesWorkflowElement)) {
+      event.sender.send(
+        'workflow-started-failed-worktree-not-found',
+        `Some selected worktrees have been deleted: ${worktreesWorkflowElement}.Please update your selection.`,
+      );
+      event.sender.send('workflow-stopped');
+      return;
+    }
+  }
+
   const commands = [workflow.command, ...workflow.commands];
+
   log.info(
     `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
   );

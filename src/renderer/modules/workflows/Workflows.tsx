@@ -145,6 +145,13 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
+    const onWorkflowStartedFailed = (event: any, errorMsg: string) => {
+      notification.error({
+        message: errorMsg,
+        placement: 'bottomLeft',
+      });
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflows-imported', onWorkflowsImported);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
@@ -152,6 +159,10 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('workflows-to-import-found', onWorkflowsToImportFound);
     ipcRenderer.on('workflow-duplicated', onWorkflowDuplicated);
+    ipcRenderer.on(
+      'workflow-started-failed-worktree-not-found',
+      onWorkflowStartedFailed,
+    );
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
@@ -161,6 +172,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('workflows-to-import-found');
       ipcRenderer.removeAllListeners('workflow-duplicated');
+      ipcRenderer.removeAllListeners(
+        'workflow-started-failed-worktree-not-found',
+      );
     };
   }, [notification, tabRepoPath]);
 
@@ -230,7 +244,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       if (!record.worktrees || record.worktrees.length === 0) {
         workflow.worktrees = worktrees;
       }
-      ipcRenderer.send('play-workflow', workflow);
+      ipcRenderer.send('play-workflow', workflow, tabRepoPath);
       setPlayingWorkflow(workflow.name);
       setIsWorkflowPlaying(true);
     };

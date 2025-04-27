@@ -45,9 +45,9 @@ async function showWorklowFinishedNotification(workflowName: string) {
   }
 }
 
-ipcMain.on('play-workflow', async function (event, workflow) {
+ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
-  await playWorkflow(event, workflow);
+  await playWorkflow(event, workflow, dir);
   await showWorklowFinishedNotification(workflow.name);
 });
 
@@ -149,7 +149,7 @@ ipcMain.on(
         },
       ];
     }
-    await playWorkflow(event, workflow);
+    await playWorkflow(event, workflow, dir);
   },
 );
 
