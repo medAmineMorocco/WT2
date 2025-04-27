@@ -57,6 +57,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [workflows, setWorkflows] = useState<any>([]);
   const [worktrees, setWorktrees] = useState([]);
   const [workflowsToImport, setWorkflowsToImport] = useState([]);
+  const [uuid, setUuid] = useState<string>(new Date().toString());
   const { setIsWorkflowPlaying } = useItemsContext();
 
   const tabRepoPath = useMemo(() => {
@@ -69,6 +70,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     const onWorkflowsFound = (event: any, code: number, result: any) => {
       if (code === 0) {
         setWorkflows(JSON.parse(result));
+        setUuid(new Date().toString());
       } else {
         notification.error({
           message: 'Unable to Fetch Workflows',
@@ -497,12 +499,13 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           }}
         >
           <Table
+            key={uuid}
             className="workflows-table"
             columns={columns}
             dataSource={workflows}
             pagination={false}
             scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
-            bordered={true}
+            bordered
             size="middle"
           />
         </div>
