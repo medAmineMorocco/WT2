@@ -1,7 +1,6 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
-import gitMainService from '../../services/git/gitMainService';
 import BusinessError from '../../exceptions/BusinessError';
 
 const intervalIds: any[] = [];
@@ -117,10 +116,9 @@ ipcMain.on(
 );
 
 ipcMain.on('get-worktrees', async function (event, directory: string) {
-  const gitCommand = await gitMainService.gitCommand();
   try {
     log.info('Getting worktrees');
-    const worktrees = await worktreeMainService.findAll(directory, gitCommand);
+    const worktrees = await worktreeMainService.findAll(directory);
     event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
   } catch (err: any) {
     log.error(`Failed to get worktrees: ${err.message}`);
@@ -131,15 +129,11 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
 ipcMain.on(
   'get-worktrees-periodically',
   async function (event, directory: string) {
-    const gitCommand = await gitMainService.gitCommand();
     intervalIds.push(
       setInterval(async () => {
         try {
           log.info('Getting worktrees periodically');
-          const worktrees = await worktreeMainService.findAll(
-            directory,
-            gitCommand,
-          );
+          const worktrees = await worktreeMainService.findAll(directory);
           event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         } catch (err: any) {
           log.error(`Failed to get worktrees: ${err.message}`);

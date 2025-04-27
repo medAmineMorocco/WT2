@@ -7,6 +7,7 @@ import Visualization from './Visualization';
 import Log from './Log';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
+import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
 
@@ -14,6 +15,8 @@ export default function Execution() {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
+
+  const { isWorkflowPlaying } = useItemsContext();
 
   const [isWorkflowStarted, setIsWorkflowStarted] = useState<boolean | null>(
     null,
@@ -28,6 +31,12 @@ export default function Execution() {
   const { token } = useToken();
 
   useEffect(() => {
+    if (isWorkflowPlaying === true) {
+      setIsWorkflowStarted(true);
+    }
+  }, [isWorkflowPlaying]);
+
+  useEffect(() => {
     const onWorkflowStarted = (
       event: any,
       executedCommands: any[],
@@ -37,7 +46,6 @@ export default function Execution() {
       setCommands(executedCommands);
       setInitialWorktreesStates(receivedInitialWorktreesStates);
       setInitialLogStates(receivedInitialLogStates);
-      setIsWorkflowStarted(true);
     };
 
     const onWorkflowStopped = () => {

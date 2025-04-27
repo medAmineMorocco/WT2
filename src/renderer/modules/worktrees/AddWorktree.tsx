@@ -20,6 +20,7 @@ import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import log from 'electron-log';
 import TabService from '../../services/tab/TabService';
+import { useItemsContext } from '../../TabsContext';
 
 export default function AddWorktree({
   isModalOpen,
@@ -28,6 +29,8 @@ export default function AddWorktree({
   isModalOpen: boolean;
   handleCancel: any;
 }) {
+  const { setIsWorkflowPlaying } = useItemsContext();
+
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
   const [branches, setBranches] = useState<any[]>([]);
@@ -64,7 +67,9 @@ export default function AddWorktree({
     }
 
     const onWorktreeCreated = (event: any, code: number, result: any) => {
-      log.debug(`code: ${code} result: ${JSON.stringify(result)}`);
+      log.debug(
+        `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
+      );
       if (code === 0) {
         form.setFieldValue('name', null);
         notification.success({
@@ -215,6 +220,7 @@ export default function AddWorktree({
         worktreesFolder,
         tabRepoPath,
       );
+      setIsWorkflowPlaying(true);
       handleCancel();
     }
 

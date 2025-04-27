@@ -2,15 +2,14 @@ import path from 'path';
 import log from 'electron-log';
 import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
-import {
-  getLogStates,
-  getStopExecution,
-  getWorktreesStates,
-  setLogStates,
-  setWorktreesStates,
-} from './sharedState';
+import { getStopExecution } from './sharedState';
+import worktreeMainService from '../../services/worktrees/worktreeMainService';
 
 const execa = require('execa');
+
+let logStates: any[] = [];
+
+let worktreesStates: any[] = [];
 
 function updateWorktreesStates(
   worktreesStatesInput: any[],
@@ -38,20 +37,19 @@ async function getNewlogStates(
     `getNewlogStates with params: {worktreeLabel: ${worktreeLabel}} {command: ${JSON.stringify(command)}} {status: ${status}}`,
   );
   return Promise.all(
-    getLogStates().map(async (item: any) => {
+    logStates.map(async (item: any) => {
       if (item.label === worktreeLabel) {
-        const encoded = utils.setEncoding(data, storedEncoding);
         let logOutput = '';
         if (item.data[command.key]) {
           logOutput =
             (item.data[command.key] ? item.data[command.key].output : '') +
-            encoded;
+            data.toString();
         } else {
-          logOutput = encoded;
+          logOutput = data.toString();
         }
         item.data[command.key] = {
           command: command.display ? command.display : command.value,
-          output: logOutput,
+          output: utils.setEncoding(logOutput, storedEncoding),
         };
         if (status) {
           item.data[command.key].status = status;
@@ -83,15 +81,14 @@ async function executeCommand(
     try {
       commandProcess = execa(command.value, [], options);
     } catch (err: any) {
-      const newlogStates = await getNewlogStates(
+      logStates = await getNewlogStates(
         worktreeLabel,
         Buffer.from(err.message),
         storedEncoding,
         command,
         null,
       );
-      setLogStates(newlogStates);
-      event.sender.send('workflow-started-log-received', newlogStates);
+      event.sender.send('workflow-started-log-received', logStates);
       reject(new Error(err.toString()));
     }
 
@@ -105,42 +102,40 @@ async function executeCommand(
           }
         }, 5000);
       }
-      const newlogStates = await getNewlogStates(
+      logStates = await getNewlogStates(
         worktreeLabel,
         data,
         storedEncoding,
         command,
         null,
       );
-      setLogStates(newlogStates);
-      event.sender.send('workflow-started-log-received', newlogStates);
+      event.sender.send('workflow-started-log-received', logStates);
     });
 
     commandProcess?.stderr?.on('data', async (data: any) => {
-      const newlogStates = await getNewlogStates(
+      logStates = await getNewlogStates(
         worktreeLabel,
         data,
         storedEncoding,
         command,
         null,
       );
-      setLogStates(newlogStates);
-      event.sender.send('workflow-started-log-received', newlogStates);
+      event.sender.send('workflow-started-log-received', logStates);
     });
 
     commandProcess?.on('exit', async (code: any, signal: any) => {
       if (code === 0) {
-        const newlogStates = await getNewlogStates(
+        logStates = await getNewlogStates(
           worktreeLabel,
           '',
           storedEncoding,
           command,
           'finished',
         );
-        setLogStates(newlogStates);
-        event.sender.send('workflow-started-log-received', newlogStates);
+        event.sender.send('workflow-started-log-received', logStates);
         if (command.worktreeToCreate) {
-          event.sender.send('worktree-created', 0);
+          const worktrees = await worktreeMainService.findAll(normalizedPath);
+          event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         }
         resolve('finish command');
       } else if (signal === 'SIGTERM' || signal === 'SIGKILL') {
@@ -151,15 +146,14 @@ async function executeCommand(
     });
 
     commandProcess?.on('error', async (err: any) => {
-      const newlogStates = await getNewlogStates(
+      logStates = await getNewlogStates(
         worktreeLabel,
         Buffer.from(err.message),
         storedEncoding,
         command,
         null,
       );
-      setLogStates(newlogStates);
-      event.sender.send('workflow-started-log-received', newlogStates);
+      event.sender.send('workflow-started-log-received', logStates);
       reject(new Error(err.toString()));
     });
   });
@@ -173,76 +167,59 @@ async function executeCommandAtWorktree(
   event: any,
 ) {
   try {
-    const currentWorktree = getWorktreesStates().find(
+    const currentWorktree = worktreesStates.find(
       (item: any) => item.title === worktree.label,
     );
-    if (currentWorktree.status !== 'processing') {
-      setWorktreesStates(
-        updateWorktreesStates(
-          getWorktreesStates(),
-          worktree.label,
-          i,
-          'processing',
-        ),
-      );
-      event.sender.send(
-        'workflow-started-states-updated',
-        getWorktreesStates(),
-      );
-    }
     let normalizedPath = path.normalize(worktree.path);
     if (command.postHook) {
       normalizedPath = path.normalize(command.postHookPath);
     }
+    if (currentWorktree.status !== 'processing') {
+      worktreesStates = updateWorktreesStates(
+        worktreesStates,
+        worktree.label,
+        i,
+        'processing',
+      );
+      event.sender.send('workflow-started-states-updated', worktreesStates);
+    }
     // eslint-disable-next-line no-await-in-loop
     await executeCommand(command, normalizedPath, worktree.label, event);
     if (lastCommand) {
-      setWorktreesStates(
-        updateWorktreesStates(
-          getWorktreesStates(),
-          worktree.label,
-          i,
-          'success',
-        ),
+      worktreesStates = updateWorktreesStates(
+        worktreesStates,
+        worktree.label,
+        i,
+        'success',
       );
-      event.sender.send(
-        'workflow-started-states-updated',
-        getWorktreesStates(),
-      );
+      event.sender.send('workflow-started-states-updated', worktreesStates);
     } else {
-      setWorktreesStates(
-        updateWorktreesStates(
-          getWorktreesStates(),
-          worktree.label,
-          i + 1,
-          'processing',
-        ),
+      worktreesStates = updateWorktreesStates(
+        worktreesStates,
+        worktree.label,
+        i + 1,
+        'processing',
       );
-      event.sender.send(
-        'workflow-started-states-updated',
-        getWorktreesStates(),
-      );
+      event.sender.send('workflow-started-states-updated', worktreesStates);
     }
   } catch (err: any) {
     if (err.message.includes('aborted')) {
-      setWorktreesStates(
-        updateWorktreesStates(
-          getWorktreesStates(),
-          worktree.label,
-          i,
-          'warning',
-        ),
+      worktreesStates = updateWorktreesStates(
+        worktreesStates,
+        worktree.label,
+        i,
+        'warning',
       );
-      event.sender.send(
-        'workflow-started-states-updated',
-        getWorktreesStates(),
-      );
+      event.sender.send('workflow-started-states-updated', worktreesStates);
       return;
     }
-    setWorktreesStates(
-      updateWorktreesStates(getWorktreesStates(), worktree.label, i, 'error'),
+    worktreesStates = updateWorktreesStates(
+      worktreesStates,
+      worktree.label,
+      i,
+      'error',
     );
-    event.sender.send('workflow-started-states-updated', getWorktreesStates());
+    event.sender.send('workflow-started-states-updated', worktreesStates);
   }
 }
 
@@ -255,18 +232,13 @@ export async function executeProcessesAtWorktree(
   // eslint-disable-next-line no-plusplus
   for (let i = 0; i < commands.length; i++) {
     if (getStopExecution()) {
-      setWorktreesStates(
-        updateWorktreesStates(
-          getWorktreesStates(),
-          worktree.label,
-          i,
-          'warning',
-        ),
+      worktreesStates = updateWorktreesStates(
+        worktreesStates,
+        worktree.label,
+        i,
+        'warning',
       );
-      event.sender.send(
-        'workflow-started-states-updated',
-        getWorktreesStates(),
-      );
+      event.sender.send('workflow-started-states-updated', worktreesStates);
       event.sender.send('workflow-stopped');
       break;
     }
@@ -280,4 +252,84 @@ export async function executeProcessesAtWorktree(
       event,
     );
   }
+}
+
+async function executeProcessesForDirectoriesInSeries(
+  commands: any[],
+  worktrees: any[],
+  event: any,
+) {
+  // eslint-disable-next-line no-restricted-syntax
+  for (const worktree of worktrees) {
+    if (getStopExecution()) {
+      event.sender.send('workflow-stopped');
+      break;
+    }
+    // eslint-disable-next-line no-await-in-loop
+    await executeProcessesAtWorktree(worktree, commands, event);
+  }
+}
+async function executeProcessesForDirectoriesInParallel(
+  commands: any[],
+  worktrees: any[],
+  event: any,
+) {
+  const promises = worktrees.map(async (worktree) => {
+    await executeProcessesAtWorktree(worktree, commands, event);
+  });
+  await Promise.all(promises);
+}
+
+export default async function playWorkflow(event: any, workflow: any) {
+  const commands = [workflow.command, ...workflow.commands];
+  log.info(
+    `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
+  );
+  const commandsTitles = commands.map((command) => {
+    return {
+      title: command.display ? command.display : command.value,
+    };
+  });
+  worktreesStates = workflow.worktrees.map((worktree: any) => {
+    return {
+      title: worktree.label,
+      current: -1,
+      status: 'wait',
+    };
+  });
+  logStates = workflow.worktrees.map((worktree: any, index: number) => {
+    return {
+      label: worktree.label,
+      key: index.toString(),
+      data: {
+        '0': {
+          command: commandsTitles[0].title,
+          output: '',
+          status: 'processing',
+        },
+      },
+    };
+  });
+  event.sender.send(
+    'workflow-started',
+    commandsTitles,
+    worktreesStates,
+    logStates,
+  );
+  event.sender.send('workflow-started-states-updated', worktreesStates);
+  event.sender.send('workflow-started-log-received', logStates);
+  if (workflow.mode === 'parallel') {
+    await executeProcessesForDirectoriesInParallel(
+      commands,
+      workflow.worktrees,
+      event,
+    );
+  } else {
+    await executeProcessesForDirectoriesInSeries(
+      commands,
+      workflow.worktrees,
+      event,
+    );
+  }
+  event.sender.send('workflow-stopped');
 }

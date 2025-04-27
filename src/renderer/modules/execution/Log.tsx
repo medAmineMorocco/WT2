@@ -97,9 +97,9 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
     }
 
     const onReceiveLog = (event: any, logStatesReceived: any[]) => {
-      setLogStates(logStatesReceived);
       const mappedLogStates = buildLog(logStatesReceived);
       setData(mappedLogStates);
+      setLogStates(logStatesReceived);
     };
 
     ipcRenderer.on('workflow-started-log-received', onReceiveLog);

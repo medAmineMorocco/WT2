@@ -13,9 +13,10 @@ function isPrimaryWorktree(directory: string) {
   );
 }
 
-function findAll(directory: string, gitCommand: string) {
+function findAll(directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
+    const gitCommand = await gitMainService.gitCommand();
     exec(
       `"${gitCommand}" worktree list`,
       {

@@ -3,45 +3,13 @@ import { app, BrowserWindow, ipcMain, Notification } from 'electron';
 import log from 'electron-log';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
-import { executeProcessesAtWorktree } from './processesListeners';
-import {
-  getStopExecution,
-  setLogStates,
-  setStopExecution,
-  setWorktreesStates,
-} from './sharedState';
+import { setStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
+import playWorkflow from './processesListeners';
 
 let focusedWindow: BrowserWindow | null;
-
-async function executeProcessesForDirectoriesInSeries(
-  commands: any[],
-  worktrees: any[],
-  event: any,
-) {
-  // eslint-disable-next-line no-restricted-syntax
-  for (const worktree of worktrees) {
-    if (getStopExecution()) {
-      event.sender.send('workflow-stopped');
-      break;
-    }
-    // eslint-disable-next-line no-await-in-loop
-    await executeProcessesAtWorktree(worktree, commands, event);
-  }
-}
-
-async function executeProcessesForDirectoriesInParallel(
-  commands: any[],
-  worktrees: any[],
-  event: any,
-) {
-  const promises = worktrees.map(async (worktree) => {
-    await executeProcessesAtWorktree(worktree, commands, event);
-  });
-  await Promise.all(promises);
-}
 
 const RESOURCES_PATH = app.isPackaged
   ? path.join(process.resourcesPath, 'assets')
@@ -64,57 +32,7 @@ function sendNotification(msg: string) {
   });
 }
 
-async function playWorkflow(event: any, workflow: any) {
-  const commands = [workflow.command, ...workflow.commands];
-  log.info(
-    `Starting workflow ${workflow.name} with commands: ${JSON.stringify(commands)}`,
-  );
-  const commandsTitles = commands.map((command) => {
-    return {
-      title: command.display ? command.display : command.value,
-    };
-  });
-  const worktreesStates = workflow.worktrees.map((worktree: any) => {
-    return {
-      title: worktree.label,
-      current: -1,
-      status: 'wait',
-    };
-  });
-  setWorktreesStates(worktreesStates);
-  const logStates = workflow.worktrees.map((worktree: any, index: number) => {
-    return {
-      label: worktree.label,
-      key: index.toString(),
-      data: {},
-    };
-  });
-  setLogStates(logStates);
-  event.sender.send(
-    'workflow-started',
-    commandsTitles,
-    worktreesStates,
-    logStates,
-  );
-  if (workflow.mode === 'parallel') {
-    await executeProcessesForDirectoriesInParallel(
-      commands,
-      workflow.worktrees,
-      event,
-    );
-  } else {
-    await executeProcessesForDirectoriesInSeries(
-      commands,
-      workflow.worktrees,
-      event,
-    );
-  }
-  event.sender.send('workflow-stopped');
-}
-
-ipcMain.on('play-workflow', async function (event, workflow) {
-  setStopExecution(false);
-  await playWorkflow(event, workflow);
+async function showWorklowFinishedNotification(workflowName: string) {
   focusedWindow = BrowserWindow.getFocusedWindow();
   const notificationsEnabled =
     (await focusedWindow?.webContents.executeJavaScript(
@@ -123,8 +41,14 @@ ipcMain.on('play-workflow', async function (event, workflow) {
     )) === 'true';
   // eslint-disable-next-line promise/always-return
   if (!focusedWindow?.isFocused() && notificationsEnabled) {
-    sendNotification(`Your workflow ${workflow.name} has finished executing.`);
+    sendNotification(`Your workflow ${workflowName} has finished executing.`);
   }
+}
+
+ipcMain.on('play-workflow', async function (event, workflow) {
+  setStopExecution(false);
+  await playWorkflow(event, workflow);
+  await showWorklowFinishedNotification(workflow.name);
 });
 
 ipcMain.on('stop-workflow', function (event) {
