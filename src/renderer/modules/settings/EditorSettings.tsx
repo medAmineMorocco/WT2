@@ -143,7 +143,7 @@ export default function EditorSettings({
               </Button>
             </Form.Item>
             <div style={{ marginTop: '16px' }}>
-              <div>Example of path:</div>
+              <div>Example of Path:</div>
               <ul>
                 <li>
                   <strong>Windows: </strong>

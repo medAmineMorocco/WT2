@@ -130,6 +130,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
         message: 'Error During Web Editor Launch',
+        description: error,
         placement: 'bottomLeft',
       });
     };
