@@ -5,7 +5,6 @@ import {
   theme,
   App as AntdApp,
   Form,
-  Typography,
   Cascader,
   notification,
 } from 'antd';
@@ -155,6 +154,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       worktreeName: string,
       withLocalBranch: boolean,
     ) => {
+      log.debug(`onWorktreeRemoved: code: ${code} result: ${result}`);
       if (code === 0) {
         setTimeout(() => {
           api.success({
@@ -221,7 +221,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           api.error({
             key: 'updatable',
             message: 'Unable to Remove Worktree',
-            description: <Typography.Text copyable>{result}</Typography.Text>,
             placement: 'bottomLeft',
           });
         }, 500);

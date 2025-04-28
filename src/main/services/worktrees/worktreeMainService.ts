@@ -2,7 +2,10 @@ import path from 'path';
 import * as os from 'os';
 import { existsSync, lstatSync } from 'node:fs';
 import gitMainService from '../git/gitMainService';
-import { assertWorktreePathIsAvailable } from '../../validators/worktreeValidators';
+import {
+  assertWorktreeCleanBeforeDelete,
+  assertWorktreePathIsAvailable,
+} from '../../validators/worktreeValidators';
 
 const { exec, execSync } = require('child_process');
 
@@ -111,22 +114,29 @@ function add(
 function remove(worktreePath: string, dir: string, force: boolean) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    const command = force
-      ? `"${gitCommand}" worktree remove ${worktreePath} --force`
-      : `"${gitCommand}" worktree remove ${worktreePath}`;
-    exec(
-      command,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+    try {
+      if (!force) {
+        await assertWorktreeCleanBeforeDelete(worktreePath);
+      }
+      const gitCommand = await gitMainService.gitCommand();
+      const command = force
+        ? `"${gitCommand}" worktree remove ${worktreePath} --force`
+        : `"${gitCommand}" worktree remove ${worktreePath}`;
+      exec(
+        command,
+        {
+          cwd: dir,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
+          }
+          resolve(stdout);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -138,33 +148,40 @@ function removeWithLocalBranch(
 ) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    const command = force
-      ? `"${gitCommand}" worktree remove ${worktreePath} --force`
-      : `"${gitCommand}" worktree remove ${worktreePath}`;
-    exec(
-      command,
-      {
-        cwd: dir,
-      },
-      (error: any) => {
-        if (error) {
-          reject(error);
-        }
-        exec(
-          `"${gitCommand}" branch -d ${name}`,
-          {
-            cwd: dir,
-          },
-          (error2: any) => {
-            if (error2) {
-              reject(error2);
-            }
-            resolve('ok');
-          },
-        );
-      },
-    );
+    try {
+      if (!force) {
+        await assertWorktreeCleanBeforeDelete(worktreePath);
+      }
+      const gitCommand = await gitMainService.gitCommand();
+      const command = force
+        ? `"${gitCommand}" worktree remove ${worktreePath} --force`
+        : `"${gitCommand}" worktree remove ${worktreePath}`;
+      exec(
+        command,
+        {
+          cwd: dir,
+        },
+        (error: any) => {
+          if (error) {
+            reject(error);
+          }
+          exec(
+            `"${gitCommand}" branch -d ${name}`,
+            {
+              cwd: dir,
+            },
+            (error2: any) => {
+              if (error2) {
+                reject(error2);
+              }
+              resolve('ok');
+            },
+          );
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 

@@ -48,14 +48,25 @@ ipcMain.on(
       log.error(
         `Failed to remove worktree in path ${worktreePath}: ${err.message}`,
       );
-      event.sender.send(
-        'worktree-removed',
-        -1,
-        'Failed to remove worktree. Please ensure the worktree exists and try again.',
-        worktreePath,
-        null,
-        false,
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send(
+          'worktree-removed',
+          -1,
+          err.message,
+          worktreePath,
+          null,
+          false,
+        );
+      } else {
+        event.sender.send(
+          'worktree-removed',
+          -1,
+          'Failed to remove worktree. Please ensure the worktree exists and try again.',
+          worktreePath,
+          null,
+          false,
+        );
+      }
     }
   },
 );
@@ -78,14 +89,25 @@ ipcMain.on(
       log.error(
         `Failed to remove worktree with local branch ${name} in path ${worktreePath}: ${err.message}`,
       );
-      event.sender.send(
-        'worktree-removed',
-        -1,
-        'Failed to remove worktree and local branch. Please ensure the worktree and branch exist and try again.',
-        worktreePath,
-        name,
-        true,
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send(
+          'worktree-removed',
+          -1,
+          err.message,
+          worktreePath,
+          null,
+          false,
+        );
+      } else {
+        event.sender.send(
+          'worktree-removed',
+          -1,
+          'Failed to remove worktree and local branch. Please ensure the worktree and branch exist and try again.',
+          worktreePath,
+          name,
+          true,
+        );
+      }
     }
   },
 );

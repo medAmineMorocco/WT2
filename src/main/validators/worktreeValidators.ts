@@ -28,6 +28,20 @@ export function assertWorktreePathIsAvailable(
   }
 }
 
+export async function assertWorktreeCleanBeforeDelete(worktreePath: string) {
+  const gitCommand = await gitMainService.gitCommand();
+  const output = execSync(`"${gitCommand}" status --porcelain`, {
+    cwd: worktreePath,
+    encoding: 'utf-8',
+  }).trim();
+
+  if (output.length > 0) {
+    throw new BusinessError(
+      `Cannot delete worktree: it has uncommitted changes. use --force to delete it.`,
+    );
+  }
+}
+
 export function assertWorktreeNameValid(name: string): void {
   const isValid = /^[a-zA-Z0-9._-]+$/.test(name);
   if (!isValid) {
