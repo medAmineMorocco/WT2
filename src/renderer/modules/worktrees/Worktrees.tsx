@@ -162,7 +162,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       <Tooltip
                         title={
                           <Space>
-                            <span>Prune worktrees</span>
+                            <span>Prune Worktrees</span>
                             <small style={{ color: 'grey' }}>Shift+P</small>
                           </Space>
                         }
@@ -171,7 +171,7 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                       >
                         <SyncOutlined
                           className="icon-action"
-                          style={{ cursor: 'pointer' }}
+                          style={{ cursor: 'pointer', color: 'red' }}
                           onClick={onClickPrune}
                         />
                       </Tooltip>
