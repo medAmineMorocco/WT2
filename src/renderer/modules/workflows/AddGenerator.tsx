@@ -437,7 +437,7 @@ export default function AddGenerator({
                   </Tooltip>
                   <Space style={{ marginLeft: 'auto' }}>
                     <Tooltip
-                      title="Edit file"
+                      title="Edit File"
                       placement="top"
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
@@ -448,7 +448,7 @@ export default function AddGenerator({
                       />
                     </Tooltip>
                     <Tooltip
-                      title="Delete file"
+                      title="Delete File"
                       placement="top"
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
@@ -494,7 +494,7 @@ export default function AddGenerator({
                   <Input
                     addonBefore={
                       <Tooltip
-                        title="specifies the target location for the template."
+                        title="Specifies the target location for the template."
                         placement="top"
                         mouseEnterDelay={0}
                         mouseLeaveDelay={0}
@@ -512,7 +512,7 @@ export default function AddGenerator({
                   >
                     <Checkbox>
                       <Tooltip
-                        title="overwrite an existing file."
+                        title="Overwrite an existing file."
                         placement="top"
                         mouseEnterDelay={0}
                         mouseLeaveDelay={0}
@@ -545,7 +545,7 @@ export default function AddGenerator({
                 >
                   <Checkbox onChange={onInjectChecked}>
                     <Tooltip
-                      title="injects a template into an existing target file."
+                      title="Injects a template into an existing target file."
                       placement="top"
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
@@ -562,7 +562,7 @@ export default function AddGenerator({
                     <Input
                       addonBefore={
                         <Tooltip
-                          title="contains a regular expression of text to locate. The inject line will appear before the located line."
+                          title="Contains a regular expression of text to locate. The inject line will appear before the located line."
                           placement="top"
                           mouseEnterDelay={0}
                           mouseLeaveDelay={0}
@@ -581,7 +581,7 @@ export default function AddGenerator({
                     <Input
                       addonBefore={
                         <Tooltip
-                          title="contains a regular expression of text to locate. The inject line will appear after the located line."
+                          title="Contains a regular expression of text to locate. The inject line will appear after the located line."
                           placement="top"
                           mouseEnterDelay={0}
                           mouseLeaveDelay={0}
@@ -601,7 +601,7 @@ export default function AddGenerator({
                     >
                       <Checkbox>
                         <Tooltip
-                          title="when true, add a line to start of file."
+                          title="When true, add a line to start of file."
                           placement="top"
                           mouseEnterDelay={0}
                           mouseLeaveDelay={0}
@@ -617,7 +617,7 @@ export default function AddGenerator({
                     >
                       <Checkbox>
                         <Tooltip
-                          title="when true, add a line to end of file."
+                          title="When true, add a line to end of file."
                           placement="top"
                           mouseEnterDelay={0}
                           mouseLeaveDelay={0}
@@ -636,7 +636,7 @@ export default function AddGenerator({
                     <InputNumber
                       addonBefore={
                         <Tooltip
-                          title="contains a line number will add a line at this exact line number."
+                          title="Contains a line number will add a line at this exact line number."
                           placement="top"
                           mouseEnterDelay={0}
                           mouseLeaveDelay={0}
@@ -656,7 +656,7 @@ export default function AddGenerator({
                   <Input
                     addonBefore={
                       <Tooltip
-                        title="contains a regular expression / text. If exists, injection is skipped."
+                        title="Contains a regular expression / text. If exists, injection is skipped."
                         placement="top"
                         mouseEnterDelay={0}
                         mouseLeaveDelay={0}
@@ -756,7 +756,7 @@ export default function AddGenerator({
                   <Input
                     addonBefore={
                       <Tooltip
-                        title="name of the parameter"
+                        title="Name of the Parameter"
                         placement="top"
                         mouseEnterDelay={0}
                         mouseLeaveDelay={0}
@@ -812,7 +812,7 @@ export default function AddGenerator({
                   <Input
                     addonBefore={
                       <Tooltip
-                        title="values should be separated by ( , )"
+                        title="Values should be separated by ( , )"
                         placement="top"
                         mouseEnterDelay={0}
                         mouseLeaveDelay={0}
@@ -891,7 +891,7 @@ export default function AddGenerator({
                       </Typography.Text>
                     )}
                     <Tooltip
-                      title="Delete parameter"
+                      title="Delete Parameter"
                       placement="left"
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}

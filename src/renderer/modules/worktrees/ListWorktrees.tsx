@@ -657,7 +657,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 <LockOutlined />
               ) : worktree.prunable ? (
                 <Tooltip
-                  title="gitdir file points to non-existent location"
+                  title="Gitdir file points to non-existent location"
                   placement="right"
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}

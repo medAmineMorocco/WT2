@@ -623,7 +623,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip
             placement="top"
-            title="Delete generator"
+            title="Delete Generator"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -639,7 +639,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           <Tooltip
             placement="top"
-            title="Duplicate generator"
+            title="Duplicate Generator"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -655,7 +655,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           <Tooltip
             placement="top"
-            title="Edit generator"
+            title="Edit Generator"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -671,7 +671,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           <Tooltip
             placement="top"
-            title="Run generator"
+            title="Run Generator"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -745,8 +745,8 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
                 <Space>
                   <span>
                     {mode === 'generators'
-                      ? 'Import generator'
-                      : 'Import workflow'}
+                      ? 'Import Generator'
+                      : 'Import Workflow'}
                   </span>
                   <small style={{ color: 'grey' }}>Shift+I</small>
                 </Space>
@@ -769,7 +769,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               title={
                 <Space>
                   <span>
-                    {mode === 'generators' ? 'Add generator' : 'Add workflow'}
+                    {mode === 'generators' ? 'Add Generator' : 'Add Workflow'}
                   </span>
                   <small style={{ color: 'grey' }}>Shift+A</small>
                 </Space>
