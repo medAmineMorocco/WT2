@@ -209,7 +209,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       } else {
         notification.error({
           message: 'Unable to Fetch Generators',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -226,7 +225,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       } else {
         notification.error({
           message: 'Unable to Delete Generator',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

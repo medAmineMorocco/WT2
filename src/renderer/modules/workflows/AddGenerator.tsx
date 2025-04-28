@@ -207,7 +207,6 @@ export default function AddGenerator({
         setLoading(false);
         notification.error({
           message: 'Unable to Create Generator',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -226,7 +225,6 @@ export default function AddGenerator({
         setLoading(false);
         notification.error({
           message: 'Unable to Update Generator',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
