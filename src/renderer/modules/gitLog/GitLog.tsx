@@ -49,7 +49,6 @@ export default function GitLog({
         setLoading(false);
         notification.error({
           message: 'Unable to get log',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

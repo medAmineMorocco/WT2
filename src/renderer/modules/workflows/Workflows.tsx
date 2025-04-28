@@ -74,7 +74,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       } else {
         notification.error({
           message: 'Unable to Fetch Workflows',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -108,7 +107,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       } else {
         notification.error({
           message: 'Unable to Delete Workflow',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

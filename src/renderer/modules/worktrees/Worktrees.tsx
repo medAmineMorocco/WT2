@@ -68,7 +68,6 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
           } else {
             notification.error({
               message: 'Unable to Create Worktree',
-              description: <Typography.Text copyable>{result}</Typography.Text>,
               placement: 'bottomLeft',
             });
           }

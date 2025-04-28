@@ -130,7 +130,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
         message: 'Error During Web Editor Launch',
-        description: <Typography.Text copyable>{error}</Typography.Text>,
         placement: 'bottomLeft',
       });
     };
@@ -142,7 +141,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       } else {
         notification.error({
           message: 'Unable to Fetch Worktrees',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -243,7 +241,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setLoadingRenameWorktree(false);
         notification.error({
           message: 'Unable to Rename Worktree',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -269,7 +266,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           message: toLock
             ? 'Unable to Lock Worktree'
             : 'Unable to Unlock Worktree',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
@@ -289,7 +285,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setLoadingMoveWorktree(false);
         notification.error({
           message: 'Unable to Move Worktree to folder',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

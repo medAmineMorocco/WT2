@@ -49,7 +49,6 @@ export default function AddWorkflow({
         setLoadingCreateWorkflow(false);
         notification.error({
           message: 'Unable to Create Workflow',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

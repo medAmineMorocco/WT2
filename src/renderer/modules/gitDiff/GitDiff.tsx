@@ -220,7 +220,6 @@ export default function GitDiff({
       } else {
         notification.error({
           message: 'Unable to get log',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
         setLoading(false);
@@ -236,7 +235,6 @@ export default function GitDiff({
       } else {
         notification.error({
           message: 'Unable to get worktrees',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

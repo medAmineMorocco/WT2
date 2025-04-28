@@ -84,7 +84,6 @@ export default function AddWorktree({
         setLoadingCreateWorktree(false);
         notification.error({
           message: 'Unable to Create Worktree',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }

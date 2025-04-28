@@ -53,7 +53,6 @@ export default function EditWorkflow({
         setLoadingEditWorkflow(false);
         notification.error({
           message: 'Unable to Update Workflow',
-          description: <Typography.Text copyable>{result}</Typography.Text>,
           placement: 'bottomLeft',
         });
       }
