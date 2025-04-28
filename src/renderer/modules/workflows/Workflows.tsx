@@ -288,7 +288,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       sorter: (a: any, b: any) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Running mode',
+      title: 'Running Mode',
       dataIndex: 'mode',
       key: 'mode',
       render: (_: any, record: any) => (
@@ -327,7 +327,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
           <Tooltip
             placement="top"
-            title="Delete workflow"
+            title="Delete Workflow"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -343,7 +343,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           <Tooltip
             placement="top"
-            title="Duplicate workflow"
+            title="Duplicate Workflow"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -361,7 +361,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           </Tooltip>
           <Tooltip
             placement="top"
-            title="Edit workflow"
+            title="Edit Workflow"
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
           >
@@ -378,7 +378,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           {playingWorkflow === record.name && (
             <Tooltip
               placement="top"
-              title="Stop workflow"
+              title="Stop Workflow"
               mouseEnterDelay={0}
               mouseLeaveDelay={0}
             >
@@ -393,7 +393,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           {playingWorkflow !== record.name && (
             <Tooltip
               placement="top"
-              title="Play workflow"
+              title="Play Workflow"
               mouseEnterDelay={0}
               mouseLeaveDelay={0}
             >
@@ -452,7 +452,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               placement="top"
               title={
                 <Space>
-                  <span>Import workflow</span>
+                  <span>Import Workflow</span>
                   <small style={{ color: 'grey' }}>Shift+I</small>
                 </Space>
               }
@@ -471,7 +471,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               placement="top"
               title={
                 <Space>
-                  <span>Add workflow</span>
+                  <span>Add Workflow</span>
                   <small style={{ color: 'grey' }}>Shift+A</small>
                 </Space>
               }

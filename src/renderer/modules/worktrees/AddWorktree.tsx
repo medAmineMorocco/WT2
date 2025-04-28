@@ -283,15 +283,15 @@ export default function AddWorktree({
         block
         options={[
           {
-            label: <div style={{ padding: 2 }}>new worktree</div>,
+            label: <div style={{ padding: 2 }}>New Worktree</div>,
             value: 'new-branch',
           },
           {
-            label: <div style={{ padding: 2 }}>from branch</div>,
+            label: <div style={{ padding: 2 }}>From Branch</div>,
             value: 'existing-branch',
           },
           {
-            label: <div style={{ padding: 2 }}>from tag</div>,
+            label: <div style={{ padding: 2 }}>From Tag</div>,
             value: 'existing-tag',
           },
         ]}
@@ -439,7 +439,7 @@ export default function AddWorktree({
             <Tooltip
               mouseEnterDelay={0}
               mouseLeaveDelay={0}
-              title="Change location"
+              title="Change Location"
               placement="bottom"
             >
               <Button

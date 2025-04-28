@@ -224,7 +224,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
           onClick={onimportAreaClick}
         >
           <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
-          <p className="ant-upload-text">Open a repository</p>
+          <p className="ant-upload-text">Open a Repository</p>
         </Button>
       </motion.div>
     );

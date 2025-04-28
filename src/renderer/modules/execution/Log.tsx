@@ -154,7 +154,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
           <Tooltip
             title={
               <Space>
-                <span>Enter fullscreen mode</span>
+                <span>Enter Fullscreen Mode</span>
                 <small style={{ color: 'grey' }}>Shift+F</small>
               </Space>
             }

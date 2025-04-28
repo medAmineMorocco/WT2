@@ -179,7 +179,7 @@ export default function EditWorkflow({
                   </Form.Item>
                   <Tooltip
                     placement="top"
-                    title="Remove command"
+                    title="Remove Command"
                     mouseEnterDelay={0}
                     mouseLeaveDelay={0}
                   >
@@ -197,7 +197,7 @@ export default function EditWorkflow({
                   style={{ width: '90%' }}
                   icon={<PlusOutlined />}
                 >
-                  Add command
+                  Add Command
                 </Button>
                 <Form.ErrorList errors={errors} />
               </Form.Item>

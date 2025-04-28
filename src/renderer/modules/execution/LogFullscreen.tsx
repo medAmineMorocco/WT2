@@ -135,7 +135,7 @@ export default function LogFullscreen({
           mouseLeaveDelay={0}
           title={
             <Space>
-              <span>Exit fullscreen mode</span>
+              <span>Exit Fullscreen Mode</span>
               <small style={{ color: 'grey' }}>ESC</small>
             </Space>
           }
