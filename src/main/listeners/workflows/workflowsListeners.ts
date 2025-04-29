@@ -1,5 +1,4 @@
-import path from 'path';
-import { app, BrowserWindow, ipcMain, Notification } from 'electron';
+import { ipcMain } from 'electron';
 import log from 'electron-log';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
@@ -9,46 +8,9 @@ import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
 import playWorkflow from './processesListeners';
 
-let focusedWindow: BrowserWindow | null;
-
-const RESOURCES_PATH = app.isPackaged
-  ? path.join(process.resourcesPath, 'assets')
-  : path.join(__dirname, '../../assets');
-
-const getAssetPath = (...paths: string[]): string => {
-  return path.join(RESOURCES_PATH, ...paths);
-};
-
-function sendNotification(msg: string) {
-  const notification = new Notification({
-    title: msg,
-    body: 'You can review the results now.',
-    icon: getAssetPath('icon.png'),
-  });
-  notification.show();
-
-  notification.on('click', () => {
-    focusedWindow?.focus();
-  });
-}
-
-async function showWorklowFinishedNotification(workflowName: string) {
-  focusedWindow = BrowserWindow.getFocusedWindow();
-  const notificationsEnabled =
-    (await focusedWindow?.webContents.executeJavaScript(
-      'localStorage.getItem("notificationsEnabled");',
-      true,
-    )) === 'true';
-  // eslint-disable-next-line promise/always-return
-  if (!focusedWindow?.isFocused() && notificationsEnabled) {
-    sendNotification(`Your workflow ${workflowName} has finished executing.`);
-  }
-}
-
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
   await playWorkflow(event, workflow, dir);
-  await showWorklowFinishedNotification(workflow.name);
 });
 
 ipcMain.on('stop-workflow', function (event) {

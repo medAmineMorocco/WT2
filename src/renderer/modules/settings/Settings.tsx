@@ -11,7 +11,6 @@ import {
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
 import EditorSettings from './EditorSettings';
-import NotificationSettings from './NotificationSettings';
 import CacheSettings from './CacheSettings';
 import GitSettings from './GitSettings';
 import ShellSettings from './ShellSettings';
@@ -25,11 +24,6 @@ const itemsMenu: MenuProps['items'] = [
     label: 'Exit Settings',
     icon: <RollbackOutlined />,
     danger: true,
-  },
-  {
-    key: '0',
-    label: 'Notifications',
-    icon: <NotificationOutlined />,
   },
   {
     key: '2',
@@ -79,9 +73,6 @@ export default function Settings() {
   const getContent = () => {
     if (keyNavigation === '-1') {
       navigate('/');
-    }
-    if (keyNavigation === '0') {
-      return <NotificationSettings />;
     }
     if (keyNavigation === '2') {
       return <EditorSettings isDarkMode={isDarkMode} />;
