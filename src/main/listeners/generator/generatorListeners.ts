@@ -1,29 +1,19 @@
 import { dialog, ipcMain } from 'electron';
 import path from 'path';
+import log from 'electron-log';
 import generatorService from '../../services/generator/generatorMainService';
 import utils from '../../utils/utils';
-import loggingService from '../../services/logging/loggingService';
-import LogLevel from '../../enums/LogLevel';
 
 ipcMain.on(
   'add-generator',
   async function (event, generator: any, directory: string) {
     try {
-      loggingService.logMessage(
-        directory,
-        `Creating generator with parameters ${generator}`,
-        LogLevel.INFO,
-      );
+      log.info(`Creating generator with parameters ${generator}`);
       generatorService.save(generator, directory);
-      loggingService.logMessage(directory, `Generator created`, LogLevel.INFO);
       event.sender.send('generator-created', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        directory,
-        `Failed to create generator: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to create generator: ${encoded}`);
       event.sender.send('generator-created', -1, encoded);
     }
   },
@@ -33,25 +23,12 @@ ipcMain.on(
   'duplicate-generator',
   async function (event, generator: any, directory: string) {
     try {
-      loggingService.logMessage(
-        directory,
-        `Duplicating generator with parameters ${generator}`,
-        LogLevel.INFO,
-      );
+      log.info(`Duplicating generator with parameters ${generator}`);
       generatorService.duplicate(generator, directory);
-      loggingService.logMessage(
-        directory,
-        `Generator duplicated`,
-        LogLevel.INFO,
-      );
       event.sender.send('generator-duplicated', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        directory,
-        `Failed to duplicate generator: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to duplicate generator: ${encoded}`);
       event.sender.send('generator-duplicated', -1, encoded);
     }
   },
@@ -66,21 +43,14 @@ ipcMain.on(
     directory: string,
   ) {
     try {
-      loggingService.logMessage(
-        directory,
+      log.info(
         `Updating generator ${generatorName} with parameters ${newGenerator}`,
-        LogLevel.INFO,
       );
       generatorService.update(generatorName, newGenerator, directory);
-      loggingService.logMessage(directory, `Generator updated`, LogLevel.INFO);
       event.sender.send('generator-updated', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        directory,
-        `Failed to update generator: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to update generator: ${encoded}`);
       event.sender.send('generator-updated', -1, encoded);
     }
   },
@@ -88,17 +58,12 @@ ipcMain.on(
 
 ipcMain.on('get-generators', async function (event, dir: string) {
   try {
-    loggingService.logMessage(dir, 'Getting generators', LogLevel.INFO);
+    log.info('Getting generators');
     const generators = generatorService.findAll(dir);
-    loggingService.logMessage(dir, 'Generators found', LogLevel.INFO);
     event.sender.send('generators-found', 0, JSON.stringify(generators));
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    loggingService.logMessage(
-      dir,
-      `Failed to get generators: ${encoded}`,
-      LogLevel.ERROR,
-    );
+    log.error(`Failed to get generators: ${encoded}`);
     event.sender.send('generators-found', -1, encoded);
   }
 });
@@ -107,21 +72,12 @@ ipcMain.on(
   'remove-generator',
   async function (event, name: string, dir: string) {
     try {
-      loggingService.logMessage(
-        dir,
-        `Removing generator with name ${name}`,
-        LogLevel.INFO,
-      );
+      log.info(`Removing generator with name ${name}`);
       generatorService.remove(name, dir);
-      loggingService.logMessage(dir, `Generator removed`, LogLevel.INFO);
       event.sender.send('generator-removed', 0);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to remove generator: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to remove generator: ${encoded}`);
       event.sender.send('generator-removed', -1, encoded);
     }
   },
@@ -129,21 +85,12 @@ ipcMain.on(
 
 ipcMain.on('get-generator', async function (event, name: string, dir: string) {
   try {
-    loggingService.logMessage(
-      dir,
-      `Getting generator with name ${name}`,
-      LogLevel.INFO,
-    );
+    log.info(`Getting generator with name ${name}`);
     const generator = generatorService.get(name, dir);
-    loggingService.logMessage(dir, `Generator found`, LogLevel.INFO);
     event.sender.send('generator-found-by-name', 0, generator);
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    loggingService.logMessage(
-      dir,
-      `Failed to get generator: ${encoded}`,
-      LogLevel.ERROR,
-    );
+    log.error(`Failed to get generator: ${encoded}`);
     event.sender.send('generator-found-by-name', -1, encoded);
   }
 });
@@ -154,20 +101,11 @@ ipcMain.on('open-dialog-import-generators', async function (event) {
   });
 
   try {
-    loggingService.logMessage(
-      '-',
-      'Opening dialog to import generators',
-      LogLevel.INFO,
-    );
+    log.info('Opening dialog to import generators');
     if (!result.canceled) {
       const [dir] = result.filePaths;
 
       const generators = generatorService.findAll(path.normalize(dir));
-      loggingService.logMessage(
-        '-',
-        'Generators to import found',
-        LogLevel.INFO,
-      );
       event.sender.send(
         'generators-to-import-found',
         0,
@@ -176,11 +114,7 @@ ipcMain.on('open-dialog-import-generators', async function (event) {
     }
   } catch (err: any) {
     const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-    loggingService.logMessage(
-      '-',
-      `Failed to open dialog to import generators: ${encoded}`,
-      LogLevel.ERROR,
-    );
+    log.error(`Failed to open dialog to import generators: ${encoded}`);
     event.sender.send('generators-to-import-found', -1, encoded);
   }
 });
@@ -189,21 +123,12 @@ ipcMain.on(
   'import-generators',
   async function (event, generators: any[], dir: string) {
     try {
-      loggingService.logMessage(
-        dir,
-        `Importing generators with parameters ${generators}`,
-        LogLevel.INFO,
-      );
+      log.info(`Importing generators with parameters ${generators}`);
       const count = generatorService.saveAll(generators, dir);
-      loggingService.logMessage(dir, `Generators imported`, LogLevel.INFO);
       event.sender.send('generators-imported', 0, count);
     } catch (err: any) {
       const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      loggingService.logMessage(
-        dir,
-        `Failed to import generators: ${encoded}`,
-        LogLevel.ERROR,
-      );
+      log.error(`Failed to import generators: ${encoded}`);
       event.sender.send('generators-imported', -1, encoded);
     }
   },

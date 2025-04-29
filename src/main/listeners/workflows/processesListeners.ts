@@ -71,6 +71,7 @@ async function executeCommand(
   worktreeLabel: string,
   event: any,
 ) {
+  log.info(`command to execute: ${command.value}`);
   const storedEncoding = (await utils.getStorageItem('encoding')) || 'utf-8';
 
   // eslint-disable-next-line no-async-promise-executor

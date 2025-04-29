@@ -14,6 +14,7 @@ import {
 import { CheckOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
+import { useItemsContext } from '../../TabsContext';
 
 export default function RunGenerator({
   openPlay,
@@ -27,6 +28,8 @@ export default function RunGenerator({
   worktrees: any[];
 }) {
   const [form] = Form.useForm();
+
+  const { setIsWorkflowPlaying } = useItemsContext();
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -55,6 +58,7 @@ export default function RunGenerator({
       foundWorktree,
       tabRepoPath,
     );
+    setIsWorkflowPlaying(true);
     onClosePlay();
   };
 

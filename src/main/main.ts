@@ -25,7 +25,6 @@ import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
 import workflowsMainService from './services/workflows/workflowsMainService';
 import utils from './utils/utils';
-import './listeners/logging/loggingListeners';
 import './listeners/generator/generatorListeners';
 
 Sentry.init({
