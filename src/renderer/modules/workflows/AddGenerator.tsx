@@ -332,6 +332,10 @@ export default function AddGenerator({
     setFileContent('');
   };
 
+  const onCancelClick = () => {
+    handleCancel();
+  };
+
   return (
     <Modal
       open={isModalOpen}
@@ -347,6 +351,7 @@ export default function AddGenerator({
         height: 'calc(100% - 56px)',
         paddingBottom: 0,
       }}
+      closeIcon={null}
     >
       <div
         style={{
@@ -357,7 +362,7 @@ export default function AddGenerator({
           height: '100%',
         }}
       >
-        <div style={{ width: '60%' }}>
+        <div style={{ width: '100%' }}>
           <Form
             form={generatorForm}
             onFinish={onFinishAddGenerator}
@@ -388,9 +393,21 @@ export default function AddGenerator({
             >
               <Input placeholder="Generator name" style={{ width: '300px' }} />
             </Form.Item>
-            <Form.Item className="form-item-without-margin-bottom">
+            <Form.Item
+              className="form-item-without-margin-bottom"
+              style={{ marginLeft: 'auto' }}
+            >
               <Button type="primary" loading={loading} htmlType="submit">
-                {generatorToEdit ? 'Edit Generator' : 'Create Generator'}
+                Save
+              </Button>
+            </Form.Item>
+
+            <Form.Item
+              className="form-item-without-margin-bottom"
+              style={{ marginRight: 0 }}
+            >
+              <Button type="default" onClick={onCancelClick}>
+                Cancel
               </Button>
             </Form.Item>
           </Form>
