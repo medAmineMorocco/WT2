@@ -1,10 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Form, Input, Modal, Typography } from 'antd';
-import {
-  BranchesOutlined,
-  EditOutlined,
-  EllipsisOutlined,
-} from '@ant-design/icons';
+import { Button, Form, Input, Modal, Typography } from 'antd';
+import { EditOutlined, FolderOutlined } from '@ant-design/icons';
 import { CheckCard } from '@ant-design/pro-components';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 
@@ -90,30 +86,15 @@ export default function EditorSettings({
               }}
               checked={editor.enabled}
               extra={
-                <Dropdown
-                  placement="topCenter"
-                  menu={{
-                    onClick: ({ domEvent }) => {
-                      domEvent.stopPropagation();
-                      onEditPathEditor(editor);
-                    },
-                    items: [
-                      {
-                        label: 'edit',
-                        icon: <EditOutlined />,
-                        key: '1',
-                      },
-                    ],
+                <Button
+                  type="text"
+                  ghost
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEditPathEditor(editor);
                   }}
-                >
-                  <EllipsisOutlined
-                    style={{
-                      fontSize: 22,
-                      color: isDarkMode ? 'white' : 'rgba(0,0,0,0.5)',
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </Dropdown>
+                  icon={<EditOutlined />}
+                />
               }
             />
           );
@@ -134,11 +115,11 @@ export default function EditorSettings({
             form={form}
           >
             <Form.Item label="Path" name="path" style={{ flex: 1 }}>
-              <Input prefix={<BranchesOutlined />} allowClear />
+              <Input prefix={<FolderOutlined />} allowClear />
             </Form.Item>
             <Form.Item name="editorName" hidden />
             <Form.Item style={{ marginRight: 0 }}>
-              <Button type="primary" htmlType="submit" icon={<EditOutlined />}>
+              <Button type="primary" htmlType="submit">
                 Edit
               </Button>
             </Form.Item>
