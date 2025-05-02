@@ -84,6 +84,7 @@ export default function AddWorktree({
         setLoadingCreateWorktree(false);
         notification.error({
           message: 'Unable to Create Worktree',
+          description: result,
           placement: 'bottomLeft',
         });
       }

@@ -31,7 +31,12 @@ ipcMain.on(
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
-    const gitCmd = await gitMainService.gitCommand();
+    let gitCmd;
+    try {
+      gitCmd = await gitMainService.gitCommand();
+    } catch (e) {
+      event.sender.send('workflow-stopped');
+    }
     if (createWorktreeMode === 'existing-branch') {
       command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + worktreeName} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {

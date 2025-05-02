@@ -141,6 +141,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       } else {
         notification.error({
           message: 'Unable to Fetch Worktrees',
+          description: result,
           placement: 'bottomLeft',
         });
       }
@@ -208,6 +209,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
                 });
                 ipcRenderer.send(
                   'remove-worktree',
+                  worktreeName,
                   worktreePath,
                   tabRepoPath,
                   true,
@@ -221,6 +223,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           api.error({
             key: 'updatable',
             message: 'Unable to Remove Worktree',
+            description: result,
             placement: 'bottomLeft',
           });
         }, 500);
@@ -241,6 +244,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setLoadingRenameWorktree(false);
         notification.error({
           message: 'Unable to Rename Worktree',
+          description: result,
           placement: 'bottomLeft',
         });
       }
@@ -266,6 +270,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           message: toLock
             ? 'Unable to Lock Worktree'
             : 'Unable to Unlock Worktree',
+          description: result,
           placement: 'bottomLeft',
         });
       }
@@ -285,6 +290,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setLoadingMoveWorktree(false);
         notification.error({
           message: 'Unable to Move Worktree to folder',
+          description: result,
           placement: 'bottomLeft',
         });
       }
@@ -504,7 +510,13 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send('remove-worktree', worktree.path, tabRepoPath, false);
+        ipcRenderer.send(
+          'remove-worktree',
+          worktree.name,
+          worktree.path,
+          tabRepoPath,
+          false,
+        );
         return;
       }
       if (key === '2-1') {

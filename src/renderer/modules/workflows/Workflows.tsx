@@ -10,7 +10,6 @@ import {
   Table,
   theme,
   Tooltip,
-  Typography,
 } from 'antd';
 import {
   ExclamationCircleFilled,
@@ -123,6 +122,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             };
           }),
         );
+      } else {
+        notification.error({
+          message: 'Unable to Fetch Worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
       }
     };
 

@@ -35,10 +35,11 @@ ipcMain.on(
 
 ipcMain.on(
   'remove-worktree',
-  async function (event, worktreePath, directory, force) {
+  async function (event, worktreeName, worktreePath, directory, force) {
     try {
       log.info(`Removing worktree in path ${worktreePath}`);
       const result = await worktreeMainService.remove(
+        worktreeName,
         worktreePath,
         directory,
         force,
@@ -128,11 +129,15 @@ ipcMain.on(
       log.error(
         `Failed to rename worktree ${oldName} to ${newName}: ${err.message}`,
       );
-      event.sender.send(
-        'worktree-renamed',
-        -1,
-        'Failed to rename worktree. Please check the worktree name and try again.',
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send('worktree-renamed', -1, err.message);
+      } else {
+        event.sender.send(
+          'worktree-renamed',
+          -1,
+          'Failed to rename worktree. Please check the worktree name and try again.',
+        );
+      }
     }
   },
 );
@@ -144,7 +149,11 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
     event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
   } catch (err: any) {
     log.error(`Failed to get worktrees: ${err.message}`);
-    event.sender.send('worktrees-found', -1, 'Failed to retrieve worktrees.');
+    if (err instanceof BusinessError) {
+      event.sender.send('worktrees-found', -1, err.message);
+    } else {
+      event.sender.send('worktrees-found', -1, 'Failed to retrieve worktrees.');
+    }
   }
 });
 
@@ -159,11 +168,15 @@ ipcMain.on(
           event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         } catch (err: any) {
           log.error(`Failed to get worktrees: ${err.message}`);
-          event.sender.send(
-            'worktrees-found',
-            -1,
-            'Failed to retrieve worktrees.',
-          );
+          if (err instanceof BusinessError) {
+            event.sender.send('worktrees-found', -1, err.message);
+          } else {
+            event.sender.send(
+              'worktrees-found',
+              -1,
+              'Failed to retrieve worktrees.',
+            );
+          }
         }
       }, 10000),
     );
@@ -183,7 +196,11 @@ ipcMain.on('prune-worktrees', async function (event, directory: string) {
     event.sender.send('worktrees-pruned', 0);
   } catch (err: any) {
     log.error(`Failed to prune worktrees: ${err.message}`);
-    event.sender.send('worktrees-pruned', -1, 'Failed to prune worktrees.');
+    if (err instanceof BusinessError) {
+      event.sender.send('worktrees-pruned', -1, err.message);
+    } else {
+      event.sender.send('worktrees-pruned', -1, 'Failed to prune worktrees.');
+    }
   }
 });
 
@@ -203,12 +220,16 @@ ipcMain.on(
       log.error(
         `Failed to change lock of worktree ${worktreeName} to ${toLock}: ${err.message}`,
       );
-      event.sender.send(
-        'worktrees-changed-lock',
-        -1,
-        toLock,
-        'Failed to change the lock status of the worktree.',
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send('worktrees-changed-lock', -1, err.message);
+      } else {
+        event.sender.send(
+          'worktrees-changed-lock',
+          -1,
+          toLock,
+          'Failed to change the lock status of the worktree.',
+        );
+      }
     }
   },
 );
@@ -225,11 +246,15 @@ ipcMain.on('get-worktrees-folder', async function (event, directory: string) {
     );
   } catch (err: any) {
     log.error(`Failed to get worktrees folder: ${err.message}`);
-    event.sender.send(
-      'worktrees-folder-found',
-      -1,
-      'Failed to retrieve the path of the worktree.',
-    );
+    if (err instanceof BusinessError) {
+      event.sender.send('worktrees-folder-found', -1, err.message);
+    } else {
+      event.sender.send(
+        'worktrees-folder-found',
+        -1,
+        'Failed to retrieve the path of the worktree.',
+      );
+    }
   }
 });
 
@@ -261,13 +286,17 @@ ipcMain.on(
       event.sender.send('worktree-moved-to-folder', 0);
     } catch (err: any) {
       log.error(
-        `Failed to move worktree ${name} to folder ${newWorktreePath}: ${err.message}`,
+        `Failed to move worktree ${name} to folder ${newWorktreePath}: ${err.message}`
       );
-      event.sender.send(
-        'worktree-moved-to-folder',
-        -1,
-        'Failed to move worktree to the specified folder.',
-      );
+      if (err instanceof BusinessError) {
+        event.sender.send('worktree-moved-to-folder', -1, err.message);
+      } else {
+        event.sender.send(
+          'worktree-moved-to-folder',
+          -1,
+          'Failed to move worktree to the specified folder.',
+        );
+      }
     }
   },
 );

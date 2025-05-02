@@ -3,8 +3,15 @@ import * as os from 'os';
 import { existsSync, lstatSync } from 'node:fs';
 import gitMainService from '../git/gitMainService';
 import {
+  assertBranchExists,
+  assertBranchIsNotInUseInOtherWorktrees,
+  assertBranchNotExists,
+  assertTagExists,
   assertWorktreeCleanBeforeDelete,
+  assertWorktreeExists,
+  assertWorktreeNotExists,
   assertWorktreePathIsAvailable,
+  assertWriteAccess,
 } from '../../validators/worktreeValidators';
 
 const { exec, execSync } = require('child_process');
@@ -19,41 +26,45 @@ function isPrimaryWorktree(directory: string) {
 function findAll(directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    exec(
-      `"${gitCommand}" worktree list`,
-      {
-        cwd: directory,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        const lines = stdout.trim().split('\n');
-
-        const worktrees = lines.map((line: string) => {
-          const lineBySpace = line.split(/\s+/g);
-          const pathRep = lineBySpace[0];
-          const head = lineBySpace[1];
-          let name = '';
-          if (lineBySpace[2]) {
-            name = lineBySpace[2].replace('[', '').replace(']', '');
+    try {
+      const gitCommand = await gitMainService.gitCommand();
+      exec(
+        `"${gitCommand}" worktree list`,
+        {
+          cwd: directory,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
           }
-          const isLocked = lineBySpace[3] === 'locked';
-          const prunable = lineBySpace[3] === 'prunable';
+          const lines = stdout.trim().split('\n');
 
-          return {
-            isPrimary: isPrimaryWorktree(pathRep),
-            path: pathRep,
-            name,
-            head,
-            isLocked,
-            prunable,
-          };
-        });
-        resolve(worktrees);
-      },
-    );
+          const worktrees = lines.map((line: string) => {
+            const lineBySpace = line.split(/\s+/g);
+            const pathRep = lineBySpace[0];
+            const head = lineBySpace[1];
+            let name = '';
+            if (lineBySpace[2]) {
+              name = lineBySpace[2].replace('[', '').replace(']', '');
+            }
+            const isLocked = lineBySpace[3] === 'locked';
+            const prunable = lineBySpace[3] === 'prunable';
+
+            return {
+              isPrimary: isPrimaryWorktree(pathRep),
+              path: pathRep,
+              name,
+              head,
+              isLocked,
+              prunable,
+            };
+          });
+          resolve(worktrees);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -79,13 +90,17 @@ function add(
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
-      assertWorktreePathIsAvailable(name, worktreePath);
-
       const gitCommand = await gitMainService.gitCommand();
+      assertWorktreeNotExists(dir, name);
+      assertWorktreePathIsAvailable(name, worktreePath);
+      const parentDir = path.dirname(worktreePath);
+      assertWriteAccess(parentDir);
       let command: string;
       if (createWorktreeMode === 'existing-branch') {
+        assertBranchExists(dir, name);
         command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
       } else if (createWorktreeMode === 'existing-tag') {
+        assertTagExists(dir, name);
         const branchNameForTag = name.replaceAll('.', '-');
         const branchExist = await branchExists(branchNameForTag, dir);
         if (!branchExist) {
@@ -99,6 +114,7 @@ function add(
         }
         command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
       } else {
+        assertBranchNotExists(dir, name);
         command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
       }
       execSync(command, {
@@ -111,14 +127,21 @@ function add(
   });
 }
 
-function remove(worktreePath: string, dir: string, force: boolean) {
+function remove(
+  worktreeName: string,
+  worktreePath: string,
+  dir: string,
+  force: boolean,
+) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
-      if (!force) {
-        await assertWorktreeCleanBeforeDelete(worktreePath);
-      }
       const gitCommand = await gitMainService.gitCommand();
+      assertWorktreeExists(dir, worktreeName);
+      if (!force) {
+        await assertWorktreeCleanBeforeDelete(worktreePath, gitCommand);
+      }
+      assertWriteAccess(worktreePath);
       const command = force
         ? `"${gitCommand}" worktree remove ${worktreePath} --force`
         : `"${gitCommand}" worktree remove ${worktreePath}`;
@@ -149,10 +172,15 @@ function removeWithLocalBranch(
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
-      if (!force) {
-        await assertWorktreeCleanBeforeDelete(worktreePath);
-      }
       const gitCommand = await gitMainService.gitCommand();
+
+      assertWorktreeExists(dir, name);
+      if (!force) {
+        await assertWorktreeCleanBeforeDelete(worktreePath, gitCommand);
+      }
+      assertBranchIsNotInUseInOtherWorktrees(dir, name, worktreePath);
+      assertWriteAccess(worktreePath);
+
       const command = force
         ? `"${gitCommand}" worktree remove ${worktreePath} --force`
         : `"${gitCommand}" worktree remove ${worktreePath}`;
@@ -193,63 +221,79 @@ function rename(
 ) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    const newWorktreePath = path.normalize(
-      path.join(oldWorktreePath, '..', newName),
-    );
-    exec(
-      `"${gitCommand}" worktree move ${oldName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+    try {
+      const gitCommand = await gitMainService.gitCommand();
+      assertWorktreeNotExists(dir, newName);
+      const newWorktreePath = path.normalize(
+        path.join(oldWorktreePath, '..', newName),
+      );
+      assertWorktreePathIsAvailable(newName, newWorktreePath);
+      assertWriteAccess(oldWorktreePath);
+      exec(
+        `"${gitCommand}" worktree move ${oldName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
+        {
+          cwd: dir,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
+          }
+          resolve(stdout);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
 function prune(dir: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    exec(
-      `"${gitCommand}" worktree prune`,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+    try {
+      const gitCommand = await gitMainService.gitCommand();
+      exec(
+        `"${gitCommand}" worktree prune`,
+        {
+          cwd: dir,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
+          }
+          resolve(stdout);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
 function changeLock(toLock: boolean, worktreeName: string, dir: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    const command = toLock
-      ? `"${gitCommand}" worktree lock ${worktreeName}`
-      : `"${gitCommand}" worktree unlock ${worktreeName}`;
-    exec(
-      command,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+    try {
+      const gitCommand = await gitMainService.gitCommand();
+      assertWorktreeExists(dir, worktreeName);
+      const command = toLock
+        ? `"${gitCommand}" worktree lock ${worktreeName}`
+        : `"${gitCommand}" worktree unlock ${worktreeName}`;
+      exec(
+        command,
+        {
+          cwd: dir,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
+          }
+          resolve(stdout);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 
@@ -286,19 +330,26 @@ function moveWorktreeToFolder(
 ) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
-    const gitCommand = await gitMainService.gitCommand();
-    exec(
-      `"${gitCommand}" worktree move ${name} ${newWorktreePath}`,
-      {
-        cwd: dir,
-      },
-      (error: any, stdout: any) => {
-        if (error) {
-          reject(error);
-        }
-        resolve(stdout);
-      },
-    );
+    try {
+      const gitCommand = await gitMainService.gitCommand();
+      assertWorktreePathIsAvailable(name, newWorktreePath);
+      const parentDir = path.dirname(newWorktreePath);
+      assertWriteAccess(parentDir);
+      exec(
+        `"${gitCommand}" worktree move ${name} ${newWorktreePath}`,
+        {
+          cwd: dir,
+        },
+        (error: any, stdout: any) => {
+          if (error) {
+            reject(error);
+          }
+          resolve(stdout);
+        },
+      );
+    } catch (e) {
+      reject(e);
+    }
   });
 }
 

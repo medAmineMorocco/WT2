@@ -67,7 +67,8 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
             });
           } else {
             notification.error({
-              message: 'Unable to Create Worktree',
+              message: 'Unable to Prune Worktree',
+              description: result,
               placement: 'bottomLeft',
             });
           }

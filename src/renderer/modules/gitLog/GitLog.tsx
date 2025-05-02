@@ -1,4 +1,4 @@
-import { Modal, Typography, notification, Space, Select, Result } from 'antd';
+import { Modal, notification, Space, Select, Result } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
@@ -64,6 +64,12 @@ export default function GitLog({
             };
           }),
         );
+      } else {
+        notification.error({
+          message: 'Unable to Fetch Worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
       }
     };
 
