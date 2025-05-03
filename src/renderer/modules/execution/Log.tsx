@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Alert,
   Collapse,
+  Modal,
   Segmented,
   Space,
   Tabs,
@@ -14,16 +15,16 @@ import {
   FileOutlined,
   BarsOutlined,
   BorderOutlined,
+  FullscreenExitOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
-import LogFullscreen from './LogFullscreen';
 import TerminalUI from '../../components/terminal/TerminalUI';
 
 export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
   const [isFullScreenMode, setFullScreenMode] = useState(false);
 
-  const [activeTabKey, setActiveTabKey] = useState('1');
+  const [activeTabKey, setActiveTabKey] = useState('0');
 
   const [data, setData] = useState<any[]>();
 
@@ -44,12 +45,14 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
       return logStatesReceived.map((item) => {
         item.children = Object.entries(item.data).map(([commandKey, value]) => {
           const commandLog = value as any;
+          const isCommandFinished =
+            commandLog.status && commandLog.status === 'finished';
           return (
             <div key={commandKey}>
               <Alert
                 showIcon
                 icon={
-                  commandLog.status && commandLog.status === 'finished' ? (
+                  isCommandFinished ? (
                     <Typography.Text
                       copyable={{
                         text: commandLog.command,
@@ -62,7 +65,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
                 }
                 message={commandLog.command}
                 action={
-                  commandLog.status && commandLog.status === 'finished' ? (
+                  isCommandFinished ? (
                     <Typography.Text
                       copyable={{
                         text: removeANSI(commandLog.output),
@@ -116,7 +119,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
   const onChangeTab = (activeKey: string) => {
     setActiveTabKey(activeKey);
     const tabsDiv = document.getElementsByClassName('log-tabs');
-    if (tabsDiv) {
+    if (!isFullScreenMode && tabsDiv) {
       const contentHolderDiv = tabsDiv[0].querySelector(
         '.ant-tabs-content-holder',
       );
@@ -170,33 +173,99 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
           </Tooltip>
         </Space>
       </div>
-      <div
-        style={{
-          position: 'relative',
-          marginTop: '8px',
-          height: 'calc(41.5vh - 20px)',
-          overflowY: 'auto',
-        }}
-      >
-        {logMode === 'segment' ? (
-          <Tabs
-            tabPosition="left"
-            style={{
-              height: 'calc(41.5vh - 20px)',
-            }}
-            className="log-tabs"
-            onChange={onChangeTab}
-            items={data}
+      {!isFullScreenMode ? (
+        <div
+          style={{
+            position: 'relative',
+            marginTop: '8px',
+            height: 'calc(41.5vh - 20px)',
+            overflowY: 'auto',
+          }}
+        >
+          {logMode === 'segment' ? (
+            <Tabs
+              tabPosition="left"
+              style={{
+                height: 'calc(41.5vh - 20px)',
+              }}
+              defaultActiveKey={activeTabKey}
+              className="log-tabs"
+              onChange={onChangeTab}
+              items={data}
+            />
+          ) : (
+            <Collapse ghost defaultActiveKey="0" items={data} />
+          )}
+        </div>
+      ) : (
+        <Modal
+          title={
+            <Space>
+              <FileOutlined />
+              <strong>Log</strong>
+            </Space>
+          }
+          centered
+          open={isFullScreenMode}
+          className="fullscreen-modal"
+          width="100vw"
+          style={{ height: '98vh' }}
+          closeIcon={
+            <Tooltip
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+              title={
+                <Space>
+                  <span>Exit Fullscreen Mode</span>
+                  <small style={{ color: 'grey' }}>ESC</small>
+                </Space>
+              }
+              placement="left"
+            >
+              <FullscreenExitOutlined
+                style={{ cursor: 'pointer' }}
+                onClick={toggleFullScreenMode}
+                className="icon-action"
+              />
+            </Tooltip>
+          }
+          maskClosable
+          onCancel={toggleFullScreenMode}
+          destroyOnClose
+          footer={null}
+        >
+          <Segmented
+            value={logMode}
+            onChange={onChangeLogMode}
+            style={{ position: 'absolute', top: '16px', right: '46px' }}
+            options={[
+              { value: 'segment', icon: <BarsOutlined /> },
+              { value: 'sequence', icon: <BorderOutlined /> },
+            ]}
+            size="small"
           />
-        ) : (
-          <Collapse ghost defaultActiveKey="0" items={data} />
-        )}
-      </div>
-      <LogFullscreen
-        isFullScreenMode={isFullScreenMode}
-        toggleFullScreenMode={toggleFullScreenMode}
-        activeKey={activeTabKey}
-      />
+          <div
+            style={{
+              position: 'relative',
+              marginTop: '8px',
+              height: '86vh',
+              overflowY: 'auto',
+            }}
+          >
+            {logMode === 'segment' ? (
+              <Tabs
+                tabPosition="top"
+                centered
+                defaultActiveKey={activeTabKey}
+                onChange={onChangeTab}
+                items={data}
+              />
+            ) : (
+              <Collapse ghost defaultActiveKey="0" items={data} />
+            )}
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
