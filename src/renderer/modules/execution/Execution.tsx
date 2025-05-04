@@ -3,11 +3,12 @@ import { theme, Space, Splitter, StepProps } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { ipcRenderer } from 'electron';
-import Visualization from './Visualization';
-import Log from './Log';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
 import { useItemsContext } from '../../TabsContext';
+
+const Log = React.lazy(() => import('./Log'));
+const Visualization = React.lazy(() => import('./Visualization'));
 
 const { useToken } = theme;
 

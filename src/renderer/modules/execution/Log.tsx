@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Collapse,
@@ -20,8 +20,11 @@ import {
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import TerminalUI from '../../components/terminal/TerminalUI';
+import { useItemsContext } from '../../TabsContext';
 
 export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
+  const { isWorkflowPlaying } = useItemsContext();
+
   const [isFullScreenMode, setFullScreenMode] = useState(false);
 
   const [activeTabKey, setActiveTabKey] = useState('0');
@@ -30,15 +33,19 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
 
   const [logMode, setLogMode] = useState('segment');
 
-  const [logStates, setLogStates] = useState<any[]>(initialLogStates);
-
-  function removeANSI(str: string) {
+  const removeANSI = useCallback((str: string) => {
     return str.replace(
       // eslint-disable-next-line no-control-regex
       /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
       '',
     );
-  }
+  }, []);
+
+  useEffect(() => {
+    if (isWorkflowPlaying === true) {
+      setActiveTabKey('0');
+    }
+  }, [isWorkflowPlaying]);
 
   useEffect(() => {
     const buildLog = (logStatesReceived: any[]) => {
@@ -47,6 +54,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
           const commandLog = value as any;
           const isCommandFinished =
             commandLog.status && commandLog.status === 'finished';
+          const commandOutput = removeANSI(commandLog.output);
           return (
             <div key={commandKey}>
               <Alert
@@ -68,7 +76,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
                   isCommandFinished ? (
                     <Typography.Text
                       copyable={{
-                        text: removeANSI(commandLog.output),
+                        text: commandOutput,
                         icon: <FileOutlined />,
                       }}
                     />
@@ -85,7 +93,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
                 }}
               />
               <div>
-                <TerminalUI output={removeANSI(commandLog.output)} />
+                <TerminalUI output={commandOutput} />
               </div>
             </div>
           );
@@ -94,15 +102,13 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
       });
     };
 
-    if (logStates) {
-      const mappedLogStates = buildLog(logStates);
+    if (initialLogStates) {
+      const mappedLogStates = buildLog(initialLogStates);
       setData(mappedLogStates);
     }
-
     const onReceiveLog = (event: any, logStatesReceived: any[]) => {
       const mappedLogStates = buildLog(logStatesReceived);
       setData(mappedLogStates);
-      setLogStates(logStatesReceived);
     };
 
     ipcRenderer.on('workflow-started-log-received', onReceiveLog);
@@ -110,7 +116,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
     return () => {
       ipcRenderer.removeAllListeners('workflow-started-log-received');
     };
-  }, [logStates]);
+  }, [initialLogStates, removeANSI]);
 
   const toggleFullScreenMode = () => {
     setFullScreenMode(!isFullScreenMode);
@@ -188,7 +194,8 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
               style={{
                 height: 'calc(41.5vh - 20px)',
               }}
-              defaultActiveKey={activeTabKey}
+              defaultActiveKey="0"
+              activeKey={activeTabKey}
               className="log-tabs"
               onChange={onChangeTab}
               items={data}
@@ -256,7 +263,8 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
               <Tabs
                 tabPosition="top"
                 centered
-                defaultActiveKey={activeTabKey}
+                defaultActiveKey="0"
+                activeKey={activeTabKey}
                 onChange={onChangeTab}
                 items={data}
               />
