@@ -323,7 +323,7 @@ function Hello() {
             optionActiveBg: isDarkMode ? '#E5E5E524' : '#34343424',
           },
           Segmented: {
-            trackBg: isDarkMode ? '#E5E5E524' : '#3434340f',
+            trackBg: isDarkMode ? '#E5E5E524' : '#ebebeb',
           },
           Table: {
             headerBg: isDarkMode ? '#E5E5E524' : '#3434340f',
