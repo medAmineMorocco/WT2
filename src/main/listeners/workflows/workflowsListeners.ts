@@ -19,6 +19,10 @@ ipcMain.on('stop-workflow', function (event) {
   event.sender.send('workflow-stopped');
 });
 
+function sanitizeWorktreeName(worktreeName: string) {
+  return worktreeName.replace(/\//g, '-').replace(/[:*?"<>|\\]/g, '-');
+}
+
 ipcMain.on(
   'create-worktree-workflow',
   async function (
@@ -37,8 +41,9 @@ ipcMain.on(
     } catch (e) {
       event.sender.send('workflow-stopped');
     }
+    const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
     if (createWorktreeMode === 'existing-branch') {
-      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + worktreeName} ${worktreeName}`;
+      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + sanitizedWorktreeName} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {
       const branchNameForTag = worktreeName;
       const branchExist = await worktreeMainService.branchExists(
@@ -50,7 +55,7 @@ ipcMain.on(
       }
       command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + branchNameForTag} ${branchNameForTag}`;
     } else {
-      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + worktreeName}`;
+      command = `${gitCmd} worktree add -b ${worktreeName} ${worktreesFolder + pathSeparator + sanitizedWorktreeName}`;
     }
     const workflow = {
       name: worktreeName,
@@ -86,7 +91,8 @@ ipcMain.on(
         display: 'Create Git Worktree',
       };
 
-      const postHookPath = worktreesFolder + pathSeparator + worktreeName;
+      const postHookPath =
+        worktreesFolder + pathSeparator + sanitizedWorktreeName;
       log.debug(`postHookPath: ${postHookPath}`);
 
       workflow.commands = [
@@ -111,7 +117,7 @@ ipcMain.on(
           key: '2',
           value: values.postHook,
           postHook: true,
-          postHookPath: worktreesFolder + pathSeparator + worktreeName,
+          postHookPath: worktreesFolder + pathSeparator + sanitizedWorktreeName,
           worktreeName,
         },
       ];

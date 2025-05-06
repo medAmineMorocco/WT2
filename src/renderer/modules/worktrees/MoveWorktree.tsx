@@ -18,6 +18,10 @@ export default function MoveWorktree({
 }) {
   const [osSeparator, setOsSeparator] = useState('');
 
+  function sanitizeWorktreeName(worktreeName: string) {
+    return worktreeName.replace(/\//g, '-').replace(/[:*?"<>|\\]/g, '-');
+  }
+
   useEffect(() => {
     ipcRenderer.send('get-os-separator');
 
@@ -28,9 +32,10 @@ export default function MoveWorktree({
     ) => {
       if (code === 0) {
         const nameWorktreeToMove = form.getFieldValue('nameWorktreeToMove');
+        const sanitizedWorktreeName = sanitizeWorktreeName(nameWorktreeToMove);
         form.setFieldValue(
           'newWorktreePath',
-          `${dirPath}${osSeparator}${nameWorktreeToMove}`,
+          `${dirPath}${osSeparator}${sanitizedWorktreeName}`,
         );
       }
     };

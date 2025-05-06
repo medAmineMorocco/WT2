@@ -162,6 +162,13 @@ export default function AddWorktree({
     // do not touch
   }, [form, notification, tabRepoPath]);
 
+  function sanitizeWorktreeName(worktreeName: string) {
+    if (!worktreeName) {
+      return null;
+    }
+    return worktreeName.replace(/\//g, '-').replace(/[:*?"<>|\\]/g, '-');
+  }
+
   useEffect(() => {
     const activeTabValue = TabService.getTab(activeTab);
     if (activeTabValue.preHook) {
@@ -199,14 +206,15 @@ export default function AddWorktree({
     } else {
       worktreeName = values['existing-tag'];
     }
-
     if (!isNotBlank(values.preHook) && !isNotBlank(values.postHook)) {
       log.debug('== create-worktree ==');
+
       setLoadingCreateWorktree(true);
+      const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
-        worktreesFolder + pathSeparator + worktreeName,
+        worktreesFolder + pathSeparator + sanitizedWorktreeName,
         createWorktreeMode,
         tabRepoPath,
       );
@@ -236,10 +244,10 @@ export default function AddWorktree({
 
   const getWorktreeName = () => {
     if (createWorktreeMode === 'new-branch') {
-      return form.getFieldValue('name') || ' ';
+      return sanitizeWorktreeName(form.getFieldValue('name')) || ' ';
     }
     if (createWorktreeMode === 'existing-branch') {
-      return form.getFieldValue('existing-branch') || ' ';
+      return sanitizeWorktreeName(form.getFieldValue('existing-branch')) || ' ';
     }
     if (createWorktreeMode === 'existing-tag') {
       const tag = form.getFieldValue('existing-tag');
@@ -315,18 +323,6 @@ export default function AddWorktree({
                 whitespace: true,
                 message: 'Please enter the name of your worktree.',
               },
-              () => ({
-                validator(_, value) {
-                  if (value && value.includes('/')) {
-                    return Promise.reject(
-                      new Error(
-                        'The name of worktree should not contains / character !',
-                      ),
-                    );
-                  }
-                  return Promise.resolve();
-                },
-              }),
             ]}
           >
             <Input
@@ -346,18 +342,6 @@ export default function AddWorktree({
                 whitespace: true,
                 message: 'Please choose a branch.',
               },
-              () => ({
-                validator(_, value) {
-                  if (value && value.includes('/')) {
-                    return Promise.reject(
-                      new Error(
-                        'The name of worktree should not contains / character !',
-                      ),
-                    );
-                  }
-                  return Promise.resolve();
-                },
-              }),
             ]}
           >
             <Select
@@ -381,18 +365,6 @@ export default function AddWorktree({
                 whitespace: true,
                 message: 'Please choose a tag.',
               },
-              () => ({
-                validator(_, value) {
-                  if (value && value.includes('/')) {
-                    return Promise.reject(
-                      new Error(
-                        'The name of worktree should not contains / character !',
-                      ),
-                    );
-                  }
-                  return Promise.resolve();
-                },
-              }),
             ]}
           >
             <Select

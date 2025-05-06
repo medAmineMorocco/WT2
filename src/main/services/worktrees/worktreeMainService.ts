@@ -23,6 +23,10 @@ function isPrimaryWorktree(directory: string) {
   );
 }
 
+function sanitizeWorktreeName(worktreeName: string) {
+  return worktreeName.replace(/\//g, '-').replace(/[:*?"<>|\\]/g, '-');
+}
+
 function findAll(directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -137,7 +141,8 @@ function remove(
   return new Promise(async (resolve, reject) => {
     try {
       const gitCommand = await gitMainService.gitCommand();
-      assertWorktreeExists(dir, worktreeName);
+      const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
+      assertWorktreeExists(dir, sanitizedWorktreeName);
       if (!force) {
         await assertWorktreeCleanBeforeDelete(worktreePath, gitCommand);
       }
@@ -173,8 +178,8 @@ function removeWithLocalBranch(
   return new Promise(async (resolve, reject) => {
     try {
       const gitCommand = await gitMainService.gitCommand();
-
-      assertWorktreeExists(dir, name);
+      const sanitizedWorktreeName = sanitizeWorktreeName(name);
+      assertWorktreeExists(dir, sanitizedWorktreeName);
       if (!force) {
         await assertWorktreeCleanBeforeDelete(worktreePath, gitCommand);
       }
@@ -224,13 +229,15 @@ function rename(
     try {
       const gitCommand = await gitMainService.gitCommand();
       assertWorktreeNotExists(dir, newName);
+      const sanitizedNewWorktreeName = sanitizeWorktreeName(newName);
+      const sanitizedOldWorktreeName = sanitizeWorktreeName(oldName);
       const newWorktreePath = path.normalize(
-        path.join(oldWorktreePath, '..', newName),
+        path.join(oldWorktreePath, '..', sanitizedNewWorktreeName),
       );
       assertWorktreePathIsAvailable(newName, newWorktreePath);
       assertWriteAccess(oldWorktreePath);
       exec(
-        `"${gitCommand}" worktree move ${oldName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
+        `"${gitCommand}" worktree move ${sanitizedOldWorktreeName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
         {
           cwd: dir,
         },
@@ -335,8 +342,9 @@ function moveWorktreeToFolder(
       assertWorktreePathIsAvailable(name, newWorktreePath);
       const parentDir = path.dirname(newWorktreePath);
       assertWriteAccess(parentDir);
+      const sanitizedWorktreeName = sanitizeWorktreeName(name);
       exec(
-        `"${gitCommand}" worktree move ${name} ${newWorktreePath}`,
+        `"${gitCommand}" worktree move ${sanitizedWorktreeName} ${newWorktreePath}`,
         {
           cwd: dir,
         },

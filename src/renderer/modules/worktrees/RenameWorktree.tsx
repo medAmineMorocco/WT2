@@ -39,18 +39,6 @@ export default function RenameWorktree({
               whitespace: true,
               message: 'Please enter the name of your worktree.',
             },
-            () => ({
-              validator(_, value) {
-                if (value && value.includes('/')) {
-                  return Promise.reject(
-                    new Error(
-                      'The name of worktree should not contains / character !',
-                    ),
-                  );
-                }
-                return Promise.resolve();
-              },
-            }),
           ]}
           extra="The folder and associated branch will be renamed"
           style={{ flex: 1 }}
