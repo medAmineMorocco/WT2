@@ -43,9 +43,10 @@ export default function TerminalInteractive({
     };
 
     document.addEventListener('keydown', handleKeyDown);
-    const terminalInput = document.getElementsByClassName(
-      'terminal-hidden-input',
+    const terminalInput = document.querySelectorAll(
+      `[data-terminal-name="${repository}"] .terminal-hidden-input`,
     );
+
     if (terminalInput.length > 0) {
       const terminalInputElement = terminalInput[0] as any;
       terminalInputElement.focus();
