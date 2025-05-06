@@ -53,7 +53,8 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
         item.children = Object.entries(item.data).map(([commandKey, value]) => {
           const commandLog = value as any;
           const isCommandFinished =
-            commandLog.status && commandLog.status === 'finished';
+            commandLog.status &&
+            (commandLog.status === 'finished' || commandLog.status === 'error');
           const commandOutput = removeANSI(commandLog.output);
           return (
             <div key={commandKey}>

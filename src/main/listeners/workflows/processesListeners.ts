@@ -141,6 +141,13 @@ async function executeCommand(
       } else if (signal === 'SIGTERM' || signal === 'SIGKILL') {
         reject(new Error('aborted'));
       } else {
+        logStates = await getNewlogStates(
+          worktreeLabel,
+          '',
+          storedEncoding,
+          command,
+          'error',
+        );
         reject(new Error(code));
       }
     });
@@ -151,7 +158,7 @@ async function executeCommand(
         Buffer.from(err.message),
         storedEncoding,
         command,
-        null,
+        'error',
       );
       event.sender.send('workflow-started-log-received', logStates);
       reject(new Error(err.toString()));
