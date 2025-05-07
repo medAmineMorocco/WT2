@@ -282,10 +282,11 @@ function changeLock(toLock: boolean, worktreeName: string, dir: string) {
   return new Promise(async (resolve, reject) => {
     try {
       const gitCommand = await gitMainService.gitCommand();
-      assertWorktreeExists(dir, worktreeName);
+      const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
+      assertWorktreeExists(dir, sanitizedWorktreeName);
       const command = toLock
-        ? `"${gitCommand}" worktree lock ${worktreeName}`
-        : `"${gitCommand}" worktree unlock ${worktreeName}`;
+        ? `"${gitCommand}" worktree lock ${sanitizedWorktreeName}`
+        : `"${gitCommand}" worktree unlock ${sanitizedWorktreeName}`;
       exec(
         command,
         {

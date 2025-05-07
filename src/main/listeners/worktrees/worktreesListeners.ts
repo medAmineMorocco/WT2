@@ -221,7 +221,7 @@ ipcMain.on(
         `Failed to change lock of worktree ${worktreeName} to ${toLock}: ${err.message}`,
       );
       if (err instanceof BusinessError) {
-        event.sender.send('worktrees-changed-lock', -1, err.message);
+        event.sender.send('worktrees-changed-lock', -1, toLock, err.message);
       } else {
         event.sender.send(
           'worktrees-changed-lock',
