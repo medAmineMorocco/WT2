@@ -49,6 +49,10 @@ export default function PackInfos() {
 
   const [errorReason, setErrorReason] = useState<string | null>();
 
+  const handleSwitchUser = () => {
+    setIsSubscriptionModalClosable(true);
+  };
+
   useEffect(() => {
     ipcRenderer.send('check-trial-expiration');
     const onReceiveExpirationInfos = (
@@ -86,12 +90,18 @@ export default function PackInfos() {
       }
     };
 
+    const onSwitchUser = () => {
+      handleSwitchUser();
+    };
+
     ipcRenderer.on('is-expired', onReceiveExpirationInfos);
     ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
+    ipcRenderer.on('switch-user', onSwitchUser);
 
     return () => {
       ipcRenderer.removeAllListeners('is-expired');
       ipcRenderer.removeAllListeners('is-subscribed');
+      ipcRenderer.removeAllListeners('switch-user');
     };
   }, []);
 
@@ -112,10 +122,6 @@ export default function PackInfos() {
       values.email,
       values.licence,
     );
-  };
-
-  const handleSwitchUser = () => {
-    setIsSubscriptionModalClosable(true);
   };
 
   const content = useMemo(() => {

@@ -280,6 +280,26 @@ function Hello() {
     navigate('/settings');
   };
 
+  useEffect(() => {
+    ipcRenderer.on('open-settings', () => {
+      openSettingsPage();
+    });
+
+    ipcRenderer.on('open-shortcuts', () => {
+      openKeyboardShortcuts();
+    });
+
+    ipcRenderer.on('switch-theme', () => {
+      onThemeChange();
+    });
+
+    return () => {
+      ipcRenderer.removeAllListeners('open-shortcuts');
+      ipcRenderer.removeAllListeners('open-settings');
+      ipcRenderer.removeAllListeners('switch-theme');
+    };
+  }, []);
+
   const openLogsPage = () => {
     navigate('/logs');
   };

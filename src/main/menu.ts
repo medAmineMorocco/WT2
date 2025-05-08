@@ -205,6 +205,19 @@ export default class MenuBuilder {
         label: '&File',
         submenu: [
           {
+            label: '&Settings',
+            accelerator: 'Shift+S',
+            click: () => {
+              this.mainWindow.webContents.send('open-settings');
+            },
+          },
+          {
+            label: '&Switch User',
+            click: () => {
+              this.mainWindow.webContents.send('switch-user');
+            },
+          },
+          {
             label: '&Close',
             accelerator: 'Ctrl+W',
             click: () => {
@@ -236,6 +249,13 @@ export default class MenuBuilder {
                   },
                 },
                 {
+                  label: 'Switch Theme',
+                  accelerator: 'Shift+T',
+                  click: () => {
+                    this.mainWindow.webContents.send('switch-theme');
+                  },
+                },
+                {
                   label: 'Toggle &Developer Tools',
                   accelerator: 'Alt+Ctrl+I',
                   click: () => {
@@ -253,11 +273,25 @@ export default class MenuBuilder {
                     );
                   },
                 },
+                {
+                  label: 'Switch Theme',
+                  accelerator: 'Shift+T',
+                  click: () => {
+                    this.mainWindow.webContents.send('switch-theme');
+                  },
+                },
               ],
       },
       {
         label: 'Help',
         submenu: [
+          {
+            label: 'Keyboard Shortcuts ',
+            accelerator: 'Shift+K',
+            click: () => {
+              this.mainWindow.webContents.send('open-shortcuts');
+            },
+          },
           {
             label: 'Documentation',
             click() {
