@@ -21,6 +21,7 @@ import {
   CodeOutlined,
   CloseOutlined,
   LoadingOutlined,
+  FieldStringOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
@@ -30,6 +31,7 @@ import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
 import RenameWorktree from './RenameWorktree';
 import MoveWorktree from './MoveWorktree';
+import ChangePatternWorktree from './ChangePatternWorktree';
 
 const { useToken } = theme;
 
@@ -85,6 +87,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
+  const [isChangePatternModalOpen, setIsChangePatternModalOpen] =
+    useState(false);
+
   const [worktrees, setWorktrees] = useState([]);
 
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
@@ -95,6 +100,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const [loadingRenameWorktree, setLoadingRenameWorktree] = useState(false);
 
   const [loadingMoveWorktree, setLoadingMoveWorktree] = useState(false);
+
+  const [loadingChangePatternWorktree, setLoadingChangePatternWorktree] = useState(false);
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -284,10 +291,13 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           duration: 0.5,
         });
         setLoadingMoveWorktree(false);
+        setLoadingChangePatternWorktree(false);
         setIsMoveModalOpen(false);
+        setIsChangePatternModalOpen(false);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         setLoadingMoveWorktree(false);
+        setLoadingChangePatternWorktree(false);
         notification.error({
           message: 'Unable to Move Worktree to folder',
           description: result,
@@ -343,6 +353,21 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     );
   };
 
+  const onFinishChangePatternWorktree = () => {
+    setLoadingChangePatternWorktree(true);
+    ipcRenderer.send(
+      'move-worktree-to-folder',
+      form.getFieldValue('worktreeToChange').name,
+      form.getFieldValue('worktreeToChangePatternNewPath'),
+      form.getFieldValue('worktreeToChange').path,
+      tabRepoPath,
+    );
+  };
+
+  const handleCancelChangePatternWorktree = () => {
+    setIsChangePatternModalOpen(false);
+  };
+
   const getMenuItems = (
     isWorktreeLocked: boolean,
     isPrimaryWorktree: boolean,
@@ -351,9 +376,26 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       return [
         ...items,
         {
+          label: 'Unlock',
+          value: '3',
+          icon: <UnlockOutlined />,
+        },
+        {
           label: 'Rename',
           value: '-2',
           icon: <EditOutlined />,
+          disabled: true,
+        },
+        {
+          label: 'Change Naming Pattern',
+          value: '-6',
+          icon: <FieldStringOutlined />,
+          disabled: true,
+        },
+        {
+          label: 'Change Folder',
+          value: '5',
+          icon: <FolderEditIcon size={16} />,
           disabled: true,
         },
         {
@@ -361,11 +403,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           value: '2',
           icon: <DeleteOutlined />,
           disabled: true,
-        },
-        {
-          label: 'Unlock',
-          value: '3',
-          icon: <UnlockOutlined />,
         },
       ];
     }
@@ -375,6 +412,12 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         label: 'Rename',
         value: '-2',
         icon: <EditOutlined />,
+        disabled: isPrimaryWorktree,
+      },
+      {
+        label: 'Change Naming Pattern',
+        value: '-6',
+        icon: <FieldStringOutlined />,
         disabled: isPrimaryWorktree,
       },
       {
@@ -416,6 +459,12 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
   const onClickWorktree = (worktree: any) => {
     return (event: any) => {
       const key = event[event.length - 1];
+      if (key === '-6') {
+        setIsChangePatternModalOpen(true);
+        form.setFieldValue('worktreeToChange', worktree);
+        form.setFieldValue('repo', tabRepoPath);
+        return;
+      }
       if (key === '-3') {
         setRepositoryInTerminal(worktree.path);
         setOpenTerminalModal(true);
@@ -675,6 +724,15 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           onFinish={onFinishMoveWorktree}
           handleCancel={handleCancelMoveWorktree}
           loading={loadingMoveWorktree}
+        />
+      )}
+      {isChangePatternModalOpen && (
+        <ChangePatternWorktree
+          isModalOpen={isChangePatternModalOpen}
+          form={form}
+          onFinish={onFinishChangePatternWorktree}
+          handleCancel={handleCancelChangePatternWorktree}
+          loading={loadingChangePatternWorktree}
         />
       )}
     </>

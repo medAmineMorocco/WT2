@@ -1,40 +1,6 @@
-import { AutoComplete, Flex, Form } from 'antd';
+import { AutoComplete, Form } from 'antd';
 import { useEffect } from 'react';
-
-function Title(props: any) {
-  const { title, example } = props;
-  return (
-    <Flex align="center" justify="space-between">
-      {title}
-      <span>{example}</span>
-    </Flex>
-  );
-}
-
-const options = [
-  {
-    label: (
-      <Title title="{repo}__wt__{branch}" example="my-app__wt__feature-login" />
-    ),
-    value: '{repo}__wt__{branch}',
-  },
-  {
-    label: <Title title="{repo}__{branch}" example="my-app__feature-login" />,
-    value: '{repo}__{branch}',
-  },
-  {
-    label: (
-      <Title title="{repo}-wt-{branch}" example="my-app-wt-feature-login" />
-    ),
-    value: '{repo}-wt-{branch}',
-  },
-  {
-    label: (
-      <Title title="wt__{repo}__{branch}" example="wt__my-app__feature-login" />
-    ),
-    value: 'wt__{repo}__{branch}',
-  },
-];
+import options from './patternNamingOptions';
 
 export default function WorktreeSettings() {
   const [form] = Form.useForm();

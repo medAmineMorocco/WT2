@@ -115,13 +115,7 @@ ipcMain.on(
 
 ipcMain.on(
   'rename-worktree',
-  async function (
-    event,
-    oldName,
-    newName,
-    oldWorktreePath,
-    directory,
-  ) {
+  async function (event, oldName, newName, oldWorktreePath, directory) {
     try {
       log.info(`Renaming worktree ${oldName} to ${newName}`);
       const result = await worktreeMainService.rename(
@@ -307,6 +301,30 @@ ipcMain.on(
           'Failed to move worktree to the specified folder.',
         );
       }
+    }
+  },
+);
+
+ipcMain.on(
+  'get-preview-path-change-pattern',
+  async function (
+    event,
+    name: string,
+    worktreePath: string,
+    pattern: string,
+    dir: string,
+  ) {
+    try {
+      log.info('Getting worktrees separator');
+      const path = await worktreeMainService.getPathPreviewOfPattern(
+        name,
+        worktreePath,
+        pattern,
+        dir,
+      );
+      event.sender.send('received-preview-path-change-pattern', 0, path);
+    } catch (err: any) {
+      log.error(`Failed to get preview: ${err.message}`);
     }
   },
 );

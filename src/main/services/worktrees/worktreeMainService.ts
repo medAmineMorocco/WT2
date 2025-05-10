@@ -27,6 +27,17 @@ function sanitizeWorktreeName(worktreeName: string) {
   return worktreeName.replace(/\//g, '-').replace(/[:*?"<>|\\]/g, '-');
 }
 
+function resolveWorktreeNamePattern(
+  pattern: string | null,
+  repo: string,
+  branch: string,
+): string {
+  if (!pattern || (pattern && pattern.trim() === '')) {
+    return branch;
+  }
+  return pattern.replaceAll(/{repo}/g, repo).replaceAll(/{branch}/g, branch);
+}
+
 function findAll(directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -370,6 +381,31 @@ function moveWorktreeToFolder(
   });
 }
 
+function getPathPreviewOfPattern(
+  name: string,
+  worktreePath: string,
+  pattern: string,
+  dir: string,
+) {
+  return new Promise((resolve, reject) => {
+    try {
+      const sanitizedWorktreeName = sanitizeWorktreeName(name);
+
+      const resolvedWorktreeName = resolveWorktreeNamePattern(
+        pattern,
+        path.basename(dir),
+        sanitizedWorktreeName,
+      );
+      const pathPreview = path.normalize(
+        path.join(worktreePath, '..', resolvedWorktreeName),
+      );
+      resolve(pathPreview);
+    } catch (err: any) {
+      reject(err.toString());
+    }
+  });
+}
+
 export default {
   findAll,
   add,
@@ -382,4 +418,5 @@ export default {
   getWorktreesSeparator,
   moveWorktreeToFolder,
   branchExists,
+  getPathPreviewOfPattern,
 };

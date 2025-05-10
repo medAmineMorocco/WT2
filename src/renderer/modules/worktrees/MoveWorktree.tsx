@@ -1,5 +1,5 @@
 import { Button, Form, Input, Modal, Space, Tooltip } from 'antd';
-import { CheckOutlined, FolderOutlined } from '@ant-design/icons';
+import { FolderOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useState } from 'react';
 
@@ -83,12 +83,7 @@ export default function MoveWorktree({
         <Form.Item name="nameWorktreeToMove" hidden />
         <Form.Item name="oldPathWorktreeToMove" hidden />
         <Form.Item style={{ marginRight: 0 }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-            icon={<CheckOutlined />}
-          >
+          <Button type="primary" htmlType="submit" loading={loading}>
             Move
           </Button>
         </Form.Item>

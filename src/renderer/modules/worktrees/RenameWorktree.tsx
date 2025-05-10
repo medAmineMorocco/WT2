@@ -1,5 +1,5 @@
 import { Button, Form, Input, Modal } from 'antd';
-import { BranchesOutlined, EditOutlined } from '@ant-design/icons';
+import { BranchesOutlined } from '@ant-design/icons';
 import React from 'react';
 
 export default function RenameWorktree({
@@ -48,12 +48,7 @@ export default function RenameWorktree({
         <Form.Item name="oldWorktreeName" hidden />
         <Form.Item name="oldWorktreePath" hidden />
         <Form.Item style={{ marginRight: 0 }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            loading={loading}
-            icon={<EditOutlined />}
-          >
+          <Button type="primary" htmlType="submit" loading={loading}>
             Rename
           </Button>
         </Form.Item>
