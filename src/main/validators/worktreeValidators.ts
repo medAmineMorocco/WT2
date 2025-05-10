@@ -14,7 +14,7 @@ export function assertWorktreeExists(repoPath: string, worktreeName: string) {
 
   const found = matches.some(([, worktreePath]) => {
     return (
-      worktreePath.endsWith(`/${worktreeName}`) || worktreePath === worktreeName
+      worktreePath.endsWith(`${worktreeName}`) || worktreePath === worktreeName
     );
   });
 

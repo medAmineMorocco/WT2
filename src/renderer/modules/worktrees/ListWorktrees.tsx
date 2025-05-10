@@ -338,6 +338,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       'move-worktree-to-folder',
       form.getFieldValue('nameWorktreeToMove'),
       form.getFieldValue('newWorktreePath'),
+      form.getFieldValue('oldPathWorktreeToMove'),
       tabRepoPath,
     );
   };
@@ -353,6 +354,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
           label: 'Rename',
           value: '-2',
           icon: <EditOutlined />,
+          disabled: true,
         },
         {
           label: 'Delete',
@@ -541,7 +543,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         ipcRenderer.send(
           'change-lock-worktree',
           false,
-          worktree.name,
+          worktree.path,
           tabRepoPath,
         );
         return;
@@ -550,7 +552,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         ipcRenderer.send(
           'change-lock-worktree',
           true,
-          worktree.name,
+          worktree.path,
           tabRepoPath,
         );
         return;
@@ -559,6 +561,8 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         setIsMoveModalOpen(true);
         form.setFieldValue('nameWorktreeToMove', worktree.name);
         form.setFieldValue('newWorktreePath', worktree.path);
+        form.setFieldValue('oldPathWorktreeToMove', worktree.path);
+        form.setFieldValue('resolvedName', worktree.resolvedName);
       }
     };
   };

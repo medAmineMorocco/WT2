@@ -58,6 +58,7 @@ function findAll(directory: string) {
               isPrimary: isPrimaryWorktree(pathRep),
               path: pathRep,
               name,
+              resolvedName: path.basename(pathRep),
               head,
               isLocked,
               prunable,
@@ -231,13 +232,19 @@ function rename(
       assertWorktreeNotExists(dir, newName);
       const sanitizedNewWorktreeName = sanitizeWorktreeName(newName);
       const sanitizedOldWorktreeName = sanitizeWorktreeName(oldName);
+      const resolvedOldWorktreeName = path.basename(oldWorktreePath);
+
+      const resolvedNewWorktreeName = resolvedOldWorktreeName.replace(
+        sanitizedOldWorktreeName,
+        sanitizedNewWorktreeName,
+      );
       const newWorktreePath = path.normalize(
-        path.join(oldWorktreePath, '..', sanitizedNewWorktreeName),
+        path.join(oldWorktreePath, '..', resolvedNewWorktreeName),
       );
       assertWorktreePathIsAvailable(newName, newWorktreePath);
       assertWriteAccess(oldWorktreePath);
       exec(
-        `"${gitCommand}" worktree move ${sanitizedOldWorktreeName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
+        `"${gitCommand}" worktree move ${resolvedOldWorktreeName} ${newWorktreePath} && "${gitCommand}" branch -m ${oldName} ${newName}`,
         {
           cwd: dir,
         },
@@ -277,16 +284,16 @@ function prune(dir: string) {
   });
 }
 
-function changeLock(toLock: boolean, worktreeName: string, dir: string) {
+function changeLock(toLock: boolean, worktreePath: string, dir: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
       const gitCommand = await gitMainService.gitCommand();
-      const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
-      assertWorktreeExists(dir, sanitizedWorktreeName);
+      const resolvedWorktreeName = path.basename(worktreePath);
+      assertWorktreeExists(dir, resolvedWorktreeName);
       const command = toLock
-        ? `"${gitCommand}" worktree lock ${sanitizedWorktreeName}`
-        : `"${gitCommand}" worktree unlock ${sanitizedWorktreeName}`;
+        ? `"${gitCommand}" worktree lock ${resolvedWorktreeName}`
+        : `"${gitCommand}" worktree unlock ${resolvedWorktreeName}`;
       exec(
         command,
         {
@@ -334,6 +341,7 @@ function getWorktreesSeparator() {
 function moveWorktreeToFolder(
   name: string,
   newWorktreePath: string,
+  worktreePath: string,
   dir: string,
 ) {
   // eslint-disable-next-line no-async-promise-executor
@@ -343,9 +351,9 @@ function moveWorktreeToFolder(
       assertWorktreePathIsAvailable(name, newWorktreePath);
       const parentDir = path.dirname(newWorktreePath);
       assertWriteAccess(parentDir);
-      const sanitizedWorktreeName = sanitizeWorktreeName(name);
+      const resolvedWorktreeName = path.basename(worktreePath);
       exec(
-        `"${gitCommand}" worktree move ${sanitizedWorktreeName} ${newWorktreePath}`,
+        `"${gitCommand}" worktree move ${resolvedWorktreeName} ${newWorktreePath}`,
         {
           cwd: dir,
         },

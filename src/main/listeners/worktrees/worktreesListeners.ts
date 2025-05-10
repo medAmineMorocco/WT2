@@ -115,7 +115,13 @@ ipcMain.on(
 
 ipcMain.on(
   'rename-worktree',
-  async function (event, oldName, newName, oldWorktreePath, directory) {
+  async function (
+    event,
+    oldName,
+    newName,
+    oldWorktreePath,
+    directory,
+  ) {
     try {
       log.info(`Renaming worktree ${oldName} to ${newName}`);
       const result = await worktreeMainService.rename(
@@ -209,16 +215,18 @@ ipcMain.on(
   async function (
     event,
     toLock: boolean,
-    worktreeName: string,
+    worktreePath: string,
     directory: string,
   ) {
     try {
-      log.info(`Changing lock of worktree ${worktreeName} to ${toLock}`);
-      await worktreeMainService.changeLock(toLock, worktreeName, directory);
+      log.info(
+        `Changing lock of worktree with path ${worktreePath} to ${toLock}`,
+      );
+      await worktreeMainService.changeLock(toLock, worktreePath, directory);
       event.sender.send('worktrees-changed-lock', 0, toLock);
     } catch (err: any) {
       log.error(
-        `Failed to change lock of worktree ${worktreeName} to ${toLock}: ${err.message}`,
+        `Failed to change lock of worktree with path ${worktreePath} to ${toLock}: ${err.message}`,
       );
       if (err instanceof BusinessError) {
         event.sender.send('worktrees-changed-lock', -1, toLock, err.message);
@@ -274,6 +282,7 @@ ipcMain.on(
     event,
     name: string,
     newWorktreePath: string,
+    worktreePath: string,
     directory: string,
   ) {
     try {
@@ -281,12 +290,13 @@ ipcMain.on(
       await worktreeMainService.moveWorktreeToFolder(
         name,
         newWorktreePath,
+        worktreePath,
         directory,
       );
       event.sender.send('worktree-moved-to-folder', 0);
     } catch (err: any) {
       log.error(
-        `Failed to move worktree ${name} to folder ${newWorktreePath}: ${err.message}`
+        `Failed to move worktree ${name} to folder ${newWorktreePath}: ${err.message}`,
       );
       if (err instanceof BusinessError) {
         event.sender.send('worktree-moved-to-folder', -1, err.message);

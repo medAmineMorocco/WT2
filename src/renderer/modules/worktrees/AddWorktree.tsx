@@ -19,6 +19,7 @@ import {
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import log from 'electron-log';
+import { useNavigate } from 'react-router-dom';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
 
@@ -29,6 +30,8 @@ export default function AddWorktree({
   isModalOpen: boolean;
   handleCancel: any;
 }) {
+  const navigate = useNavigate();
+
   const { setIsWorkflowPlaying } = useItemsContext();
 
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
@@ -53,9 +56,14 @@ export default function AddWorktree({
 
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
-  const tabRepoPath = useMemo(() => {
-    return TabService.getTabRepoPath(activeTab);
+  const { selectedRepoPath: tabRepoPath, repoName } = useMemo(() => {
+    return TabService.getTab(activeTab);
   }, [activeTab]);
+
+  const storedWorktreePrefix =
+    window.localStorage.getItem('worktreePrefix') != null
+      ? window.localStorage.getItem('worktreePrefix')
+      : '{repo}__wt__{branch}';
 
   useEffect(() => {
     const activeTabValue = TabService.getTab(activeTab);
@@ -196,6 +204,35 @@ export default function AddWorktree({
     return typeof val === 'string' && val.trim() !== '';
   }
 
+  function resolveWorktreeNamePattern(
+    pattern: string | null,
+    repo: string,
+    branch: string,
+  ): string {
+    if (!pattern || (pattern && pattern.trim() === '')) {
+      return branch;
+    }
+    return pattern.replaceAll(/{repo}/g, repo).replaceAll(/{branch}/g, branch);
+  }
+
+  const getWorktreeName = () => {
+    let branch;
+    if (createWorktreeMode === 'new-branch') {
+      branch = sanitizeWorktreeName(form.getFieldValue('name')) || ' ';
+    } else if (createWorktreeMode === 'existing-branch') {
+      branch =
+        sanitizeWorktreeName(form.getFieldValue('existing-branch')) || ' ';
+    } else {
+      const tag = form.getFieldValue('existing-tag');
+      if (tag) {
+        branch = form.getFieldValue('existing-tag').replaceAll('.', '-');
+      } else {
+        branch = '';
+      }
+    }
+    return resolveWorktreeNamePattern(storedWorktreePrefix, repoName, branch);
+  };
+
   const onFinish = (values: any) => {
     log.debug(`values: ${JSON.stringify(values)}`);
     let worktreeName: any;
@@ -210,11 +247,10 @@ export default function AddWorktree({
       log.debug('== create-worktree ==');
 
       setLoadingCreateWorktree(true);
-      const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
       ipcRenderer.send(
         'create-worktree',
         worktreeName,
-        worktreesFolder + pathSeparator + sanitizedWorktreeName,
+        worktreesFolder + pathSeparator + getWorktreeName(),
         createWorktreeMode,
         tabRepoPath,
       );
@@ -242,23 +278,6 @@ export default function AddWorktree({
     window.localStorage.setItem(activeTab, JSON.stringify(activeTabNewValue));
   };
 
-  const getWorktreeName = () => {
-    if (createWorktreeMode === 'new-branch') {
-      return sanitizeWorktreeName(form.getFieldValue('name')) || ' ';
-    }
-    if (createWorktreeMode === 'existing-branch') {
-      return sanitizeWorktreeName(form.getFieldValue('existing-branch')) || ' ';
-    }
-    if (createWorktreeMode === 'existing-tag') {
-      const tag = form.getFieldValue('existing-tag');
-      if (tag) {
-        return tag.replaceAll('.', '-');
-      }
-      return ' ';
-    }
-    return '';
-  };
-
   const chooseWorktreesDir = () => {
     ipcRenderer.send('choose-worktrees-dir');
   };
@@ -275,6 +294,10 @@ export default function AddWorktree({
       // @ts-ignore
       selectBranchRef.current.blur();
     }
+  };
+
+  const openSettingsPage = () => {
+    navigate('/settings');
   };
 
   return (
@@ -407,7 +430,21 @@ export default function AddWorktree({
             allowClear
           />
         </Form.Item>
-        <Form.Item extra="The worktree will be created at the specified directory">
+        <small>The worktree will be created at the specified directory</small>
+        <Form.Item
+          extra={
+            <small>
+              {`The folder name will be based on your current naming pattern: ${storedWorktreePrefix}.`}
+              <Button
+                type="link"
+                onClick={openSettingsPage}
+                style={{ paddingLeft: 0 }}
+              >
+                <small>Want to change it ?</small>
+              </Button>
+            </small>
+          }
+        >
           <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
             <Tooltip
               mouseEnterDelay={0}

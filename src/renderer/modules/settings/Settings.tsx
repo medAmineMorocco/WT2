@@ -1,7 +1,6 @@
 import { ConfigProvider, Layout, Menu, MenuProps, theme } from 'antd';
 import {
   RollbackOutlined,
-  NotificationOutlined,
   ApiOutlined,
   ClearOutlined,
   CodeOutlined,
@@ -10,11 +9,13 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
+import { Tree02Icon } from 'hugeicons-react';
 import EditorSettings from './EditorSettings';
 import CacheSettings from './CacheSettings';
 import GitSettings from './GitSettings';
 import ShellSettings from './ShellSettings';
 import EncodingSettings from './EncodingSettings';
+import WorktreeSettings from './WorktreeSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -24,6 +25,11 @@ const itemsMenu: MenuProps['items'] = [
     label: 'Exit Settings',
     icon: <RollbackOutlined />,
     danger: true,
+  },
+  {
+    key: '1',
+    label: 'Worktrees',
+    icon: <Tree02Icon size={17} />,
   },
   {
     key: '2',
@@ -57,7 +63,7 @@ export default function Settings() {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  const [keyNavigation, setKeyNavigation] = useState('0');
+  const [keyNavigation, setKeyNavigation] = useState('1');
   const [isDarkMode, setIsDarkMode] = useState(false);
   const navigate = useNavigate();
 
@@ -73,6 +79,9 @@ export default function Settings() {
   const getContent = () => {
     if (keyNavigation === '-1') {
       navigate('/');
+    }
+    if (keyNavigation === '1') {
+      return <WorktreeSettings />;
     }
     if (keyNavigation === '2') {
       return <EditorSettings isDarkMode={isDarkMode} />;
@@ -98,7 +107,7 @@ export default function Settings() {
           <Layout.Sider width={200} style={{ background: colorBgContainer }}>
             <Menu
               mode="inline"
-              defaultSelectedKeys={['0']}
+              defaultSelectedKeys={['1']}
               style={{ height: '100%', borderRight: 0 }}
               items={itemsMenu}
               onClick={onMenuClick}
