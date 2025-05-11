@@ -1,0 +1,28 @@
+WorktreeWise License Agreement
+Copyright 2024-2025 WorktreeWise. All rights reserved.
+
+This software, WorktreeWise, is licensed, not sold. By installing or using WorktreeWise, you agree to the terms of this license.
+
+1. Grant of License
+You are granted a non-transferable, non-exclusive license to use WorktreeWise solely for personal or internal business purposes.
+
+2. Restrictions
+You may not:
+
+Distribute, sublicense, lease, or rent WorktreeWise to third parties.
+
+Modify, reverse engineer, decompile, or disassemble the software.
+
+Use WorktreeWise in any way that violates applicable laws or third-party rights.
+
+3. Ownership
+WorktreeWise is owned and copyrighted by the author. This license does not give you ownership of any intellectual property rights in the software.
+
+4. Disclaimer of Warranty
+WorktreeWise is provided "as is" without warranties of any kind, express or implied, including but not limited to fitness for a particular purpose or non-infringement.
+
+5. Limitation of Liability
+In no event shall the author or any affiliated party be liable for any damages arising out of the use or inability to use this software.
+
+6. Termination
+This license is effective until terminated. It will terminate automatically without notice if you fail to comply with any term. Upon termination, you must destroy all copies of WorktreeWise.

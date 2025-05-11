@@ -232,6 +232,15 @@
         "nsis"
       ]
     },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WorktreeWise",
+      "license": "build/license.txt"
+    },
     "linux": {
       "target": [
         "deb",
