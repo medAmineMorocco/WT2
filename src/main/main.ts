@@ -25,6 +25,7 @@ import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
 import workflowsMainService from './services/workflows/workflowsMainService';
 import utils from './utils/utils';
+import './listeners/generator/generatorListeners';
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',

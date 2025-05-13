@@ -2,9 +2,11 @@ import React, { forwardRef, useEffect, useMemo, useState } from 'react';
 import {
   App as AntdApp,
   Badge,
+  Breadcrumb,
   Button,
   Flex,
   Radio,
+  Segmented,
   Select,
   Space,
   Table,
@@ -17,20 +19,24 @@ import {
   PlusOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
+import { useHotkeys } from 'react-hotkeys-hook';
 import {
   PlayIcon,
   StopIcon,
   Edit02Icon,
   Delete02Icon,
+  CodeIcon,
   Copy01Icon,
 } from 'hugeicons-react';
-import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
 import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
 import ImportWorkflow from './ImportWorkflow';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
+import AddGenerator from './AddGenerator';
+import RunGenerator from './RunGenerator';
+import ImportGenerator from './ImportGenerator';
 
 const { useToken } = theme;
 
@@ -48,16 +54,25 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const { token } = useToken();
 
   const [openAdd, setOpenAdd] = useState(false);
+  const [openAddGenerator, setOpenAddGenerator] = useState(false);
   const [openImport, setOpenImport] = useState(false);
+  const [openImportGenerators, setOpenImportGenerators] = useState(false);
   const [openEdit, setOpenEdit] = useState(false);
+  const [openPlayGenerator, setOpenPlayGenerator] = useState(false);
   const [workflowToEdit, setWorkflowToEdit] = useState();
+  const [generatorToEdit, setGeneratorToEdit] = useState<any | null>();
+  const [generatorToPlay, setGeneratorToPlay] = useState<any>({});
   const [playingWorkflow, setPlayingWorkflow] = useState(null);
   const { modal, notification } = AntdApp.useApp();
   const [workflows, setWorkflows] = useState<any>([]);
+  const [generators, setGenerators] = useState<any>([]);
   const [worktrees, setWorktrees] = useState([]);
   const [workflowsToImport, setWorkflowsToImport] = useState([]);
   const [uuid, setUuid] = useState<string>(new Date().toString());
+  const [generatorsToImport, setGeneratorsToImport] = useState([]);
   const { setIsWorkflowPlaying } = useItemsContext();
+  const [mode, setMode] = useState('workflows');
+  const [pack, setPack] = useState<string | null>();
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -65,6 +80,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   }, []);
 
   useEffect(() => {
+    ipcRenderer.send('check-trial-expiration');
     ipcRenderer.send('get-workflows', tabRepoPath);
     const onWorkflowsFound = (event: any, code: number, result: any) => {
       if (code === 0) {
@@ -87,6 +103,24 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           placement: 'bottomLeft',
           duration: 0.5,
         });
+      }
+    };
+
+    const onGeneratorsImported = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        ipcRenderer.send('get-generators', tabRepoPath);
+
+        notification.success({
+          message: `${result} generator(s) have been imported`,
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
+      }
+    };
+
+    const onGeneratorDuplicated = (event: any, code: number) => {
+      if (code === 0) {
+        ipcRenderer.send('get-generators', tabRepoPath);
       }
     };
 
@@ -155,6 +189,70 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       });
     };
 
+    const onGeneratorsToImportFound = (
+      event: any,
+      code: number,
+      result: any,
+    ) => {
+      if (code === 0) {
+        setGeneratorsToImport(
+          JSON.parse(result).map((generator: any) => {
+            generator.key = generator.generatorName;
+            return generator;
+          }),
+        );
+        setOpenImportGenerators(true);
+      }
+    };
+
+    const onGeneratorsFound = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        setGenerators(JSON.parse(result));
+      } else {
+        notification.error({
+          message: 'Unable to Fetch Generators',
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onGeneratorRemoved = (event: any, code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'The generator has been removed',
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
+        ipcRenderer.send('get-generators', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Unable to Delete Generator',
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onGeneratorCreated = (event: any, code: number) => {
+      if (code === 0) {
+        ipcRenderer.send('get-generators', tabRepoPath);
+      }
+    };
+
+    const onReceiveSubscriptionInfos = (
+      _event: any,
+      _hasTrial: boolean,
+      packReceived: any,
+    ) => {
+      setPack(packReceived ? packReceived.pack : null);
+      if (
+        packReceived &&
+        packReceived.pack &&
+        packReceived.pack.toUpperCase() === 'PRO'
+      ) {
+        setMode('workflows');
+      }
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflows-imported', onWorkflowsImported);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
@@ -166,6 +264,13 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       'workflow-started-failed-worktree-not-found',
       onWorkflowStartedFailed,
     );
+    ipcRenderer.on('generators-found', onGeneratorsFound);
+    ipcRenderer.on('generator-removed', onGeneratorRemoved);
+    ipcRenderer.on('generator-created', onGeneratorCreated);
+    ipcRenderer.on('generators-to-import-found', onGeneratorsToImportFound);
+    ipcRenderer.on('generators-imported', onGeneratorsImported);
+    ipcRenderer.on('generator-duplicated', onGeneratorDuplicated);
+    ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
@@ -178,8 +283,15 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners(
         'workflow-started-failed-worktree-not-found',
       );
+      ipcRenderer.removeAllListeners('generators-found');
+      ipcRenderer.removeAllListeners('generator-removed');
+      ipcRenderer.removeAllListeners('generator-created');
+      ipcRenderer.removeAllListeners('generators-to-import-found');
+      ipcRenderer.removeAllListeners('generators-imported');
+      ipcRenderer.removeAllListeners('generator-duplicated');
+      ipcRenderer.removeAllListeners('is-expired');
     };
-  }, [notification, tabRepoPath]);
+  }, [notification, setIsWorkflowPlaying, tabRepoPath]);
 
   const showDrawer = () => {
     setOpenAdd(true);
@@ -189,8 +301,24 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     ipcRenderer.send('open-dialog-import-workflows');
   };
 
-  useHotkeys('shift+a', () => showDrawer(), { preventDefault: true });
-  useHotkeys('shift+i', () => importWorkflow(), { preventDefault: true });
+  const importGenerator = () => {
+    ipcRenderer.send('open-dialog-import-generators');
+  };
+
+  const showGeneratorDrawer = () => {
+    setOpenAddGenerator(true);
+  };
+
+  useHotkeys(
+    'shift+a',
+    () => (mode === 'workflows' ? showDrawer() : showGeneratorDrawer()),
+    { preventDefault: true },
+  );
+  useHotkeys(
+    'shift+i',
+    () => (mode === 'workflows' ? importWorkflow() : importGenerator()),
+    { preventDefault: true },
+  );
 
   const showEditDrawer = (record: any) => {
     return () => {
@@ -209,6 +337,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     setOpenAdd(false);
   };
 
+  const onCloseAddGenerator = () => {
+    setOpenAddGenerator(false);
+    setGeneratorToEdit(null);
+    ipcRenderer.send('get-generators', tabRepoPath);
+  };
+
   const onConfirmImport = (selected: any[]) => {
     ipcRenderer.send('import-workflows', selected, tabRepoPath);
     setOpenImport(false);
@@ -218,8 +352,21 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     setOpenImport(false);
   };
 
+  const onConfirmImportGenerators = (selected: any[]) => {
+    ipcRenderer.send('import-generators', selected, tabRepoPath);
+    setOpenImportGenerators(false);
+  };
+
+  const onCancelImportGenerators = () => {
+    setOpenImportGenerators(false);
+  };
+
   const onCloseEdit = () => {
     setOpenEdit(false);
+  };
+
+  const onClosePlayGenerator = () => {
+    setOpenPlayGenerator(false);
   };
 
   const deleteWorkflow = (record: any) => {
@@ -235,6 +382,46 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
           ipcRenderer.send('remove-workflow', record.name, tabRepoPath);
         },
       });
+    };
+  };
+
+  const deleteGenerator = (record: any) => {
+    return () => {
+      modal.confirm({
+        title: 'Confirm deletion of this generator ?',
+        icon: <ExclamationCircleFilled />,
+        okText: 'Yes',
+        okType: 'danger',
+        cancelText: 'No',
+        centered: true,
+        onOk() {
+          ipcRenderer.send(
+            'remove-generator',
+            record.generatorName,
+            tabRepoPath,
+          );
+        },
+      });
+    };
+  };
+
+  const showEditGeneratorDrawer = (record: any) => {
+    return () => {
+      setGeneratorToEdit(record);
+      setOpenAddGenerator(true);
+    };
+  };
+
+  const duplicateGenerator = (record: any) => {
+    return () => {
+      ipcRenderer.send('duplicate-generator', record, tabRepoPath);
+    };
+  };
+
+  const runGenerator = (record: any) => {
+    return () => {
+      setOpenPlayGenerator(true);
+      setGeneratorToPlay(record);
     };
   };
 
@@ -425,6 +612,110 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     },
   ];
 
+  const columnsGenerator = [
+    {
+      title: 'Name',
+      dataIndex: 'generatorName',
+      key: 'name',
+      sorter: (a: any, b: any) => a.name.localeCompare(b.name),
+    },
+    {
+      title: 'Files to Generate',
+      key: 'files',
+      render: (_: any, record: any) => {
+        const items = record.files?.map((file: any) => {
+          return {
+            title: file.fileName,
+          };
+        });
+        return record.files && record.files.length > 0 ? (
+          <Breadcrumb items={items} />
+        ) : (
+          <span>No File</span>
+        );
+      },
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_: any, record: any) => (
+        <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
+          <Tooltip
+            placement="top"
+            title="Delete Generator"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <Delete02Icon
+              size={16}
+              onClick={deleteGenerator(record)}
+              style={{
+                cursor: 'pointer',
+                color: colorError,
+              }}
+              className="icon-action"
+            />
+          </Tooltip>
+          <Tooltip
+            placement="top"
+            title="Duplicate Generator"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <Copy01Icon
+              size={16}
+              onClick={duplicateGenerator(record)}
+              style={{
+                cursor: 'pointer',
+                color: colorPrimary,
+              }}
+              className="icon-action"
+            />
+          </Tooltip>
+          <Tooltip
+            placement="top"
+            title="Edit Generator"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <Edit02Icon
+              size={16}
+              onClick={showEditGeneratorDrawer(record)}
+              style={{
+                cursor: 'pointer',
+                color: colorPrimary,
+              }}
+              className="icon-action"
+            />
+          </Tooltip>
+          <Tooltip
+            placement="top"
+            title="Run Generator"
+            mouseEnterDelay={0}
+            mouseLeaveDelay={0}
+          >
+            <PlayIcon
+              size={16}
+              onClick={runGenerator(record)}
+              className="icon-action"
+              style={{
+                cursor: 'pointer',
+                color: colorPrimary,
+              }}
+            />
+          </Tooltip>
+        </div>
+      ),
+    },
+  ];
+
+  const onChangeMode = (value: string) => {
+    setMode(value);
+    if (value === 'generators') {
+      ipcRenderer.send('get-generators', tabRepoPath);
+    }
+  };
+
   return (
     <div
       style={{
@@ -439,17 +730,33 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     >
       <Flex gap="middle" vertical style={{ height: '100%' }}>
         <div>
-          <Space>
-            <PartitionOutlined />
-            <Badge
-              count={workflows.length}
-              offset={[10, 0]}
-              title="total"
-              color="#FAAD14"
-            >
-              <strong>Workflows</strong>
-            </Badge>
-          </Space>
+          <Badge
+            count={mode === 'workflows' ? workflows.length : generators.length}
+            showZero
+            style={{ right: mode === 'workflows' ? '100%' : 0 }}
+            title="total"
+            color="#FAAD14"
+          >
+            <Segmented
+              className="workflows-segmented"
+              options={[
+                {
+                  label: <strong>Workflows</strong>,
+                  value: 'workflows',
+                  icon: <PartitionOutlined />,
+                },
+                {
+                  label: <strong>Generators</strong>,
+                  value: 'generators',
+                  icon: <CodeIcon size="1em" />,
+                  disabled: pack?.toUpperCase() === 'PRO',
+                },
+              ]}
+              defaultValue="workflows"
+              value={mode}
+              onChange={onChangeMode}
+            />
+          </Badge>
         </div>
         <div>
           <Space style={{ float: 'right' }}>
@@ -457,7 +764,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               placement="top"
               title={
                 <Space>
-                  <span>Import Workflow</span>
+                  <span>
+                    {mode === 'generators'
+                      ? 'Import Generator'
+                      : 'Import Workflow'}
+                  </span>
                   <small style={{ color: 'grey' }}>Shift+I</small>
                 </Space>
               }
@@ -465,7 +776,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               mouseLeaveDelay={0}
             >
               <Button
-                onClick={importWorkflow}
+                onClick={
+                  mode === 'generators' ? importGenerator : importWorkflow
+                }
                 type="primary"
                 icon={<UploadOutlined />}
               >
@@ -476,7 +789,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               placement="top"
               title={
                 <Space>
-                  <span>Add Workflow</span>
+                  <span>
+                    {mode === 'generators' ? 'Add Generator' : 'Add Workflow'}
+                  </span>
                   <small style={{ color: 'grey' }}>Shift+A</small>
                 </Space>
               }
@@ -485,7 +800,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             >
               <Button
                 ref={ref}
-                onClick={showDrawer}
+                onClick={
+                  mode === 'generators' ? showGeneratorDrawer : showDrawer
+                }
                 type="primary"
                 icon={<PlusOutlined />}
               >
@@ -502,30 +819,74 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               workflows={workflowsToImport}
             />
           )}
+          {openImportGenerators && (
+            <ImportGenerator
+              isOpen={openImportGenerators}
+              onConfirm={onConfirmImportGenerators}
+              onCancel={onCancelImportGenerators}
+              generators={generatorsToImport}
+            />
+          )}
         </div>
         <EditWorkflow
           openEdit={openEdit}
           onCloseEdit={onCloseEdit}
           workflow={workflowToEdit}
         />
-        <div
-          style={{
-            flexGrow: 1,
-            flexShrink: 0,
-            height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
-          }}
-        >
-          <Table
-            key={uuid}
-            className="workflows-table"
-            columns={columns}
-            dataSource={workflows}
-            pagination={false}
-            scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
-            bordered
-            size="middle"
+        {openPlayGenerator && (
+          <RunGenerator
+            openPlay={openPlayGenerator}
+            onClosePlay={onClosePlayGenerator}
+            generator={generatorToPlay}
+            worktrees={worktrees}
           />
-        </div>
+        )}
+        {openAddGenerator && (
+          <AddGenerator
+            isModalOpen={openAddGenerator}
+            handleCancel={onCloseAddGenerator}
+            generatorToEdit={generatorToEdit}
+          />
+        )}
+        {mode === 'workflows' && (
+          <div
+            style={{
+              flexGrow: 1,
+              flexShrink: 0,
+              height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
+            }}
+          >
+            <Table
+              key={uuid}
+              className="workflows-table"
+              columns={columns}
+              dataSource={workflows}
+              pagination={false}
+              scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
+              bordered
+              size="middle"
+            />
+          </div>
+        )}
+        {mode === 'generators' && (
+          <div
+            style={{
+              flexGrow: 1,
+              flexShrink: 0,
+              height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
+            }}
+          >
+            <Table
+              className="generators-table"
+              columns={columnsGenerator}
+              dataSource={generators}
+              pagination={false}
+              scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
+              bordered
+              size="middle"
+            />
+          </div>
+        )}
       </Flex>
     </div>
   );

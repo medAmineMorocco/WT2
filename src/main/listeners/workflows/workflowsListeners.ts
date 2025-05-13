@@ -1,5 +1,6 @@
 import { ipcMain } from 'electron';
 import log from 'electron-log';
+import path from 'path';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
 import { setStopExecution } from './sharedState';
@@ -7,6 +8,55 @@ import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
 import playWorkflow from './processesListeners';
+
+const { conf } = require('../../conf/conf');
+
+ipcMain.on(
+  'run-generator',
+  async function (
+    event,
+    generatorName: string,
+    parameters: any[],
+    generatedAtWorktree: any,
+    dir: string,
+  ) {
+    setStopExecution(false);
+    let options = '';
+    Object.entries(parameters).forEach(([key, value]) => {
+      options += ` --${key} ${value}`;
+    });
+    const hygenModulePath = require.resolve('hygen');
+    const hygenPath = path.normalize(
+      path.join(
+        path.dirname(hygenModulePath),
+        'node_modules',
+        '..',
+        '..',
+        '..',
+        '.bin',
+        'hygen',
+      ),
+    );
+    const templatesPath = path.normalize(
+      path.join(dir, '.git', conf.generatorPath, '_templates'),
+    );
+    process.env.HYGEN_TMPLS = templatesPath;
+
+    const command = {
+      key: '0',
+      value: `${hygenPath} cli "${generatorName}" ${options}`,
+      display: `Run Generator ${generatorName}`,
+    };
+    const workflow = {
+      name: generatorName,
+      command,
+      commands: [],
+      mode: 'sequential',
+      worktrees: [generatedAtWorktree],
+    } as any;
+    await playWorkflow(event, workflow, dir);
+  },
+);
 
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);

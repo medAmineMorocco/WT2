@@ -118,6 +118,7 @@
     "highlight.js": "^11.9.0",
     "hugeicons-react": "0.3.0",
     "iconv-lite": "^0.6.3",
+    "hygen": "^6.2.11",
     "pako": "^2.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

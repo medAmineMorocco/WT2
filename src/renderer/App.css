@@ -117,6 +117,10 @@ body {
   margin: 8px 0;
 }
 
+.generators-table.ant-table-wrapper .ant-table-pagination.ant-pagination {
+  margin: 8px 0;
+}
+
 .import-area-dark-container {
   background-color: black;
 }
@@ -232,16 +236,20 @@ body {
   border: 1px solid #424242;
 }
 
-.git-log-modal div[tabindex="0"] {
+.git-log-modal div[tabindex="0"], .generator-modal div[tabindex="0"] {
   height: 100%;
 }
 
-.git-log-modal .ant-modal-content {
+.git-log-modal .ant-modal-content, .generator-modal .ant-modal-content {
   height: 100%;
 }
 
-.git-log-modal .ant-modal-content .ant-modal-body {
+.git-log-modal .ant-modal-content .ant-modal-body, .generator-modal .ant-modal-content .ant-modal-body {
   height: 100%;
+}
+
+.generator-modal .ant-modal-content {
+  padding: 16px;
 }
 
 .react-terminal-wrapper {
@@ -388,3 +396,23 @@ body {
   overflow: hidden !important;
 }
 
+.form-item-without-margin-bottom {
+  margin-bottom: 0;
+}
+
+.ant-breadcrumb, .ant-breadcrumb-separator {
+  color: rgba(0, 0, 0, 0.88) !important;
+}
+
+html[data-color-scheme="dark"] .ant-breadcrumb, html[data-color-scheme="dark"] .ant-breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.88) !important;
+}
+
+.workflows-segmented .ant-segmented-item-label {
+  display: flex;
+}
+
+.workflows-segmented .ant-segmented-item-icon {
+  display: flex;
+  align-items: center;
+}

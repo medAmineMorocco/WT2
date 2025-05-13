@@ -56,7 +56,7 @@ export default function CacheSettings() {
         extra="Please be aware that clicking the 'Clear Cache' button will reset all settings to their default state and close all tabs."
       >
         <Button danger onClick={clear}>
-          Clear cache
+          Clear Cache
         </Button>
       </Form.Item>
     </Form>

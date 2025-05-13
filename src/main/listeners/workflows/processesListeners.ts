@@ -54,6 +54,11 @@ async function getNewlogStates(
         if (status) {
           item.data[command.key].status = status;
         }
+        if (command.value.includes('hygen')) {
+          item.data[command.key].output = item.data[
+            command.key
+          ]?.output.replace(/Loaded templates: .*\n/, 'Loaded templates:\n');
+        }
       }
       return item;
     }),
@@ -66,6 +71,7 @@ async function executeCommand(
   worktreeLabel: string,
   event: any,
 ) {
+  log.info(`command to execute: ${command.value}`);
   const storedEncoding = (await utils.getStorageItem('encoding')) || 'utf-8';
 
   // eslint-disable-next-line no-async-promise-executor
@@ -101,6 +107,13 @@ async function executeCommand(
             commandProcess.kill('SIGKILL');
           }
         }, 5000);
+      }
+      if (
+        command.value.includes('hygen') &&
+        data &&
+        data.toString().includes('Overwrite?')
+      ) {
+        commandProcess.kill('SIGKILL');
       }
       logStates = await getNewlogStates(
         worktreeLabel,

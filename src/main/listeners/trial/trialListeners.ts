@@ -92,15 +92,15 @@ function getPackInfos() {
 ipcMain.on('check-trial-expiration', async function (event) {
   const packInfos = await getPackInfos();
   if (!packInfos) {
-    event.sender.send('is-expired', null, null);
+    event.sender.send('is-expired', null);
     return;
   }
   if (packInfos.pack !== 'Free Trial') {
     const currentVersion = process.env.VERSION;
     if (packInfos.version === currentVersion) {
-      event.sender.send('is-expired', packInfos.pack, packInfos);
+      event.sender.send('is-expired', packInfos);
     } else {
-      event.sender.send('is-expired', null, null);
+      event.sender.send('is-expired', null);
     }
   } else {
     const currentDate = new Date();
@@ -116,16 +116,19 @@ ipcMain.on('check-trial-expiration', async function (event) {
       isExpiredReceived: daysSinceStart > TRIAL_PERIOD_DAYS,
       daysRemainingReceived: daysRemaining,
       startTrialDateReceived: startTrialDate,
+      pack: packInfos.pack,
     };
 
-    event.sender.send('is-expired', packInfos.pack, infos);
+    event.sender.send('is-expired', infos);
   }
 });
 
 ipcMain.on(
   'verify-subscription',
   function (event, trialOrSubscription, email, licence) {
-    log.info(`Verifying ${trialOrSubscription === 'trial' ? 'trial' : 'subscription'} for email ${email} and licence ${licence}`);
+    log.info(
+      `Verifying ${trialOrSubscription === 'trial' ? 'trial' : 'subscription'} for email ${email} and licence ${licence}`,
+    );
 
     const version = process.env.VERSION;
 
@@ -206,7 +209,12 @@ ipcMain.on(
 
         clearTimeout(timeoutId);
         log.info(`Subscription/Trial verified: ${data.valid}`);
-        event.sender.send('is-subscribed', data.valid, data, data.reason);
+        event.sender.send(
+          'is-subscribed',
+          data.pack === 'Free Trial',
+          data,
+          data.reason,
+        );
       });
     });
 

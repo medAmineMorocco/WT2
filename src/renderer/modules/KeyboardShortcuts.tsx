@@ -90,6 +90,18 @@ const data = {
       shortcut1: 'ESC',
     },
   ],
+  generator: [
+    {
+      title: 'Add Generator',
+      shortcut1: 'Shift',
+      shortcut2: 'A',
+    },
+    {
+      title: 'Import Generator',
+      shortcut1: 'Shift',
+      shortcut2: 'I',
+    },
+  ],
   terminal: [
     {
       title: 'Clear Console',
@@ -225,8 +237,27 @@ export default function KeyboardShortcuts({
             ),
           },
           {
-            label: 'Terminal',
+            label: 'Generator',
             key: '50',
+            children: (
+              <List
+                grid={{ column: 1 }}
+                dataSource={data.generator}
+                renderItem={(item) => (
+                  <List.Item>
+                    <div style={{ display: 'flex' }}>
+                      <span style={{ flex: 1 }}>{item.title}</span>{' '}
+                      <Text keyboard>{item.shortcut1}</Text>
+                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
+                    </div>
+                  </List.Item>
+                )}
+              />
+            ),
+          },
+          {
+            label: 'Terminal',
+            key: '60',
             children: (
               <List
                 grid={{ column: 1 }}
