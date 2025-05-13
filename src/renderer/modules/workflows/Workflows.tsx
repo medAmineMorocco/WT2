@@ -72,6 +72,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const [generatorsToImport, setGeneratorsToImport] = useState([]);
   const { setIsWorkflowPlaying } = useItemsContext();
   const [mode, setMode] = useState('workflows');
+  const [pack, setPack] = useState<string | null>();
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -79,6 +80,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   }, []);
 
   useEffect(() => {
+    ipcRenderer.send('check-trial-expiration');
     ipcRenderer.send('get-workflows', tabRepoPath);
     const onWorkflowsFound = (event: any, code: number, result: any) => {
       if (code === 0) {
@@ -236,6 +238,21 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
+    const onReceiveSubscriptionInfos = (
+      _event: any,
+      _hasTrial: boolean,
+      packReceived: any,
+    ) => {
+      setPack(packReceived ? packReceived.pack : null);
+      if (
+        packReceived &&
+        packReceived.pack &&
+        packReceived.pack.toUpperCase() === 'PRO'
+      ) {
+        setMode('workflows');
+      }
+    };
+
     ipcRenderer.on('workflows-found', onWorkflowsFound);
     ipcRenderer.on('workflows-imported', onWorkflowsImported);
     ipcRenderer.on('workflow-stopped', onWorkflowStopped);
@@ -253,6 +270,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     ipcRenderer.on('generators-to-import-found', onGeneratorsToImportFound);
     ipcRenderer.on('generators-imported', onGeneratorsImported);
     ipcRenderer.on('generator-duplicated', onGeneratorDuplicated);
+    ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
 
     return () => {
       ipcRenderer.removeAllListeners('workflows-found');
@@ -271,6 +289,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('generators-to-import-found');
       ipcRenderer.removeAllListeners('generators-imported');
       ipcRenderer.removeAllListeners('generator-duplicated');
+      ipcRenderer.removeAllListeners('is-expired');
     };
   }, [notification, setIsWorkflowPlaying, tabRepoPath]);
 
@@ -730,9 +749,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
                   label: <strong>Generators</strong>,
                   value: 'generators',
                   icon: <CodeIcon size="1em" />,
+                  disabled: pack?.toUpperCase() === 'PRO',
                 },
               ]}
               defaultValue="workflows"
+              value={mode}
               onChange={onChangeMode}
             />
           </Badge>
@@ -836,7 +857,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
             }}
           >
             <Table
-            key={uuid}
+              key={uuid}
               className="workflows-table"
               columns={columns}
               dataSource={workflows}
