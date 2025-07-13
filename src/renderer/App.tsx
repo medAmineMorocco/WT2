@@ -12,20 +12,14 @@ import {
   App as AntdApp,
   Tabs,
   Tooltip,
-  FloatButton,
   Space,
 } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
   FolderOutlined,
-  MoonOutlined,
-  MoreOutlined,
   PlusOutlined,
-  SunOutlined,
-  SettingOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons';
-import { CommandIcon } from 'hugeicons-react';
 import { ipcRenderer } from 'electron';
 import * as Sentry from '@sentry/electron/renderer';
 import ContentTab from './ContentTab';
@@ -379,62 +373,6 @@ function Hello() {
           }
           destroyInactiveTabPane
         />
-        <FloatButton.Group
-          trigger="click"
-          type="primary"
-          style={{ right: '18px', bottom: '2vh' }}
-          icon={<MoreOutlined />}
-          badge={{ dot: true }}
-        >
-          <Tooltip
-            title={
-              <Space>
-                <span>Settings</span>
-                <small style={{ color: 'grey' }}>Shift+S</small>
-              </Space>
-            }
-            placement="left"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <FloatButton
-              icon={<SettingOutlined />}
-              onClick={openSettingsPage}
-            />
-          </Tooltip>
-          <Tooltip
-            title={
-              <Space>
-                <span>Keyboard Shortcuts</span>
-                <small style={{ color: 'grey' }}>Shift+K</small>
-              </Space>
-            }
-            placement="left"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <FloatButton
-              icon={<CommandIcon size={18} />}
-              onClick={openKeyboardShortcuts}
-            />
-          </Tooltip>
-          <Tooltip
-            title={
-              <Space>
-                <span>{isDarkMode ? 'Light Theme' : 'Dark Theme'}</span>
-                <small style={{ color: 'grey' }}>Shift+T</small>
-              </Space>
-            }
-            placement="left"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <FloatButton
-              icon={isDarkMode ? <SunOutlined /> : <MoonOutlined />}
-              onClick={onThemeChange}
-            />
-          </Tooltip>
-        </FloatButton.Group>
         <KeyboardShortcuts
           open={openKeyboard}
           onClose={onCloseKeyboardShortcuts}

@@ -6,10 +6,11 @@ import {
   Tooltip,
   Space,
   App as AntdApp,
-  Typography,
   Tag,
   theme,
   Collapse,
+  Modal,
+  Radio,
 } from 'antd';
 import {
   SisternodeOutlined,
@@ -29,204 +30,225 @@ import { useItemsContext } from '../../TabsContext';
 const { Sider } = Layout;
 const { useToken } = theme;
 
-const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
-  ({ isDarkMode }, ref) => {
-    const { token } = useToken();
-    const [collapsed, setCollapsed] = useState(false);
+const optionsWithDisabled = [
+  { label: 'Git Log', value: 'GIT_LOG' },
+  { label: 'Workflow', value: 'WORKFLOW' },
+];
 
-    const [isModalOpen, setIsModalOpen] = useState(false);
+const Worktrees = forwardRef<
+  HTMLDivElement,
+  { isDarkMode: boolean; mode: string; onChangeMode: any }
+>(({ isDarkMode, mode, onChangeMode }, ref) => {
+  const { token } = useToken();
+  const [collapsed, setCollapsed] = useState(false);
 
-    const [form] = Form.useForm();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-    const { notification } = AntdApp.useApp();
+  const [form] = Form.useForm();
 
-    const activeTab = useMemo(() => TabService.getActiveTab(), []);
+  const { notification } = AntdApp.useApp();
 
-    const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+  const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
-    const [openGitLog, setOpenGitLog] = useState(false);
+  const [pruneLoading, setPruneLoading] = useState<boolean>(false);
 
-    const [openGitDiff, setOpenGitDiff] = useState(false);
+  const [openGitLog, setOpenGitLog] = useState(false);
 
-    const { isWorkflowPlaying } = useItemsContext();
+  const [openGitDiff, setOpenGitDiff] = useState(false);
 
-    const tabRepoPath = useMemo(() => {
-      return TabService.getTabRepoPath(activeTab);
-    }, [activeTab]);
+  const { isWorkflowPlaying } = useItemsContext();
 
-    useEffect(() => {
-      const onWorktreesPruned = (event: any, code: number, result: any) => {
-        setTimeout(() => {
-          setPruneLoading(false);
-          ipcRenderer.send('get-worktrees', tabRepoPath);
-          if (code === 0) {
-            notification.success({
-              message: 'Stale worktrees have been successfully pruned',
-              placement: 'bottomLeft',
-              duration: 0.5,
-            });
-          } else {
-            notification.error({
-              message: 'Unable to Prune Worktree',
-              description: result,
-              placement: 'bottomLeft',
-            });
-          }
-        }, 200);
-      };
+  const tabRepoPath = useMemo(() => {
+    return TabService.getTabRepoPath(activeTab);
+  }, [activeTab]);
 
-      ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
-
-      return () => {
-        ipcRenderer.removeAllListeners('worktrees-pruned');
-      };
-    }, [form, notification, tabRepoPath]);
-
-    const showModal = (event: any) => {
-      if (event) {
-        event.stopPropagation();
-      }
-      setIsModalOpen(true);
-    };
-
-    useHotkeys(
-      'shift+w',
-      () => {
-        if (isWorkflowPlaying) {
-          return;
-        }
-        if (collapsed) {
-          setCollapsed(false);
-          showModal(null);
+  useEffect(() => {
+    const onWorktreesPruned = (event: any, code: number, result: any) => {
+      setTimeout(() => {
+        setPruneLoading(false);
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+        if (code === 0) {
+          notification.success({
+            message: 'Stale worktrees have been successfully pruned',
+            placement: 'bottomLeft',
+            duration: 0.5,
+          });
         } else {
-          showModal(null);
+          notification.error({
+            message: 'Unable to Prune Worktree',
+            description: result,
+            placement: 'bottomLeft',
+          });
         }
-      },
-      { preventDefault: true },
-    );
-    useHotkeys('shift+c', () => setCollapsed(!collapsed), {
-      preventDefault: true,
-    });
+      }, 200);
+    };
 
-    const onClickPrune = (event: any) => {
+    ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+
+    return () => {
+      ipcRenderer.removeAllListeners('worktrees-pruned');
+    };
+  }, [form, notification, tabRepoPath]);
+
+  const showModal = (event: any) => {
+    if (event) {
       event.stopPropagation();
-      setPruneLoading(true);
-      ipcRenderer.send('prune-worktrees', tabRepoPath);
-    };
+    }
+    setIsModalOpen(true);
+  };
 
-    useHotkeys('shift+p', onClickPrune, {
-      preventDefault: true,
-    });
+  useHotkeys(
+    'shift+w',
+    () => {
+      if (isWorkflowPlaying) {
+        return;
+      }
+      if (collapsed) {
+        setCollapsed(false);
+        showModal(null);
+      } else {
+        showModal(null);
+      }
+    },
+    { preventDefault: true },
+  );
+  useHotkeys('shift+c', () => setCollapsed(!collapsed), {
+    preventDefault: true,
+  });
 
-    const ShowGitLog = () => {
-      setOpenGitLog(true);
-    };
+  const onClickPrune = (event: any) => {
+    event.stopPropagation();
+    setPruneLoading(true);
+    ipcRenderer.send('prune-worktrees', tabRepoPath);
+  };
 
-    const onCloseGitLog = () => {
-      setOpenGitLog(false);
-    };
+  useHotkeys('shift+p', onClickPrune, {
+    preventDefault: true,
+  });
 
-    useHotkeys('shift+g', () => setOpenGitLog(true), {
-      preventDefault: true,
-    });
+  const ShowGitLog = () => {
+    setOpenGitLog(true);
+  };
 
-    const ShowGitDiff = () => {
-      setOpenGitDiff(true);
-    };
+  const onCloseGitLog = () => {
+    setOpenGitLog(false);
+  };
 
-    const onCloseGitDiff = () => {
-      setOpenGitDiff(false);
-    };
+  useHotkeys('shift+g', () => setOpenGitLog(true), {
+    preventDefault: true,
+  });
 
-    useHotkeys('shift+d', () => setOpenGitDiff(true), {
-      preventDefault: true,
-    });
+  const ShowGitDiff = () => {
+    setOpenGitDiff(true);
+  };
 
-    const handleCancel = () => {
-      setIsModalOpen(false);
-    };
+  const onCloseGitDiff = () => {
+    setOpenGitDiff(false);
+  };
 
-    return (
-      <Sider
-        theme="light"
-        collapsible
-        collapsed={collapsed}
-        onCollapse={(value) => setCollapsed(value)}
-      >
-        {!collapsed && (
-          <>
-            <Collapse ghost defaultActiveKey={['1']}>
-              <Collapse.Panel
-                extra={
-                  <Space>
-                    {!pruneLoading ? (
-                      <Tooltip
-                        title={
-                          <Space>
-                            <span>Prune Worktrees</span>
-                            <small style={{ color: 'grey' }}>Shift+P</small>
-                          </Space>
-                        }
-                        mouseEnterDelay={0}
-                        mouseLeaveDelay={0}
-                      >
-                        <SyncOutlined
-                          className="icon-action"
-                          style={{ cursor: 'pointer', color: 'red' }}
-                          onClick={onClickPrune}
-                        />
-                      </Tooltip>
-                    ) : (
-                      <LoadingOutlined />
-                    )}
+  useHotkeys('shift+d', () => setOpenGitDiff(true), {
+    preventDefault: true,
+  });
+
+  const handleCancel = () => {
+    setIsModalOpen(false);
+  };
+
+  return (
+    <Sider
+      theme="light"
+      collapsible
+      collapsed={collapsed}
+      onCollapse={(value) => setCollapsed(value)}
+    >
+      {!collapsed && (
+        <>
+          <Collapse ghost defaultActiveKey={['1']}>
+            <Collapse.Panel
+              extra={
+                <Space>
+                  {!pruneLoading ? (
                     <Tooltip
                       title={
                         <Space>
-                          <span>Add New Worktree</span>
-                          <small style={{ color: 'grey' }}>Shift+W</small>
+                          <span>Prune Worktrees</span>
+                          <small style={{ color: 'grey' }}>Shift+P</small>
                         </Space>
                       }
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
                     >
-                      <Button
-                        type="primary"
-                        size="small"
-                        disabled={isWorkflowPlaying}
-                        onClick={showModal}
-                        ref={ref}
-                        icon={<SisternodeOutlined />}
+                      <SyncOutlined
+                        className="icon-action"
+                        style={{ cursor: 'pointer', color: 'red' }}
+                        onClick={onClickPrune}
                       />
                     </Tooltip>
-                  </Space>
-                }
-                header={<strong>Worktrees</strong>}
-                className="worktrees-panel-header"
-                key="1"
-              >
-                <ListWorktrees isDarkMode={isDarkMode} />
-              </Collapse.Panel>
-            </Collapse>
-            {openGitLog && (
-              <GitLog isModalOpen={openGitLog} handleCancel={onCloseGitLog} />
-            )}
-            {openGitDiff && (
-              <GitDiff
-                isModalOpen={openGitDiff}
-                handleCancel={onCloseGitDiff}
-              />
-            )}
-            {isModalOpen && (
-              <AddWorktree
-                isModalOpen={isModalOpen}
-                handleCancel={handleCancel}
-              />
-            )}
-          </>
-        )}
-        {!collapsed && (
-          <>
-            <ul style={{ marginTop: 0, paddingLeft: '0' }}>
+                  ) : (
+                    <LoadingOutlined />
+                  )}
+                  <Tooltip
+                    title={
+                      <Space>
+                        <span>Add New Worktree</span>
+                        <small style={{ color: 'grey' }}>Shift+W</small>
+                      </Space>
+                    }
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    <Button
+                      type="primary"
+                      size="small"
+                      disabled={isWorkflowPlaying}
+                      onClick={showModal}
+                      ref={ref}
+                      icon={<SisternodeOutlined />}
+                    />
+                  </Tooltip>
+                </Space>
+              }
+              header={<strong>Worktrees</strong>}
+              className="worktrees-panel-header"
+              key="1"
+            >
+              <ListWorktrees isDarkMode={isDarkMode} />
+            </Collapse.Panel>
+          </Collapse>
+          {openGitLog && (
+            <Modal
+              open={openGitLog}
+              footer={null}
+              onCancel={onCloseGitLog}
+              destroyOnClose
+              className="git-log-modal"
+              width="calc(100% - 216px)"
+              style={{
+                position: 'absolute',
+                right: '8px',
+                top: '48px',
+                height: 'calc(100% - 56px)',
+                paddingBottom: 0,
+              }}
+            >
+              <GitLog isModal />
+            </Modal>
+          )}
+          {openGitDiff && (
+            <GitDiff isModalOpen={openGitDiff} handleCancel={onCloseGitDiff} />
+          )}
+          {isModalOpen && (
+            <AddWorktree
+              isModalOpen={isModalOpen}
+              handleCancel={handleCancel}
+            />
+          )}
+        </>
+      )}
+      {!collapsed && (
+        <>
+          <ul style={{ marginTop: 0, paddingLeft: '0' }}>
+            {mode === 'WORKFLOW' && (
               <li
                 key="git-log"
                 style={{
@@ -256,61 +278,72 @@ const Worktrees = forwardRef<HTMLDivElement, { isDarkMode: boolean }>(
                   </Button>
                 </Tooltip>
               </li>
-              <li
-                key="git-diff"
-                style={{
-                  color: token.colorTextBase,
-                  cursor: 'pointer',
-                }}
+            )}
+            <li
+              key="git-diff"
+              style={{
+                color: token.colorTextBase,
+                cursor: 'pointer',
+              }}
+            >
+              <Tooltip
+                title={<small>Shift+D</small>}
+                placement="right"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
               >
-                <Tooltip
-                  title={<small>Shift+D</small>}
-                  placement="right"
-                  mouseEnterDelay={0}
-                  mouseLeaveDelay={0}
+                <Button
+                  type="text"
+                  block
+                  onClick={ShowGitDiff}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'flex-start',
+                    borderRadius: 0,
+                    paddingLeft: '8px',
+                    fontWeight: 'bold',
+                  }}
                 >
-                  <Button
-                    type="text"
-                    block
-                    onClick={ShowGitDiff}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'flex-start',
-                      borderRadius: 0,
-                      paddingLeft: '8px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Git Diff
-                  </Button>
-                </Tooltip>
-              </li>
-            </ul>
-            <div
-              style={{
-                position: 'absolute',
-                bottom: '46px',
-                width: '100%',
-                padding: '16px',
-              }}
-            >
+                  Git Diff
+                </Button>
+              </Tooltip>
+            </li>
+          </ul>
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '46px',
+              width: '100%',
+              padding: '16px',
+            }}
+          >
+            <Space direction="vertical" style={{ width: '100%' }}>
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <Radio.Group
+                  options={optionsWithDisabled}
+                  onChange={onChangeMode}
+                  value={mode}
+                  optionType="button"
+                  buttonStyle="solid"
+                />
+              </div>
               <PackInfos />
-            </div>
-            <Tag
-              style={{
-                position: 'absolute',
-                bottom: '12px',
-                left: 'calc(50% - 25px)',
-                zIndex: 8,
-              }}
-            >
-              {window.localStorage.getItem('VERSION') || ''}
-            </Tag>
-          </>
-        )}
-      </Sider>
-    );
-  },
-);
+            </Space>
+          </div>
+          <Tag
+            style={{
+              position: 'absolute',
+              bottom: '12px',
+              left: 'calc(50% - 25px)',
+              zIndex: 8,
+            }}
+          >
+            {window.localStorage.getItem('VERSION') || ''}
+          </Tag>
+        </>
+      )}
+    </Sider>
+  );
+});
 
 export default Worktrees;

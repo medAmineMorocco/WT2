@@ -14,6 +14,7 @@ import Workflows from './modules/workflows/Workflows';
 import TabService from './services/tab/TabService';
 import { useItemsContext } from './TabsContext';
 import Loader from './components/Loader';
+import GitLog from './modules/gitLog/GitLog';
 
 const { Content } = Layout;
 
@@ -32,6 +33,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [loading, setLoading] = useState<Boolean | null>(null);
   const [percent, setPercent] = useState(0);
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
+
+  const [mode, setMode] = useState('GIT_LOG');
+
+  const onChangeMode = ({ target: { value } }: any) => {
+    setMode(value);
+  };
 
   function changeIconOfActiveTab(icon: any) {
     const newItems = items.map((item: any) => {
@@ -189,13 +196,21 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         transition={{ duration: 0.5, ease: 'easeInOut' }}
       >
         <Layout style={{ height: 'calc(100vh - 40px)' }}>
-          <Worktrees isDarkMode={isDarkMode} ref={ref1} />
+          <Worktrees
+            isDarkMode={isDarkMode}
+            ref={ref1}
+            mode={mode}
+            onChangeMode={onChangeMode}
+          />
           <Layout>
             <Content style={{ margin: '8px' }}>
-              <div ref={ref3}>
-                <Execution />
-              </div>
-              <Workflows ref={ref2} />
+              {mode === 'WORKFLOW' && (
+                <div ref={ref3}>
+                  <Execution />
+                </div>
+              )}
+              {mode === 'WORKFLOW' && <Workflows ref={ref2} />}
+              {mode === 'GIT_LOG' && <GitLog isModal={false} />}
             </Content>
           </Layout>
         </Layout>

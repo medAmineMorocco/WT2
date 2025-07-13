@@ -1,4 +1,4 @@
-import { Modal, notification, Space, Select, Result, Checkbox } from 'antd';
+import { notification, Space, Select, Result, Checkbox } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
@@ -7,13 +7,7 @@ import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
 
-export default function GitLog({
-  isModalOpen,
-  handleCancel,
-}: {
-  isModalOpen: boolean;
-  handleCancel: any;
-}) {
+export default function GitLog({ isModal }: { isModal: boolean }) {
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   const tabRepoPath = useMemo(() => {
@@ -146,21 +140,7 @@ export default function GitLog({
   };
 
   return (
-    <Modal
-      open={isModalOpen}
-      footer={null}
-      onCancel={handleCancel}
-      destroyOnClose
-      className="git-log-modal"
-      width="calc(100% - 216px)"
-      style={{
-        position: 'absolute',
-        right: '8px',
-        top: '48px',
-        height: 'calc(100% - 56px)',
-        paddingBottom: 0,
-      }}
-    >
+    <>
       <Space className="center-huge-icon">
         <GitBranchIcon size={16} />
         <strong>Git Log</strong>
@@ -168,7 +148,7 @@ export default function GitLog({
       <div
         style={{
           width: '100%',
-          height: 'calc(100% - 94px)',
+          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 64px)',
           padding: '12px',
           paddingLeft: 0,
         }}
@@ -242,6 +222,6 @@ export default function GitLog({
           />
         )}
       </div>
-    </Modal>
+    </>
   );
 }
