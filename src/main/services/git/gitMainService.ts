@@ -42,10 +42,9 @@ function showLog(directory: string, branch: string, author: string) {
     } as any;
     try {
       const gitCmd = await gitCommand();
-      const gitLogFormat = await utils.getStorageItem('gitLogFormat');
       const command = branch
-        ? `"${gitCmd}" log -n 500 ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --color=always --format="${gitLogFormat}"`
-        : `"${gitCmd}" log -n 500 --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --color=always --format="${gitLogFormat}"`;
+        ? `"${gitCmd}" log -n 500 ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --format="%s <%an> [%ci] %h"`
+        : `"${gitCmd}" log -n 500 --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --format="%s <%an> [%ci] %h"`;
       const stdout = execSync(command, options);
       const compressed = zlib.gzipSync(stdout.toString());
       resolve(compressed);

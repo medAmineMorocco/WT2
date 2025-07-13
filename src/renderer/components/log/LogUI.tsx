@@ -1,95 +1,141 @@
-import { useEffect, useRef } from 'react';
-import { Terminal } from '@xterm/xterm';
-import '@xterm/xterm/css/xterm.css';
-import { FitAddon } from '@xterm/addon-fit';
-import { useItemsContext } from '../../TabsContext';
+import { Avatar, Dropdown, MenuProps, Tooltip } from 'antd';
 
-let terminal: any = null;
-export default function LogUI({ output }: { output: string }) {
-  const terminalRef = useRef(null);
-  const { isDarkMode } = useItemsContext();
-
-  function calculateColsRows() {
-    const terminalElement = terminalRef.current as any;
-
-    if (terminalElement) {
-      // Get the dimensions of the terminal container
-      const containerWidth = terminalElement.parentElement?.clientWidth;
-      const containerHeight = terminalElement.parentElement?.clientHeight;
-
-      // Get the dimensions of a single character in the terminal
-      const charWidth = terminalElement.offsetWidth / terminal.cols;
-      const charHeight = terminalElement.offsetHeight / terminal.rows;
-
-      // Calculate the number of columns and rows
-      const cols = Math.floor(containerWidth / charWidth);
-      const rows = Math.floor(containerHeight / charHeight);
-
-      return { cols, rows };
-    }
-    return null;
-  }
-
-  useEffect(() => {
-    terminal = new Terminal({
-      convertEol: true,
-      disableStdin: true,
-      fontWeight: '200',
-      scrollback: 9999999, // Increase the number to retain more lines
-      theme: {
-        background: isDarkMode ? '#1f1f1f' : 'white',
-        foreground: isDarkMode ? 'white' : 'black',
-      },
-    });
-    const fitAddon = new FitAddon();
-    terminal.loadAddon(fitAddon);
-    terminal.open(terminalRef.current);
-    fitAddon.fit();
-    if (output) {
-      terminal.writeln(output);
-      setTimeout(() => {
-        terminal.scrollToTop();
-      });
-    }
-
-    function handleResize() {
-      if (terminal && terminalRef.current) {
-        const result = calculateColsRows();
-        if (result) {
-          const { cols, rows } = result;
-          terminal.resize(cols, rows);
-          fitAddon.fit();
-        }
+const items: MenuProps['items'] = [
+  {
+    label: 'Copy commit sha',
+    key: '1',
+  },
+];
+export default function LogUI({
+  output,
+  isAuthorEnabled,
+  isCommitDateEnabled,
+  isHashEnabled,
+  shouldHide,
+}: {
+  output: string;
+  isAuthorEnabled: boolean;
+  isCommitDateEnabled: boolean;
+  isHashEnabled: boolean;
+  shouldHide: boolean;
+}) {
+  const onClick = (hash: string) => {
+    return (event: any) => {
+      if (event.key === '1') {
+        navigator.clipboard.writeText(hash);
       }
-    }
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      terminal.dispose();
-      if (terminalRef.current) {
-        terminalRef.current.innerHTML = '';
-      }
-      window.removeEventListener('resize', handleResize);
     };
-  }, [isDarkMode, output]);
+  };
 
-  useEffect(() => {
-    const result = calculateColsRows();
-    if (result) {
-      const { cols, rows } = result;
-      terminal.resize(cols, rows);
+  function formatToIsoWithoutSeconds(dateString: string): string {
+    const date = new Date(dateString);
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mi = String(date.getMinutes()).padStart(2, '0');
+
+    const offsetMatch = dateString.match(/([+-])(\d{2})(\d{2})$/);
+    let tz = 'UTC';
+
+    if (offsetMatch) {
+      const [, sign, hours] = offsetMatch;
+      const totalOffset = `UTC${sign}${parseInt(hours, 10)}`;
+      tz = totalOffset;
     }
-  }, []);
+
+    return `${yyyy}-${mm}-${dd} ${hh}:${mi} ${tz}`;
+  }
 
   return (
     <div
-      ref={terminalRef}
-      className="terminal-ui"
       style={{
-        width: '100%',
+        fontFamily: 'monospace',
         height: '100%',
+        overflowY: 'auto',
       }}
-    />
+    >
+      {output.split('\n').map((line, idx) => {
+        const parts = line.match(/(.*?)(\*)(.*)/); // Split around the *
+        if (!parts) {
+          // eslint-disable-next-line react/no-array-index-key
+          return <div key={idx}>{line}</div>;
+        }
+
+        const regex = /^(.*?) <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})$/;
+        const match = parts[3].match(regex);
+
+        const [_, subject = '', author = '', date = '', hash = ''] = match;
+
+        return (
+          <Dropdown
+            menu={{ items, onClick: onClick(hash) }}
+            trigger={['contextMenu']}
+            overlayClassName="commit-dropdown"
+            placement="bottom"
+          >
+            {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */}
+            <a onClick={(e) => e.preventDefault()}>
+              <div
+                key={idx}
+                className="commit-row"
+                style={{ position: 'relative' }}
+              >
+                <span>{parts[1]}</span>
+                <Tooltip
+                  title={author}
+                  placement="top"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <Avatar size={18} className="commit-author" gap={5}>
+                    {author[0]}
+                  </Avatar>
+                </Tooltip>
+                <span className="commit-msg">{subject}</span>
+                {!shouldHide && isAuthorEnabled && (
+                  <strong
+                    style={{
+                      position: 'absolute',
+                      right:
+                        // eslint-disable-next-line no-nested-ternary
+                        isHashEnabled && isCommitDateEnabled
+                          ? '282px'
+                          : // eslint-disable-next-line no-nested-ternary
+                            isHashEnabled && !isCommitDateEnabled
+                            ? '74px'
+                            : !isHashEnabled && isCommitDateEnabled
+                              ? '216px'
+                              : '8px',
+                    }}
+                  >
+                    {' '}
+                    {`<${author}>`}
+                  </strong>
+                )}
+                {!shouldHide && isCommitDateEnabled && (
+                  <strong
+                    style={{
+                      position: 'absolute',
+                      right: isHashEnabled ? '74px' : '8px',
+                    }}
+                  >
+                    {' '}
+                    {`[${formatToIsoWithoutSeconds(date)}]`}
+                  </strong>
+                )}
+                {!shouldHide && isHashEnabled && (
+                  <strong style={{ position: 'absolute', right: '8px' }}>
+                    {' '}
+                    {hash}
+                  </strong>
+                )}
+              </div>
+            </a>
+          </Dropdown>
+        );
+      })}
+    </div>
   );
 }

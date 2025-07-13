@@ -1,4 +1,4 @@
-import { Modal, notification, Space, Select, Result } from 'antd';
+import { Modal, notification, Space, Select, Result, Checkbox } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
@@ -32,6 +32,12 @@ export default function GitLog({
 
   const [selectedWorktree, setSelectedWorktree] = useState<string | null>(null);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+
+  const [isAuthorEnabled, setIsAuthorEnabled] = useState(true);
+  const [isCommitDateEnabled, setIsCommitDateEnabled] = useState(true);
+  const [isHashEnabled, setIsHashEnabled] = useState(true);
+
+  const [shouldHide, setShouldHide] = useState<boolean>(false);
 
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
@@ -97,6 +103,21 @@ export default function GitLog({
     };
   }, [tabRepoPath]);
 
+  useEffect(() => {
+    const handleResize = () => {
+      // eslint-disable-next-line no-restricted-globals
+      const halfScreenWidth = screen.width / 2 + 20;
+      const currentWindowWidth = window.innerWidth;
+
+      setShouldHide(currentWindowWidth <= halfScreenWidth);
+    };
+
+    handleResize();
+    window.addEventListener('resize', handleResize);
+
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const handleChange = (worktree: string | null, author: string | null) => {
     setSelectedWorktree(worktree);
     setSelectedAuthor(author);
@@ -110,6 +131,18 @@ export default function GitLog({
       selectAuthorRef.current.blur();
     }
     ipcRenderer.send('show-git-log', tabRepoPath, worktree, author);
+  };
+
+  const onAuthorChange = (event: any) => {
+    setIsAuthorEnabled(event.target.checked);
+  };
+
+  const onCommitDateChange = (event: any) => {
+    setIsCommitDateEnabled(event.target.checked);
+  };
+
+  const onHashChange = (event: any) => {
+    setIsHashEnabled(event.target.checked);
   };
 
   return (
@@ -161,6 +194,27 @@ export default function GitLog({
               allowClear
               style={{ width: 220 }}
             />
+            {!shouldHide && (
+              <Checkbox
+                defaultChecked={isAuthorEnabled}
+                onChange={onAuthorChange}
+              >
+                Author
+              </Checkbox>
+            )}
+            {!shouldHide && (
+              <Checkbox
+                defaultChecked={isCommitDateEnabled}
+                onChange={onCommitDateChange}
+              >
+                Date & Time
+              </Checkbox>
+            )}
+            {!shouldHide && (
+              <Checkbox defaultChecked={isHashEnabled} onChange={onHashChange}>
+                Sha
+              </Checkbox>
+            )}
           </Space>
         </div>
         {loading && (
@@ -178,7 +232,15 @@ export default function GitLog({
             />
           </div>
         )}
-        {!loading && <LogUI output={gitLog} />}
+        {!loading && (
+          <LogUI
+            output={gitLog}
+            isAuthorEnabled={isAuthorEnabled}
+            isCommitDateEnabled={isCommitDateEnabled}
+            isHashEnabled={isHashEnabled}
+            shouldHide={shouldHide}
+          />
+        )}
       </div>
     </Modal>
   );
