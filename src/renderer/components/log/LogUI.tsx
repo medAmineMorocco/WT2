@@ -1,4 +1,4 @@
-import { Avatar, Dropdown, MenuProps, Tooltip } from 'antd';
+import { Avatar, Dropdown, MenuProps, Tag, Tooltip } from 'antd';
 
 const items: MenuProps['items'] = [
   {
@@ -11,12 +11,14 @@ export default function LogUI({
   isAuthorEnabled,
   isCommitDateEnabled,
   isHashEnabled,
+  isRefsEnabled,
   shouldHide,
 }: {
   output: string;
   isAuthorEnabled: boolean;
   isCommitDateEnabled: boolean;
   isHashEnabled: boolean;
+  isRefsEnabled: boolean;
   shouldHide: boolean;
 }) {
   const onClick = (hash: string) => {
@@ -48,6 +50,11 @@ export default function LogUI({
     return `${yyyy}-${mm}-${dd} ${hh}:${mi} ${tz}`;
   }
 
+  function extractRefsBlock(line: string) {
+    const match = line.match(/\(([^)]+)\)(?=\s<.+?>\s\[\d{4}-\d{2}-\d{2})/);
+    return match ? `(${match[1]})` : '';
+  }
+
   return (
     <div
       style={{
@@ -63,10 +70,12 @@ export default function LogUI({
           return <div key={idx}>{line}</div>;
         }
 
-        const regex = /^(.*?) <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})$/;
+        const regex =
+          /^(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})$/;
         const match = parts[3].match(regex);
 
-        const [_, subject = '', author = '', date = '', hash = ''] = match;
+        const [_, subject = '', refs = '', author = '', date = '', hash = ''] =
+          match;
 
         return (
           <Dropdown
@@ -94,6 +103,11 @@ export default function LogUI({
                   </Avatar>
                 </Tooltip>
                 <span className="commit-msg">{subject}</span>
+                {isRefsEnabled && refs && (
+                  <Tag color="#6a737d" bordered={false}>
+                    {refs}
+                  </Tag>
+                )}
                 {!shouldHide && isAuthorEnabled && (
                   <strong
                     style={{

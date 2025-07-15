@@ -30,6 +30,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [isAuthorEnabled, setIsAuthorEnabled] = useState(true);
   const [isCommitDateEnabled, setIsCommitDateEnabled] = useState(true);
   const [isHashEnabled, setIsHashEnabled] = useState(true);
+  const [isRefsEnabled, setIsRefsEnabled] = useState(true);
 
   const [shouldHide, setShouldHide] = useState<boolean>(false);
 
@@ -139,6 +140,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     setIsHashEnabled(event.target.checked);
   };
 
+  const onRefsChange = (event: any) => {
+    setIsRefsEnabled(event.target.checked);
+  };
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -195,6 +200,11 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 Sha
               </Checkbox>
             )}
+            {!shouldHide && (
+              <Checkbox defaultChecked={isRefsEnabled} onChange={onRefsChange}>
+                Refs
+              </Checkbox>
+            )}
           </Space>
         </div>
         {loading && (
@@ -219,6 +229,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             isCommitDateEnabled={isCommitDateEnabled}
             isHashEnabled={isHashEnabled}
             shouldHide={shouldHide}
+            isRefsEnabled={isRefsEnabled}
           />
         )}
       </div>
