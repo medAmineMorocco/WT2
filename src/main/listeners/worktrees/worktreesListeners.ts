@@ -34,6 +34,34 @@ ipcMain.on(
 );
 
 ipcMain.on(
+  'create-worktree-from-commit',
+  async function (event, hash, worktreesPath, directory) {
+    try {
+      log.info(`Creating a new worktree from commit with hash ${hash}`);
+      const result = await worktreeMainService.addFromCommit(
+        hash,
+        worktreesPath,
+        directory,
+      );
+      event.sender.send('worktree-from-commit-created', 0, result);
+    } catch (err: any) {
+      log.error(
+        `Failed to create worktree from commit hash ${hash}: ${err.message}`,
+      );
+      if (err instanceof BusinessError) {
+        event.sender.send('worktree-from-commit-created', -1, err.message);
+      } else {
+        event.sender.send(
+          'worktree-from-commit-created',
+          -1,
+          'Failed to create worktree from commit. Please check your repository and try again.',
+        );
+      }
+    }
+  },
+);
+
+ipcMain.on(
   'remove-worktree',
   async function (event, worktreeName, worktreePath, directory, force) {
     try {

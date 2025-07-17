@@ -1,6 +1,15 @@
-import { Avatar, Dropdown, MenuProps, Tag, Tooltip } from 'antd';
+import { Avatar, Dropdown, MenuProps, notification, Tag, Tooltip } from 'antd';
+import { ipcRenderer } from 'electron';
+import React, { useEffect, useMemo } from 'react';
+import log from 'electron-log';
+import { LoadingOutlined } from '@ant-design/icons';
+import TabService from '../../services/tab/TabService';
 
 const items: MenuProps['items'] = [
+  {
+    label: 'Create worktree here',
+    key: '2',
+  },
   {
     label: 'Copy commit sha',
     key: '1',
@@ -21,10 +30,74 @@ export default function LogUI({
   isRefsEnabled: boolean;
   shouldHide: boolean;
 }) {
+  const [api, contextHolder] = notification.useNotification();
+
+  const activeTab = useMemo(() => TabService.getActiveTab(), []);
+
+  const tabRepoPath = useMemo(() => {
+    return TabService.getTabRepoPath(activeTab);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const onWorktreeCreated = (event: any, code: number, result: any) => {
+      log.debug(
+        `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
+      );
+      if (code === 0) {
+        ipcRenderer.send('show-git-log', tabRepoPath);
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+        setTimeout(() => {
+          api.success({
+            key: 'updatable',
+            message: 'Worktree Created',
+            placement: 'bottomLeft',
+            duration: 0.5,
+          });
+          setTimeout(() => {
+            api.destroy('updatable');
+          }, 1500);
+        }, 500);
+      } else {
+        notification.error({
+          message: 'Unable to Create Worktree From Commit',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    ipcRenderer.on('worktree-from-commit-created', onWorktreeCreated);
+
+    return () => {
+      ipcRenderer.removeAllListeners('worktree-from-commit-created');
+    };
+  }, [api, tabRepoPath]);
+
   const onClick = (hash: string) => {
     return (event: any) => {
       if (event.key === '1') {
         navigator.clipboard.writeText(hash);
+      }
+      if (event.key === '2') {
+        const activeTabValue = TabService.getTab(activeTab);
+        let worktreesPath;
+        if (activeTabValue.worktreesPath) {
+          worktreesPath = activeTabValue.worktreesPath;
+        }
+        api.open({
+          key: 'updatable',
+          icon: <LoadingOutlined />,
+          message:
+            'Your worktree is being created. Please wait a moment while we complete the process.',
+          placement: 'bottomLeft',
+          duration: 0.5,
+        });
+        ipcRenderer.send(
+          'create-worktree-from-commit',
+          hash,
+          worktreesPath,
+          tabRepoPath,
+        );
       }
     };
   };
@@ -50,11 +123,6 @@ export default function LogUI({
     return `${yyyy}-${mm}-${dd} ${hh}:${mi} ${tz}`;
   }
 
-  function extractRefsBlock(line: string) {
-    const match = line.match(/\(([^)]+)\)(?=\s<.+?>\s\[\d{4}-\d{2}-\d{2})/);
-    return match ? `(${match[1]})` : '';
-  }
-
   return (
     <div
       style={{
@@ -63,6 +131,7 @@ export default function LogUI({
         overflowY: 'auto',
       }}
     >
+      {contextHolder}
       {output.split('\n').map((line, idx) => {
         const parts = line.match(/(.*?)(\*)(.*)/); // Split around the *
         if (!parts) {

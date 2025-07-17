@@ -97,6 +97,17 @@ async function branchExists(branchName: string, dir: string) {
   }
 }
 
+function getWorktreesSeparator() {
+  return new Promise((resolve, reject) => {
+    try {
+      const separator = os.platform() === 'win32' ? '\\' : '/';
+      resolve(separator);
+    } catch (err: any) {
+      reject(err.toString());
+    }
+  });
+}
+
 function add(
   name: string,
   worktreePath: string,
@@ -133,6 +144,42 @@ function add(
         assertBranchNotExists(dir, name);
         command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
       }
+      execSync(command, {
+        cwd: dir,
+      });
+      resolve('created');
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+function addFromCommit(hash: string, worktreesPath: string, dir: string) {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    try {
+      const branchNameForCommit = `temp-${hash}`;
+      const separator = await getWorktreesSeparator();
+      let worktreePath;
+      if (worktreesPath) {
+        worktreePath = worktreesPath + separator + branchNameForCommit;
+      } else {
+        worktreePath = path.join(dir, '..', branchNameForCommit);
+      }
+      const gitCommand = await gitMainService.gitCommand();
+      assertBranchNotExists(dir, branchNameForCommit);
+      assertWorktreeNotExists(dir, branchNameForCommit);
+      assertWorktreePathIsAvailable(branchNameForCommit, worktreePath);
+      const parentDir = path.dirname(worktreePath);
+      assertWriteAccess(parentDir);
+      try {
+        execSync(`"${gitCommand}" branch ${branchNameForCommit} ${hash}`, {
+          cwd: dir,
+        });
+      } catch (e) {
+        reject(e);
+      }
+      const command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForCommit}`;
       execSync(command, {
         cwd: dir,
       });
@@ -338,17 +385,6 @@ function getWorktreesFolder(dir: string) {
   });
 }
 
-function getWorktreesSeparator() {
-  return new Promise((resolve, reject) => {
-    try {
-      const separator = os.platform() === 'win32' ? '\\' : '/';
-      resolve(separator);
-    } catch (err: any) {
-      reject(err.toString());
-    }
-  });
-}
-
 function moveWorktreeToFolder(
   name: string,
   newWorktreePath: string,
@@ -409,6 +445,7 @@ function getPathPreviewOfPattern(
 export default {
   findAll,
   add,
+  addFromCommit,
   remove,
   removeWithLocalBranch,
   rename,

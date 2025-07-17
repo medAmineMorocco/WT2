@@ -86,6 +86,7 @@ export default function AddWorktree({
           duration: 1,
         });
         setLoadingCreateWorktree(false);
+        ipcRenderer.send('show-git-log', tabRepoPath);
         ipcRenderer.send('get-worktrees', tabRepoPath);
         handleCancel();
       } else {

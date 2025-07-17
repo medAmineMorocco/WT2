@@ -175,6 +175,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
             api.destroy('updatable');
           }, 1500);
         }, 50);
+        ipcRenderer.send('show-git-log', tabRepoPath);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else if (result.includes('--force')) {
         setTimeout(() => {
@@ -246,6 +247,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
         });
         setLoadingRenameWorktree(false);
         setIsModalOpen(false);
+        ipcRenderer.send('show-git-log', tabRepoPath);
         ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         setLoadingRenameWorktree(false);
