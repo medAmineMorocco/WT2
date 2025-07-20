@@ -202,7 +202,9 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
             mode={mode}
             onChangeMode={onChangeMode}
           />
-          <Layout>
+          <Layout
+            style={{ backgroundColor: isDarkMode ? 'black' : '#ffffff5e' }}
+          >
             <Content style={{ margin: '8px' }}>
               {mode === 'WORKFLOW' && (
                 <div ref={ref3}>
