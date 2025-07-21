@@ -148,6 +148,7 @@ export default function LogUI({
 
         return (
           <Dropdown
+            key={idx}
             menu={{ items, onClick: onClick(hash) }}
             trigger={['contextMenu']}
             overlayClassName="commit-dropdown"
@@ -155,11 +156,7 @@ export default function LogUI({
           >
             {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */}
             <a onClick={(e) => e.preventDefault()}>
-              <div
-                key={idx}
-                className="commit-row"
-                style={{ position: 'relative' }}
-              >
+              <div className="commit-row" style={{ position: 'relative' }}>
                 <span>{parts[1]}</span>
                 <Tooltip
                   title={author}
@@ -178,13 +175,14 @@ export default function LogUI({
                   </Tag>
                 )}
                 {!shouldHide && isAuthorEnabled && (
-                  <strong
+                  <span
                     style={{
                       position: 'absolute',
+                      fontSize: '13px',
                       right:
                         // eslint-disable-next-line no-nested-ternary
                         isHashEnabled && isCommitDateEnabled
-                          ? '282px'
+                          ? '274px'
                           : // eslint-disable-next-line no-nested-ternary
                             isHashEnabled && !isCommitDateEnabled
                             ? '74px'
@@ -195,24 +193,31 @@ export default function LogUI({
                   >
                     {' '}
                     {`<${author}>`}
-                  </strong>
+                  </span>
                 )}
                 {!shouldHide && isCommitDateEnabled && (
-                  <strong
+                  <span
                     style={{
                       position: 'absolute',
+                      fontSize: '13px',
                       right: isHashEnabled ? '74px' : '8px',
                     }}
                   >
                     {' '}
                     {`[${formatToIsoWithoutSeconds(date)}]`}
-                  </strong>
+                  </span>
                 )}
                 {!shouldHide && isHashEnabled && (
-                  <strong style={{ position: 'absolute', right: '8px' }}>
+                  <span
+                    style={{
+                      position: 'absolute',
+                      fontSize: '13px',
+                      right: '8px',
+                    }}
+                  >
                     {' '}
                     {hash}
-                  </strong>
+                  </span>
                 )}
               </div>
             </a>
