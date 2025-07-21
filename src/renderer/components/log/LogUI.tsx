@@ -164,7 +164,12 @@ export default function LogUI({
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}
                 >
-                  <Avatar size={18} className="commit-author" gap={5}>
+                  <Avatar
+                    size={18}
+                    shape="square"
+                    className="commit-author"
+                    gap={5}
+                  >
                     {author[0]}
                   </Avatar>
                 </Tooltip>
