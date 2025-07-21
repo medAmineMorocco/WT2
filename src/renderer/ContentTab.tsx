@@ -203,7 +203,14 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
             onChangeMode={onChangeMode}
           />
           <Layout
-            style={{ backgroundColor: isDarkMode ? 'black' : '#ffffff5e' }}
+            style={{
+              // eslint-disable-next-line no-nested-ternary
+              backgroundColor: isDarkMode
+                ? 'black'
+                : mode === 'GIT_LOG'
+                  ? '#ffffff5e'
+                  : '',
+            }}
           >
             <Content style={{ margin: '8px' }}>
               {mode === 'WORKFLOW' && (
