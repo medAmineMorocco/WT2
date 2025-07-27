@@ -26,7 +26,8 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     token: { colorPrimary },
   } = theme.useToken();
   const [isRepoSelected, setIsRepoSelected] = useState<Boolean>();
-  const { items, updateItems, setActiveKey } = useItemsContext();
+  const { items, updateItems, setActiveKey, isFirstRender, setIsFirstRender } =
+    useItemsContext();
   const [isDarkMode, setIsDarkMode] = useState(
     JSON.parse(window.localStorage.getItem('isDarkMode') || 'false'),
   );
@@ -62,9 +63,13 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
+        setIsFirstRender(false);
       }, 900);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
+      setTimeout(() => {
+        setIsFirstRender(false);
+      }, 900);
       ipcRenderer.send('clear-interval');
     }
     // do not touch
@@ -163,7 +168,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 
-  if (loading) {
+  if (isFirstRender === true) {
     return (
       <Layout
         style={{
@@ -193,7 +198,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeInOut' }}
+        transition={{ duration: 1, ease: 'easeInOut' }}
       >
         <Layout style={{ height: 'calc(100vh - 40px)' }}>
           <Worktrees
@@ -231,7 +236,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: 'easeOut' }}
+        transition={{ duration: 1, ease: 'easeOut' }}
         className={
           isDarkMode ? 'import-area-dark-container' : 'import-area-container'
         }
