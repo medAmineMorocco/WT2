@@ -11,16 +11,14 @@ import {
   notification,
   Radio,
   RadioChangeEvent,
-  Result,
   Select,
   Space,
+  Spin,
   Tooltip,
   Typography,
 } from 'antd';
 import {
   BranchesOutlined,
-  ForkOutlined,
-  LoadingOutlined,
   NodeIndexOutlined,
   TagOutlined,
   SwapOutlined,
@@ -626,10 +624,7 @@ export default function GitDiff({
                   alignItems: 'center',
                 }}
               >
-                <Result
-                  icon={<LoadingOutlined spin />}
-                  title="Loading diff content... Sit back and relax 😉"
-                />
+                <Spin size="large" />
               </div>
             )}
             <div

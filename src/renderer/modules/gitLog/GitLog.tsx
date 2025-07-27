@@ -1,8 +1,7 @@
-import { notification, Space, Select, Result, Checkbox } from 'antd';
+import { notification, Space, Select, Checkbox, Spin } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
-import { LoadingOutlined } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
@@ -216,10 +215,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               alignItems: 'center',
             }}
           >
-            <Result
-              icon={<LoadingOutlined spin />}
-              title="Loading git log ... Sit back and relax 😉"
-            />
+            <Spin size="large" />
           </div>
         )}
         {!loading && (
