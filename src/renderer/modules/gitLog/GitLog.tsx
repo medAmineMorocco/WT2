@@ -1,7 +1,8 @@
-import { notification, Space, Select, Checkbox, Spin } from 'antd';
+import { notification, Space, Select, Checkbox, Spin, Tooltip } from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
+import { ReloadOutlined } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
@@ -143,6 +144,11 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     setIsRefsEnabled(event.target.checked);
   };
 
+  const reloadGitLog = () => {
+    setLoading(true);
+    ipcRenderer.send('show-git-log', tabRepoPath);
+  };
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -203,6 +209,19 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               <Checkbox defaultChecked={isRefsEnabled} onChange={onRefsChange}>
                 Refs
               </Checkbox>
+            )}
+            {!loading && (
+              <Tooltip
+                title="Reload Git Log"
+                placement="top"
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <ReloadOutlined
+                  onClick={reloadGitLog}
+                  style={{ cursor: 'pointer' }}
+                />
+              </Tooltip>
             )}
           </Space>
         </div>
