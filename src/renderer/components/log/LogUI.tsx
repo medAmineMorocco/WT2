@@ -1,4 +1,12 @@
-import { Avatar, Dropdown, MenuProps, notification, Tag, Tooltip } from 'antd';
+import {
+  Avatar,
+  Dropdown,
+  FloatButton,
+  MenuProps,
+  notification,
+  Tag,
+  Tooltip,
+} from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo } from 'react';
 import log from 'electron-log';
@@ -138,6 +146,7 @@ export default function LogUI({
         height: '100%',
         overflowY: 'auto',
       }}
+      className="log-container"
     >
       {contextHolder}
       {commits.map((line, idx) => {
@@ -237,6 +246,10 @@ export default function LogUI({
           </Dropdown>
         );
       })}
+      <FloatButton.BackTop
+        style={{ insetInlineEnd: '36px' }}
+        target={() => document.querySelector('.log-container')}
+      />
     </div>
   );
 }
