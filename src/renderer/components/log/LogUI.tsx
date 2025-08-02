@@ -5,6 +5,15 @@ import log from 'electron-log';
 import { LoadingOutlined } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
 
+const formatDate = new Intl.DateTimeFormat('en-US', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+});
+
 const items: MenuProps['items'] = [
   {
     label: 'Create worktree here',
@@ -105,11 +114,10 @@ export default function LogUI({
   function formatToIsoWithoutSeconds(dateString: string): string {
     const date = new Date(dateString);
 
-    const yyyy = date.getFullYear();
-    const mm = String(date.getMonth() + 1).padStart(2, '0');
-    const dd = String(date.getDate()).padStart(2, '0');
-    const hh = String(date.getHours()).padStart(2, '0');
-    const mi = String(date.getMinutes()).padStart(2, '0');
+    const parts = formatDate.formatToParts(date);
+    const { year, month, day, hour, minute } = Object.fromEntries(
+      parts.map((p) => [p.type, p.value]),
+    );
 
     const offsetMatch = dateString.match(/([+-])(\d{2})(\d{2})$/);
     let tz = 'UTC';
@@ -120,7 +128,7 @@ export default function LogUI({
       tz = totalOffset;
     }
 
-    return `${yyyy}-${mm}-${dd} ${hh}:${mi} ${tz}`;
+    return `${year}-${month}-${day} ${hour}:${minute} ${tz}`;
   }
 
   return (
