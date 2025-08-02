@@ -49,8 +49,8 @@ function showLog(
     try {
       const gitCmd = await gitCommand();
       const command = branch
-        ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --format="%s %d <%an> [%ci] %h"`
-        : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --format="%s %d <%an> [%ci] %h"`;
+        ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`
+        : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`;
       const stdout = execSync(command, options);
       const compressed = zlib.gzipSync(stdout.toString());
       resolve(compressed);
