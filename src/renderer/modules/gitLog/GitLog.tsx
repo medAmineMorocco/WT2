@@ -1,11 +1,21 @@
-import { notification, Space, Select, Checkbox, Spin, Tooltip } from 'antd';
+import {
+  notification,
+  Space,
+  Select,
+  Checkbox,
+  Spin,
+  Tooltip,
+  Button,
+} from 'antd';
 import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
-import { ReloadOutlined } from '@ant-design/icons';
+import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
+
+const LIMIT = 40;
 
 export default function GitLog({ isModal }: { isModal: boolean }) {
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
@@ -17,9 +27,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [worktrees, setWorktrees] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
 
-  const [gitLog, setGitLog] = useState('');
+  const [commits, setCommits] = useState<string[]>([]);
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   const selectWorktreeRef = useRef(null);
   const selectAuthorRef = useRef(null);
@@ -34,6 +45,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const [shouldHide, setShouldHide] = useState<boolean>(false);
 
+  const [skip, setSkip] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+
   useEffect(() => {
     ipcRenderer.send('show-git-log', tabRepoPath);
     ipcRenderer.send('get-worktrees', tabRepoPath);
@@ -44,7 +58,14 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         setTimeout(() => {
           setLoading(false);
           const decompressed = pako.ungzip(result, { to: 'string' });
-          setGitLog(decompressed);
+          const newCommits = decompressed.split('\n');
+
+          if (newCommits.length < LIMIT) {
+            setHasMore(false);
+          }
+
+          setLoadingMore(false);
+          setCommits((prev) => [...prev, ...newCommits]);
         }, 4);
       } else {
         setLoading(false);
@@ -149,6 +170,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     ipcRenderer.send('show-git-log', tabRepoPath);
   };
 
+  const handleLoadMore = () => {
+    const nextSkip = skip + LIMIT;
+    setSkip(nextSkip);
+    setLoadingMore(true);
+    ipcRenderer.send('show-git-log', tabRepoPath, null, null, nextSkip);
+  };
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -158,7 +186,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       <div
         style={{
           width: '100%',
-          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 64px)',
+          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 96px)',
           padding: '12px',
           paddingLeft: 0,
         }}
@@ -228,7 +256,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         {loading && (
           <div
             style={{
-              height: '100%',
+              height: 'calc(100% - 32px)',
               display: 'flex',
               justifyContent: 'center',
               alignItems: 'center',
@@ -239,13 +267,24 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         )}
         {!loading && (
           <LogUI
-            output={gitLog}
+            commits={commits}
             isAuthorEnabled={isAuthorEnabled}
             isCommitDateEnabled={isCommitDateEnabled}
             isHashEnabled={isHashEnabled}
             shouldHide={shouldHide}
             isRefsEnabled={isRefsEnabled}
           />
+        )}
+        {hasMore && !loading && (
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <Button
+              type="link"
+              onClick={handleLoadMore}
+              icon={loadingMore ? <LoadingOutlined /> : null}
+            >
+              {!loadingMore && <span>Load More</span>}
+            </Button>
+          </div>
         )}
       </div>
     </>

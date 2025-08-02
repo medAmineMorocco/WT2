@@ -16,23 +16,23 @@ const formatDate = new Intl.DateTimeFormat('en-US', {
 
 const items: MenuProps['items'] = [
   {
-    label: 'Create worktree here',
-    key: '2',
-  },
-  {
     label: 'Copy commit sha',
     key: '1',
   },
+  {
+    label: 'Create worktree here',
+    key: '2',
+  },
 ];
 export default function LogUI({
-  output,
+  commits,
   isAuthorEnabled,
   isCommitDateEnabled,
   isHashEnabled,
   isRefsEnabled,
   shouldHide,
 }: {
-  output: string;
+  commits: string[];
   isAuthorEnabled: boolean;
   isCommitDateEnabled: boolean;
   isHashEnabled: boolean;
@@ -140,7 +140,7 @@ export default function LogUI({
       }}
     >
       {contextHolder}
-      {output.split('\n').map((line, idx) => {
+      {commits.map((line, idx) => {
         const parts = line.match(/(.*?)(\*)(.*)/); // Split around the *
         if (!parts) {
           // eslint-disable-next-line react/no-array-index-key

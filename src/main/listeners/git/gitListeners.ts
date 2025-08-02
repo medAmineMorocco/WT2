@@ -6,10 +6,23 @@ import utils from '../../utils/utils';
 
 ipcMain.on(
   'show-git-log',
-  async function (event, directory: string, branch: string, author: string) {
+  async function (
+    event,
+    directory: string,
+    branch: string,
+    author: string,
+    skip: number,
+    limit: number,
+  ) {
     try {
       log.info('Getting git log');
-      const gitLog = await gitMainService.showLog(directory, branch, author);
+      const gitLog = await gitMainService.showLog(
+        directory,
+        branch,
+        author,
+        skip,
+        limit,
+      );
       event.sender.send('receive-git-log', 0, gitLog);
     } catch (err: any) {
       log.error(`Failed to get git log: ${err.message}`);

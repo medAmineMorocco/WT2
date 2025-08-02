@@ -6,7 +6,6 @@ import {
   Form,
   Input,
   Tooltip,
-  Typography,
 } from 'antd';
 import {
   CheckOutlined,

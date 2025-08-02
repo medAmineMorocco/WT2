@@ -1,5 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Layout, message, Progress, theme } from 'antd';
+import React, {
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { Button, Layout, message, Progress, Spin, theme } from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -10,13 +17,13 @@ import { ipcRenderer } from 'electron';
 import { motion } from 'framer-motion';
 import Worktrees from './modules/worktrees/Worktrees';
 import Execution from './modules/execution/Execution';
-import Workflows from './modules/workflows/Workflows';
 import TabService from './services/tab/TabService';
 import { useItemsContext } from './TabsContext';
 import Loader from './components/Loader';
-import GitLog from './modules/gitLog/GitLog';
 
 const { Content } = Layout;
+const Workflows = lazy(() => import('./modules/workflows/Workflows'));
+const GitLog = lazy(() => import('./modules/gitLog/GitLog'));
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
   const ref1 = useRef(null);
@@ -223,8 +230,17 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
                   <Execution />
                 </div>
               )}
-              {mode === 'WORKFLOW' && <Workflows ref={ref2} />}
-              {mode === 'GIT_LOG' && <GitLog isModal={false} />}
+              {mode === 'WORKFLOW' && (
+                <Suspense fallback={<Spin size="large" />}>
+                  <Workflows ref={ref2} />
+                </Suspense>
+              )}
+
+              {mode === 'GIT_LOG' && (
+                <Suspense fallback={<Spin size="large" />}>
+                  <GitLog isModal={false} />
+                </Suspense>
+              )}
             </Content>
           </Layout>
         </Layout>
