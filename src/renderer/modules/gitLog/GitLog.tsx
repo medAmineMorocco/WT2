@@ -53,7 +53,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     ipcRenderer.send('get-worktrees', tabRepoPath);
     ipcRenderer.send('list-authors', tabRepoPath);
 
-    const onReceiveGitLog = (event: any, code: number, result: any) => {
+    const onReceiveGitLog = (event: any, code: number, result: any, skipReceived: number) => {
       if (code === 0) {
         setTimeout(() => {
           setLoading(false);
@@ -65,7 +65,11 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           }
 
           setLoadingMore(false);
-          setCommits((prev) => [...prev, ...newCommits]);
+          if (skipReceived === 0) {
+            setCommits([...newCommits]);
+          } else {
+            setCommits((prev) => [...prev, ...newCommits]);
+          }
         }, 4);
       } else {
         setLoading(false);

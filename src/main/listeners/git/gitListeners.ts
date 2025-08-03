@@ -11,8 +11,8 @@ ipcMain.on(
     directory: string,
     branch: string,
     author: string,
-    skip: number,
-    limit: number,
+    skip = 0,
+    limit = 40,
   ) {
     try {
       log.info('Getting git log');
@@ -23,7 +23,7 @@ ipcMain.on(
         skip,
         limit,
       );
-      event.sender.send('receive-git-log', 0, gitLog);
+      event.sender.send('receive-git-log', 0, gitLog, skip);
     } catch (err: any) {
       log.error(`Failed to get git log: ${err.message}`);
       event.sender.send('receive-git-log', -1, 'Failed to load Git log.');

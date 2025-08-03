@@ -172,7 +172,7 @@ ipcMain.on(
 
 ipcMain.on('get-worktrees', async function (event, directory: string) {
   try {
-    log.info('Getting worktrees');
+    log.info('Getting worktrees', directory);
     const worktrees = await worktreeMainService.findAll(directory);
     event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
   } catch (err: any) {
@@ -191,7 +191,7 @@ ipcMain.on(
     intervalIds.push(
       setInterval(async () => {
         try {
-          log.info('Getting worktrees periodically');
+          log.info('Getting worktrees periodically', directory);
           const worktrees = await worktreeMainService.findAll(directory);
           event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         } catch (err: any) {
