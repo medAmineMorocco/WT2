@@ -258,7 +258,7 @@ function removeWithLocalBranch(
             reject(error);
           }
           exec(
-            `"${gitCommand}" branch -d ${name}`,
+            `"${gitCommand}" branch -D ${name}`,
             {
               cwd: dir,
             },
