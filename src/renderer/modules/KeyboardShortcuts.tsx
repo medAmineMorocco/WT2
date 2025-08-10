@@ -64,6 +64,11 @@ const data = {
       shortcut2: 'W',
     },
     {
+      title: 'Refresh Worktrees',
+      shortcut1: 'Shift',
+      shortcut2: 'R',
+    },
+    {
       title: 'Prune Worktrees',
       shortcut1: 'Shift',
       shortcut2: 'P',

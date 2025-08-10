@@ -14,6 +14,7 @@ import {
 } from 'antd';
 import {
   SisternodeOutlined,
+  ClearOutlined,
   SyncOutlined,
   LoadingOutlined,
 } from '@ant-design/icons';
@@ -52,6 +53,8 @@ const Worktrees = forwardRef<
 
   const [pruneLoading, setPruneLoading] = useState<boolean>(false);
 
+  const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
+
   const [openGitLog, setOpenGitLog] = useState(false);
 
   const [openGitDiff, setOpenGitDiff] = useState(false);
@@ -83,7 +86,14 @@ const Worktrees = forwardRef<
       }, 200);
     };
 
+    const onWorktreesFound = () => {
+      setTimeout(() => {
+        setRefreshLoading(false);
+      }, 250);
+    };
+
     ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+    ipcRenderer.on('worktrees-found', onWorktreesFound);
 
     return () => {
       ipcRenderer.removeAllListeners('worktrees-pruned');
@@ -122,7 +132,17 @@ const Worktrees = forwardRef<
     ipcRenderer.send('prune-worktrees', tabRepoPath);
   };
 
+  const onClickRefresh = (event: any) => {
+    event.stopPropagation();
+    setRefreshLoading(true);
+    ipcRenderer.send('get-worktrees', tabRepoPath);
+  };
+
   useHotkeys('shift+p', onClickPrune, {
+    preventDefault: true,
+  });
+
+  useHotkeys('shift+r', onClickRefresh, {
     preventDefault: true,
   });
 
@@ -167,6 +187,26 @@ const Worktrees = forwardRef<
             <Collapse.Panel
               extra={
                 <Space>
+                  {!refreshLoading ? (
+                    <Tooltip
+                      title={
+                        <Space>
+                          <span>Refresh Worktrees</span>
+                          <small style={{ color: 'grey' }}>Shift+R</small>
+                        </Space>
+                      }
+                      mouseEnterDelay={0}
+                      mouseLeaveDelay={0}
+                    >
+                      <SyncOutlined
+                        className="icon-action"
+                        style={{ cursor: 'pointer' }}
+                        onClick={onClickRefresh}
+                      />
+                    </Tooltip>
+                  ) : (
+                    <LoadingOutlined />
+                  )}
                   {!pruneLoading ? (
                     <Tooltip
                       title={
@@ -178,9 +218,9 @@ const Worktrees = forwardRef<
                       mouseEnterDelay={0}
                       mouseLeaveDelay={0}
                     >
-                      <SyncOutlined
+                      <ClearOutlined
                         className="icon-action"
-                        style={{ cursor: 'pointer', color: 'red' }}
+                        style={{ cursor: 'pointer' }}
                         onClick={onClickPrune}
                       />
                     </Tooltip>
