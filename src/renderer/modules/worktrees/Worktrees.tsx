@@ -243,10 +243,6 @@ const Worktrees = forwardRef<
               handleCancel={handleCancel}
             />
           )}
-        </>
-      )}
-      {!collapsed && (
-        <>
           <ul style={{ marginTop: 0, paddingLeft: '0' }}>
             {mode === 'WORKFLOW' && (
               <li

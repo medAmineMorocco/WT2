@@ -127,7 +127,6 @@ export default function PackInfos() {
       packInfos.pack !== 'Free Trial' &&
       !isSubscriptionModalClosable
     ) {
-      console.log('1111111');
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">

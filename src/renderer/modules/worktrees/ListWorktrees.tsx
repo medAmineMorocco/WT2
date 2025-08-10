@@ -131,7 +131,6 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   useEffect(() => {
     ipcRenderer.send('get-worktrees', tabRepoPath);
-    ipcRenderer.send('get-worktrees-periodically', tabRepoPath);
 
     const onOpenEditorError = (event: any, error: any) => {
       notification.error({
@@ -142,9 +141,9 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     };
 
     const onWorktreesFound = (event: any, code: number, result: any) => {
+      log.debug(`worktrees found: ${result}`);
       if (code === 0) {
         setWorktrees(JSON.parse(result));
-        log.debug(`worktrees found: ${result}`);
       } else {
         notification.error({
           message: 'Unable to Fetch Worktrees',

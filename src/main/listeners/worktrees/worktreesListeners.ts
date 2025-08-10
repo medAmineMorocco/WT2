@@ -3,7 +3,6 @@ import log from 'electron-log';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import BusinessError from '../../exceptions/BusinessError';
 
-const intervalIds: any[] = [];
 ipcMain.on(
   'create-worktree',
   async function (event, name, worktreePath, createWorktreeMode, directory) {
@@ -182,38 +181,6 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
     } else {
       event.sender.send('worktrees-found', -1, 'Failed to retrieve worktrees.');
     }
-  }
-});
-
-ipcMain.on(
-  'get-worktrees-periodically',
-  async function (event, directory: string) {
-    intervalIds.push(
-      setInterval(async () => {
-        try {
-          log.info('Getting worktrees periodically', directory);
-          const worktrees = await worktreeMainService.findAll(directory);
-          event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
-        } catch (err: any) {
-          log.error(`Failed to get worktrees: ${err.message}`);
-          if (err instanceof BusinessError) {
-            event.sender.send('worktrees-found', -1, err.message);
-          } else {
-            event.sender.send(
-              'worktrees-found',
-              -1,
-              'Failed to retrieve worktrees.',
-            );
-          }
-        }
-      }, 10000),
-    );
-  },
-);
-
-ipcMain.on('clear-interval', function (event) {
-  if (intervalIds) {
-    intervalIds.forEach((interval) => clearInterval(interval));
   }
 });
 

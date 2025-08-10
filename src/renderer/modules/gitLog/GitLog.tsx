@@ -118,7 +118,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
     return () => {
       ipcRenderer.removeAllListeners('receive-git-log');
-      ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('receive-authors');
     };
   }, [tabRepoPath]);

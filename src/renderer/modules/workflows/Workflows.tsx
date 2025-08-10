@@ -277,7 +277,6 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       ipcRenderer.removeAllListeners('workflows-imported');
       ipcRenderer.removeAllListeners('workflow-stopped');
       ipcRenderer.removeAllListeners('workflow-removed');
-      ipcRenderer.removeAllListeners('worktrees-found');
       ipcRenderer.removeAllListeners('workflows-to-import-found');
       ipcRenderer.removeAllListeners('workflow-duplicated');
       ipcRenderer.removeAllListeners(

@@ -77,7 +77,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setTimeout(() => {
         setIsFirstRender(false);
       }, 900);
-      ipcRenderer.send('clear-interval');
     }
     // do not touch
   }, [isRepoSelected]);
