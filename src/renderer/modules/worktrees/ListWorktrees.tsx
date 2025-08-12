@@ -7,6 +7,8 @@ import {
   Form,
   Cascader,
   notification,
+  Button,
+  Collapse,
 } from 'antd';
 import {
   MoreOutlined,
@@ -22,16 +24,21 @@ import {
   CloseOutlined,
   LoadingOutlined,
   FieldStringOutlined,
+  SyncOutlined,
+  ClearOutlined,
+  SisternodeOutlined,
 } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
+import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import TerminalInteractive from '../terminal/TerminalInteractive';
 import RenameWorktree from './RenameWorktree';
 import MoveWorktree from './MoveWorktree';
 import ChangePatternWorktree from './ChangePatternWorktree';
+import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
 
@@ -74,7 +81,15 @@ const items = [
   },
 ];
 
-export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
+export default function ListWorktrees({
+  isDarkMode,
+  ref,
+  showModal,
+}: {
+  isDarkMode: boolean;
+  ref: any;
+  showModal: any;
+}) {
   const { token } = useToken();
 
   const { modal } = AntdApp.useApp();
@@ -101,7 +116,14 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
   const [loadingMoveWorktree, setLoadingMoveWorktree] = useState(false);
 
-  const [loadingChangePatternWorktree, setLoadingChangePatternWorktree] = useState(false);
+  const [loadingChangePatternWorktree, setLoadingChangePatternWorktree] =
+    useState(false);
+
+  const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+
+  const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
+
+  const { isWorkflowPlaying } = useItemsContext();
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -142,6 +164,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
 
     const onWorktreesFound = (event: any, code: number, result: any) => {
       log.debug(`worktrees found: ${result}`);
+      setRefreshLoading(false);
       if (code === 0) {
         setWorktrees(JSON.parse(result));
       } else {
@@ -307,12 +330,33 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       }
     };
 
+    const onWorktreesPruned = (event: any, code: number, result: any) => {
+      setTimeout(() => {
+        setPruneLoading(false);
+        ipcRenderer.send('get-worktrees', tabRepoPath);
+        if (code === 0) {
+          notification.success({
+            message: 'Stale worktrees have been successfully pruned',
+            placement: 'bottomLeft',
+            duration: 0.5,
+          });
+        } else {
+          notification.error({
+            message: 'Unable to Prune Worktree',
+            description: result,
+            placement: 'bottomLeft',
+          });
+        }
+      }, 200);
+    };
+
     ipcRenderer.on('open-editor-error', onOpenEditorError);
     ipcRenderer.on('worktrees-found', onWorktreesFound);
     ipcRenderer.on('worktree-removed', onWorktreeRemoved);
     ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
     ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
     ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
+    ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
 
     return () => {
       ipcRenderer.removeAllListeners('open-editor-error');
@@ -321,6 +365,7 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
       ipcRenderer.removeAllListeners('worktree-renamed');
       ipcRenderer.removeAllListeners('worktrees-changed-lock');
       ipcRenderer.removeAllListeners('worktree-moved-to-folder');
+      ipcRenderer.removeAllListeners('worktrees-pruned');
     };
   }, [api, modal, tabRepoPath]);
 
@@ -637,105 +682,195 @@ export default function ListWorktrees({ isDarkMode }: { isDarkMode: boolean }) {
     );
   };
 
+  const onClickRefresh = (event: any) => {
+    event.stopPropagation();
+    setRefreshLoading(true);
+    ipcRenderer.send('get-worktrees', tabRepoPath);
+  };
+
+  const onClickPrune = (event: any) => {
+    event.stopPropagation();
+    setPruneLoading(true);
+    ipcRenderer.send('prune-worktrees', tabRepoPath);
+  };
+
+  useHotkeys('shift+p', onClickPrune, {
+    preventDefault: true,
+  });
+
+  useHotkeys('shift+r', onClickRefresh, {
+    preventDefault: true,
+  });
+
   return (
-    <>
-      {contextHolder}
-      <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
-        {worktrees.map((worktree: any) => (
-          <li
-            key={worktree.name}
-            className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
-            style={{
-              color: token.colorTextBase,
-            }}
-          >
-            <Space
-              className="worktree-container"
-              style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
-            >
-              {/* eslint-disable-next-line no-nested-ternary */}
-              {worktree.isLocked ? (
-                <LockOutlined />
-              ) : worktree.prunable ? (
-                <Tooltip
-                  title="Gitdir file points to non-existent location"
-                  placement="right"
-                  mouseEnterDelay={0}
-                  mouseLeaveDelay={0}
-                >
-                  <CloseOutlined style={{ color: token.colorError }} />
-                </Tooltip>
-              ) : (
-                <Tree02Icon size={18} />
-              )}
-              <span
-                style={{ color: worktree.prunable ? token.colorError : '' }}
-              >
-                <Tooltip
-                  title={worktree.name}
-                  placement="right"
-                  mouseEnterDelay={0}
-                  mouseLeaveDelay={0}
-                >
-                  {worktree.name}
-                </Tooltip>
-              </span>
-            </Space>
-            <Cascader
-              options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
-              onChange={onClickWorktree(worktree)}
-              loadData={loadData}
-              optionRender={renderOption}
-              expandTrigger="hover"
-              popupClassName="worktree-menu"
-            >
+    <Collapse ghost defaultActiveKey={['1']}>
+      <Collapse.Panel
+        extra={
+          <Space style={{ marginRight: '6px' }}>
+            {!refreshLoading ? (
               <Tooltip
-                title="actions"
-                placement="right"
+                title={
+                  <Space>
+                    <span>Refresh Worktrees</span>
+                    <small style={{ color: 'grey' }}>Shift+R</small>
+                  </Space>
+                }
                 mouseEnterDelay={0}
                 mouseLeaveDelay={0}
               >
-                <MoreOutlined style={{ cursor: 'pointer' }} />
+                <SyncOutlined
+                  className="icon-action"
+                  style={{ cursor: 'pointer' }}
+                  onClick={onClickRefresh}
+                />
               </Tooltip>
-            </Cascader>
-          </li>
-        ))}
-      </ul>
-      {openTerminalModal && (
-        <TerminalInteractive
-          isModalOpen={openTerminalModal}
-          repository={repositoryInTerminal}
-          handleCancel={closeTerminalModal}
-          isDarkMode={isDarkMode}
-        />
-      )}
-      {isModalOpen && (
-        <RenameWorktree
-          isModalOpen={isModalOpen}
-          form={form}
-          onFinish={onFinish}
-          handleCancel={handleCancel}
-          loading={loadingRenameWorktree}
-        />
-      )}
-      {isMoveModalOpen && (
-        <MoveWorktree
-          isModalOpen={isMoveModalOpen}
-          form={form}
-          onFinish={onFinishMoveWorktree}
-          handleCancel={handleCancelMoveWorktree}
-          loading={loadingMoveWorktree}
-        />
-      )}
-      {isChangePatternModalOpen && (
-        <ChangePatternWorktree
-          isModalOpen={isChangePatternModalOpen}
-          form={form}
-          onFinish={onFinishChangePatternWorktree}
-          handleCancel={handleCancelChangePatternWorktree}
-          loading={loadingChangePatternWorktree}
-        />
-      )}
-    </>
+            ) : (
+              <LoadingOutlined />
+            )}
+            {!pruneLoading ? (
+              <Tooltip
+                title={
+                  <Space>
+                    <span>Prune Worktrees</span>
+                    <small style={{ color: 'grey' }}>Shift+P</small>
+                  </Space>
+                }
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <ClearOutlined
+                  className="icon-action"
+                  style={{ cursor: 'pointer' }}
+                  onClick={onClickPrune}
+                />
+              </Tooltip>
+            ) : (
+              <LoadingOutlined />
+            )}
+            <Tooltip
+              title={
+                <Space>
+                  <span>Add New Worktree</span>
+                  <small style={{ color: 'grey' }}>Shift+W</small>
+                </Space>
+              }
+              mouseEnterDelay={0}
+              mouseLeaveDelay={0}
+            >
+              <Button
+                type="primary"
+                size="small"
+                disabled={isWorkflowPlaying}
+                onClick={showModal}
+                ref={ref}
+                icon={<SisternodeOutlined />}
+              />
+            </Tooltip>
+            <span>{worktrees.length}</span>
+          </Space>
+        }
+        header={<strong>Worktrees</strong>}
+        className="worktrees-panel-header"
+        key="1"
+      >
+        {contextHolder}
+        <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
+          {worktrees.map((worktree: any) => (
+            <li
+              key={worktree.name}
+              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
+              style={{
+                color: token.colorTextBase,
+              }}
+            >
+              <Space
+                className="worktree-container"
+                style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
+              >
+                {/* eslint-disable-next-line no-nested-ternary */}
+                {worktree.isLocked ? (
+                  <LockOutlined />
+                ) : worktree.prunable ? (
+                  <Tooltip
+                    title="Gitdir file points to non-existent location"
+                    placement="right"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    <CloseOutlined style={{ color: token.colorError }} />
+                  </Tooltip>
+                ) : (
+                  <Tree02Icon size={18} />
+                )}
+                <span
+                  style={{ color: worktree.prunable ? token.colorError : '' }}
+                >
+                  <Tooltip
+                    title={worktree.name}
+                    placement="right"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    {worktree.name}
+                  </Tooltip>
+                </span>
+              </Space>
+              <Cascader
+                options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
+                onChange={onClickWorktree(worktree)}
+                loadData={loadData}
+                optionRender={renderOption}
+                expandTrigger="hover"
+                popupClassName="worktree-menu"
+              >
+                <Tooltip
+                  title="actions"
+                  placement="right"
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <MoreOutlined style={{ cursor: 'pointer' }} />
+                </Tooltip>
+              </Cascader>
+            </li>
+          ))}
+        </ul>
+        {openTerminalModal && (
+          <TerminalInteractive
+            isModalOpen={openTerminalModal}
+            repository={repositoryInTerminal}
+            handleCancel={closeTerminalModal}
+            isDarkMode={isDarkMode}
+          />
+        )}
+        {isModalOpen && (
+          <RenameWorktree
+            isModalOpen={isModalOpen}
+            form={form}
+            onFinish={onFinish}
+            handleCancel={handleCancel}
+            loading={loadingRenameWorktree}
+          />
+        )}
+        {isMoveModalOpen && (
+          <MoveWorktree
+            isModalOpen={isMoveModalOpen}
+            form={form}
+            onFinish={onFinishMoveWorktree}
+            handleCancel={handleCancelMoveWorktree}
+            loading={loadingMoveWorktree}
+          />
+        )}
+        {isChangePatternModalOpen && (
+          <ChangePatternWorktree
+            isModalOpen={isChangePatternModalOpen}
+            form={form}
+            onFinish={onFinishChangePatternWorktree}
+            handleCancel={handleCancelChangePatternWorktree}
+            loading={loadingChangePatternWorktree}
+          />
+        )}
+      </Collapse.Panel>
+    </Collapse>
   );
 }

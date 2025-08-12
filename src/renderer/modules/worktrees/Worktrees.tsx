@@ -1,27 +1,7 @@
-import React, { forwardRef, useEffect, useMemo, useState } from 'react';
-import {
-  Button,
-  Form,
-  Layout,
-  Tooltip,
-  Space,
-  App as AntdApp,
-  Tag,
-  theme,
-  Collapse,
-  Modal,
-  Radio,
-} from 'antd';
-import {
-  SisternodeOutlined,
-  ClearOutlined,
-  SyncOutlined,
-  LoadingOutlined,
-} from '@ant-design/icons';
+import React, { forwardRef, useState } from 'react';
+import { Button, Layout, Tooltip, Space, Tag, theme, Modal, Radio } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { ipcRenderer } from 'electron';
 import ListWorktrees from './ListWorktrees';
-import TabService from '../../services/tab/TabService';
 import GitLog from '../gitLog/GitLog';
 import PackInfos from '../packInfos/PackInfos';
 import GitDiff from '../gitDiff/GitDiff';
@@ -45,60 +25,11 @@ const Worktrees = forwardRef<
 
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [form] = Form.useForm();
-
-  const { notification } = AntdApp.useApp();
-
-  const activeTab = useMemo(() => TabService.getActiveTab(), []);
-
-  const [pruneLoading, setPruneLoading] = useState<boolean>(false);
-
-  const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
-
   const [openGitLog, setOpenGitLog] = useState(false);
 
   const [openGitDiff, setOpenGitDiff] = useState(false);
 
   const { isWorkflowPlaying } = useItemsContext();
-
-  const tabRepoPath = useMemo(() => {
-    return TabService.getTabRepoPath(activeTab);
-  }, [activeTab]);
-
-  useEffect(() => {
-    const onWorktreesPruned = (event: any, code: number, result: any) => {
-      setTimeout(() => {
-        setPruneLoading(false);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
-        if (code === 0) {
-          notification.success({
-            message: 'Stale worktrees have been successfully pruned',
-            placement: 'bottomLeft',
-            duration: 0.5,
-          });
-        } else {
-          notification.error({
-            message: 'Unable to Prune Worktree',
-            description: result,
-            placement: 'bottomLeft',
-          });
-        }
-      }, 200);
-    };
-
-    const onWorktreesFound = () => {
-      setTimeout(() => {
-        setRefreshLoading(false);
-      }, 250);
-    };
-
-    ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
-    ipcRenderer.on('worktrees-found', onWorktreesFound);
-
-    return () => {
-      ipcRenderer.removeAllListeners('worktrees-pruned');
-    };
-  }, [form, notification, tabRepoPath]);
 
   const showModal = (event: any) => {
     if (event) {
@@ -123,26 +54,6 @@ const Worktrees = forwardRef<
     { preventDefault: true },
   );
   useHotkeys('shift+c', () => setCollapsed(!collapsed), {
-    preventDefault: true,
-  });
-
-  const onClickPrune = (event: any) => {
-    event.stopPropagation();
-    setPruneLoading(true);
-    ipcRenderer.send('prune-worktrees', tabRepoPath);
-  };
-
-  const onClickRefresh = (event: any) => {
-    event.stopPropagation();
-    setRefreshLoading(true);
-    ipcRenderer.send('get-worktrees', tabRepoPath);
-  };
-
-  useHotkeys('shift+p', onClickPrune, {
-    preventDefault: true,
-  });
-
-  useHotkeys('shift+r', onClickRefresh, {
     preventDefault: true,
   });
 
@@ -183,78 +94,12 @@ const Worktrees = forwardRef<
     >
       {!collapsed && (
         <>
-          <Collapse ghost defaultActiveKey={['1']}>
-            <Collapse.Panel
-              extra={
-                <Space>
-                  {!refreshLoading ? (
-                    <Tooltip
-                      title={
-                        <Space>
-                          <span>Refresh Worktrees</span>
-                          <small style={{ color: 'grey' }}>Shift+R</small>
-                        </Space>
-                      }
-                      mouseEnterDelay={0}
-                      mouseLeaveDelay={0}
-                    >
-                      <SyncOutlined
-                        className="icon-action"
-                        style={{ cursor: 'pointer' }}
-                        onClick={onClickRefresh}
-                      />
-                    </Tooltip>
-                  ) : (
-                    <LoadingOutlined />
-                  )}
-                  {!pruneLoading ? (
-                    <Tooltip
-                      title={
-                        <Space>
-                          <span>Prune Worktrees</span>
-                          <small style={{ color: 'grey' }}>Shift+P</small>
-                        </Space>
-                      }
-                      mouseEnterDelay={0}
-                      mouseLeaveDelay={0}
-                    >
-                      <ClearOutlined
-                        className="icon-action"
-                        style={{ cursor: 'pointer' }}
-                        onClick={onClickPrune}
-                      />
-                    </Tooltip>
-                  ) : (
-                    <LoadingOutlined />
-                  )}
-                  <Tooltip
-                    title={
-                      <Space>
-                        <span>Add New Worktree</span>
-                        <small style={{ color: 'grey' }}>Shift+W</small>
-                      </Space>
-                    }
-                    mouseEnterDelay={0}
-                    mouseLeaveDelay={0}
-                  >
-                    <Button
-                      type="primary"
-                      size="small"
-                      disabled={isWorkflowPlaying}
-                      onClick={showModal}
-                      ref={ref}
-                      icon={<SisternodeOutlined />}
-                    />
-                  </Tooltip>
-                </Space>
-              }
-              header={<strong>Worktrees</strong>}
-              className="worktrees-panel-header"
-              key="1"
-            >
-              <ListWorktrees isDarkMode={isDarkMode} />
-            </Collapse.Panel>
-          </Collapse>
+          <ListWorktrees
+            isDarkMode={isDarkMode}
+            ref={ref}
+            showModal={showModal}
+          />
+
           {openGitLog && (
             <Modal
               open={openGitLog}
