@@ -297,11 +297,16 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
   }
 });
 
-ipcMain.on('change-theme', async function (event, isDarkMode, activeTab) {
+ipcMain.on('change-theme', function (event, isDarkMode, activeTab) {
   event.sender.send(`theme-changed-${activeTab}`, isDarkMode);
 });
 
-ipcMain.on('get-os-separator', async function (event) {
+ipcMain.on('get-os-separator', function (event) {
   const separator = os.platform() === 'win32' ? '\\' : '/';
   event.sender.send('os-separator-found', separator);
+});
+
+ipcMain.on('check-repo-exists', function (event, repoPath) {
+  const exists = fs.existsSync(path.normalize(repoPath));
+  event.sender.send('is-repo-exist', exists);
 });

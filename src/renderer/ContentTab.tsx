@@ -6,7 +6,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Button, Layout, message, Progress, Spin, theme } from 'antd';
+import {
+  Button,
+  Layout,
+  message,
+  Progress,
+  Result,
+  Spin,
+  theme,
+  Typography,
+} from 'antd';
 import {
   InboxOutlined,
   LoadingOutlined,
@@ -41,6 +50,8 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [loading, setLoading] = useState<Boolean | null>(null);
   const [percent, setPercent] = useState(0);
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
+  const tabRepoPath = TabService.getTabRepoPath(keyTab);
+  const [isRepoExistsOnDisk, setIsRepoExistsOnDisk] = useState<boolean>(true);
 
   const [mode, setMode] = useState('GIT_LOG');
 
@@ -83,9 +94,8 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   useEffect(() => {
     changeIconOfActiveTab(<LoadingOutlined />);
-    const tabRepoPath = TabService.getTabRepoPath(keyTab);
     if (tabRepoPath) {
-      setIsRepoSelected(true);
+      ipcRenderer.send('check-repo-exists', tabRepoPath);
     } else {
       setIsRepoSelected(false);
     }
@@ -165,12 +175,24 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       setIsDarkMode(isDarkModeNew);
     };
 
+    const onRepoExist = (event: any, isExist: boolean) => {
+      if (isExist) {
+        setIsRepoSelected(true);
+        setIsRepoExistsOnDisk(true);
+      } else {
+        setIsRepoSelected(false);
+        setIsRepoExistsOnDisk(false);
+      }
+    };
+
     ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
     ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
+    ipcRenderer.on('is-repo-exist', onRepoExist);
 
     return () => {
       ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
       ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
+      ipcRenderer.removeAllListeners('is-repo-exist');
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 
@@ -195,6 +217,31 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       </Layout>
     );
   }
+
+  if (!isRepoSelected && !isRepoExistsOnDisk) {
+    return (
+      <div
+        style={{
+          height: 'calc(100vh - 40px)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+        }}
+      >
+        <Result
+          status="warning"
+          title={
+            <Typography.Title level={3}>
+              The repository at{' '}
+              <Typography.Text type="secondary">{tabRepoPath}</Typography.Text>{' '}
+              no longer exists on disk.
+            </Typography.Title>
+          }
+        />
+      </div>
+    );
+  }
+
   if (isRepoSelected && loading === null) {
     return <div />;
   }
