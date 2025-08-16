@@ -316,7 +316,7 @@ export default function AddWorktree({
         block
         options={[
           {
-            label: <div style={{ padding: 2 }}>New Worktree</div>,
+            label: <div style={{ padding: 2 }}>From Head</div>,
             value: 'new-branch',
           },
           {

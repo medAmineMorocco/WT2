@@ -217,7 +217,7 @@ export default function GitDiff({
         setDiffMode(true);
       } else {
         notification.error({
-          message: 'Unable to get log',
+          message: 'Unable to get diff',
           placement: 'bottomLeft',
         });
         setLoading(false);
