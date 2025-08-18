@@ -61,7 +61,8 @@ export default function AddWorktree({
   }, [activeTab]);
 
   const storedWorktreePrefix =
-    window.localStorage.getItem('worktreePrefix') != null
+    window.localStorage.getItem('worktreePrefix') != null &&
+    window.localStorage.getItem('worktreePrefix')?.trim() !== ''
       ? window.localStorage.getItem('worktreePrefix')
       : '{repo}__wt__{branch}';
 

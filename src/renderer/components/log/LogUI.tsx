@@ -55,6 +55,12 @@ export default function LogUI({
     return TabService.getTabRepoPath(activeTab);
   }, [activeTab]);
 
+  const storedWorktreePrefix =
+    window.localStorage.getItem('worktreePrefix') != null &&
+    window.localStorage.getItem('worktreePrefix')?.trim() !== ''
+      ? window.localStorage.getItem('worktreePrefix')
+      : '{repo}__wt__{branch}';
+
   useEffect(() => {
     const onWorktreeCreated = (event: any, code: number, result: any) => {
       log.debug(
@@ -114,6 +120,7 @@ export default function LogUI({
           hash,
           worktreesPath,
           tabRepoPath,
+          storedWorktreePrefix,
         );
       }
     };

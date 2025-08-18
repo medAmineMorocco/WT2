@@ -38,6 +38,31 @@ function resolveWorktreeNamePattern(
   return pattern.replaceAll(/{repo}/g, repo).replaceAll(/{branch}/g, branch);
 }
 
+function getPathPreviewOfPattern(
+  name: string,
+  worktreePath: string,
+  pattern: string,
+  dir: string,
+) {
+  return new Promise((resolve, reject) => {
+    try {
+      const sanitizedWorktreeName = sanitizeWorktreeName(name);
+
+      const resolvedWorktreeName = resolveWorktreeNamePattern(
+        pattern,
+        path.basename(dir),
+        sanitizedWorktreeName,
+      );
+      const pathPreview = path.normalize(
+        path.join(worktreePath, '..', resolvedWorktreeName),
+      );
+      resolve(pathPreview);
+    } catch (err: any) {
+      reject(err.toString());
+    }
+  });
+}
+
 function findAll(directory: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -154,23 +179,35 @@ function add(
   });
 }
 
-function addFromCommit(hash: string, worktreesPath: string, dir: string) {
+function addFromCommit(
+  hash: string,
+  worktreesPath: string,
+  dir: string,
+  pattern: string,
+) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
       const branchNameForCommit = `temp-${hash}`;
       const separator = await getWorktreesSeparator();
       let worktreePath;
+
       if (worktreesPath) {
         worktreePath = worktreesPath + separator + branchNameForCommit;
       } else {
         worktreePath = path.join(dir, '..', branchNameForCommit);
       }
+      const worktreePathPreview = (await getPathPreviewOfPattern(
+        branchNameForCommit,
+        worktreePath,
+        pattern,
+        dir,
+      )) as string;
       const gitCommand = await gitMainService.gitCommand();
       assertBranchNotExists(dir, branchNameForCommit);
       assertWorktreeNotExists(dir, branchNameForCommit);
-      assertWorktreePathIsAvailable(branchNameForCommit, worktreePath);
-      const parentDir = path.dirname(worktreePath);
+      assertWorktreePathIsAvailable(branchNameForCommit, worktreePathPreview);
+      const parentDir = path.dirname(worktreePathPreview);
       assertWriteAccess(parentDir);
       try {
         execSync(`"${gitCommand}" branch ${branchNameForCommit} ${hash}`, {
@@ -179,7 +216,7 @@ function addFromCommit(hash: string, worktreesPath: string, dir: string) {
       } catch (e) {
         reject(e);
       }
-      const command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForCommit}`;
+      const command = `"${gitCommand}" worktree add ${worktreePathPreview} ${branchNameForCommit}`;
       execSync(command, {
         cwd: dir,
       });
@@ -413,31 +450,6 @@ function moveWorktreeToFolder(
       );
     } catch (e) {
       reject(e);
-    }
-  });
-}
-
-function getPathPreviewOfPattern(
-  name: string,
-  worktreePath: string,
-  pattern: string,
-  dir: string,
-) {
-  return new Promise((resolve, reject) => {
-    try {
-      const sanitizedWorktreeName = sanitizeWorktreeName(name);
-
-      const resolvedWorktreeName = resolveWorktreeNamePattern(
-        pattern,
-        path.basename(dir),
-        sanitizedWorktreeName,
-      );
-      const pathPreview = path.normalize(
-        path.join(worktreePath, '..', resolvedWorktreeName),
-      );
-      resolve(pathPreview);
-    } catch (err: any) {
-      reject(err.toString());
     }
   });
 }

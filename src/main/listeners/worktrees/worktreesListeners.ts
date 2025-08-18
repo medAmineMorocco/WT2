@@ -34,13 +34,14 @@ ipcMain.on(
 
 ipcMain.on(
   'create-worktree-from-commit',
-  async function (event, hash, worktreesPath, directory) {
+  async function (event, hash, worktreesPath, directory, pattern) {
     try {
       log.info(`Creating a new worktree from commit with hash ${hash}`);
       const result = await worktreeMainService.addFromCommit(
         hash,
         worktreesPath,
         directory,
+        pattern,
       );
       event.sender.send('worktree-from-commit-created', 0, result);
     } catch (err: any) {
