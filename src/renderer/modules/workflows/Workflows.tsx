@@ -81,6 +81,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   useEffect(() => {
     ipcRenderer.send('check-trial-expiration');
+    ipcRenderer.send('get-worktrees', tabRepoPath);
     ipcRenderer.send('get-workflows', tabRepoPath);
     const onWorkflowsFound = (event: any, code: number, result: any) => {
       if (code === 0) {
