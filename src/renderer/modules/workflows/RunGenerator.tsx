@@ -36,11 +36,6 @@ export default function RunGenerator({
     return TabService.getTabRepoPath(activeTab);
   }, []);
 
-  function capitalizeFirstLetterAndLowercaseRest(text: string): string {
-    if (!text) return text;
-    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-  }
-
   const onFinish = (values: any) => {
     const foundWorktree = worktrees.find(
       (worktree: any) => worktree.value === values.worktree,
@@ -72,7 +67,7 @@ export default function RunGenerator({
       return (
         <Form.Item
           key={key}
-          label={capitalizeFirstLetterAndLowercaseRest(paramName)}
+          label={paramName}
           name={paramName}
           rules={[
             {
@@ -97,7 +92,7 @@ export default function RunGenerator({
       return (
         <Form.Item
           key={key}
-          label={capitalizeFirstLetterAndLowercaseRest(paramName)}
+          label={paramName}
           name={paramName}
           rules={[
             {
@@ -122,7 +117,7 @@ export default function RunGenerator({
       return (
         <Form.Item
           key={key}
-          label={capitalizeFirstLetterAndLowercaseRest(paramName)}
+          label={paramName}
           name={paramName}
           rules={[
             {
@@ -151,7 +146,7 @@ export default function RunGenerator({
           initialValue={false}
         >
           <Checkbox>
-            {capitalizeFirstLetterAndLowercaseRest(paramName)}
+            {paramName}
           </Checkbox>
         </Form.Item>
       );
