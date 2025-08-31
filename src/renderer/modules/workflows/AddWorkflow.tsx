@@ -1,14 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { App as AntdApp, Button, Drawer, Form, Input, Tooltip } from 'antd';
 import {
-  App as AntdApp,
-  Button,
-  Drawer,
-  Form,
-  Input,
-  Tooltip,
-} from 'antd';
-import {
-  CheckOutlined,
   MinusCircleOutlined,
   PartitionOutlined,
   PlusOutlined,
@@ -189,9 +181,8 @@ export default function AddWorkflow({
             type="primary"
             htmlType="submit"
             loading={loadingCreateWorkflow}
-            icon={<CheckOutlined />}
           >
-            Create Workflow
+            Save
           </Button>
         </Form.Item>
       </Form>
