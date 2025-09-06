@@ -6,9 +6,8 @@ import { ipcRenderer } from 'electron';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
 import { useItemsContext } from '../../TabsContext';
-
-const Log = React.lazy(() => import('./Log'));
-const Visualization = React.lazy(() => import('./Visualization'));
+import Log from './Log';
+import Visualization from './Visualization';
 
 const { useToken } = theme;
 

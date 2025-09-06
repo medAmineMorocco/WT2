@@ -11,7 +11,6 @@ import {
   Space,
   Tag,
 } from 'antd';
-import { CheckOutlined } from '@ant-design/icons';
 import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
@@ -46,6 +45,7 @@ export default function RunGenerator({
         parameters[key] = value;
       }
     });
+    setIsWorkflowPlaying(true);
     ipcRenderer.send(
       'run-generator',
       generator.generatorName,
@@ -53,7 +53,6 @@ export default function RunGenerator({
       foundWorktree,
       tabRepoPath,
     );
-    setIsWorkflowPlaying(true);
     onClosePlay();
   };
 
@@ -208,7 +207,7 @@ export default function RunGenerator({
         )}
 
         <Form.Item>
-          <Button type="primary" htmlType="submit" icon={<CheckOutlined />}>
+          <Button type="primary" htmlType="submit">
             Run
           </Button>
         </Form.Item>

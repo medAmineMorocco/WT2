@@ -1,8 +1,12 @@
 import { dialog, ipcMain } from 'electron';
 import path from 'path';
 import log from 'electron-log';
+import { runner } from 'hygen';
 import generatorService from '../../services/generator/generatorMainService';
 import utils from '../../utils/utils';
+import { setStopExecution } from '../workflows/sharedState';
+
+const { conf } = require('../../conf/conf');
 
 ipcMain.on(
   'add-generator',
@@ -131,5 +135,140 @@ ipcMain.on(
       log.error(`Failed to import generators: ${encoded}`);
       event.sender.send('generators-imported', -1, encoded);
     }
+  },
+);
+
+async function runHygen(
+  generatorName: string,
+  options: string,
+  templates: string,
+  dir: string,
+): Promise<string> {
+  let output = '';
+
+  const args = ['cli', generatorName];
+  await runner(args, {
+    templates,
+    cwd: dir,
+    logger: {
+      log: (msg: string) => {
+        console.log(msg);
+      },
+      err: (msg: string) => {
+        output += `[ERR] ${msg}\n`;
+      },
+      ok: (msg: string) => {
+        output += `[OK] ${msg}\n`;
+      },
+    },
+    createPrompter: () => ({
+      prompt: () => Promise.resolve(),
+    }),
+    localsDefaults: options,
+  });
+
+  return output;
+}
+
+ipcMain.on(
+  'run-generator',
+  async function (
+    event,
+    generatorName: string,
+    parameters: any[],
+    generatedAtWorktree: any,
+    dir: string,
+  ) {
+    setStopExecution(false);
+    const options = {} as any;
+    Object.entries(parameters).forEach(([key, value]) => {
+      options[key] = value;
+    });
+    const templatesPath = path.normalize(
+      path.join(dir, '.git', conf.generatorPath, '_templates'),
+    );
+    process.env.HYGEN_TMPLS = templatesPath;
+
+    event.sender.send(
+      'workflow-started',
+      [{ title: `Run Generator ${generatorName}` }],
+      [
+        {
+          title: generatedAtWorktree.label,
+          current: -1,
+          status: 'wait',
+        },
+      ],
+      [
+        {
+          label: generatedAtWorktree.label,
+          key: '0',
+          data: {
+            '0': {
+              command: `Run Generator ${generatorName}`,
+              output: 'Processing...',
+              status: 'processing',
+            },
+          },
+        },
+      ],
+    );
+
+    runHygen(
+      generatorName,
+      options,
+      templatesPath,
+      path.normalize(generatedAtWorktree.path),
+    )
+      .then((result: string) => {
+        console.log(' then', result);
+        const logStates = [
+          {
+            label: generatedAtWorktree.label,
+            key: '0',
+            data: {
+              '0': {
+                command: `Run Generator ${generatorName}`,
+                output: result,
+                status: 'finished',
+              },
+            },
+          },
+        ];
+        const worktreeStates = [
+          {
+            title: generatedAtWorktree.label,
+            current: 0,
+            status: 'success',
+          },
+        ];
+        event.sender.send('workflow-started-log-received', logStates);
+        event.sender.send('workflow-started-states-updated', worktreeStates);
+
+        setStopExecution(true);
+        event.sender.send('workflow-stopped');
+      })
+      .catch((err) => {
+        event.sender.send('workflow-started-states-updated', [
+          {
+            title: generatedAtWorktree.label,
+            current: 0,
+            status: 'error',
+          },
+        ]);
+        event.sender.send('workflow-started-log-received', [
+          {
+            label: generatedAtWorktree.label,
+            key: 0,
+            data: {
+              '0': {
+                command: `Run Generator ${generatorName}`,
+                output: err ? err.message : '',
+                status: 'error',
+              },
+            },
+          },
+        ]);
+      });
   },
 );

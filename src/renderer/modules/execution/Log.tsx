@@ -19,6 +19,7 @@ import {
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { ipcRenderer } from 'electron';
+import log from 'electron-log';
 import TerminalUI from '../../components/terminal/TerminalUI';
 import { useItemsContext } from '../../TabsContext';
 
@@ -108,6 +109,7 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
       setData(mappedLogStates);
     }
     const onReceiveLog = (event: any, logStatesReceived: any[]) => {
+      log.debug('logStatesReceived: ', JSON.stringify(logStatesReceived));
       const mappedLogStates = buildLog(logStatesReceived);
       setData(mappedLogStates);
     };
