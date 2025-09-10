@@ -26,9 +26,11 @@ import { useItemsContext } from '../../TabsContext';
 export default function AddWorktree({
   isModalOpen,
   handleCancel,
+  setMode,
 }: {
   isModalOpen: boolean;
   handleCancel: any;
+  setMode: any;
 }) {
   const navigate = useNavigate();
 
@@ -268,6 +270,7 @@ export default function AddWorktree({
       );
       setIsWorkflowPlaying(true);
       handleCancel();
+      setMode({ target: { value: 'WORKFLOW' } });
     }
 
     const activeTabValue = TabService.getTab(activeTab);

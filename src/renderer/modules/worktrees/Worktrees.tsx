@@ -126,6 +126,7 @@ const Worktrees = forwardRef<
             <AddWorktree
               isModalOpen={isModalOpen}
               handleCancel={handleCancel}
+              setMode={onChangeMode}
             />
           )}
           <ul style={{ marginTop: 0, paddingLeft: '0' }}>
