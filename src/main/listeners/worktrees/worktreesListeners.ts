@@ -83,7 +83,7 @@ ipcMain.on(
           -1,
           err.message,
           worktreePath,
-          null,
+          worktreeName,
           false,
         );
       } else {
@@ -92,7 +92,7 @@ ipcMain.on(
           -1,
           'Failed to remove worktree. Please ensure the worktree exists and try again.',
           worktreePath,
-          null,
+          worktreeName,
           false,
         );
       }
@@ -124,7 +124,7 @@ ipcMain.on(
           -1,
           err.message,
           worktreePath,
-          null,
+          name,
           false,
         );
       } else {
