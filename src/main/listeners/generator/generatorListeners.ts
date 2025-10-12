@@ -221,7 +221,6 @@ ipcMain.on(
       path.normalize(generatedAtWorktree.path),
     )
       .then((result: string) => {
-        console.log(' then', result);
         const logStates = [
           {
             label: generatedAtWorktree.label,

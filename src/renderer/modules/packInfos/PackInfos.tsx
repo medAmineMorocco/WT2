@@ -45,6 +45,8 @@ export default function PackInfos() {
   const [isSubscriptionModalClosable, setIsSubscriptionModalClosable] =
     useState<boolean>(false);
 
+  const [isValid, setValid] = useState<boolean>(false);
+
   const [errorReason, setErrorReason] = useState<string | null>();
 
   const handleSwitchUser = () => {
@@ -55,7 +57,7 @@ export default function PackInfos() {
     ipcRenderer.send('check-trial-expiration');
     const onReceiveExpirationInfos = (event: any, infos: any) => {
       setPackInfos(infos);
-      if (infos.pack === 'Free Trial') {
+      if (infos && infos.pack === 'Free Trial') {
         const {
           isExpiredReceived,
           daysRemainingReceived,
@@ -72,11 +74,13 @@ export default function PackInfos() {
 
     const onReceiveSubscriptionInfos = (
       event: any,
+      isValidReceived: boolean,
       hasTrial: boolean,
       _infos: any,
       errorReasonReceived: string,
     ) => {
       setLoading(false);
+      setValid(isValidReceived);
       setErrorReason(errorReasonReceived);
       setPackInfos(_infos);
       if (!errorReasonReceived) {
@@ -123,10 +127,12 @@ export default function PackInfos() {
 
   const content = useMemo(() => {
     if (
+      isValid &&
       packInfos &&
       packInfos.pack !== 'Free Trial' &&
       !isSubscriptionModalClosable
     ) {
+      console.log('111111', packInfos, isSubscriptionModalClosable);
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">
@@ -157,8 +163,8 @@ export default function PackInfos() {
         </div>
       );
     }
-    if (!packInfos || packInfos.pack === null || isSubscriptionModalClosable) {
-      console.log('22222', packInfos, isSubscriptionModalClosable);
+    if (!isValid || isSubscriptionModalClosable) {
+      console.log('222222', packInfos, isSubscriptionModalClosable);
       return (
         <Modal
           className="trial-expired-modal"
@@ -283,8 +289,8 @@ export default function PackInfos() {
         </Modal>
       );
     }
-    if (packInfos.pack === 'Free Trial' && isExpired) {
-      console.log('3333');
+    if (packInfos && packInfos.pack === 'Free Trial' && isExpired) {
+      console.log('333333', packInfos, isExpired);
       return (
         <Modal
           className="trial-expired-modal"
@@ -311,6 +317,7 @@ export default function PackInfos() {
         </Modal>
       );
     }
+    console.log('44444444', packInfos);
     return (
       <Card
         actions={[

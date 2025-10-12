@@ -211,6 +211,7 @@ ipcMain.on(
         log.info(`Subscription/Trial verified: ${data.valid}`);
         event.sender.send(
           'is-subscribed',
+          data.valid,
           data.pack === 'Free Trial',
           data,
           data.reason,
