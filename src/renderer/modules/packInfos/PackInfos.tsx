@@ -64,11 +64,14 @@ export default function PackInfos() {
           startTrialDateReceived,
         } = infos;
         setIsExpired(isExpiredReceived);
+        setValid(!isExpiredReceived);
         setStartTrialDate(startTrialDateReceived);
         setIsSubscriptionModalClosable(false);
         if (!isExpiredReceived) {
           setDaysRemaining(daysRemainingReceived);
         }
+      } else if (infos && infos.pack !== 'Free Trial') {
+        setValid(true);
       }
     };
 
