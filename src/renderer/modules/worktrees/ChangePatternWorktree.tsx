@@ -19,9 +19,16 @@ export default function ChangePatternWorktree({
   const [pathPreview, setPathPreview] = useState(
     form.getFieldValue('worktreeToChange').path,
   );
+  const [patterns, setPatterns] = useState<any[]>(options);
 
   useEffect(() => {
     ipcRenderer.send('get-os-separator');
+
+    const storedWorktreePatterns =
+      window.localStorage.getItem('worktreePatterns');
+    if (storedWorktreePatterns) {
+      setPatterns(JSON.parse(storedWorktreePatterns));
+    }
 
     const onReceivePathPreview = (
       event: any,
@@ -75,7 +82,7 @@ export default function ChangePatternWorktree({
         <Form.Item label="Pattern" name="worktreePattern">
           <AutoComplete
             style={{ width: 360 }}
-            options={options}
+            options={patterns}
             onChange={onChange}
             placeholder="{repo}__wt__{branch}"
             allowClear

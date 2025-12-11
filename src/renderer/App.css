@@ -438,3 +438,12 @@ html[data-color-scheme="light"] .commit-row:hover {
 .commit-dropdown {
   min-width: 0 !important;
 }
+
+.naming-pattern-space {
+  width: 96%;
+  padding: 0 8px 4px;
+}
+
+.naming-pattern-space .ant-space-item:first-child {
+  flex-grow: 1;
+}
