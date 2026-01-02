@@ -64,9 +64,12 @@ const configuration: webpack.Configuration = {
       TRIAL_PERIOD_DAYS: 6,
       BACKEND_BASE_URL: 'https://worktreewise-subscriptions.vercel.app',
       FILE_WHERE_TO_STORE_SUBSCRIPTION: '.sys_cache_75h4kF.tmp',
-      DOCUMENTATION_PAGE_URL: 'https://docs.worktreewise.com',
-      CONTACT_PAGE_URL: 'https://worktreewise.com/contact',
-      PAYMENT_PAGE_URL: 'https://worktreewise.com/pricing',
+      DOCUMENTATION_PAGE_URL:
+        'https://docs.worktreewise.com/?utm_source=worktreewise-app',
+      CONTACT_PAGE_URL:
+        'https://www.worktreewise.com/contact/?utm_source=worktreewise-app',
+      PAYMENT_PAGE_URL:
+        'https://www.worktreewise.com/pricing/?utm_source=worktreewise-app',
       VERSION: '1.0.0',
     }),
 
