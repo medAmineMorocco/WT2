@@ -135,7 +135,6 @@ export default function PackInfos() {
       packInfos.pack !== 'Free Trial' &&
       !isSubscriptionModalClosable
     ) {
-      console.log('111111', packInfos, isSubscriptionModalClosable);
       return (
         <div style={{ textAlign: 'center' }}>
           <Space direction="vertical">
@@ -167,7 +166,6 @@ export default function PackInfos() {
       );
     }
     if (!isValid || isSubscriptionModalClosable) {
-      console.log('222222', packInfos, isSubscriptionModalClosable);
       return (
         <Modal
           className="trial-expired-modal"
@@ -293,7 +291,6 @@ export default function PackInfos() {
       );
     }
     if (packInfos && packInfos.pack === 'Free Trial' && isExpired) {
-      console.log('333333', packInfos, isExpired);
       return (
         <Modal
           className="trial-expired-modal"
@@ -320,7 +317,6 @@ export default function PackInfos() {
         </Modal>
       );
     }
-    console.log('44444444', packInfos);
     return (
       <Card
         actions={[
