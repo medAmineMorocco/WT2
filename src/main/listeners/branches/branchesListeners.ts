@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import branchesMainService from '../../services/branches/branchesMainService';
 
 ipcMain.on('get-branches', async function (event, directory: string) {

@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import workflowsMainService from '../../services/workflows/workflowsMainService';
 import utils from '../../utils/utils';
 import { setStopExecution } from './sharedState';

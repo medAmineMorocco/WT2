@@ -1,5 +1,5 @@
 import { ipcMain } from 'electron';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import BusinessError from '../../exceptions/BusinessError';
 

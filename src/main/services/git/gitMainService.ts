@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import BusinessError from '../../exceptions/BusinessError';
 

@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
 import { spawn } from 'child_process';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
 import utils from '../../utils/utils';
 

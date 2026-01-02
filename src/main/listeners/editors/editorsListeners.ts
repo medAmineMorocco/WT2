@@ -2,7 +2,7 @@ import { ipcMain, shell } from 'electron';
 import { exec } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import copyDirectory from '../../services/utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 import utils from '../../utils/utils';

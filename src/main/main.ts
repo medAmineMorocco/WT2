@@ -10,10 +10,10 @@
  */
 import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, dialog, screen } from 'electron';
-import log from 'electron-log';
 import fs from 'fs';
 import os from 'os';
 import * as Sentry from '@sentry/electron/main';
+import log from './utils/logger';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import './listeners/workflows/workflowsListeners';
@@ -36,13 +36,29 @@ const http = require('http');
 const findPort = require('find-open-port');
 const { conf } = require('./conf/conf');
 
+log.transports.file.level = 'info';
+if (app.isPackaged) {
+  // 🚫 No stdout in packaged Windows apps → prevents EPIPE crash
+  log.transports.console.level = false;
+}
+
 class AppUpdater {
   constructor() {
     log.transports.file.level = 'info';
+    if (app.isPackaged) {
+      // 🚫 No stdout in packaged Windows apps → prevents EPIPE crash
+      log.transports.console.level = false;
+    }
   }
 }
 
 let mainWindow: BrowserWindow | null = null;
+let pendingOpenProject: { path: string; name: string } | null = null;
+
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+  app.quit();
+}
 
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
@@ -66,8 +82,29 @@ const installExtensions = async () => {
       extensions.map((name) => installer[name]),
       forceDownload,
     )
-    .catch(console.log);
+    .catch(log.error);
 };
+
+function ensureConfig() {
+  /*
+  Windows → C:\Users\...\AppData\Roaming\WorktreeWise
+
+  macOS → ~/Library/Application Support/WorktreeWise
+
+  Linux → ~/.config/WorktreeWise
+  */
+  const configDir = app.getPath('userData');
+  const configPath = path.join(configDir, 'worktreewise.json');
+
+  if (!fs.existsSync(configPath)) {
+    const exePath = process.execPath;
+
+    fs.writeFileSync(
+      configPath,
+      JSON.stringify({ executable: exePath }, null, 2),
+    );
+  }
+}
 
 const createWindow = async () => {
   if (isDebug) {
@@ -151,7 +188,7 @@ const createWindow = async () => {
   });
 
   mainWindow.on('maximize', () => {
-    console.log('mainWindow was maximized');
+    log.info('mainWindow was maximized');
     // resolve bug on linux when click on native maximize btn
     mainWindow?.maximize();
   });
@@ -188,17 +225,73 @@ app.on('window-all-closed', () => {
   }
 });
 
+function openProjectFromPath(projectPath: string) {
+  if (!fs.existsSync(projectPath)) {
+    return;
+  }
+
+  // You decide what "open" means in WorktreeWise
+  // Example: send to renderer
+  const dirName = path.basename(projectPath);
+
+  if (
+    !mainWindow ||
+    (mainWindow && mainWindow.webContents && mainWindow.webContents.isLoading())
+  ) {
+    pendingOpenProject = { path: projectPath, name: dirName };
+    return;
+  }
+
+  mainWindow?.webContents.send('open-dir-from-outside', projectPath, dirName);
+}
+
+function extractOpenPath(argv: string[]): string | null {
+  const openIndex = argv.indexOf('--open');
+  if (openIndex === -1) return null;
+
+  for (let i = openIndex + 1; i < argv.length; i++) {
+    const arg = argv[i];
+    if (!arg.startsWith('--')) {
+      return arg;
+    }
+  }
+  return null;
+}
+
+app.on('second-instance', (event, argv) => {
+  // Windows/Linux: argv contains CLI args
+  // macOS: args are still available, but app is already running
+  if (mainWindow) {
+    if (mainWindow.isMinimized()) mainWindow.restore();
+    mainWindow.focus();
+  }
+
+  const projectPath = extractOpenPath(argv);
+  if (projectPath) {
+    openProjectFromPath(projectPath);
+  }
+});
+
 app
   .whenReady()
-  .then(() => {
-    createWindow();
+  .then(async () => {
+    ensureConfig();
+    await createWindow();
+
+    const projectPath = extractOpenPath(process.argv);
+    if (projectPath) {
+      openProjectFromPath(projectPath);
+    }
+
     app.on('activate', () => {
       // On macOS it's common to re-create a window in the app when the
       // dock icon is clicked and there are no other windows open.
-      if (mainWindow === null) createWindow();
+      if (mainWindow === null) {
+        createWindow();
+      }
     });
   })
-  .catch(console.log);
+  .catch(log.error);
 
 function checkGitRepo(repoPath: string) {
   const gitDirectory = path.join(repoPath, '.git');
@@ -255,17 +348,40 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
   }
 });
 
+ipcMain.on(
+  'choose-dir-from-outside',
+  async function (event, dirPath, dirName, keyTab) {
+    let isGitRepo = false;
+    let isWorktree = false;
+    if (checkGitRepo(dirPath)) {
+      isGitRepo = true;
+      if (await checkWorktree(dirPath)) {
+        isWorktree = true;
+      }
+      const baseDir = path.join(dirPath, '.git', conf.appPath);
+      if (!isWorktree && !fs.existsSync(path.normalize(baseDir))) {
+        fs.mkdirSync(path.normalize(baseDir));
+      }
+    }
+    event.sender.send(
+      `selected-repo-${keyTab}`,
+      false,
+      isGitRepo,
+      isWorktree,
+      dirPath,
+      dirName,
+    );
+  },
+);
+
 ipcMain.on('choose-worktrees-dir', async function (event) {
   if (mainWindow) {
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory'],
     });
-    log.info('Choosing worktrees directory');
     if (!result.canceled) {
       const [dir] = result.filePaths;
-      log.debug(`dir:  ${dir}`);
       const name = path.basename(dir);
-      log.debug(`name:  ${name}`);
       event.sender.send('selected-worktrees-dir', 0, dir, name);
     }
   }
@@ -309,4 +425,15 @@ ipcMain.on('get-os-separator', function (event) {
 ipcMain.on('check-repo-exists', function (event, repoPath) {
   const exists = fs.existsSync(path.normalize(repoPath));
   event.sender.send('is-repo-exist', exists);
+});
+
+ipcMain.on('renderer-ready', () => {
+  if (pendingOpenProject && mainWindow) {
+    mainWindow.webContents.send(
+      'open-dir-from-outside',
+      pendingOpenProject.path,
+      pendingOpenProject.name,
+    );
+    pendingOpenProject = null;
+  }
 });

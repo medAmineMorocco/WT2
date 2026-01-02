@@ -133,7 +133,80 @@ function Hello() {
     },
   );
 
+  const onChange = (newActiveKey: string) => {
+    if (isWorkflowPlaying) {
+      showNotificationOfWorkflowPlaying();
+      return;
+    }
+    setActiveKey(newActiveKey);
+    TabService.setActiveTab(newActiveKey);
+  };
+
+  const add = () => {
+    updateItems((prevItems: any[]) => {
+      // eslint-disable-next-line no-plusplus
+      const newActiveKey = `tab${newTabIndex.current++}`;
+
+      const updated = [
+        ...prevItems,
+        {
+          label: 'New Tab',
+          children: <ContentTab keyTab={newActiveKey} />,
+          key: newActiveKey,
+          icon: <FolderOutlined />,
+        },
+      ];
+
+      window.localStorage.setItem(newActiveKey, JSON.stringify({}));
+      setActiveKey(newActiveKey);
+      TabService.setActiveTab(newActiveKey);
+
+      return updated;
+    });
+  };
+
+  const remove = (targetKey: TargetKey) => {
+    if (items.length >= 2) {
+      if (isWorkflowPlaying && targetKey === activeKey) {
+        showNotificationOfWorkflowPlaying();
+        return;
+      }
+      window.localStorage.removeItem(String(targetKey));
+      const newPanes = items.filter((item: any) => item.key !== targetKey);
+      updateItems(newPanes);
+      if (targetKey === activeKey) {
+        const newActiveKey = TabService.getMaxTabKey();
+        setActiveKey(newActiveKey);
+        TabService.setActiveTab(newActiveKey);
+      }
+    }
+  };
+
+  const onEdit = (
+    targetKey: React.MouseEvent | React.KeyboardEvent | string,
+    action: 'add' | 'remove',
+  ) => {
+    if (action === 'add') {
+      add();
+    } else {
+      remove(targetKey);
+    }
+  };
+
+  const onCloseKeyboardShortcuts = () => {
+    setOpenKeyboard(false);
+  };
+
+  const openKeyboardShortcuts = () => {
+    setOpenKeyboard(true);
+  };
+
+  const openSettingsPage = () => {
+    navigate('/settings');
+  };
+
   useEffect(() => {
+
     const tabs = TabService.getTabs();
     let newItems = [];
 
@@ -207,74 +280,30 @@ function Hello() {
     updateItems(newItems);
     setActiveKey(TabService.getActiveTab());
     // do not touch
-  }, []);
 
-  const onChange = (newActiveKey: string) => {
-    if (isWorkflowPlaying) {
-      showNotificationOfWorkflowPlaying();
-      return;
-    }
-    setActiveKey(newActiveKey);
-    TabService.setActiveTab(newActiveKey);
-  };
-
-  const add = () => {
-    // eslint-disable-next-line no-plusplus
-    const newActiveKey = `tab${newTabIndex.current++}`;
-    const newPanes = [...items];
-    newPanes.push({
-      label: 'New Tab',
-      children: <ContentTab keyTab={newActiveKey} />,
-      key: newActiveKey,
-      icon: <FolderOutlined />,
-    });
-    updateItems(newPanes);
-    window.localStorage.setItem(newActiveKey, JSON.stringify({}));
-    setActiveKey(newActiveKey);
-    TabService.setActiveTab(newActiveKey);
-  };
-
-  const remove = (targetKey: TargetKey) => {
-    if (items.length >= 2) {
-      if (isWorkflowPlaying && targetKey === activeKey) {
-        showNotificationOfWorkflowPlaying();
-        return;
+    const onRepoFromOutside = (
+      event: any,
+      dirPath: string,
+      dirName: string,
+    ) => {
+      const allOpenedRepos = TabService.getTabsWithDetails();
+      const foundRepo = allOpenedRepos.find(
+        (openedRepo) => openedRepo.selectedRepoPath === dirPath,
+      );
+      if (foundRepo) {
+        setActiveKey(foundRepo.tab);
+        TabService.setActiveTab(foundRepo.tab);
+      } else {
+        add();
+        const key = TabService.getActiveTab();
+        setTimeout(() => {
+          ipcRenderer.send('choose-dir-from-outside', dirPath, dirName, key);
+        }, 500);
       }
-      window.localStorage.removeItem(String(targetKey));
-      const newPanes = items.filter((item: any) => item.key !== targetKey);
-      updateItems(newPanes);
-      if (targetKey === activeKey) {
-        const newActiveKey = TabService.getMaxTabKey();
-        setActiveKey(newActiveKey);
-        TabService.setActiveTab(newActiveKey);
-      }
-    }
-  };
+    };
 
-  const onEdit = (
-    targetKey: React.MouseEvent | React.KeyboardEvent | string,
-    action: 'add' | 'remove',
-  ) => {
-    if (action === 'add') {
-      add();
-    } else {
-      remove(targetKey);
-    }
-  };
+    ipcRenderer.on('open-dir-from-outside', onRepoFromOutside);
 
-  const onCloseKeyboardShortcuts = () => {
-    setOpenKeyboard(false);
-  };
-
-  const openKeyboardShortcuts = () => {
-    setOpenKeyboard(true);
-  };
-
-  const openSettingsPage = () => {
-    navigate('/settings');
-  };
-
-  useEffect(() => {
     ipcRenderer.on('open-settings', () => {
       openSettingsPage();
     });
@@ -287,7 +316,10 @@ function Hello() {
       onThemeChange();
     });
 
+    ipcRenderer.send('renderer-ready');
+
     return () => {
+      ipcRenderer.removeAllListeners('open-dir-from-outside');
       ipcRenderer.removeAllListeners('open-shortcuts');
       ipcRenderer.removeAllListeners('open-settings');
       ipcRenderer.removeAllListeners('switch-theme');

@@ -1,5 +1,5 @@
 import path from 'path';
-import log from 'electron-log';
+import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
 import { getStopExecution } from './sharedState';

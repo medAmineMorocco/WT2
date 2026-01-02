@@ -4,7 +4,7 @@ import os from 'os';
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
-import log from 'electron-log';
+import log from '../../utils/logger';
 
 const TRIAL_PERIOD_DAYS: number = Number(process.env.TRIAL_PERIOD_DAYS) || 5;
 const BACKEND_BASE_URL: string = process.env.BACKEND_BASE_URL || '';

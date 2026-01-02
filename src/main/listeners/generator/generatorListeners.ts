@@ -1,7 +1,7 @@
 import { dialog, ipcMain } from 'electron';
 import path from 'path';
-import log from 'electron-log';
 import { runner } from 'hygen';
+import log from '../../utils/logger';
 import generatorService from '../../services/generator/generatorMainService';
 import utils from '../../utils/utils';
 import { setStopExecution } from '../workflows/sharedState';
@@ -152,7 +152,7 @@ async function runHygen(
     cwd: dir,
     logger: {
       log: (msg: string) => {
-        console.log(msg);
+        log.info(msg);
       },
       err: (msg: string) => {
         output += `[ERR] ${msg}\n`;
