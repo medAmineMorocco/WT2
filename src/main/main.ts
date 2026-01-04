@@ -226,23 +226,24 @@ app.on('window-all-closed', () => {
 });
 
 function openProjectFromPath(projectPath: string) {
-  if (!fs.existsSync(projectPath)) {
+  const normalized = path.normalize(projectPath);
+  if (!fs.existsSync(normalized)) {
     return;
   }
 
   // You decide what "open" means in WorktreeWise
   // Example: send to renderer
-  const dirName = path.basename(projectPath);
+  const dirName = path.basename(normalized);
 
   if (
     !mainWindow ||
     (mainWindow && mainWindow.webContents && mainWindow.webContents.isLoading())
   ) {
-    pendingOpenProject = { path: projectPath, name: dirName };
+    pendingOpenProject = { path: normalized, name: dirName };
     return;
   }
 
-  mainWindow?.webContents.send('open-dir-from-outside', projectPath, dirName);
+  mainWindow?.webContents.send('open-dir-from-outside', normalized, dirName);
 }
 
 function extractOpenPath(argv: string[]): string | null {
