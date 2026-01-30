@@ -193,7 +193,7 @@
   },
   "build": {
     "productName": "WorktreeWise",
-    "appId": "org.erb.WorktreeWise",
+    "appId": "com.worktreewise.desktop",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll}",
     "files": [
@@ -203,6 +203,7 @@
     ],
     "afterSign": ".erb/scripts/notarize.js",
     "mac": {
+      "notarize": false,
       "target": [
         {
           "target": "dmg",
