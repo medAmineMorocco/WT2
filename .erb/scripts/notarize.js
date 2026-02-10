@@ -1,5 +1,10 @@
 const { notarize } = require('@electron/notarize');
+const { execFile } = require('child_process');
+const path = require('path');
+const util = require('util');
 const { build } = require('../../package.json');
+
+const execFileAsync = util.promisify(execFile);
 
 exports.default = async function notarizeMacos(context) {
   const { electronPlatformName, appOutDir } = context;
@@ -25,20 +30,22 @@ exports.default = async function notarizeMacos(context) {
   }
 
   const appName = context.packager.appInfo.productFilename;
+  const appPath = path.join(appOutDir, `${appName}.app`);
 
   console.log('>>> Notarization started');
 
-  try {
-    await notarize({
-      tool: 'notarytool',
-      appBundleId: build.appId,
-      appPath: `${appOutDir}/${appName}.app`,
-      appleId: process.env.APPLE_ID,
-      appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
-      teamId: process.env.APPLE_TEAM_ID,
-    });
-  } catch (e) {
-    console.error(e);
-    throw e;
-  }
+  await notarize({
+    tool: 'notarytool',
+    appBundleId: build.appId,
+    appPath,
+    appleId: process.env.APPLE_ID,
+    appleIdPassword: process.env.APPLE_APP_SPECIFIC_PASSWORD,
+    teamId: process.env.APPLE_TEAM_ID,
+  });
+
+  console.log('>>> Stapling app');
+
+  await execFileAsync('xcrun', ['stapler', 'staple', appPath]);
+
+  console.log('>>> Stapling done');
 };

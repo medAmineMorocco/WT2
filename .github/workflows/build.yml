@@ -92,6 +92,14 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run package:macos
 
+      - name: Staple DMG files
+        run: |
+          set -e
+          for dmg in release/build/*.dmg; do
+            xcrun stapler staple "$dmg"
+            xcrun stapler validate "$dmg"
+          done
+
       - name: Upload to GoFile
         run: |
           for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
