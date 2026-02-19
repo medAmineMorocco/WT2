@@ -1,4 +1,4 @@
-import { execSync } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import BusinessError from '../../exceptions/BusinessError';
@@ -57,6 +57,42 @@ function showLog(
     } catch (error) {
       reject(error);
     }
+  });
+}
+
+function showLogAsync(
+  directory: string,
+  branch: string | null,
+  author: string | null,
+  skip = 0,
+  limit = 40,
+): Promise<Buffer> {
+  // eslint-disable-next-line no-async-promise-executor
+  return new Promise(async (resolve, reject) => {
+    const gitCmd = await gitCommand();
+    const command = branch
+      ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`
+      : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`;
+    const git = spawn(command, {
+      cwd: directory,
+      shell: true,
+    });
+
+    const gzip = zlib.createGzip();
+
+    const chunks: Buffer[] = [];
+
+    git.stdout.pipe(gzip);
+
+    gzip.on('data', (c: any) => chunks.push(c));
+    gzip.on('end', () => resolve(Buffer.concat(chunks)));
+
+    git.on('error', reject);
+    git.on('close', (code: any) => {
+      if (code !== 0) {
+        reject(new Error('git log failed'));
+      }
+    });
   });
 }
 
@@ -352,6 +388,7 @@ async function listAuthors(directory: string) {
 
 export default {
   showLog,
+  showLogAsync,
   showDiff,
   diffStats,
   executeCommand,

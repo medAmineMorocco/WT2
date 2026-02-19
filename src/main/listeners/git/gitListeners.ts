@@ -16,7 +16,7 @@ ipcMain.on(
   ) {
     try {
       log.info('Getting git log');
-      const gitLog = await gitMainService.showLog(
+      const gitLog = await gitMainService.showLogAsync(
         directory,
         branch,
         author,
