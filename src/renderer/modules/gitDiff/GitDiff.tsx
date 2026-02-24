@@ -1,7 +1,5 @@
 import {
-  Badge,
   Button,
-  Checkbox,
   Divider,
   FloatButton,
   Grid,
@@ -66,8 +64,6 @@ const configuration: Diff2HtmlUIConfig = {
   diffMaxChanges: 5000,
 };
 
-const options = ['added', 'deleted', 'modified'];
-
 export default function GitDiff({
   isModalOpen,
   handleCancel,
@@ -83,7 +79,8 @@ export default function GitDiff({
 
   const { isDarkMode } = useItemsContext();
 
-  const [diff, setDiff] = useState<string>();
+  const diffRef = useRef<string | null>(null);
+  const [version, setVersion] = useState(0);
 
   const [diffMode, setDiffMode] = useState(false);
 
@@ -104,10 +101,6 @@ export default function GitDiff({
   );
 
   const [refs, setRefs] = useState<any>([]);
-
-  const [diffFilters, setDiffFilters] = useState<any[]>(options);
-
-  const [diffStats, setDiffStats] = useState<any>();
 
   const [leftMode, setLeftMode] = useState('worktree');
 
@@ -133,10 +126,6 @@ export default function GitDiff({
   const [matchingType, setMatchingType] = useState<string>('none');
   const [wordsThreshold, setWordsThreshold] = useState<number | null>(0.25);
   const [maxDiff, setMaxDiff] = useState<number | null>(2500);
-
-  const checkAll = options.length === diffFilters.length;
-  const indeterminate =
-    diffFilters.length > 0 && diffFilters.length < options.length;
 
   useEffect(() => {
     let serverPort = Number(window.localStorage.getItem('server-port'));
@@ -211,7 +200,8 @@ export default function GitDiff({
     const onReceiveGitDiff = (event: any, code: number, result: any) => {
       if (code === 0) {
         const decompressed = pako.ungzip(result, { to: 'string' });
-        setDiff(decompressed);
+        diffRef.current = decompressed;
+        setVersion((v: number) => v + 1); // just to refresh UI
         drawDiff(decompressed);
         setLoading(false);
         setDiffMode(true);
@@ -238,20 +228,12 @@ export default function GitDiff({
       }
     };
 
-    const onReceiveDiffStats = (event: any, code: number, result: any) => {
-      if (code === 0) {
-        setDiffStats(result);
-      }
-    };
-
     ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
     ipcRenderer.on('receive-refs', onReceiveRefs);
-    ipcRenderer.on('receive-diff-stats', onReceiveDiffStats);
 
     return () => {
       ipcRenderer.removeAllListeners('receive-git-diff');
       ipcRenderer.removeAllListeners('receive-refs');
-      ipcRenderer.removeAllListeners('receive-diff-stats');
     };
   }, [drawDiff, isDarkMode, tabRepoPath]);
 
@@ -313,47 +295,42 @@ export default function GitDiff({
     }
   };
 
-  const findDifference = () => {
-    setLoading(true);
-    ipcRenderer.send(
-      'show-git-diff',
-      val1,
-      val2,
-      diffFilters,
-      checkAll,
-      tabRepoPath,
-    );
-    ipcRenderer.send(
-      'git-diff-stats',
-      val1,
-      val2,
-      diffFilters,
-      checkAll,
-      tabRepoPath,
-    );
-  };
-
-  const onThemeChange = () => {
-    if (diff) {
-      const targetElement = document.getElementById('git-diff');
-      if (targetElement) {
-        targetElement.innerHTML = '';
-      }
-      setLoading(true);
-      setTimeout(() => {
-        drawDiff(diff);
-        setLoading(false);
-      }, 4);
-    }
-  };
-
   const clear = () => {
     const targetElement = document.getElementById('git-diff');
     if (targetElement) {
       targetElement.innerHTML = '';
     }
     setDiffMode(false);
+    diffRef.current = null;
   };
+
+  const findDifference = () => {
+    clear();
+    setLoading(true);
+    ipcRenderer.send(
+      'show-git-diff',
+      val1,
+      val2,
+      true,
+      true,
+      tabRepoPath,
+    );
+  };
+
+  const onThemeChange = () => {
+    if (diffRef.current) {
+      const targetElement = document.getElementById('git-diff');
+      if (targetElement) {
+        targetElement.innerHTML = '';
+      }
+      setLoading(true);
+      setTimeout(() => {
+        drawDiff(diffRef.current);
+        setLoading(false);
+      }, 4);
+    }
+  };
+
   const filter = () => {
     const targetElement = document.getElementById('git-diff');
     if (targetElement) {
@@ -364,26 +341,10 @@ export default function GitDiff({
       'show-git-diff',
       val1,
       val2,
-      diffFilters,
-      checkAll,
+      true,
+      true,
       tabRepoPath,
     );
-    ipcRenderer.send(
-      'git-diff-stats',
-      val1,
-      val2,
-      diffFilters,
-      checkAll,
-      tabRepoPath,
-    );
-  };
-
-  const onChangeFilter = (checkedValues: any[]) => {
-    setDiffFilters(checkedValues);
-  };
-
-  const onCheckAllChange = (e: any) => {
-    setDiffFilters(e.target.checked ? options : []);
   };
 
   useHotkeys('shift+t', onThemeChange, {
@@ -447,81 +408,6 @@ export default function GitDiff({
               <strong>Target</strong>
             )}
             {rightMode && <i> ({rightMode})</i>}
-          </div>
-          <Divider orientation="left" orientationMargin="0">
-            Filters / Statistics
-          </Divider>
-          <div style={{ display: 'flex' }}>
-            <div>
-              <div>
-                <Checkbox
-                  value="all"
-                  indeterminate={indeterminate}
-                  onChange={onCheckAllChange}
-                  checked={checkAll}
-                  style={{ marginBottom: '8px' }}
-                >
-                  All
-                </Checkbox>
-              </div>
-              <div>
-                <Checkbox.Group
-                  value={diffFilters}
-                  onChange={onChangeFilter}
-                  disabled={loading}
-                >
-                  <Space direction="vertical">
-                    <Checkbox value="added">Added</Checkbox>
-                    <Checkbox value="deleted">Deleted</Checkbox>
-                    <Checkbox value="modified">Modified</Checkbox>
-                  </Space>
-                </Checkbox.Group>
-              </div>
-            </div>
-            <div
-              style={{
-                flexGrow: 1,
-                display: 'flex',
-                flexDirection: 'column',
-                rowGap: '8px',
-                justifyContent: 'space-evenly',
-                alignItems: 'flex-end',
-                color: 'white',
-              }}
-            >
-              {!loading && diffStats && (
-                <Badge
-                  count={diffStats.all ? diffStats.all : 0}
-                  showZero
-                  color="#FAAD14"
-                  overflowCount={1000}
-                />
-              )}
-              {!loading && diffStats && (
-                <Badge
-                  count={diffStats.added ? diffStats.added : 0}
-                  showZero
-                  color="#FAAD14"
-                  overflowCount={1000}
-                />
-              )}
-              {!loading && diffStats && (
-                <Badge
-                  count={diffStats.deleted ? diffStats.deleted : 0}
-                  showZero
-                  color="#FAAD14"
-                  overflowCount={1000}
-                />
-              )}
-              {!loading && diffStats && (
-                <Badge
-                  count={diffStats.modified ? diffStats.modified : 0}
-                  showZero
-                  color="#FAAD14"
-                  overflowCount={1000}
-                />
-              )}
-            </div>
           </div>
           <Divider orientation="left" orientationMargin="0">
             Options

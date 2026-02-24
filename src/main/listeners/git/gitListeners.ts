@@ -62,37 +62,6 @@ ipcMain.on(
   },
 );
 
-ipcMain.on(
-  'git-diff-stats',
-  async function (
-    event,
-    val1: string,
-    val2: string,
-    diffFilters: string,
-    isAll: boolean,
-    directory: string,
-  ) {
-    try {
-      log.info('Getting git diff stats');
-      const stats = await gitMainService.diffStats(
-        val1,
-        val2,
-        diffFilters,
-        isAll,
-        directory,
-      );
-      event.sender.send('receive-diff-stats', 0, stats);
-    } catch (err: any) {
-      log.error(`Failed to get git diff stats: ${err.message}`);
-      event.sender.send(
-        'receive-diff-stats',
-        -1,
-        'Failed to retrieve Git diff statistics.',
-      );
-    }
-  },
-);
-
 ipcMain.on('list-branches', async function (event, directory: string) {
   try {
     log.info('Getting branches');

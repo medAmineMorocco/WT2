@@ -60,6 +60,10 @@ body {
   align-items: center;
 }
 
+.d2h-dark-color-scheme {
+  background-color: #1f1f1f !important;
+}
+
 .center-huge-icon > .ant-space-item:nth-child(1) {
   display: flex;
   align-items: center;
