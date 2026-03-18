@@ -265,7 +265,7 @@ export default function AddWorktree({
         values,
         createWorktreeMode,
         worktreeName.replaceAll('.', '-'),
-        worktreesFolder,
+        worktreesFolder + pathSeparator + getWorktreeName(),
         tabRepoPath,
       );
       setIsWorkflowPlaying(true);

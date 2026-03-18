@@ -43,7 +43,7 @@ ipcMain.on(
     }
     const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
     if (createWorktreeMode === 'existing-branch') {
-      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + sanitizedWorktreeName} ${worktreeName}`;
+      command = `${gitCmd} worktree add ${worktreesFolder} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {
       const branchNameForTag = worktreeName;
       const branchExist = await worktreeMainService.branchExists(
@@ -53,9 +53,9 @@ ipcMain.on(
       if (!branchExist) {
         await branchesMainService.add(branchNameForTag, dir);
       }
-      command = `${gitCmd} worktree add ${worktreesFolder + pathSeparator + branchNameForTag} ${branchNameForTag}`;
+      command = `${gitCmd} worktree add ${worktreesFolder} ${branchNameForTag}`;
     } else {
-      command = `${gitCmd} worktree add -b ${worktreeName} ${worktreesFolder + pathSeparator + sanitizedWorktreeName}`;
+      command = `${gitCmd} worktree add -b ${worktreeName} ${worktreesFolder}`;
     }
     const workflow = {
       name: worktreeName,
@@ -91,8 +91,7 @@ ipcMain.on(
         display: 'Create Git Worktree',
       };
 
-      const postHookPath =
-        worktreesFolder + pathSeparator + sanitizedWorktreeName;
+      const postHookPath = worktreesFolder;
       log.debug(`postHookPath: ${postHookPath}`);
 
       workflow.commands = [
