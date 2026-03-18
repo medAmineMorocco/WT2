@@ -96,12 +96,7 @@ ipcMain.on('check-trial-expiration', async function (event) {
     return;
   }
   if (packInfos.pack !== 'Free Trial') {
-    const currentVersion = process.env.VERSION;
-    if (packInfos.version === currentVersion) {
-      event.sender.send('is-expired', packInfos);
-    } else {
-      event.sender.send('is-expired', null);
-    }
+    event.sender.send('is-expired', packInfos);
   } else {
     const currentDate = new Date();
     const { startTrialDate } = packInfos;
