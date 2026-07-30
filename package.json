@@ -102,9 +102,9 @@
   },
   "dependencies": {
     "@ant-design/pro-components": "2.7.15",
-    "@sentry/electron": "^6.1.0",
+    "@sentry/electron": "6.11.0",
     "ansi-colors": "^4.1.3",
-    "antd": "5.25.0",
+    "antd": "5.29.2",
     "diff2html": "git+https://github.com/medAmineMorocco/diff2html.git",
     "dynamic-import": "^0.1.1",
     "electron-debug": "^3.2.0",
@@ -117,10 +117,10 @@
     "hugeicons-react": "0.3.0",
     "iconv-lite": "^0.6.3",
     "hygen": "^6.2.11",
-    "pako": "^2.1.0",
+    "pako": "2.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-hotkeys-hook": "^4.5.0",
+    "react-hotkeys-hook": "4.6.2",
     "react-router-dom": "^6.16.0"
   },
   "devDependencies": {
