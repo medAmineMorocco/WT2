@@ -127,8 +127,9 @@ const createWindow = async () => {
     height,
     icon: getAssetPath('icon.png'),
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      preload: app.isPackaged
+        ? path.join(__dirname, 'preload.js')
+        : path.join(__dirname, '../../.erb/dll/preload.js'),
     },
   });
 
@@ -424,7 +425,9 @@ ipcMain.on('get-os-separator', function (event) {
 });
 
 ipcMain.on('check-repo-exists', function (event, repoPath) {
+  console.log('repoPath', repoPath);
   const exists = fs.existsSync(path.normalize(repoPath));
+  console.log('exists', exists);
   event.sender.send('is-repo-exist', exists);
 });
 
