@@ -28,7 +28,6 @@ import {
   ClearOutlined,
   SisternodeOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
 import { useHotkeys } from 'react-hotkeys-hook';
@@ -152,9 +151,9 @@ export default function ListWorktrees({
   }, []);
 
   useEffect(() => {
-    ipcRenderer.send('get-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
 
-    const onOpenEditorError = (event: any, error: any) => {
+    const onOpenEditorError = (error: any) => {
       notification.error({
         message: 'Error During Web Editor Launch',
         description: error,
@@ -162,7 +161,7 @@ export default function ListWorktrees({
       });
     };
 
-    const onWorktreesFound = (event: any, code: number, result: any) => {
+    const onWorktreesFound = (code: number, result: any) => {
       log.debug(`worktrees found: ${result}`);
       setRefreshLoading(false);
       if (code === 0) {
@@ -177,7 +176,6 @@ export default function ListWorktrees({
     };
 
     const onWorktreeRemoved = (
-      event: any,
       code: number,
       result: any,
       worktreePath: string,
@@ -197,8 +195,8 @@ export default function ListWorktrees({
             api.destroy('updatable');
           }, 1500);
         }, 50);
-        ipcRenderer.send('show-git-log', tabRepoPath);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else if (result.includes('--force')) {
         setTimeout(() => {
           api.destroy('updatable');
@@ -221,7 +219,7 @@ export default function ListWorktrees({
                   placement: 'bottomLeft',
                   duration: 0.5,
                 });
-                ipcRenderer.send(
+                window.electron.ipcRenderer.send(
                   'remove-worktree-local-branch',
                   worktreeName,
                   worktreePath,
@@ -237,7 +235,7 @@ export default function ListWorktrees({
                   placement: 'bottomLeft',
                   duration: 0.5,
                 });
-                ipcRenderer.send(
+                window.electron.ipcRenderer.send(
                   'remove-worktree',
                   worktreeName,
                   worktreePath,
@@ -260,7 +258,7 @@ export default function ListWorktrees({
       }
     };
 
-    const onWorktreeRenamed = (event: any, code: number, result: any) => {
+    const onWorktreeRenamed = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'The worktree has been renamed',
@@ -269,8 +267,8 @@ export default function ListWorktrees({
         });
         setLoadingRenameWorktree(false);
         setIsModalOpen(false);
-        ipcRenderer.send('show-git-log', tabRepoPath);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         setLoadingRenameWorktree(false);
         notification.error({
@@ -282,7 +280,6 @@ export default function ListWorktrees({
     };
 
     const onWorktreeChangedLock = (
-      event: any,
       code: number,
       toLock: boolean,
       result: any,
@@ -295,7 +292,7 @@ export default function ListWorktrees({
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
           message: toLock
@@ -307,7 +304,7 @@ export default function ListWorktrees({
       }
     };
 
-    const onWorktreeMoved = (event: any, code: number, result: any) => {
+    const onWorktreeMoved = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'The worktree has been moved',
@@ -318,7 +315,7 @@ export default function ListWorktrees({
         setLoadingChangePatternWorktree(false);
         setIsMoveModalOpen(false);
         setIsChangePatternModalOpen(false);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         setLoadingMoveWorktree(false);
         setLoadingChangePatternWorktree(false);
@@ -330,10 +327,10 @@ export default function ListWorktrees({
       }
     };
 
-    const onWorktreesPruned = (event: any, code: number, result: any) => {
+    const onWorktreesPruned = (code: number, result: any) => {
       setTimeout(() => {
         setPruneLoading(false);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         if (code === 0) {
           notification.success({
             message: 'Stale worktrees have been successfully pruned',
@@ -350,22 +347,22 @@ export default function ListWorktrees({
       }, 200);
     };
 
-    ipcRenderer.on('open-editor-error', onOpenEditorError);
-    ipcRenderer.on('worktrees-found', onWorktreesFound);
-    ipcRenderer.on('worktree-removed', onWorktreeRemoved);
-    ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
-    ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
-    ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
-    ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+    window.electron.ipcRenderer.on('open-editor-error', onOpenEditorError);
+    window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
+    window.electron.ipcRenderer.on('worktree-removed', onWorktreeRemoved);
+    window.electron.ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
+    window.electron.ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
+    window.electron.ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
+    window.electron.ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
 
     return () => {
-      ipcRenderer.removeAllListeners('open-editor-error');
-      ipcRenderer.removeAllListeners('worktrees-found');
-      ipcRenderer.removeAllListeners('worktree-removed');
-      ipcRenderer.removeAllListeners('worktree-renamed');
-      ipcRenderer.removeAllListeners('worktrees-changed-lock');
-      ipcRenderer.removeAllListeners('worktree-moved-to-folder');
-      ipcRenderer.removeAllListeners('worktrees-pruned');
+      window.electron.ipcRenderer.removeAllListeners('open-editor-error');
+      window.electron.ipcRenderer.removeAllListeners('worktrees-found');
+      window.electron.ipcRenderer.removeAllListeners('worktree-removed');
+      window.electron.ipcRenderer.removeAllListeners('worktree-renamed');
+      window.electron.ipcRenderer.removeAllListeners('worktrees-changed-lock');
+      window.electron.ipcRenderer.removeAllListeners('worktree-moved-to-folder');
+      window.electron.ipcRenderer.removeAllListeners('worktrees-pruned');
     };
   }, [api, modal, tabRepoPath]);
 
@@ -375,7 +372,7 @@ export default function ListWorktrees({
 
   const onFinish = () => {
     setLoadingRenameWorktree(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'rename-worktree',
       form.getFieldValue('oldWorktreeName'),
       form.getFieldValue('newWorktreeName'),
@@ -390,7 +387,7 @@ export default function ListWorktrees({
 
   const onFinishMoveWorktree = () => {
     setLoadingMoveWorktree(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'move-worktree-to-folder',
       form.getFieldValue('nameWorktreeToMove'),
       form.getFieldValue('newWorktreePath'),
@@ -401,7 +398,7 @@ export default function ListWorktrees({
 
   const onFinishChangePatternWorktree = () => {
     setLoadingChangePatternWorktree(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'move-worktree-to-folder',
       form.getFieldValue('worktreeToChange').name,
       form.getFieldValue('worktreeToChangePatternNewPath'),
@@ -524,43 +521,43 @@ export default function ListWorktrees({
         return;
       }
       if (key === '-1') {
-        ipcRenderer.send('open-explorer', worktree.path);
+        window.electron.ipcRenderer.send('open-explorer', worktree.path);
         return;
       }
       if (key === '0-2') {
-        ipcRenderer.send('open-editor', 'Intellij', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'Intellij', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-3') {
-        ipcRenderer.send('open-editor', 'Webstorm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'Webstorm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-4') {
-        ipcRenderer.send('open-editor', 'Rider', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'Rider', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-5') {
-        ipcRenderer.send('open-editor', 'PyCharm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'PyCharm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-6') {
-        ipcRenderer.send('open-editor', 'CLion', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'CLion', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-7') {
-        ipcRenderer.send('open-editor', 'PhpStorm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'PhpStorm', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-8') {
-        ipcRenderer.send('open-editor', 'RubyMine', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'RubyMine', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-9') {
-        ipcRenderer.send('open-editor', 'GoLand', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'GoLand', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-10') {
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'open-editor',
           'Visual Studio',
           worktree.path,
@@ -569,11 +566,11 @@ export default function ListWorktrees({
         return;
       }
       if (key === '0-12') {
-        ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
         return;
       }
       if (key === '0-13') {
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'open-editor',
           'Android Studio',
           worktree.path,
@@ -582,7 +579,7 @@ export default function ListWorktrees({
         return;
       }
       if (key === '0-14') {
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'open-editor',
           'Sublime Text',
           worktree.path,
@@ -607,7 +604,7 @@ export default function ListWorktrees({
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'remove-worktree',
           worktree.name,
           worktree.path,
@@ -625,7 +622,7 @@ export default function ListWorktrees({
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'remove-worktree-local-branch',
           worktree.name,
           worktree.path,
@@ -635,7 +632,7 @@ export default function ListWorktrees({
         return;
       }
       if (key === '3') {
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'change-lock-worktree',
           false,
           worktree.path,
@@ -644,7 +641,7 @@ export default function ListWorktrees({
         return;
       }
       if (key === '4') {
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'change-lock-worktree',
           true,
           worktree.path,
@@ -685,13 +682,13 @@ export default function ListWorktrees({
   const onClickRefresh = (event: any) => {
     event.stopPropagation();
     setRefreshLoading(true);
-    ipcRenderer.send('get-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
   };
 
   const onClickPrune = (event: any) => {
     event.stopPropagation();
     setPruneLoading(true);
-    ipcRenderer.send('prune-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send('prune-worktrees', tabRepoPath);
   };
 
   useHotkeys('shift+p', onClickPrune, {

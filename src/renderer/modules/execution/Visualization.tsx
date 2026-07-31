@@ -8,7 +8,6 @@ import {
   MinusCircleOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import log from 'electron-log';
 
 const config: any = {
@@ -50,10 +49,7 @@ export default function Visualization({
   );
 
   useEffect(() => {
-    const onReceiveStatesUpdated = (
-      event: any,
-      worktreesStatesUpdated: any[],
-    ) => {
+    const onReceiveStatesUpdated = (worktreesStatesUpdated: any[]) => {
       log.debug(
         'worktreesStatesUpdated: ',
         JSON.stringify(worktreesStatesUpdated),
@@ -61,10 +57,15 @@ export default function Visualization({
       setWorktreesStates(worktreesStatesUpdated);
     };
 
-    ipcRenderer.on('workflow-started-states-updated', onReceiveStatesUpdated);
+    window.electron.ipcRenderer.on(
+      'workflow-started-states-updated',
+      onReceiveStatesUpdated,
+    );
 
     return () => {
-      ipcRenderer.removeAllListeners('workflow-started-states-updated');
+      window.electron.ipcRenderer.removeAllListeners(
+        'workflow-started-states-updated',
+      );
     };
   }, []);
 

@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 
 export default function EditWorkflow({
@@ -30,7 +29,7 @@ export default function EditWorkflow({
   }, []);
 
   useEffect(() => {
-    const onWorkflowUpdated = (event: any, code: number, result: any) => {
+    const onWorkflowUpdated = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'Your workflow changes have been applied',
@@ -39,7 +38,7 @@ export default function EditWorkflow({
         });
         setLoadingEditWorkflow(false);
         onCloseEdit();
-        ipcRenderer.send('get-workflows', tabRepoPath);
+        window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         setLoadingEditWorkflow(false);
         notification.error({
@@ -49,10 +48,10 @@ export default function EditWorkflow({
       }
     };
 
-    ipcRenderer.on('workflow-updated', onWorkflowUpdated);
+    window.electron.ipcRenderer.on('workflow-updated', onWorkflowUpdated);
 
     return () => {
-      ipcRenderer.removeAllListeners('workflow-updated');
+      window.electron.ipcRenderer.removeAllListeners('workflow-updated');
     };
   }, [notification, onCloseEdit, tabRepoPath]);
 
@@ -70,7 +69,7 @@ export default function EditWorkflow({
 
   const onFinish = (values: any) => {
     setLoadingEditWorkflow(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'update-workflow',
       workflow.name,
       values.name,

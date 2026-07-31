@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { theme, Space, Splitter, StepProps } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
-import { ipcRenderer } from 'electron';
 import LogIllustration from '../../components/LogIllustration';
 import VisualizationIllustration from '../../components/VisualizationIllustration';
 import { useItemsContext } from '../../TabsContext';
@@ -38,7 +37,6 @@ export default function Execution() {
 
   useEffect(() => {
     const onWorkflowStarted = (
-      event: any,
       executedCommands: any[],
       receivedInitialWorktreesStates: any[],
       receivedInitialLogStates: any[],
@@ -52,12 +50,12 @@ export default function Execution() {
       setIsWorkflowStarted(false);
     };
 
-    ipcRenderer.on('workflow-started', onWorkflowStarted);
-    ipcRenderer.on('workflow-stopped', onWorkflowStopped);
+    window.electron.ipcRenderer.on('workflow-started', onWorkflowStarted);
+    window.electron.ipcRenderer.on('workflow-stopped', onWorkflowStopped);
 
     return () => {
-      ipcRenderer.removeAllListeners('workflow-started');
-      ipcRenderer.removeAllListeners('workflow-stopped');
+      window.electron.ipcRenderer.removeAllListeners('workflow-started');
+      window.electron.ipcRenderer.removeAllListeners('workflow-stopped');
     };
   }, []);
 

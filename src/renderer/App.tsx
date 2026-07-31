@@ -20,7 +20,6 @@ import {
   PlusOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import * as Sentry from '@sentry/electron/renderer';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
@@ -55,7 +54,7 @@ function Hello() {
 
   useEffect(() => {
     window.localStorage.setItem('isDarkMode', isDarkMode.toString());
-    ipcRenderer.send('change-theme', isDarkMode, activeKey);
+    window.electron.ipcRenderer.send('change-theme', isDarkMode, activeKey);
     const htmlTags = document.getElementsByTagName('html');
     if (htmlTags.length > 0) {
       const htmlTag = htmlTags[0];
@@ -282,7 +281,6 @@ function Hello() {
     // do not touch
 
     const onRepoFromOutside = (
-      event: any,
       dirPath: string,
       dirName: string,
     ) => {
@@ -297,32 +295,32 @@ function Hello() {
         add();
         const key = TabService.getActiveTab();
         setTimeout(() => {
-          ipcRenderer.send('choose-dir-from-outside', dirPath, dirName, key);
+          window.electron.ipcRenderer.send('choose-dir-from-outside', dirPath, dirName, key);
         }, 500);
       }
     };
 
-    ipcRenderer.on('open-dir-from-outside', onRepoFromOutside);
+    window.electron.ipcRenderer.on('open-dir-from-outside', onRepoFromOutside);
 
-    ipcRenderer.on('open-settings', () => {
+    window.electron.ipcRenderer.on('open-settings', () => {
       openSettingsPage();
     });
 
-    ipcRenderer.on('open-shortcuts', () => {
+    window.electron.ipcRenderer.on('open-shortcuts', () => {
       openKeyboardShortcuts();
     });
 
-    ipcRenderer.on('switch-theme', () => {
+    window.electron.ipcRenderer.on('switch-theme', () => {
       onThemeChange();
     });
 
-    ipcRenderer.send('renderer-ready');
+    window.electron.ipcRenderer.send('renderer-ready');
 
     return () => {
-      ipcRenderer.removeAllListeners('open-dir-from-outside');
-      ipcRenderer.removeAllListeners('open-shortcuts');
-      ipcRenderer.removeAllListeners('open-settings');
-      ipcRenderer.removeAllListeners('switch-theme');
+      window.electron.ipcRenderer.removeAllListeners('open-dir-from-outside');
+      window.electron.ipcRenderer.removeAllListeners('open-shortcuts');
+      window.electron.ipcRenderer.removeAllListeners('open-settings');
+      window.electron.ipcRenderer.removeAllListeners('switch-theme');
     };
   }, []);
 

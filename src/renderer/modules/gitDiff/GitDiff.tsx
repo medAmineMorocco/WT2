@@ -21,7 +21,6 @@ import {
   TagOutlined,
   SwapOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import React, {
   useCallback,
   useEffect,
@@ -196,8 +195,8 @@ export default function GitDiff({
   }, [screens]);
 
   useEffect(() => {
-    ipcRenderer.send('list-refs', tabRepoPath);
-    const onReceiveGitDiff = (event: any, code: number, result: any) => {
+    window.electron.ipcRenderer.send('list-refs', tabRepoPath);
+    const onReceiveGitDiff = (code: number, result: any) => {
       if (code === 0) {
         const decompressed = pako.ungzip(result, { to: 'string' });
         diffRef.current = decompressed;
@@ -215,7 +214,7 @@ export default function GitDiff({
       }
     };
 
-    const onReceiveRefs = (event: any, code: number, result: any) => {
+    const onReceiveRefs = (code: number, result: any) => {
       if (code === 0) {
         setRefs(result);
         setLeftOptions(mapToSelectOptions(result.worktrees));
@@ -228,12 +227,12 @@ export default function GitDiff({
       }
     };
 
-    ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
-    ipcRenderer.on('receive-refs', onReceiveRefs);
+    window.electron.ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
+    window.electron.ipcRenderer.on('receive-refs', onReceiveRefs);
 
     return () => {
-      ipcRenderer.removeAllListeners('receive-git-diff');
-      ipcRenderer.removeAllListeners('receive-refs');
+      window.electron.ipcRenderer.removeAllListeners('receive-git-diff');
+      window.electron.ipcRenderer.removeAllListeners('receive-refs');
     };
   }, [drawDiff, isDarkMode, tabRepoPath]);
 
@@ -307,7 +306,7 @@ export default function GitDiff({
   const findDifference = () => {
     clear();
     setLoading(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'show-git-diff',
       val1,
       val2,
@@ -337,7 +336,7 @@ export default function GitDiff({
       targetElement.innerHTML = '';
     }
     setLoading(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'show-git-diff',
       val1,
       val2,

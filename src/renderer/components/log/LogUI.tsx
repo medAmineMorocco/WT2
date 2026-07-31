@@ -7,7 +7,6 @@ import {
   Tag,
   Tooltip,
 } from 'antd';
-import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo } from 'react';
 import log from 'electron-log';
 import { LoadingOutlined } from '@ant-design/icons';
@@ -62,13 +61,13 @@ export default function LogUI({
       : '{repo}__wt__{branch}';
 
   useEffect(() => {
-    const onWorktreeCreated = (event: any, code: number, result: any) => {
+    const onWorktreeCreated = (code: number, result: any) => {
       log.debug(
         `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
       );
       if (code === 0) {
-        ipcRenderer.send('show-git-log', tabRepoPath);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         setTimeout(() => {
           api.success({
             key: 'updatable',
@@ -89,10 +88,10 @@ export default function LogUI({
       }
     };
 
-    ipcRenderer.on('worktree-from-commit-created', onWorktreeCreated);
+    window.electron.ipcRenderer.on('worktree-from-commit-created', onWorktreeCreated);
 
     return () => {
-      ipcRenderer.removeAllListeners('worktree-from-commit-created');
+      window.electron.ipcRenderer.removeAllListeners('worktree-from-commit-created');
     };
   }, [api, tabRepoPath]);
 
@@ -115,7 +114,7 @@ export default function LogUI({
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send(
+        window.electron.ipcRenderer.send(
           'create-worktree-from-commit',
           hash,
           worktreesPath,

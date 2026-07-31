@@ -1,6 +1,5 @@
 import { Modal } from 'antd';
 import React, { useEffect, useState } from 'react';
-import { ipcRenderer } from 'electron';
 import Terminal, {
   ColorMode,
   TerminalInput,
@@ -38,7 +37,7 @@ export default function TerminalInteractive({
       if (event.ctrlKey && event.key === 'l') {
         setLineData([]);
       } else if (event.ctrlKey && event.key === 'c') {
-        ipcRenderer.send('stop-command');
+        window.electron.ipcRenderer.send('stop-command');
       }
     };
 
@@ -65,7 +64,7 @@ export default function TerminalInteractive({
   }
 
   useEffect(() => {
-    const onReceiveCommandOutput = (event: any, code: number, result: any) => {
+    const onReceiveCommandOutput = (code: number, result: any) => {
       const removedAnsi = removeANSI(result);
       setLineData((prevLineData) => {
         const updatedLineData = [...prevLineData];
@@ -76,16 +75,16 @@ export default function TerminalInteractive({
       });
     };
 
-    const onCommandFinished = (event: any) => {
+    const onCommandFinished = () => {
       setCommandFinished(true);
     };
 
-    ipcRenderer.on('command-receive-data', onReceiveCommandOutput);
-    ipcRenderer.on('command-finished', onCommandFinished);
+    window.electron.ipcRenderer.on('command-receive-data', onReceiveCommandOutput);
+    window.electron.ipcRenderer.on('command-finished', onCommandFinished);
 
     return () => {
-      ipcRenderer.removeAllListeners('command-receive-data');
-      ipcRenderer.removeAllListeners('command-finished');
+      window.electron.ipcRenderer.removeAllListeners('command-receive-data');
+      window.electron.ipcRenderer.removeAllListeners('command-finished');
     };
   }, [lineData, repository]);
 
@@ -96,7 +95,7 @@ export default function TerminalInteractive({
       ld = [];
     } else if (input) {
       setCommandFinished(false);
-      ipcRenderer.send('execute-command', input, repository);
+      window.electron.ipcRenderer.send('execute-command', input, repository);
     }
     setLineData(ld);
   }

@@ -17,7 +17,6 @@ import {
 } from 'antd';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ClearOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 
 const items: any[] = [
@@ -189,7 +188,7 @@ export default function AddGenerator({
       setFiles(generatorToEdit.files);
       setParameters(generatorToEdit.parameters);
     }
-    const onGeneratorCreated = (event: any, code: number, result: any) => {
+    const onGeneratorCreated = (code: number, result: any) => {
       if (code === 0) {
         setLoading(false);
         generatorForm.resetFields();
@@ -212,7 +211,7 @@ export default function AddGenerator({
       }
     };
 
-    const onGeneratorUpdated = (event: any, code: number, result: any) => {
+    const onGeneratorUpdated = (code: number, result: any) => {
       if (code === 0) {
         setLoading(false);
         notification.success({
@@ -230,12 +229,12 @@ export default function AddGenerator({
       }
     };
 
-    ipcRenderer.on('generator-created', onGeneratorCreated);
-    ipcRenderer.on('generator-updated', onGeneratorUpdated);
+    window.electron.ipcRenderer.on('generator-created', onGeneratorCreated);
+    window.electron.ipcRenderer.on('generator-updated', onGeneratorUpdated);
 
     return () => {
-      ipcRenderer.removeAllListeners('generator-created');
-      ipcRenderer.removeAllListeners('generator-updated');
+      window.electron.ipcRenderer.removeAllListeners('generator-created');
+      window.electron.ipcRenderer.removeAllListeners('generator-updated');
     };
   }, []);
 
@@ -312,14 +311,14 @@ export default function AddGenerator({
       parameters,
     };
     if (generatorToEdit) {
-      ipcRenderer.send(
+      window.electron.ipcRenderer.send(
         'update-generator',
         generatorToEdit.generatorName,
         generator,
         tabRepoPath,
       );
     } else {
-      ipcRenderer.send('add-generator', generator, tabRepoPath);
+      window.electron.ipcRenderer.send('add-generator', generator, tabRepoPath);
     }
   };
 

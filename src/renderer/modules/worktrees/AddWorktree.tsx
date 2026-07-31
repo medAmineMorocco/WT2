@@ -16,7 +16,6 @@ import {
   StepBackwardOutlined,
   StepForwardOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import log from 'electron-log';
 import { useNavigate } from 'react-router-dom';
@@ -71,13 +70,13 @@ export default function AddWorktree({
   useEffect(() => {
     const activeTabValue = TabService.getTab(activeTab);
     if (activeTabValue.worktreesPath) {
-      ipcRenderer.send('get-worktrees-separator', tabRepoPath);
+      window.electron.ipcRenderer.send('get-worktrees-separator', tabRepoPath);
       setWorktreesFolder(activeTabValue.worktreesPath);
     } else {
-      ipcRenderer.send('get-worktrees-folder', tabRepoPath);
+      window.electron.ipcRenderer.send('get-worktrees-folder', tabRepoPath);
     }
 
-    const onWorktreeCreated = (event: any, code: number, result: any) => {
+    const onWorktreeCreated = (code: number, result: any) => {
       log.debug(
         `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
       );
@@ -89,8 +88,8 @@ export default function AddWorktree({
           duration: 1,
         });
         setLoadingCreateWorktree(false);
-        ipcRenderer.send('show-git-log', tabRepoPath);
-        ipcRenderer.send('get-worktrees', tabRepoPath);
+        window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         handleCancel();
       } else {
         setLoadingCreateWorktree(false);
@@ -102,7 +101,7 @@ export default function AddWorktree({
       }
     };
 
-    const onBranchesFound = (event: any, code: number, result: any) => {
+    const onBranchesFound = (code: number, result: any) => {
       if (code === 0) {
         setBranches(
           JSON.parse(result).map((branch: string) => {
@@ -115,7 +114,7 @@ export default function AddWorktree({
       }
     };
 
-    const onTagsFound = (event: any, code: number, result: any) => {
+    const onTagsFound = (code: number, result: any) => {
       if (code === 0) {
         setTags(
           result.map((branch: string) => {
@@ -128,7 +127,7 @@ export default function AddWorktree({
       }
     };
 
-    const onWorktreesFolderFound = (event: any, code: number, result: any) => {
+    const onWorktreesFolderFound = (code: number, result: any) => {
       if (code === 0) {
         const { folder, separator } = JSON.parse(result);
         setWorktreesFolder(folder);
@@ -137,7 +136,6 @@ export default function AddWorktree({
     };
 
     const onWorktreesSeparatorFound = (
-      event: any,
       code: number,
       result: any,
     ) => {
@@ -147,7 +145,6 @@ export default function AddWorktree({
     };
 
     const onSelectWorktreesDir = (
-      event: any,
       code: number,
       dirPath: string,
     ) => {
@@ -156,20 +153,20 @@ export default function AddWorktree({
       }
     };
 
-    ipcRenderer.on('worktree-created', onWorktreeCreated);
-    ipcRenderer.on('receive-branches', onBranchesFound);
-    ipcRenderer.on('receive-tags', onTagsFound);
-    ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
-    ipcRenderer.on('worktrees-separator-found', onWorktreesSeparatorFound);
-    ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
+    window.electron.ipcRenderer.on('worktree-created', onWorktreeCreated);
+    window.electron.ipcRenderer.on('receive-branches', onBranchesFound);
+    window.electron.ipcRenderer.on('receive-tags', onTagsFound);
+    window.electron.ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
+    window.electron.ipcRenderer.on('worktrees-separator-found', onWorktreesSeparatorFound);
+    window.electron.ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
 
     return () => {
-      ipcRenderer.removeAllListeners('worktree-created');
-      ipcRenderer.removeAllListeners('receive-branches');
-      ipcRenderer.removeAllListeners('receive-tags');
-      ipcRenderer.removeAllListeners('worktrees-folder-found');
-      ipcRenderer.removeAllListeners('worktrees-separator-found');
-      ipcRenderer.removeAllListeners('selected-worktrees-dir');
+      window.electron.ipcRenderer.removeAllListeners('worktree-created');
+      window.electron.ipcRenderer.removeAllListeners('receive-branches');
+      window.electron.ipcRenderer.removeAllListeners('receive-tags');
+      window.electron.ipcRenderer.removeAllListeners('worktrees-folder-found');
+      window.electron.ipcRenderer.removeAllListeners('worktrees-separator-found');
+      window.electron.ipcRenderer.removeAllListeners('selected-worktrees-dir');
     };
     // do not touch
   }, [form, notification, tabRepoPath]);
@@ -193,10 +190,10 @@ export default function AddWorktree({
 
   useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {
-      ipcRenderer.send('list-branches', tabRepoPath);
+      window.electron.ipcRenderer.send('list-branches', tabRepoPath);
     }
     if (createWorktreeMode === 'existing-tag' && isModalOpen) {
-      ipcRenderer.send('list-tags', tabRepoPath);
+      window.electron.ipcRenderer.send('list-tags', tabRepoPath);
     }
   }, [activeTab, createWorktreeMode, form, isModalOpen, tabRepoPath]);
 
@@ -251,7 +248,7 @@ export default function AddWorktree({
       log.debug('== create-worktree ==');
 
       setLoadingCreateWorktree(true);
-      ipcRenderer.send(
+      window.electron.ipcRenderer.send(
         'create-worktree',
         worktreeName,
         worktreesFolder + pathSeparator + getWorktreeName(),
@@ -260,7 +257,7 @@ export default function AddWorktree({
       );
     } else {
       log.debug('== create-worktree-workflow ==');
-      ipcRenderer.send(
+      window.electron.ipcRenderer.send(
         'create-worktree-workflow',
         values,
         createWorktreeMode,
@@ -284,7 +281,7 @@ export default function AddWorktree({
   };
 
   const chooseWorktreesDir = () => {
-    ipcRenderer.send('choose-worktrees-dir');
+    window.electron.ipcRenderer.send('choose-worktrees-dir');
   };
 
   const onSelectTagChange = () => {
