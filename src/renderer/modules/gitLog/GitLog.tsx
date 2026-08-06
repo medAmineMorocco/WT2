@@ -58,22 +58,20 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       skipReceived: number,
     ) => {
       if (code === 0) {
-        setTimeout(() => {
-          setLoading(false);
-          const decompressed = pako.ungzip(result, { to: 'string' });
-          const newCommits = decompressed.split('\n');
+        setLoading(false);
+        const decompressed = pako.ungzip(result, { to: 'string' });
+        const newCommits = decompressed.split('\n');
 
-          if (newCommits.length < LIMIT) {
-            setHasMore(false);
-          }
+        if (newCommits.length < LIMIT) {
+          setHasMore(false);
+        }
 
-          setLoadingMore(false);
-          if (skipReceived === 0) {
-            setCommits([...newCommits]);
-          } else {
-            setCommits((prev) => [...prev, ...newCommits]);
-          }
-        }, 4);
+        setLoadingMore(false);
+        if (skipReceived === 0) {
+          setCommits([...newCommits]);
+        } else {
+          setCommits((prev) => [...prev, ...newCommits]);
+        }
       } else {
         setLoading(false);
         notification.error({

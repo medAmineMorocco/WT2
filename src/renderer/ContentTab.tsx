@@ -81,12 +81,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
         setIsFirstRender(false);
-      }, 900);
+      }, 20);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
       setTimeout(() => {
         setIsFirstRender(false);
-      }, 900);
+      }, 20);
     }
     // do not touch
   }, [isRepoSelected]);
