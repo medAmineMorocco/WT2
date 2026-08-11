@@ -62,6 +62,55 @@ ipcMain.on(
   },
 );
 
+ipcMain.on(
+  'get-commit-changed-files',
+  async function (event, requestId: number, commit: string, directory: string) {
+    try {
+      const result = await gitMainService.getCommitChangedFiles(
+        commit,
+        directory,
+      );
+      event.sender.send('receive-commit-changed-files', 0, result, requestId);
+    } catch (err: any) {
+      log.error(`Failed to get changed files for ${commit}: ${err.message}`);
+      event.sender.send(
+        'receive-commit-changed-files',
+        -1,
+        'Failed to load the files changed by this commit.',
+        requestId,
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'get-commit-file-diff',
+  async function (
+    event,
+    requestId: number,
+    commit: string,
+    filePath: string,
+    directory: string,
+  ) {
+    try {
+      const result = await gitMainService.getCommitFileDiff(
+        commit,
+        filePath,
+        directory,
+      );
+      event.sender.send('receive-commit-file-diff', 0, result, requestId);
+    } catch (err: any) {
+      log.error(`Failed to get ${filePath} diff for ${commit}: ${err.message}`);
+      event.sender.send(
+        'receive-commit-file-diff',
+        -1,
+        'Failed to load the selected file diff.',
+        requestId,
+      );
+    }
+  },
+);
+
 ipcMain.on('list-branches', async function (event, directory: string) {
   try {
     log.info('Getting branches');

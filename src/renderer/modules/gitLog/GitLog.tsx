@@ -13,6 +13,9 @@ import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
+import CommitDetailsPanel from './CommitDetailsPanel';
+import CommitFileDiffPane from './CommitFileDiffPane';
+import { CommitChangedFile } from '../../../shared/gitCommit';
 
 const LIMIT = 40;
 
@@ -27,6 +30,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [authors, setAuthors] = useState<any[]>([]);
 
   const [commits, setCommits] = useState<string[]>([]);
+  const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
+  const [selectedCommitFile, setSelectedCommitFile] =
+    useState<CommitChangedFile | null>(null);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -199,14 +205,15 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         <strong>Git Log</strong>
       </Space>
       <div
+        className="git-log-body"
         style={{
           width: '100%',
-          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 96px)',
+          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 12px)',
           padding: '12px',
           paddingLeft: 0,
         }}
       >
-        <div style={{ marginBottom: '16px' }}>
+        <div className="git-log-controls" style={{ marginBottom: '16px' }}>
           <Space>
             <Select
               ref={selectWorktreeRef}
@@ -281,24 +288,55 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           </div>
         )}
         {!loading && (
-          <LogUI
-            commits={commits}
-            isAuthorEnabled={isAuthorEnabled}
-            isCommitDateEnabled={isCommitDateEnabled}
-            isHashEnabled={isHashEnabled}
-            shouldHide={shouldHide}
-            isRefsEnabled={isRefsEnabled}
-          />
-        )}
-        {hasMore && !loading && (
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <Button
-              type="link"
-              onClick={handleLoadMore}
-              icon={loadingMore ? <LoadingOutlined /> : null}
-            >
-              {!loadingMore && <span>Load More</span>}
-            </Button>
+          <div className="git-log-workspace">
+            <div className="git-log-commits-pane">
+              {selectedCommit && selectedCommitFile ? (
+                <CommitFileDiffPane
+                  commit={selectedCommit}
+                  file={selectedCommitFile}
+                  repositoryPath={tabRepoPath}
+                  onClose={() => setSelectedCommitFile(null)}
+                />
+              ) : (
+                <LogUI
+                  commits={commits}
+                  isAuthorEnabled={isAuthorEnabled}
+                  isCommitDateEnabled={isCommitDateEnabled}
+                  isHashEnabled={isHashEnabled}
+                  shouldHide={shouldHide || Boolean(selectedCommit)}
+                  isRefsEnabled={isRefsEnabled}
+                  selectedCommit={selectedCommit}
+                  hasDetailsPanel={Boolean(selectedCommit)}
+                  onCommitSelect={(hash) => {
+                    setSelectedCommit(hash);
+                    setSelectedCommitFile(null);
+                  }}
+                />
+              )}
+              {hasMore && !selectedCommitFile && (
+                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                  <Button
+                    type="link"
+                    onClick={handleLoadMore}
+                    icon={loadingMore ? <LoadingOutlined /> : null}
+                  >
+                    {!loadingMore && <span>Load More</span>}
+                  </Button>
+                </div>
+              )}
+            </div>
+            {selectedCommit && (
+              <CommitDetailsPanel
+                commit={selectedCommit}
+                repositoryPath={tabRepoPath}
+                selectedFile={selectedCommitFile}
+                onFileSelect={setSelectedCommitFile}
+                onClose={() => {
+                  setSelectedCommit(null);
+                  setSelectedCommitFile(null);
+                }}
+              />
+            )}
           </div>
         )}
       </div>

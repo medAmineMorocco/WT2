@@ -38,6 +38,9 @@ export default function LogUI({
   isHashEnabled,
   isRefsEnabled,
   shouldHide,
+  selectedCommit,
+  onCommitSelect,
+  hasDetailsPanel = false,
 }: {
   commits: string[];
   isAuthorEnabled: boolean;
@@ -45,6 +48,9 @@ export default function LogUI({
   isHashEnabled: boolean;
   isRefsEnabled: boolean;
   shouldHide: boolean;
+  selectedCommit?: string | null;
+  onCommitSelect?: (hash: string) => void;
+  hasDetailsPanel?: boolean;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -88,10 +94,15 @@ export default function LogUI({
       }
     };
 
-    window.electron.ipcRenderer.on('worktree-from-commit-created', onWorktreeCreated);
+    window.electron.ipcRenderer.on(
+      'worktree-from-commit-created',
+      onWorktreeCreated,
+    );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('worktree-from-commit-created');
+      window.electron.ipcRenderer.removeAllListeners(
+        'worktree-from-commit-created',
+      );
     };
   }, [api, tabRepoPath]);
 
@@ -178,8 +189,16 @@ export default function LogUI({
             placement="bottom"
           >
             {/* eslint-disable-next-line jsx-a11y/anchor-is-valid,jsx-a11y/no-static-element-interactions,jsx-a11y/click-events-have-key-events */}
-            <a onClick={(e) => e.preventDefault()}>
-              <div className="commit-row" style={{ position: 'relative' }}>
+            <a
+              onClick={(event) => {
+                event.preventDefault();
+                onCommitSelect?.(hash);
+              }}
+            >
+              <div
+                className={`commit-row ${selectedCommit === hash ? 'selected' : ''}`}
+                style={{ position: 'relative' }}
+              >
                 <span>{parts[1]}</span>
                 <Tooltip
                   title={author}
@@ -253,7 +272,11 @@ export default function LogUI({
         );
       })}
       <FloatButton.BackTop
-        style={{ insetInlineEnd: '36px' }}
+        style={{
+          insetInlineEnd: hasDetailsPanel
+            ? 'calc(clamp(300px, 26vw, 400px) + 26px)'
+            : '36px',
+        }}
         target={() => document.querySelector('.log-container')}
       />
     </div>

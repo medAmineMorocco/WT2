@@ -2,6 +2,10 @@ import { execSync, spawn } from 'child_process';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import BusinessError from '../../exceptions/BusinessError';
+import {
+  CommitChangedFile,
+  CommitChangedFilesResult,
+} from '../../../shared/gitCommit';
 
 const zlib = require('zlib');
 
@@ -167,6 +171,118 @@ async function showDiff(
       if (code !== 0) {
         reject(new Error('git diff failed'));
       }
+    });
+  });
+}
+
+async function runGit(directory: string, args: string[]): Promise<Buffer> {
+  const gitCmd = await gitCommand();
+  return new Promise((resolve, reject) => {
+    const child = spawn(gitCmd, args, {
+      cwd: directory,
+      shell: false,
+      windowsHide: true,
+    });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    child.stdout.on('data', (chunk) => stdout.push(Buffer.from(chunk)));
+    child.stderr.on('data', (chunk) => stderr.push(Buffer.from(chunk)));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) {
+        resolve(Buffer.concat(stdout));
+      } else {
+        reject(
+          new Error(
+            Buffer.concat(stderr).toString().trim() ||
+              `Git exited with code ${code}.`,
+          ),
+        );
+      }
+    });
+  });
+}
+
+async function getCommitChangedFiles(
+  commit: string,
+  directory: string,
+): Promise<CommitChangedFilesResult> {
+  const [numstatOutput, statusOutput] = await Promise.all([
+    runGit(directory, [
+      'show',
+      '--format=',
+      '--first-parent',
+      '--no-renames',
+      '--numstat',
+      '-z',
+      commit,
+    ]),
+    runGit(directory, [
+      'show',
+      '--format=',
+      '--first-parent',
+      '--no-renames',
+      '--name-status',
+      '-z',
+      commit,
+    ]),
+  ]);
+  const statuses = new Map<string, string>();
+  const statusParts = statusOutput.toString('utf8').split('\0').filter(Boolean);
+  for (let index = 0; index + 1 < statusParts.length; index += 2) {
+    statuses.set(statusParts[index + 1], statusParts[index]);
+  }
+  const files: CommitChangedFile[] = numstatOutput
+    .toString('utf8')
+    .split('\0')
+    .filter(Boolean)
+    .flatMap((entry) => {
+      const firstTab = entry.indexOf('\t');
+      const secondTab = entry.indexOf('\t', firstTab + 1);
+      if (firstTab < 0 || secondTab < 0) return [];
+      const additionsText = entry.slice(0, firstTab);
+      const deletionsText = entry.slice(firstTab + 1, secondTab);
+      const filePath = entry.slice(secondTab + 1);
+      const binary = additionsText === '-' || deletionsText === '-';
+      return [
+        {
+          path: filePath,
+          status: statuses.get(filePath) || 'M',
+          additions: binary ? null : Number(additionsText),
+          deletions: binary ? null : Number(deletionsText),
+          binary,
+        },
+      ];
+    });
+  return {
+    files,
+    additions: files.reduce((total, file) => total + (file.additions || 0), 0),
+    deletions: files.reduce((total, file) => total + (file.deletions || 0), 0),
+  };
+}
+
+async function getCommitFileDiff(
+  commit: string,
+  filePath: string,
+  directory: string,
+): Promise<Buffer> {
+  const patch = await runGit(directory, [
+    'show',
+    '--format=',
+    '--first-parent',
+    '--no-ext-diff',
+    '--no-renames',
+    '--no-color',
+    '--diff-algorithm=histogram',
+    '-U3',
+    commit,
+    '--',
+    filePath,
+  ]);
+  return new Promise((resolve, reject) => {
+    zlib.gzip(patch, (error: Error | null, compressed: Buffer) => {
+      if (error) reject(error);
+      else resolve(compressed);
     });
   });
 }
@@ -351,4 +467,6 @@ export default {
   listRefs,
   gitCommand,
   getShell,
+  getCommitChangedFiles,
+  getCommitFileDiff,
 };

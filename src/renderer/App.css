@@ -451,6 +451,207 @@ html[data-color-scheme='light'] .commit-row:hover {
   cursor: pointer;
 }
 
+.commit-row.selected,
+html[data-color-scheme='light'] .commit-row.selected,
+html[data-color-scheme='dark'] .commit-row.selected {
+  background-color: #1677ff;
+  color: white !important;
+}
+
+.commit-row.selected .commit-msg {
+  color: white !important;
+}
+
+.git-log-body {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.git-log-controls {
+  flex: 0 0 auto;
+}
+
+.git-log-workspace {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  height: auto;
+  min-height: 0;
+}
+
+.git-log-commits-pane {
+  display: flex;
+  flex: 1 1 55%;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.git-log-commits-pane .log-container {
+  flex: 1;
+  height: auto !important;
+  min-height: 0;
+}
+
+.commit-details-panel {
+  display: flex;
+  flex: 0 0 clamp(300px, 26vw, 400px);
+  flex-direction: column;
+  min-width: 300px;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container, transparent);
+}
+
+.commit-details-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.commit-diff-totals,
+.commit-file-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+}
+
+.diff-additions {
+  color: #389e0d;
+}
+
+.diff-deletions {
+  color: #cf1322;
+}
+
+.commit-files-list {
+  flex: 1;
+  min-height: 116px;
+  overflow-y: auto;
+}
+
+.commit-file-diff > .ant-spin {
+  margin: 28px auto;
+}
+
+.commit-files-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+}
+
+.commit-file-row {
+  display: grid;
+  grid-template-columns: 20px minmax(100px, 1fr) auto auto;
+  align-items: center;
+  width: 100%;
+  min-height: 38px;
+  padding: 5px 10px;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+  background: transparent;
+  cursor: pointer;
+}
+
+.commit-file-row:hover,
+.commit-file-row.selected {
+  background: color-mix(in srgb, #1677ff 13%, transparent);
+}
+
+.commit-file-path {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-file-binary {
+  color: #8c8c8c;
+  font-size: 12px;
+}
+
+.commit-file-diff {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 10px;
+}
+
+.commit-file-diff-content {
+  width: 100%;
+  min-width: 0;
+}
+
+.git-log-file-diff-pane {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+  border-radius: 8px;
+}
+
+.git-log-file-diff-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+}
+
+.git-log-file-diff-header .ant-typography {
+  min-width: 0;
+}
+
+.git-log-file-diff-body {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 10px;
+}
+
+.git-log-file-diff-loading {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.commit-file-diff-content .d2h-file-wrapper {
+  margin-bottom: 0;
+}
+
+@media (max-width: 900px) {
+  .commit-details-panel {
+    flex-basis: 300px;
+    min-width: 280px;
+  }
+}
+
 .commit-dropdown {
   min-width: 0 !important;
 }
