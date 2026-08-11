@@ -7,6 +7,7 @@ import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
 import playWorkflow from './processesListeners';
+import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
@@ -32,6 +33,7 @@ ipcMain.on(
     worktreeName,
     worktreesFolder,
     dir,
+    environmentIsolation?: EnvironmentIsolationConfig,
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -69,6 +71,14 @@ ipcMain.on(
         },
       ],
     } as any;
+    if (!values.preHook && !values.postHook) {
+      workflow.command = {
+        key: '0',
+        value: command,
+        worktreeToCreate: true,
+        display: 'Create Git Worktree',
+      };
+    }
     if (values.preHook) {
       workflow.command = {
         key: '0',
@@ -120,6 +130,24 @@ ipcMain.on(
           worktreeName,
         },
       ];
+    }
+    if (environmentIsolation) {
+      const environmentCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Generate isolated environment sources',
+        display: 'Generate isolated environment sources',
+        environmentIsolation: {
+          config: environmentIsolation,
+          projectPath: dir,
+          worktreePath: worktreesFolder,
+          worktreeName,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = environmentCommand;
+      } else {
+        workflow.commands.push(environmentCommand);
+      }
     }
     await playWorkflow(event, workflow, dir);
   },

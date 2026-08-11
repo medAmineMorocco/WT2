@@ -4,6 +4,7 @@ import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
 import { getStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
+import environmentIsolationService from '../../services/environment/environmentIsolationService';
 
 const execa = require('execa');
 
@@ -50,6 +51,7 @@ async function getNewlogStates(
         item.data[command.key] = {
           command: command.display ? command.display : command.value,
           output: utils.setEncoding(logOutput, storedEncoding),
+          suggestedCommands: command.suggestedCommands || [],
         };
         if (status) {
           item.data[command.key].status = status;
@@ -73,6 +75,49 @@ async function executeCommand(
 ) {
   log.info(`command to execute: ${command.value}`);
   const storedEncoding = (await utils.getStorageItem('encoding')) || 'utf-8';
+
+  if (command.environmentIsolation) {
+    const { projectPath, worktreePath, worktreeName, config } =
+      command.environmentIsolation;
+    try {
+      const result =
+        await environmentIsolationService.generateIsolatedEnvironmentSources(
+          {
+            projectPath,
+            worktreePath,
+            worktreeName:
+              environmentIsolationService.sanitizeWorktreeName(worktreeName),
+          },
+          config,
+        );
+      command.suggestedCommands = result.suggestedCommands;
+      const generatedOutput = result.generatedSources
+        .map(
+          (source) =>
+            `Generated ${source.relativePath}\n\n${source.displayContents}`,
+        )
+        .join('\n\n');
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        generatedOutput,
+        storedEncoding,
+        command,
+        'finished',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      return 'finish command';
+    } catch (err: any) {
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        Buffer.from(err.message),
+        storedEncoding,
+        command,
+        'error',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      throw err;
+    }
+  }
 
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {

@@ -96,6 +96,35 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
               <div>
                 <TerminalUI output={commandOutput} />
               </div>
+              {commandLog.suggestedCommands?.length > 0 && (
+                <div style={{ marginTop: 12 }}>
+                  <Typography.Title level={5}>
+                    Suggested commands
+                  </Typography.Title>
+                  {commandLog.suggestedCommands.map((suggestion: any) => (
+                    <div key={suggestion.id} style={{ marginBottom: 10 }}>
+                      <Typography.Text strong>
+                        {suggestion.label}
+                      </Typography.Text>
+                      {suggestion.description && (
+                        <Typography.Paragraph
+                          type="secondary"
+                          style={{ marginBottom: 4 }}
+                        >
+                          {suggestion.description}
+                        </Typography.Paragraph>
+                      )}
+                      <Typography.Paragraph
+                        code
+                        copyable={{ text: suggestion.command }}
+                        style={{ marginBottom: 0 }}
+                      >
+                        {suggestion.command}
+                      </Typography.Paragraph>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           );
         });
@@ -113,10 +142,15 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
       setData(mappedLogStates);
     };
 
-    window.electron.ipcRenderer.on('workflow-started-log-received', onReceiveLog);
+    window.electron.ipcRenderer.on(
+      'workflow-started-log-received',
+      onReceiveLog,
+    );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('workflow-started-log-received');
+      window.electron.ipcRenderer.removeAllListeners(
+        'workflow-started-log-received',
+      );
     };
   }, [initialLogStates, removeANSI]);
 

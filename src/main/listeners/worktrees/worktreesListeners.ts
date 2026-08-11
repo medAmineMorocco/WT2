@@ -2,17 +2,140 @@ import { ipcMain } from 'electron';
 import log from '../../utils/logger';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import BusinessError from '../../exceptions/BusinessError';
+import environmentIsolationService from '../../services/environment/environmentIsolationService';
+import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
+
+ipcMain.on(
+  'detect-environment-sources',
+  async function (event, directory: string) {
+    try {
+      const sources =
+        await environmentIsolationService.detectEnvironmentSources(directory);
+      event.sender.send('environment-sources-detected', 0, sources);
+    } catch (err: any) {
+      event.sender.send('environment-sources-detected', -1, err.message);
+    }
+  },
+);
+
+ipcMain.on(
+  'read-environment-source',
+  async function (event, directory: string, source) {
+    try {
+      const settings = await environmentIsolationService.readEnvironmentSource(
+        directory,
+        source,
+      );
+      event.sender.send('environment-source-read', 0, settings, source);
+    } catch (err: any) {
+      event.sender.send('environment-source-read', -1, err.message, source);
+    }
+  },
+);
+
+ipcMain.on(
+  'preview-environment-isolation',
+  async function (
+    event,
+    requestId: number,
+    variables,
+    strategies,
+    worktreeName: string,
+  ) {
+    try {
+      const preview = await environmentIsolationService.previewIsolationValues(
+        variables,
+        strategies,
+        worktreeName,
+      );
+      event.sender.send(
+        'environment-isolation-previewed',
+        0,
+        preview,
+        requestId,
+      );
+    } catch (err: any) {
+      event.sender.send(
+        'environment-isolation-previewed',
+        -1,
+        err.message,
+        requestId,
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'preview-environment-suggestions',
+  async function (event, requestId, directory, worktreeName, sources) {
+    try {
+      const suggestions =
+        await environmentIsolationService.previewSuggestedCommands(
+          directory,
+          worktreeName,
+          sources,
+        );
+      event.sender.send(
+        'environment-suggestions-previewed',
+        0,
+        suggestions,
+        requestId,
+      );
+    } catch (err: any) {
+      event.sender.send(
+        'environment-suggestions-previewed',
+        -1,
+        err.message,
+        requestId,
+      );
+    }
+  },
+);
 
 ipcMain.on(
   'create-worktree',
-  async function (event, name, worktreePath, createWorktreeMode, directory) {
+  async function (
+    event,
+    name,
+    worktreePath,
+    createWorktreeMode,
+    directory,
+    environmentIsolation?: EnvironmentIsolationConfig,
+  ) {
+    let gitWorktreeCreated = false;
     try {
       log.info(`Creating a new worktree ${name} in path ${worktreePath}`);
+      if (environmentIsolation) {
+        event.sender.send(
+          'worktree-creation-progress',
+          'git',
+          'Creating Git worktree',
+        );
+      }
       const result = await worktreeMainService.add(
         name,
         worktreePath,
         createWorktreeMode,
         directory,
+      );
+      gitWorktreeCreated = true;
+      if (environmentIsolation) {
+        await environmentIsolationService.generateIsolatedEnvironmentSources(
+          {
+            projectPath: directory,
+            worktreePath,
+            worktreeName:
+              environmentIsolationService.sanitizeWorktreeName(name),
+          },
+          environmentIsolation,
+          (key, label) =>
+            event.sender.send('worktree-creation-progress', key, label),
+        );
+      }
+      event.sender.send(
+        'worktree-creation-progress',
+        'ready',
+        'Worktree ready',
       );
       event.sender.send('worktree-created', 0, result);
     } catch (err: any) {
@@ -21,6 +144,12 @@ ipcMain.on(
       );
       if (err instanceof BusinessError) {
         event.sender.send('worktree-created', -1, err.message);
+      } else if (environmentIsolation && gitWorktreeCreated) {
+        event.sender.send(
+          'worktree-created',
+          -1,
+          `The Git worktree was created, but environment isolation failed: ${err.message}`,
+        );
       } else {
         event.sender.send(
           'worktree-created',
