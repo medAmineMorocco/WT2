@@ -314,6 +314,41 @@ ipcMain.on('get-worktrees', async function (event, directory: string) {
   }
 });
 
+ipcMain.on('get-worktree-dashboard', async function (event, directory: string) {
+  try {
+    const dashboard = await worktreeMainService.getDashboard(directory);
+    event.sender.send('worktree-dashboard-found', 0, dashboard);
+    void (async () => {
+      for (const item of dashboard) {
+        if (!item.diskUsagePending || event.sender.isDestroyed()) continue;
+        try {
+          const usage = await worktreeMainService.getDashboardDiskUsage(
+            item.path,
+          );
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(
+              'worktree-dashboard-disk-usage-found',
+              item.path,
+              usage,
+            );
+          }
+        } catch (diskError: any) {
+          log.warn(
+            `Failed to calculate disk usage for ${item.path}: ${diskError.message}`,
+          );
+        }
+      }
+    })();
+  } catch (err: any) {
+    log.error(`Failed to get worktree dashboard: ${err.message}`);
+    event.sender.send(
+      'worktree-dashboard-found',
+      -1,
+      'Failed to load the worktree dashboard.',
+    );
+  }
+});
+
 ipcMain.on('prune-worktrees', async function (event, directory: string) {
   try {
     log.info('Pruning worktrees');

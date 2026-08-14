@@ -711,3 +711,590 @@ html[data-color-scheme='dark'] .commit-row.selected {
 .environment-isolation-table .ant-table-tbody > tr:last-child > td {
   border-bottom: 0 !important;
 }
+
+.worktree-overview {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 58px);
+  min-height: 0;
+  padding: 6px 8px 8px;
+  gap: 8px;
+  background: #fff;
+}
+
+[data-color-scheme='dark'] .worktree-overview {
+  background: #141414;
+}
+
+.worktree-mode-selector .ant-radio-button-wrapper {
+  padding-inline: 4px;
+  font-size: 12px;
+}
+
+.worktree-overview-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 28px;
+}
+
+.worktree-overview-table .ant-table-header,
+.worktree-overview-table .ant-table-header table {
+  height: auto !important;
+  border-radius: 0 !important;
+}
+
+.worktree-overview-table .ant-table-container,
+.worktree-overview-table .ant-table,
+.worktree-overview-table .ant-table-thead > tr:first-child > th:first-child,
+.worktree-overview-table .ant-table-thead > tr:first-child > th:last-child {
+  border-radius: 0 !important;
+}
+
+.worktree-overview-table .ant-table-thead > tr,
+.worktree-overview-table .ant-table-thead > tr > th {
+  height: 38px !important;
+  padding-block: 6px !important;
+}
+
+.worktree-overview-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(105px, 1fr));
+  gap: 0;
+  border-block: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.worktree-overview-summary > div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 7px 12px;
+  border-inline-end: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.worktree-overview-summary > div:last-child {
+  border-inline-end: 0;
+}
+
+.worktree-overview-summary strong {
+  font-size: 18px;
+  line-height: 22px;
+}
+
+.worktree-overview-summary span {
+  overflow: hidden;
+  color: color-mix(in srgb, currentColor 60%, transparent);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.worktree-overview-workspace {
+  display: grid;
+  grid-template-columns: 195px minmax(560px, 1fr) minmax(275px, 310px);
+  flex: 1;
+  gap: 0;
+  min-height: 0;
+  border-block: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.worktree-overview-filters,
+.worktree-overview-table,
+.worktree-overview-details {
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+}
+
+.worktree-overview-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px 8px 10px 0;
+  border-inline-end: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.worktree-overview-table {
+  border-inline-end: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.overview-filter-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.overview-filter-list .ant-btn {
+  display: grid;
+  grid-template-columns: 16px minmax(0, 1fr) 18px;
+  gap: 4px;
+  align-items: center;
+  width: 100%;
+  padding-inline: 3px;
+  text-align: left;
+}
+
+.overview-filter-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.overview-filter-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.overview-filter-count {
+  width: 18px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-filter-list .ant-btn-primary .overview-filter-count {
+  color: #fff;
+}
+
+.overview-status-chart {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.overview-donut {
+  display: grid;
+  width: 88px;
+  height: 88px;
+  margin: 0 auto;
+  place-items: center;
+  background: conic-gradient(
+    var(--ant-color-primary, #1677ff) var(--clean-percent),
+    #faad14 var(--clean-percent)
+  );
+  border-radius: 50%;
+}
+
+.overview-donut::before {
+  grid-area: 1 / 1;
+  width: 62px;
+  height: 62px;
+  background: var(--ant-color-bg-container, Canvas);
+  border-radius: 50%;
+  content: '';
+}
+
+.overview-donut span {
+  z-index: 1;
+  display: flex;
+  grid-area: 1 / 1;
+  flex-direction: column;
+  align-items: center;
+  font-size: 10px;
+}
+
+.overview-donut strong {
+  font-size: 18px;
+}
+
+.overview-chart-legend {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.overview-chart-legend i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 3px;
+  border-radius: 50%;
+}
+
+.overview-chart-legend i.clean {
+  background: var(--ant-color-primary, #1677ff);
+}
+.overview-chart-legend i.dirty {
+  background: #faad14;
+}
+
+.worktree-overview-table .ant-table-row {
+  cursor: pointer;
+}
+
+.worktree-overview-table .ant-table-measure-row {
+  display: none !important;
+}
+
+.worktree-overview-table
+  .ant-table-wrapper
+  .ant-spin-nested-loading
+  .ant-spin-container
+  .ant-table
+  .ant-table-container
+  .ant-table-body
+  table {
+  width: 100% !important;
+  height: auto !important;
+  table-layout: fixed !important;
+}
+
+.worktree-overview-table .ant-table-tbody > tr {
+  height: 56px;
+}
+
+.worktree-overview-table .ant-table-tbody > tr > td {
+  height: 56px;
+  padding-block: 6px !important;
+}
+
+.worktree-overview-table
+  .ant-table-wrapper
+  .ant-spin-nested-loading
+  .ant-spin-container
+  .ant-table
+  .ant-table-container
+  .ant-table-body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-color: #bfbfbf transparent;
+  scrollbar-width: thin;
+}
+
+.worktree-overview-table .ant-table-body::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.worktree-overview-table .ant-table-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.worktree-overview-table .ant-table-body::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 6px;
+}
+
+[data-color-scheme='dark']
+  .worktree-overview-table
+  .ant-table-body::-webkit-scrollbar-thumb {
+  background: #424242;
+}
+
+.worktree-overview-table .ant-table-row.selected > td {
+  background: color-mix(in srgb, #1677ff 14%, transparent) !important;
+}
+
+.overview-worktree-cell,
+.overview-head-cell,
+.overview-upstream-cell {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.overview-worktree-cell .ant-typography,
+.overview-upstream-cell .ant-typography {
+  max-width: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+
+.overview-head-cell .ant-tag {
+  width: fit-content;
+  margin: 0;
+  font-size: 10px;
+  line-height: 15px;
+}
+
+.overview-change-counts,
+.overview-upstream-cell > span {
+  display: flex;
+  gap: 7px;
+  color: color-mix(in srgb, currentColor 66%, transparent);
+  font-size: 11px;
+}
+
+.overview-upstream-cell > span b {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.overview-ahead {
+  color: #389e0d;
+}
+.overview-behind {
+  color: #cf1322;
+}
+
+.overview-disk-calculating {
+  display: block;
+  overflow: visible;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.worktree-overview-table .ant-table-cell {
+  padding: 7px 8px !important;
+  white-space: nowrap;
+}
+
+.worktree-overview-table .ant-table-thead > tr > th,
+.worktree-overview-table .ant-table-tbody > tr > td {
+  text-align: left;
+}
+
+.worktree-overview-details {
+  overflow-y: auto;
+  background: transparent;
+}
+
+.worktree-overview-details > .ant-empty {
+  display: flex;
+  height: 100%;
+  margin: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.worktree-overview-table .ant-table-placeholder > td {
+  height: calc(100vh - 350px) !important;
+  padding: 0 !important;
+}
+
+.worktree-overview-table .ant-table-placeholder .ant-empty {
+  display: flex;
+  height: 100%;
+  margin: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.worktree-overview-table .ant-spin-nested-loading > div > .ant-spin {
+  inset: 0;
+  display: flex;
+  max-height: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.worktree-overview-table .ant-spin .ant-spin-dot {
+  position: static;
+  margin: 0;
+}
+
+.overview-detail-header,
+.worktree-overview-details section {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px 12px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 10%, transparent);
+}
+
+.overview-detail-header {
+  flex-direction: column;
+}
+
+.overview-detail-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.overview-detail-header .ant-typography {
+  max-width: 100%;
+}
+
+.overview-detail-path {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  align-items: center;
+  margin: 0 !important;
+}
+
+.overview-detail-path .ant-typography-copy {
+  flex: 0 0 auto;
+  margin-inline-start: auto !important;
+  padding-inline-start: 6px;
+}
+
+.worktree-overview-details > .ant-alert {
+  margin: 10px 12px 0;
+}
+
+.overview-facts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  margin: 0;
+}
+
+.overview-facts dt {
+  color: color-mix(in srgb, currentColor 58%, transparent);
+  font-size: 12px;
+}
+
+.overview-facts dd {
+  margin: 2px 0 0;
+}
+
+.overview-latest-commit {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.overview-divergence {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.overview-divergence > div {
+  height: 19px;
+  background: transparent;
+}
+
+.overview-divergence b {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-left: 6px;
+  font-size: 11px;
+  line-height: 19px;
+}
+
+.overview-divergence b .anticon {
+  font-size: 12px;
+}
+
+.overview-divergence > div:first-child b {
+  color: #389e0d;
+}
+
+.overview-divergence > div:nth-child(2) b {
+  color: #cf1322;
+}
+
+.overview-metric-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.overview-metric-grid span {
+  display: flex;
+  flex-direction: column;
+  padding: 7px;
+  background: color-mix(in srgb, currentColor 4%, transparent);
+  border-radius: 5px;
+  color: color-mix(in srgb, currentColor 65%, transparent);
+  font-size: 11px;
+}
+
+.overview-metric-grid b {
+  color: currentColor;
+  font-size: 16px;
+}
+
+.overview-health-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.overview-health-tags .ant-tag {
+  margin: 0;
+}
+
+.overview-disk-note {
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.overview-disk-heading,
+.overview-disk-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.overview-disk-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.overview-disk-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+}
+
+.overview-disk-breakdown > div {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.overview-disk-label {
+  color: color-mix(in srgb, currentColor 68%, transparent);
+  font-size: 11px;
+}
+
+.overview-disk-label b {
+  color: currentColor;
+  font-variant-numeric: tabular-nums;
+}
+
+.overview-disk-track {
+  display: block;
+  height: 5px;
+  overflow: hidden;
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  border-radius: 5px;
+}
+
+.overview-disk-track > span {
+  display: block;
+  height: 100%;
+  min-width: 0;
+  border-radius: inherit;
+}
+
+.overview-disk-track .project {
+  background: #1677ff;
+}
+.overview-disk-track .dependencies {
+  background: #722ed1;
+}
+.overview-disk-track .build {
+  background: #fa8c16;
+}
+.overview-disk-track .git {
+  background: #13a8a8;
+}
+
+@media (max-width: 1250px) {
+  .worktree-overview-workspace {
+    grid-template-columns: 185px minmax(500px, 1fr) 275px;
+  }
+
+  .worktree-overview-summary {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

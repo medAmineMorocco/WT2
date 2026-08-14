@@ -32,6 +32,9 @@ import Loader from './components/Loader';
 const { Content } = Layout;
 const Workflows = lazy(() => import('./modules/workflows/Workflows'));
 const GitLog = lazy(() => import('./modules/gitLog/GitLog'));
+const WorktreeOverview = lazy(
+  () => import('./modules/worktrees/WorktreeOverview'),
+);
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
   const ref1 = useRef(null);
@@ -283,6 +286,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
               {mode === 'GIT_LOG' && (
                 <Suspense fallback={<Spin size="large" />}>
                   <GitLog isModal={false} />
+                </Suspense>
+              )}
+              {mode === 'OVERVIEW' && (
+                <Suspense fallback={<Spin size="large" />}>
+                  <WorktreeOverview />
                 </Suspense>
               )}
             </Content>

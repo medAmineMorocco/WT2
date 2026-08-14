@@ -13,6 +13,7 @@ const { useToken } = theme;
 
 const optionsWithDisabled = [
   { label: 'Git Log', value: 'GIT_LOG' },
+  { label: 'Overview', value: 'OVERVIEW' },
   { label: 'Workflow', value: 'WORKFLOW' },
 ];
 
@@ -54,6 +55,9 @@ const Worktrees = forwardRef<
     { preventDefault: true },
   );
   useHotkeys('shift+c', () => setCollapsed(!collapsed), {
+    preventDefault: true,
+  });
+  useHotkeys('shift+o', () => onChangeMode({ target: { value: 'OVERVIEW' } }), {
     preventDefault: true,
   });
 
@@ -202,11 +206,13 @@ const Worktrees = forwardRef<
             <Space direction="vertical" style={{ width: '100%' }}>
               <div style={{ display: 'flex', justifyContent: 'center' }}>
                 <Radio.Group
+                  className="worktree-mode-selector"
                   options={optionsWithDisabled}
                   onChange={onChangeMode}
                   value={mode}
                   optionType="button"
                   buttonStyle="solid"
+                  size="small"
                 />
               </div>
               <PackInfos />
