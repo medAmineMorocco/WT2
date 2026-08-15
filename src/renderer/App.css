@@ -386,7 +386,7 @@ body {
 
           .ant-table-body {
             flex: auto;
-            overflow: scroll;
+            overflow: auto;
 
             table {
               height: 100%;
@@ -400,6 +400,39 @@ body {
       }
     }
   }
+}
+
+.workflows-table .ant-table-body,
+.generators-table .ant-table-body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  scrollbar-color: #bfbfbf transparent;
+  scrollbar-width: thin;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar,
+.generators-table .ant-table-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-track,
+.generators-table .ant-table-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+.generators-table .ant-table-body::-webkit-scrollbar-thumb {
+  background: #bfbfbf;
+  border-radius: 6px;
+}
+
+[data-color-scheme='dark']
+  .workflows-table
+  .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='dark']
+  .generators-table
+  .ant-table-body::-webkit-scrollbar-thumb {
+  background: #424242;
 }
 
 .execution-panel-splitter {
