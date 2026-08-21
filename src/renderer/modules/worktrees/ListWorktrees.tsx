@@ -107,7 +107,9 @@ export default function ListWorktrees({
   const [worktrees, setWorktrees] = useState([]);
 
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
-  const [repositoryInTerminal, setRepositoryInTerminal] = useState(null);
+  const [repositoryInTerminal, setRepositoryInTerminal] = useState<
+    string | null
+  >(null);
 
   const [enabledEditors, setEnabledEditors] = useState([]);
 
@@ -835,7 +837,8 @@ export default function ListWorktrees({
         {openTerminalModal && (
           <TerminalInteractive
             isModalOpen={openTerminalModal}
-            repository={repositoryInTerminal}
+            initialRepository={repositoryInTerminal}
+            worktrees={worktrees}
             handleCancel={closeTerminalModal}
             isDarkMode={isDarkMode}
           />

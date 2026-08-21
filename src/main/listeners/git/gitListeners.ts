@@ -1,8 +1,6 @@
 import { ipcMain } from 'electron';
-import { spawn } from 'child_process';
 import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
-import utils from '../../utils/utils';
 
 ipcMain.on(
   'show-git-log',
@@ -164,50 +162,4 @@ ipcMain.on('list-refs', async function (event, directory: string) {
     log.error(`Failed to get refs: ${err.message}`);
     event.sender.send('receive-refs', -1, 'Failed to list git references.');
   }
-});
-
-let abortController: AbortController;
-let commandProcess: any;
-ipcMain.on(
-  'execute-command',
-  async function (event, command: string, directory: string) {
-    log.info(`Executing command ${command}`);
-    abortController = new AbortController();
-    const shell = await gitMainService.getShell();
-    const options: any = {
-      cwd: directory,
-      shell: shell || true,
-      signal: abortController.signal,
-    };
-
-    commandProcess = spawn(command, [], options);
-
-    commandProcess.stdout.on('data', async (data: any) => {
-      const encoded = await utils.setStoredEncoding(data);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.stderr.on('data', async (data: any) => {
-      const encoded = await utils.setStoredEncoding(data);
-      log.error(`Command error: ${encoded}`);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.on('error', async (err: any) => {
-      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      log.error(`Failed to execute command: ${encoded}`);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.on('exit', () => {
-      event.sender.send('command-finished');
-    });
-  },
-);
-
-ipcMain.on('stop-command', function (event) {
-  log.info('Command stopped by user');
-  abortController.abort();
-  commandProcess.kill('SIGKILL');
-  event.sender.send('command-stopped');
 });

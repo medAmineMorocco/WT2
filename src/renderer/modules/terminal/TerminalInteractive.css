@@ -1,0 +1,249 @@
+.terminal-workspace-modal .ant-modal-content {
+  height: calc(100vh - 64px);
+  padding: 0;
+  overflow: hidden;
+}
+
+.terminal-workspace-modal .ant-modal-body {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.terminal-workspace-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 52px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+}
+
+.terminal-add-select {
+  width: 230px;
+}
+
+.terminal-grid {
+  display: grid;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-height: 0;
+  padding: 8px;
+  overflow: auto;
+  background: var(--ant-color-bg-layout, #f5f5f5);
+  grid-auto-rows: minmax(260px, 1fr);
+}
+
+.terminal-pane {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 260px;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  border-radius: 6px;
+  background: var(--ant-color-bg-container, #fff);
+}
+
+.terminal-pane.is-active {
+  border-color: var(--ant-color-primary, #1677ff);
+  box-shadow: 0 0 0 1px var(--ant-color-primary, #1677ff);
+}
+
+.terminal-pane-header {
+  display: flex;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 6px 4px 10px;
+  border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+}
+
+.terminal-pane-title {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.terminal-pane-title .ant-typography {
+  max-width: 100%;
+  margin: 0;
+}
+
+.terminal-pane-title .ant-typography-secondary {
+  font-size: 11px;
+}
+
+.terminal-xterm-host {
+  flex: 1 1 auto;
+  min-height: 0;
+  padding: 6px 4px 2px 8px;
+  background: #fff;
+}
+
+.terminal-xterm-host .xterm {
+  height: 100%;
+}
+
+.terminal-workspace-modal .xterm-helper-textarea {
+  display: block;
+}
+
+.terminal-xterm-host .xterm-viewport {
+  overflow-x: hidden !important;
+  background-color: #fff !important;
+  scrollbar-color: #bfbfbf transparent;
+  scrollbar-width: thin;
+}
+
+.terminal-xterm-host .xterm-viewport::-webkit-scrollbar {
+  width: 6px;
+}
+
+.terminal-xterm-host .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.terminal-xterm-host .xterm-viewport::-webkit-scrollbar-thumb {
+  border-radius: 6px;
+  background: #bfbfbf;
+}
+
+/* Xterm 6 uses a separate custom scrollable element for each terminal. */
+.terminal-xterm-host .xterm-scrollable-element > .scrollbar.vertical {
+  width: 8px !important;
+  background: transparent !important;
+}
+
+.terminal-xterm-host .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  left: 1px !important;
+  width: 6px !important;
+  border-radius: 6px;
+  background: #bfbfbf !important;
+}
+
+.terminal-xterm-host .xterm-scrollable-element > .scrollbar > .scra {
+  display: none !important;
+}
+
+.terminal-suggestions {
+  position: absolute;
+  z-index: 4;
+  right: 10px;
+  bottom: 12px;
+  left: 10px;
+  max-height: 220px;
+  padding: 4px;
+  overflow: auto;
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  border-radius: 6px;
+  background: var(--ant-color-bg-elevated, #fff);
+  box-shadow: var(--ant-box-shadow-secondary);
+}
+
+.terminal-suggestions button {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--ant-color-text, rgb(0 0 0 / 88%));
+  font: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.terminal-suggestions button.is-selected,
+.terminal-suggestions button:hover {
+  color: var(--ant-color-primary-text, #0958d9);
+  background: var(--ant-color-primary-bg, #e6f4ff);
+}
+
+.terminal-suggestions small,
+.terminal-suggestion-help {
+  color: var(--ant-color-text-tertiary, rgb(0 0 0 / 45%));
+}
+
+.terminal-suggestion-help {
+  padding: 4px 8px 2px;
+  font-size: 11px;
+}
+
+.terminal-workspace-empty {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+}
+
+.terminal-pane.is-dark .terminal-xterm-host {
+  background: #0f0f0f;
+}
+
+.terminal-pane.is-dark .xterm-viewport {
+  background-color: #0f0f0f !important;
+}
+
+.terminal-workspace-theme-dark .terminal-grid,
+.terminal-workspace-theme-dark .terminal-pane {
+  border-color: #303030;
+  background: #141414;
+}
+
+.terminal-workspace-theme-dark .terminal-pane-header {
+  border-color: #303030;
+}
+
+.terminal-workspace-theme-dark .terminal-suggestions {
+  border-color: #424242;
+  color: rgb(255 255 255 / 85%);
+  background: #1f1f1f;
+}
+
+.terminal-workspace-theme-dark .terminal-suggestions button {
+  color: rgb(255 255 255 / 85%);
+}
+
+.terminal-workspace-theme-dark .terminal-suggestions button.is-selected,
+.terminal-workspace-theme-dark .terminal-suggestions button:hover {
+  color: #fff;
+  background: #1668dc;
+}
+
+.terminal-workspace-theme-dark .terminal-xterm-host .xterm-viewport {
+  scrollbar-color: #595959 transparent;
+}
+
+.terminal-workspace-theme-dark
+  .terminal-xterm-host
+  .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #595959;
+}
+
+.terminal-workspace-theme-dark
+  .terminal-xterm-host
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider {
+  background: #595959 !important;
+}
+
+@media (max-width: 1100px) {
+  .terminal-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  .terminal-workspace-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}

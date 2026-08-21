@@ -135,6 +135,25 @@ const data = {
       title: 'Navigate Command History',
       shortcut1: '↑/↓',
     },
+    {
+      title: 'Navigate Suggestions',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: '↑/↓',
+    },
+    {
+      title: 'Accept Suggestion',
+      shortcut1: 'Tab',
+    },
+    {
+      title: 'Previous Open Terminal',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: 'PageUp',
+    },
+    {
+      title: 'Next Open Terminal',
+      shortcut1: 'Ctrl/Cmd',
+      shortcut2: 'PageDown',
+    },
   ],
 };
 export default function KeyboardShortcuts({
