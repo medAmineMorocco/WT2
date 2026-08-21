@@ -124,10 +124,6 @@ body {
   margin: 8px 0;
 }
 
-.generators-table.ant-table-wrapper .ant-table-pagination.ant-pagination {
-  margin: 8px 0;
-}
-
 .import-area-dark-container {
   background-color: black;
 }
@@ -402,37 +398,24 @@ body {
   }
 }
 
-.workflows-table .ant-table-body,
-.generators-table .ant-table-body {
+.workflows-table .ant-table-body {
   overflow-x: hidden !important;
   overflow-y: auto !important;
   scrollbar-color: #bfbfbf transparent;
   scrollbar-width: thin;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar,
-.generators-table .ant-table-body::-webkit-scrollbar {
+.workflows-table .ant-table-body::-webkit-scrollbar {
   width: 6px;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar-track,
-.generators-table .ant-table-body::-webkit-scrollbar-track {
+.workflows-table .ant-table-body::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar-thumb,
-.generators-table .ant-table-body::-webkit-scrollbar-thumb {
+.workflows-table .ant-table-body::-webkit-scrollbar-thumb {
   background: #bfbfbf;
   border-radius: 6px;
-}
-
-[data-color-scheme='dark']
-  .workflows-table
-  .ant-table-body::-webkit-scrollbar-thumb,
-[data-color-scheme='dark']
-  .generators-table
-  .ant-table-body::-webkit-scrollbar-thumb {
-  background: #424242;
 }
 
 .execution-panel-splitter {
