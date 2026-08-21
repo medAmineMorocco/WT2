@@ -27,6 +27,7 @@
 }
 
 .terminal-grid {
+  position: relative;
   display: grid;
   flex: 1 1 auto;
   gap: 8px;
@@ -54,6 +55,15 @@
   box-shadow: 0 0 0 1px var(--ant-color-primary, #1677ff);
 }
 
+.terminal-pane.is-focused-mode {
+  position: absolute;
+  inset: 8px;
+  z-index: 10;
+  height: auto;
+  min-height: 0;
+  box-shadow: 0 18px 48px rgb(0 0 0 / 24%);
+}
+
 .terminal-pane-header {
   display: flex;
   flex: 0 0 42px;
@@ -62,6 +72,57 @@
   gap: 8px;
   padding: 4px 6px 4px 10px;
   border-bottom: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+}
+
+.terminal-pane-title {
+  flex: 1 1 auto;
+}
+
+.terminal-pane-actions {
+  display: inline-flex !important;
+  flex: 0 0 auto;
+  flex-wrap: nowrap !important;
+  align-items: center;
+  white-space: nowrap;
+}
+
+.terminal-pane-actions .ant-radio-group {
+  display: inline-flex;
+  flex-wrap: nowrap;
+}
+
+.terminal-pane-header .ant-select {
+  width: 172px;
+}
+
+.terminal-agent-toolbar {
+  order: 3;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border-top: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+}
+
+.terminal-agent-file-input {
+  display: none;
+}
+
+.terminal-agent-files {
+  grid-column: 1 / -1;
+  font-size: 11px;
+}
+
+.terminal-agent-toolbar .ant-select,
+.terminal-agent-toolbar .ant-input,
+.terminal-agent-toolbar .ant-input-textarea {
+  min-width: 0;
+}
+
+.terminal-agent-toolbar .ant-input-textarea textarea {
+  min-height: 52px !important;
+  resize: vertical;
 }
 
 .terminal-pane-title {
@@ -81,10 +142,47 @@
 }
 
 .terminal-xterm-host {
+  order: 2;
   flex: 1 1 auto;
   min-height: 0;
   padding: 6px 4px 2px 8px;
   background: #fff;
+}
+
+.terminal-pane.is-agent-mode .terminal-xterm-host {
+  padding: 12px;
+}
+
+.terminal-pane.is-agent-mode .xterm-cursor-layer,
+.terminal-pane.is-agent-mode .xterm-helper-textarea {
+  caret-color: transparent !important;
+}
+
+.terminal-pane.is-agent-mode .xterm-cursor {
+  display: none !important;
+}
+
+.ai-agent-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  vertical-align: -0.14em;
+}
+
+.ai-agent-icon-claude {
+  color: #d97757;
+}
+
+.ai-agent-icon-codex {
+  color: #10a37f;
+}
+
+.ai-agent-icon-cursor {
+  --cursor-cutout: var(--ant-color-bg-container, #fff);
+  color: #111;
+}
+
+.ai-agent-icon-antigravity {
+  color: #7856ff;
 }
 
 .terminal-xterm-host .xterm {

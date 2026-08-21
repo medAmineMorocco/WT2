@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Tooltip,
   Space,
@@ -9,6 +9,7 @@ import {
   notification,
   Button,
   Collapse,
+  Avatar,
 } from 'antd';
 import {
   MoreOutlined,
@@ -26,6 +27,7 @@ import {
   FieldStringOutlined,
   SyncOutlined,
   ClearOutlined,
+  RobotOutlined,
   SisternodeOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
@@ -33,7 +35,9 @@ import log from 'electron-log';
 import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
-import TerminalInteractive from '../terminal/TerminalInteractive';
+import TerminalInteractive, {
+  type TerminalAgentActivity,
+} from '../terminal/TerminalInteractive';
 import RenameWorktree from './RenameWorktree';
 import MoveWorktree from './MoveWorktree';
 import ChangePatternWorktree from './ChangePatternWorktree';
@@ -51,6 +55,11 @@ const items = [
     label: 'Open in Terminal',
     value: '-3',
     icon: <CodeOutlined />,
+  },
+  {
+    label: 'Work with AI Agent',
+    value: '-4',
+    icon: <RobotOutlined />,
   },
   {
     label: 'Open in',
@@ -79,6 +88,8 @@ const items = [
     ],
   },
 ];
+
+type ActiveAgent = TerminalAgentActivity['agent'];
 
 export default function ListWorktrees({
   isDarkMode,
@@ -110,6 +121,13 @@ export default function ListWorktrees({
   const [repositoryInTerminal, setRepositoryInTerminal] = useState<
     string | null
   >(null);
+  const [terminalInitialMode, setTerminalInitialMode] = useState<
+    'terminal' | 'agent'
+  >('terminal');
+
+  const [activeAgentsByWorktree, setActiveAgentsByWorktree] = useState<
+    Record<string, Record<string, ActiveAgent>>
+  >({});
 
   const [enabledEditors, setEnabledEditors] = useState([]);
 
@@ -125,6 +143,23 @@ export default function ListWorktrees({
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
 
   const { isWorkflowPlaying } = useItemsContext();
+
+  const onTerminalAgentActivity = useCallback(
+    ({ terminalId, worktreePath, agent, active }: TerminalAgentActivity) => {
+      setActiveAgentsByWorktree((current) => {
+        const next = { ...current };
+        const activeForWorktree = { ...(next[worktreePath] || {}) };
+        if (active) activeForWorktree[terminalId] = agent;
+        else delete activeForWorktree[terminalId];
+
+        if (Object.keys(activeForWorktree).length === 0)
+          delete next[worktreePath];
+        else next[worktreePath] = activeForWorktree;
+        return next;
+      });
+    },
+    [],
+  );
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -353,7 +388,10 @@ export default function ListWorktrees({
     window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
     window.electron.ipcRenderer.on('worktree-removed', onWorktreeRemoved);
     window.electron.ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
-    window.electron.ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
+    window.electron.ipcRenderer.on(
+      'worktrees-changed-lock',
+      onWorktreeChangedLock,
+    );
     window.electron.ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
     window.electron.ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
 
@@ -363,7 +401,9 @@ export default function ListWorktrees({
       window.electron.ipcRenderer.removeAllListeners('worktree-removed');
       window.electron.ipcRenderer.removeAllListeners('worktree-renamed');
       window.electron.ipcRenderer.removeAllListeners('worktrees-changed-lock');
-      window.electron.ipcRenderer.removeAllListeners('worktree-moved-to-folder');
+      window.electron.ipcRenderer.removeAllListeners(
+        'worktree-moved-to-folder',
+      );
       window.electron.ipcRenderer.removeAllListeners('worktrees-pruned');
     };
   }, [api, modal, tabRepoPath]);
@@ -498,6 +538,7 @@ export default function ListWorktrees({
 
   const closeTerminalModal = () => {
     setRepositoryInTerminal(null);
+    setTerminalInitialMode('terminal');
     setOpenTerminalModal(false);
   };
 
@@ -512,6 +553,13 @@ export default function ListWorktrees({
       }
       if (key === '-3') {
         setRepositoryInTerminal(worktree.path);
+        setTerminalInitialMode('terminal');
+        setOpenTerminalModal(true);
+        return;
+      }
+      if (key === '-4') {
+        setRepositoryInTerminal(worktree.path);
+        setTerminalInitialMode('agent');
         setOpenTerminalModal(true);
         return;
       }
@@ -527,35 +575,75 @@ export default function ListWorktrees({
         return;
       }
       if (key === '0-2') {
-        window.electron.ipcRenderer.send('open-editor', 'Intellij', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'Intellij',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-3') {
-        window.electron.ipcRenderer.send('open-editor', 'Webstorm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'Webstorm',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-4') {
-        window.electron.ipcRenderer.send('open-editor', 'Rider', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'Rider',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-5') {
-        window.electron.ipcRenderer.send('open-editor', 'PyCharm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'PyCharm',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-6') {
-        window.electron.ipcRenderer.send('open-editor', 'CLion', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'CLion',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-7') {
-        window.electron.ipcRenderer.send('open-editor', 'PhpStorm', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'PhpStorm',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-8') {
-        window.electron.ipcRenderer.send('open-editor', 'RubyMine', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'RubyMine',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-9') {
-        window.electron.ipcRenderer.send('open-editor', 'GoLand', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'GoLand',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-10') {
@@ -568,7 +656,12 @@ export default function ListWorktrees({
         return;
       }
       if (key === '0-12') {
-        window.electron.ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          'Brackets',
+          worktree.path,
+          tabRepoPath,
+        );
         return;
       }
       if (key === '0-13') {
@@ -813,6 +906,31 @@ export default function ListWorktrees({
                     {worktree.name}
                   </Tooltip>
                 </span>
+                {Object.values(activeAgentsByWorktree[worktree.path] || {})
+                  .length > 0 && (
+                  <Avatar.Group
+                    size={18}
+                    max={{
+                      count: 2,
+                      style: { color: '#fff', backgroundColor: '#722ed1' },
+                    }}
+                  >
+                    {Object.values(
+                      activeAgentsByWorktree[worktree.path] || {},
+                    ).map((agent) => (
+                      <Tooltip
+                        title={`${agent.label} is running`}
+                        key={agent.id}
+                      >
+                        <Avatar
+                          style={{ backgroundColor: '#722ed1', fontSize: 9 }}
+                        >
+                          {agent.shortLabel}
+                        </Avatar>
+                      </Tooltip>
+                    ))}
+                  </Avatar.Group>
+                )}
               </Space>
               <Cascader
                 options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
@@ -841,6 +959,8 @@ export default function ListWorktrees({
             worktrees={worktrees}
             handleCancel={closeTerminalModal}
             isDarkMode={isDarkMode}
+            onAgentActivity={onTerminalAgentActivity}
+            initialMode={terminalInitialMode}
           />
         )}
         {isModalOpen && (
