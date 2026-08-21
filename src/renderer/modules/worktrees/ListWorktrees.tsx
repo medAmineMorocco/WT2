@@ -27,6 +27,7 @@ import {
   FieldStringOutlined,
   SyncOutlined,
   ClearOutlined,
+  ToolOutlined,
   RobotOutlined,
   SisternodeOutlined,
 } from '@ant-design/icons';
@@ -139,6 +140,8 @@ export default function ListWorktrees({
     useState(false);
 
   const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+
+  const [repairLoading, setRepairLoading] = useState<boolean>(false);
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
 
@@ -384,6 +387,39 @@ export default function ListWorktrees({
       }, 200);
     };
 
+    const onMovedWorktreesSelectedForRepair = (
+      paths: string[],
+      selectionMode: 'single' | 'multiple',
+    ) => {
+      if (!paths?.length) return;
+      setRepairLoading(true);
+      window.electron.ipcRenderer.send(
+        'repair-moved-worktrees',
+        tabRepoPath,
+        selectionMode === 'single' ? [paths[0]] : paths,
+      );
+    };
+
+    const onMovedWorktreesRepaired = (code: number, result: any) => {
+      setRepairLoading(false);
+      if (code === 0) {
+        notification.success({
+          message: 'Git worktree metadata repaired',
+          description:
+            'Git now points to the selected relocated worktree folder(s).',
+          placement: 'bottomLeft',
+          duration: 2,
+        });
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Unable to repair moved worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     window.electron.ipcRenderer.on('open-editor-error', onOpenEditorError);
     window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
     window.electron.ipcRenderer.on('worktree-removed', onWorktreeRemoved);
@@ -394,6 +430,14 @@ export default function ListWorktrees({
     );
     window.electron.ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
     window.electron.ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+    window.electron.ipcRenderer.on(
+      'moved-worktrees-selected-for-repair',
+      onMovedWorktreesSelectedForRepair,
+    );
+    window.electron.ipcRenderer.on(
+      'moved-worktrees-repaired',
+      onMovedWorktreesRepaired,
+    );
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('open-editor-error');
@@ -405,6 +449,12 @@ export default function ListWorktrees({
         'worktree-moved-to-folder',
       );
       window.electron.ipcRenderer.removeAllListeners('worktrees-pruned');
+      window.electron.ipcRenderer.removeAllListeners(
+        'moved-worktrees-selected-for-repair',
+      );
+      window.electron.ipcRenderer.removeAllListeners(
+        'moved-worktrees-repaired',
+      );
     };
   }, [api, modal, tabRepoPath]);
 
@@ -456,6 +506,7 @@ export default function ListWorktrees({
   const getMenuItems = (
     isWorktreeLocked: boolean,
     isPrimaryWorktree: boolean,
+    isWorktreeHealthy: boolean,
   ) => {
     if (isWorktreeLocked) {
       return [
@@ -488,6 +539,12 @@ export default function ListWorktrees({
           value: '2',
           icon: <DeleteOutlined />,
           disabled: true,
+        },
+        {
+          label: 'Repair',
+          value: '-7',
+          icon: <ToolOutlined />,
+          disabled: isPrimaryWorktree || isWorktreeHealthy,
         },
       ];
     }
@@ -533,6 +590,12 @@ export default function ListWorktrees({
         icon: <LockOutlined />,
         disabled: isPrimaryWorktree,
       },
+      {
+        label: 'Repair',
+        value: '-7',
+        icon: <ToolOutlined />,
+        disabled: isPrimaryWorktree || isWorktreeHealthy,
+      },
     ];
   };
 
@@ -549,6 +612,13 @@ export default function ListWorktrees({
         setIsChangePatternModalOpen(true);
         form.setFieldValue('worktreeToChange', worktree);
         form.setFieldValue('repo', tabRepoPath);
+        return;
+      }
+      if (key === '-7') {
+        window.electron.ipcRenderer.send(
+          'choose-moved-worktrees-for-repair',
+          false,
+        );
         return;
       }
       if (key === '-3') {
@@ -786,6 +856,20 @@ export default function ListWorktrees({
     window.electron.ipcRenderer.send('prune-worktrees', tabRepoPath);
   };
 
+  const onClickRepairMovedWorktrees = (event: any) => {
+    if (!hasUnhealthyWorktrees) return;
+    event.stopPropagation();
+    window.electron.ipcRenderer.send(
+      'choose-moved-worktrees-for-repair',
+      true,
+    );
+  };
+
+  const hasUnhealthyWorktrees = worktrees.some(
+    (worktree: any) =>
+      worktree.directoryExists === false || worktree.prunable === true,
+  );
+
   useHotkeys('shift+p', onClickPrune, {
     preventDefault: true,
   });
@@ -839,6 +923,28 @@ export default function ListWorktrees({
             ) : (
               <LoadingOutlined />
             )}
+            {!repairLoading ? (
+              <Tooltip
+                title={
+                  hasUnhealthyWorktrees
+                    ? 'Repair'
+                    : 'All worktrees are healthy'
+                }
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <ToolOutlined
+                  className="icon-action"
+                  style={{
+                    cursor: hasUnhealthyWorktrees ? 'pointer' : 'not-allowed',
+                    opacity: hasUnhealthyWorktrees ? 1 : 0.4,
+                  }}
+                  onClick={onClickRepairMovedWorktrees}
+                />
+              </Tooltip>
+            ) : (
+              <LoadingOutlined />
+            )}
             <Tooltip
               title={
                 <Space>
@@ -858,7 +964,6 @@ export default function ListWorktrees({
                 icon={<SisternodeOutlined />}
               />
             </Tooltip>
-            <span>{worktrees.length}</span>
           </Space>
         }
         header={<strong>Worktrees</strong>}
@@ -933,7 +1038,11 @@ export default function ListWorktrees({
                 )}
               </Space>
               <Cascader
-                options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
+                options={getMenuItems(
+                  worktree.isLocked,
+                  worktree.isPrimary,
+                  worktree.directoryExists !== false && !worktree.prunable,
+                )}
                 onChange={onClickWorktree(worktree)}
                 loadData={loadData}
                 optionRender={renderOption}

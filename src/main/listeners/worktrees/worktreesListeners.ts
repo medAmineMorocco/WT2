@@ -1,4 +1,4 @@
-import { ipcMain } from 'electron';
+import { BrowserWindow, dialog, ipcMain } from 'electron';
 import log from '../../utils/logger';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import BusinessError from '../../exceptions/BusinessError';
@@ -363,6 +363,51 @@ ipcMain.on('prune-worktrees', async function (event, directory: string) {
     }
   }
 });
+
+ipcMain.on(
+  'choose-moved-worktrees-for-repair',
+  async function (event, allowMultiple = true) {
+    const result = await dialog.showOpenDialog(
+      BrowserWindow.getFocusedWindow()!,
+      {
+        title: allowMultiple
+          ? 'Select relocated worktree folders'
+          : 'Select the relocated worktree folder',
+        properties: allowMultiple
+          ? ['openDirectory', 'multiSelections']
+          : ['openDirectory'],
+      },
+    );
+    if (!result.canceled) {
+      event.sender.send(
+        'moved-worktrees-selected-for-repair',
+        result.filePaths,
+        allowMultiple ? 'multiple' : 'single',
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'repair-moved-worktrees',
+  async function (event, directory: string, movedWorktreePaths: string[]) {
+    try {
+      log.info(`Repairing moved worktrees from ${directory}`);
+      await worktreeMainService.repairMovedWorktrees(
+        directory,
+        movedWorktreePaths,
+      );
+      event.sender.send('moved-worktrees-repaired', 0, movedWorktreePaths);
+    } catch (err: any) {
+      log.error(`Failed to repair moved worktrees: ${err.message}`);
+      event.sender.send(
+        'moved-worktrees-repaired',
+        -1,
+        err.message || 'Git could not repair the selected worktree folders.',
+      );
+    }
+  },
+);
 
 ipcMain.on(
   'change-lock-worktree',

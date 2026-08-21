@@ -485,6 +485,7 @@ function findAll(directory: string) {
             return {
               isPrimary: isPrimaryWorktree(pathRep),
               path: pathRep,
+              directoryExists: existsSync(pathRep),
               name,
               resolvedName: path.basename(pathRep),
               head,
@@ -771,6 +772,29 @@ function prune(dir: string) {
   });
 }
 
+/**
+ * Reconcile Git's worktree metadata after one or more worktree directories
+ * were moved outside WorktreeWise. This deliberately does not move, delete,
+ * or recreate any files; Git updates only its administrative links.
+ */
+async function repairMovedWorktrees(dir: string, movedWorktreePaths: string[]) {
+  const paths = [
+    ...new Set(movedWorktreePaths.map((item) => path.normalize(item))),
+  ];
+  if (paths.length === 0) {
+    throw new Error('Select at least one relocated worktree folder to repair.');
+  }
+  const missingPath = paths.find((item) => !existsSync(item));
+  if (missingPath) {
+    throw new Error(
+      `The selected worktree folder no longer exists: ${missingPath}`,
+    );
+  }
+
+  const gitCommand = await gitMainService.gitCommand();
+  return runGit(gitCommand, dir, ['worktree', 'repair', ...paths]);
+}
+
 function changeLock(toLock: boolean, worktreePath: string, dir: string) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
@@ -856,6 +880,7 @@ export default {
   removeWithLocalBranch,
   rename,
   prune,
+  repairMovedWorktrees,
   changeLock,
   getWorktreesFolder,
   getWorktreesSeparator,

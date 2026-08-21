@@ -108,6 +108,10 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
     window.electron.ipcRenderer.send('choose-dir', keyTab);
   };
 
+  const onLocateMovedRepository = () => {
+    window.electron.ipcRenderer.send('choose-dir', keyTab);
+  };
+
   useHotkeys('shift+o', onimportAreaClick, {
     preventDefault: true,
     enabled: () => {
@@ -237,6 +241,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
               <Typography.Text type="secondary">{tabRepoPath}</Typography.Text>{' '}
               no longer exists on disk.
             </Typography.Title>
+          }
+          subTitle="The repository may have been moved or renamed. Locate its new folder to reconnect this tab."
+          extra={
+            <Button type="primary" onClick={onLocateMovedRepository}>
+              Locate moved repository
+            </Button>
           }
         />
       </div>
