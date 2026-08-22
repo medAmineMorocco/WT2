@@ -70,9 +70,10 @@ function showLogAsync(
     }
 
     const gitCmd = await gitCommand();
+    const gitFormat = '%s %d <%an> [%ci] %h parents:[%p]';
     const command = branch
-      ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`
-      : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`;
+      ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`
+      : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
     const git = spawn(command, {
       cwd: directory,
       shell: true,

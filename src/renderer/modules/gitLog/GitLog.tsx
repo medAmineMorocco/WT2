@@ -3,13 +3,18 @@ import {
   Space,
   Select,
   Checkbox,
+  Popover,
   Spin,
   Tooltip,
   Button,
 } from 'antd';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
-import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
+import {
+  ReloadOutlined,
+  LoadingOutlined,
+  SettingOutlined,
+} from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
@@ -164,22 +169,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     );
   };
 
-  const onAuthorChange = (event: any) => {
-    setIsAuthorEnabled(event.target.checked);
-  };
-
-  const onCommitDateChange = (event: any) => {
-    setIsCommitDateEnabled(event.target.checked);
-  };
-
-  const onHashChange = (event: any) => {
-    setIsHashEnabled(event.target.checked);
-  };
-
-  const onRefsChange = (event: any) => {
-    setIsRefsEnabled(event.target.checked);
-  };
-
   const reloadGitLog = () => {
     setLoading(true);
     window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
@@ -198,6 +187,23 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     );
   };
 
+  const columnsMenu = (
+    <div className="git-log-columns-menu">
+      <Checkbox checked={isAuthorEnabled} onChange={(event) => setIsAuthorEnabled(event.target.checked)}>
+        Author
+      </Checkbox>
+      <Checkbox checked={isCommitDateEnabled} onChange={(event) => setIsCommitDateEnabled(event.target.checked)}>
+        Date
+      </Checkbox>
+      <Checkbox checked={isHashEnabled} onChange={(event) => setIsHashEnabled(event.target.checked)}>
+        SHA
+      </Checkbox>
+      <Checkbox checked={isRefsEnabled} onChange={(event) => setIsRefsEnabled(event.target.checked)}>
+        Refs
+      </Checkbox>
+    </div>
+  );
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -213,7 +219,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           paddingLeft: 0,
         }}
       >
-        <div className="git-log-controls" style={{ marginBottom: '16px' }}>
+        <div className="git-log-controls">
           <Space>
             <Select
               ref={selectWorktreeRef}
@@ -235,30 +241,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               style={{ width: 220 }}
             />
             {!shouldHide && (
-              <Checkbox
-                defaultChecked={isAuthorEnabled}
-                onChange={onAuthorChange}
-              >
-                Author
-              </Checkbox>
-            )}
-            {!shouldHide && (
-              <Checkbox
-                defaultChecked={isCommitDateEnabled}
-                onChange={onCommitDateChange}
-              >
-                Date & Time
-              </Checkbox>
-            )}
-            {!shouldHide && (
-              <Checkbox defaultChecked={isHashEnabled} onChange={onHashChange}>
-                Sha
-              </Checkbox>
-            )}
-            {!shouldHide && (
-              <Checkbox defaultChecked={isRefsEnabled} onChange={onRefsChange}>
-                Refs
-              </Checkbox>
+              <Popover content={columnsMenu} trigger="click" placement="bottomLeft">
+                <Button icon={<SettingOutlined />}>Columns</Button>
+              </Popover>
             )}
             {!loading && (
               <Tooltip
@@ -267,10 +252,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 mouseEnterDelay={0}
                 mouseLeaveDelay={0}
               >
-                <ReloadOutlined
-                  onClick={reloadGitLog}
-                  style={{ cursor: 'pointer' }}
-                />
+                <Button type="text" shape="circle" icon={<ReloadOutlined />} aria-label="Reload Git Log" onClick={reloadGitLog} />
               </Tooltip>
             )}
           </Space>
@@ -314,13 +296,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 />
               )}
               {hasMore && !selectedCommitFile && (
-                <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <div className="git-log-load-more">
                   <Button
                     type="link"
                     onClick={handleLoadMore}
                     icon={loadingMore ? <LoadingOutlined /> : null}
                   >
-                    {!loadingMore && <span>Load More</span>}
+                    {!loadingMore && <span>Load more commits</span>}
                   </Button>
                 </div>
               )}
