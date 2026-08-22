@@ -6,11 +6,23 @@ import { getStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import environmentIsolationService from '../../services/environment/environmentIsolationService';
 
-const execa = require('execa');
+const pty = require('node-pty');
 
 let logStates: any[] = [];
 
 let worktreesStates: any[] = [];
+
+const activeWorkflowProcesses = new Set<any>();
+
+export function stopActiveWorkflowProcesses() {
+  activeWorkflowProcesses.forEach((process) => {
+    try {
+      process.kill();
+    } catch (error) {
+      log.warn(`Unable to stop workflow PTY: ${error}`);
+    }
+  });
+}
 
 function updateWorktreesStates(
   worktreesStatesInput: any[],
@@ -119,18 +131,53 @@ async function executeCommand(
     }
   }
 
-  // eslint-disable-next-line no-async-promise-executor
+  // Workflows intentionally execute in a pseudo terminal so commands receive
+  // the same terminal semantics as the integrated terminal. PTY output merges
+  // stdout/stderr, which is also how users see it in a normal shell.
   return new Promise(async (resolve, reject) => {
     const shell = await gitMainService.getShell();
+    const shellExecutable =
+      shell ||
+      (process.platform === 'win32'
+        ? process.env.COMSPEC || 'cmd.exe'
+        : process.env.SHELL || '/bin/bash');
+    const shellName = path.basename(shellExecutable).toLowerCase();
+    const shellArgs = shellName === 'cmd.exe' || shellName === 'cmd'
+      ? ['/d', '/s', '/c', command.value]
+      : shellName === 'powershell.exe' || shellName === 'powershell' || shellName === 'pwsh.exe' || shellName === 'pwsh'
+        ? ['-NoLogo', '-NoProfile', '-Command', command.value]
+        : ['-lc', command.value];
     const options: any = {
       cwd: normalizedPath,
-      shell: shell || true,
+      name: 'xterm-256color',
+      cols: 120,
+      rows: 30,
+      env: {
+        ...process.env,
+        TERM: 'xterm-256color',
+        COLORTERM: 'truecolor',
+      },
     };
 
-    let commandProcess;
+    let commandProcess: any;
+    let stoppedForPrompt = false;
+    let settled = false;
+
+    const fail = (error: Error) => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
+
+    const finish = (value: string) => {
+      if (settled) return;
+      settled = true;
+      resolve(value);
+    };
 
     try {
-      commandProcess = execa(command.value, [], options);
+      commandProcess = pty.spawn(shellExecutable, shellArgs, options);
+      activeWorkflowProcesses.add(commandProcess);
     } catch (err: any) {
       logStates = await getNewlogStates(
         worktreeLabel,
@@ -140,29 +187,21 @@ async function executeCommand(
         null,
       );
       event.sender.send('workflow-started-log-received', logStates);
-      reject(new Error(err.toString()));
+      fail(new Error(err.toString()));
+      return;
     }
 
-    commandProcess?.stdout?.on('data', async (data: any) => {
+    commandProcess.onData(async (data: string) => {
       if (getStopExecution()) {
-        commandProcess.kill('SIGTERM');
-
-        setTimeout(() => {
-          if (!commandProcess.killed) {
-            commandProcess.kill('SIGKILL');
-          }
-        }, 5000);
+        commandProcess.kill();
       }
-      if (
-        command.value.includes('hygen') &&
-        data &&
-        data.toString().includes('Overwrite?')
-      ) {
-        commandProcess.kill('SIGKILL');
+      if (command.value.includes('hygen') && data.includes('Overwrite?')) {
+        stoppedForPrompt = true;
+        commandProcess.kill();
       }
       logStates = await getNewlogStates(
         worktreeLabel,
-        data,
+        Buffer.from(data),
         storedEncoding,
         command,
         null,
@@ -170,19 +209,9 @@ async function executeCommand(
       event.sender.send('workflow-started-log-received', logStates);
     });
 
-    commandProcess?.stderr?.on('data', async (data: any) => {
-      logStates = await getNewlogStates(
-        worktreeLabel,
-        data,
-        storedEncoding,
-        command,
-        null,
-      );
-      event.sender.send('workflow-started-log-received', logStates);
-    });
-
-    commandProcess?.on('exit', async (code: any, signal: any) => {
-      if (code === 0) {
+    commandProcess.onExit(async ({ exitCode }: { exitCode: number }) => {
+      activeWorkflowProcesses.delete(commandProcess);
+      if (exitCode === 0) {
         logStates = await getNewlogStates(
           worktreeLabel,
           '',
@@ -195,9 +224,9 @@ async function executeCommand(
           const worktrees = await worktreeMainService.findAll(normalizedPath);
           event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         }
-        resolve('finish command');
-      } else if (signal === 'SIGTERM' || signal === 'SIGKILL') {
-        reject(new Error('aborted'));
+        finish('finish command');
+      } else if (getStopExecution() || stoppedForPrompt) {
+        fail(new Error('aborted'));
       } else {
         logStates = await getNewlogStates(
           worktreeLabel,
@@ -206,20 +235,8 @@ async function executeCommand(
           command,
           'error',
         );
-        reject(new Error(code));
+        fail(new Error(String(exitCode)));
       }
-    });
-
-    commandProcess?.on('error', async (err: any) => {
-      logStates = await getNewlogStates(
-        worktreeLabel,
-        Buffer.from(err.message),
-        storedEncoding,
-        command,
-        'error',
-      );
-      event.sender.send('workflow-started-log-received', logStates);
-      reject(new Error(err.toString()));
     });
   });
 }

@@ -6,7 +6,9 @@ import { setStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
-import playWorkflow from './processesListeners';
+import playWorkflow, {
+  stopActiveWorkflowProcesses,
+} from './processesListeners';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
@@ -16,6 +18,7 @@ ipcMain.on('play-workflow', async function (event, workflow, dir) {
 
 ipcMain.on('stop-workflow', function (event) {
   setStopExecution(true);
+  stopActiveWorkflowProcesses();
   log.info('Workflow stopped by user');
   event.sender.send('workflow-stopped');
 });
