@@ -1,12 +1,13 @@
-import React, { forwardRef, useState } from 'react';
-import { Button, Layout, Tooltip, Space, Tag, theme, Modal, Radio } from 'antd';
+import React, { forwardRef, lazy, Suspense, useState } from 'react';
+import { Button, Layout, Tooltip, Space, Tag, theme, Modal, Radio, Spin } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import ListWorktrees from './ListWorktrees';
-import GitLog from '../gitLog/GitLog';
 import PackInfos from '../packInfos/PackInfos';
-import GitDiff from '../gitDiff/GitDiff';
-import AddWorktree from './AddWorktree';
 import { useItemsContext } from '../../TabsContext';
+
+const GitLog = lazy(() => import('../gitLog/GitLog'));
+const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
+const AddWorktree = lazy(() => import('./AddWorktree'));
 
 const { Sider } = Layout;
 const { useToken } = theme;
@@ -120,18 +121,24 @@ const Worktrees = forwardRef<
                 paddingBottom: 0,
               }}
             >
-              <GitLog isModal />
+              <Suspense fallback={<Spin size="large" />}>
+                <GitLog isModal />
+              </Suspense>
             </Modal>
           )}
           {openGitDiff && (
-            <GitDiff isModalOpen={openGitDiff} handleCancel={onCloseGitDiff} />
+            <Suspense fallback={<Spin size="large" />}>
+              <GitDiff isModalOpen={openGitDiff} handleCancel={onCloseGitDiff} />
+            </Suspense>
           )}
           {isModalOpen && (
-            <AddWorktree
-              isModalOpen={isModalOpen}
-              handleCancel={handleCancel}
-              setMode={onChangeMode}
-            />
+            <Suspense fallback={<Spin size="large" />}>
+              <AddWorktree
+                isModalOpen={isModalOpen}
+                handleCancel={handleCancel}
+                setMode={onChangeMode}
+              />
+            </Suspense>
           )}
           <ul style={{ marginTop: 0, paddingLeft: '0' }}>
             {mode === 'WORKFLOW' && (

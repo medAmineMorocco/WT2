@@ -124,13 +124,19 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
     };
 
-    window.electron.ipcRenderer.on('receive-git-log', onReceiveGitLog);
-    window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
-    window.electron.ipcRenderer.on('receive-authors', onAuthorsFound);
+    const removeGitLog = window.electron.ipcRenderer.on('receive-git-log', onReceiveGitLog);
+    const removeWorktrees = window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
+    const removeAuthors = window.electron.ipcRenderer.on('receive-authors', onAuthorsFound);
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('receive-git-log');
-      window.electron.ipcRenderer.removeAllListeners('receive-authors');
+      if (typeof removeGitLog === 'function') removeGitLog();
+      else window.electron.ipcRenderer.removeAllListeners('receive-git-log');
+
+      if (typeof removeWorktrees === 'function') removeWorktrees();
+      else window.electron.ipcRenderer.removeAllListeners('worktrees-found');
+
+      if (typeof removeAuthors === 'function') removeAuthors();
+      else window.electron.ipcRenderer.removeAllListeners('receive-authors');
     };
   }, [tabRepoPath]);
 

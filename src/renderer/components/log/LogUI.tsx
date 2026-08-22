@@ -31,14 +31,21 @@ const items: MenuProps['items'] = [
   },
 ];
 interface ParsedCommit {
-  graph: string;
-  transitionsAbove: string[];
-  transitionsBelow: string[];
+  hash: string;
+  parents: string[];
   subject: string;
   refs: string;
   author: string;
   date: string;
-  hash: string;
+  lane: number;
+  passingLanes: number[];
+  forks: { fromLane: number; toLane: number }[];
+  merges: { fromLane: number; toLane: number }[];
+  hasTop: boolean;
+  hasBottom: boolean;
+  graph?: string;
+  transitionsAbove?: string[];
+  transitionsBelow?: string[];
 }
 
 export default function LogUI({
@@ -77,6 +84,7 @@ export default function LogUI({
       : '{repo}__wt__{branch}';
 
   useEffect(() => {
+    const timers: NodeJS.Timeout[] = [];
     const onWorktreeCreated = (code: number, result: any) => {
       log.debug(
         `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
@@ -84,17 +92,19 @@ export default function LogUI({
       if (code === 0) {
         window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
-        setTimeout(() => {
+        const t1 = setTimeout(() => {
           api.success({
             key: 'updatable',
             message: 'Worktree Created',
             placement: 'bottomLeft',
             duration: 0.5,
           });
-          setTimeout(() => {
+          const t2 = setTimeout(() => {
             api.destroy('updatable');
           }, 1500);
+          timers.push(t2);
         }, 500);
+        timers.push(t1);
       } else {
         notification.error({
           message: 'Unable to Create Worktree From Commit',
@@ -104,15 +114,15 @@ export default function LogUI({
       }
     };
 
-    window.electron.ipcRenderer.on(
+    const removeWorktreeCreated = window.electron.ipcRenderer.on(
       'worktree-from-commit-created',
       onWorktreeCreated,
     );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners(
-        'worktree-from-commit-created',
-      );
+      timers.forEach(clearTimeout);
+      if (typeof removeWorktreeCreated === 'function') removeWorktreeCreated();
+      else window.electron.ipcRenderer.removeAllListeners('worktree-from-commit-created');
     };
   }, [api, tabRepoPath]);
 

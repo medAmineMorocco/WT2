@@ -72,25 +72,31 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   }
 
   useEffect(() => {
-    setInterval(() => {
-      setPercent(percent + 50);
-    }, 10);
-  });
+    if (!isFirstRender) return undefined;
+    const interval = setInterval(() => {
+      setPercent((prev) => (prev >= 100 ? 100 : prev + 25));
+    }, 50);
+    return () => clearInterval(interval);
+  }, [isFirstRender]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
     if (isRepoSelected) {
       setLoading(true);
-      setTimeout(() => {
+      timer = setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
         setIsFirstRender(false);
       }, 20);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
-      setTimeout(() => {
+      timer = setTimeout(() => {
         setIsFirstRender(false);
       }, 20);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
     // do not touch
   }, [isRepoSelected]);
 
@@ -190,14 +196,28 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }
     };
 
-    window.electron.ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
-    window.electron.ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
-    window.electron.ipcRenderer.on('is-repo-exist', onRepoExist);
+    const removeSelectedRepo = window.electron.ipcRenderer.on(
+      `selected-repo-${keyTab}`,
+      onSelectRepo,
+    );
+    const removeThemeChanged = window.electron.ipcRenderer.on(
+      `theme-changed-${keyTab}`,
+      onThemeChange,
+    );
+    const removeRepoExist = window.electron.ipcRenderer.on(
+      'is-repo-exist',
+      onRepoExist,
+    );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
-      window.electron.ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
-      window.electron.ipcRenderer.removeAllListeners('is-repo-exist');
+      if (typeof removeSelectedRepo === 'function') removeSelectedRepo();
+      else window.electron.ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
+
+      if (typeof removeThemeChanged === 'function') removeThemeChanged();
+      else window.electron.ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
+
+      if (typeof removeRepoExist === 'function') removeRepoExist();
+      else window.electron.ipcRenderer.removeAllListeners('is-repo-exist');
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 

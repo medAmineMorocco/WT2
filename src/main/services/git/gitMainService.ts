@@ -14,7 +14,18 @@ interface LogCacheEntry {
   lastChecked: number;
 }
 
+const MAX_LOG_CACHE_ENTRIES = 10;
 const logCache = new Map<string, LogCacheEntry>();
+
+function setLogCache(key: string, entry: LogCacheEntry) {
+  if (logCache.has(key)) {
+    logCache.delete(key);
+  } else if (logCache.size >= MAX_LOG_CACHE_ENTRIES) {
+    const oldestKey = logCache.keys().next().value;
+    if (oldestKey) logCache.delete(oldestKey);
+  }
+  logCache.set(key, entry);
+}
 
 async function gitCommand() {
   const storedGitExecutable = await utils.getStorageItem('gitExecutablePath');
@@ -92,7 +103,7 @@ function showLogAsync(
 
       if (shouldUseCache) {
         try {
-          logCache.set(directory, {
+          setLogCache(directory, {
             buffer,
             lastChecked: Date.now(),
           });

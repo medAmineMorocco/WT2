@@ -188,8 +188,8 @@ function Terminal({
       listener: any;
     }[] = [];
     // eslint-disable-next-line no-restricted-syntax
-    for (const terminalEl of document.getElementsByClassName(
-      'react-terminal-wrapper',
+    for (const terminalEl of Array.from(
+      document.getElementsByClassName('react-terminal-wrapper'),
     )) {
       const listener = () =>
         (

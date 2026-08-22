@@ -194,6 +194,32 @@ export default function GitDiff({
     }
   }, [screens]);
 
+  const themeTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const clear = useCallback(() => {
+    const targetElement = document.getElementById('git-diff');
+    if (targetElement) {
+      targetElement.innerHTML = '';
+    }
+    setDiffMode(false);
+    diffRef.current = null;
+  }, []);
+
+  useEffect(() => {
+    if (!isModalOpen) {
+      clear();
+    }
+  }, [clear, isModalOpen]);
+
+  useEffect(() => {
+    return () => {
+      clear();
+      if (themeTimerRef.current) {
+        clearTimeout(themeTimerRef.current);
+      }
+    };
+  }, [clear]);
+
   useEffect(() => {
     window.electron.ipcRenderer.send('list-refs', tabRepoPath);
     const onReceiveGitDiff = (code: number, result: any) => {
@@ -227,12 +253,15 @@ export default function GitDiff({
       }
     };
 
-    window.electron.ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
-    window.electron.ipcRenderer.on('receive-refs', onReceiveRefs);
+    const removeDiff = window.electron.ipcRenderer.on('receive-git-diff', onReceiveGitDiff);
+    const removeRefs = window.electron.ipcRenderer.on('receive-refs', onReceiveRefs);
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('receive-git-diff');
-      window.electron.ipcRenderer.removeAllListeners('receive-refs');
+      if (typeof removeDiff === 'function') removeDiff();
+      else window.electron.ipcRenderer.removeAllListeners('receive-git-diff');
+
+      if (typeof removeRefs === 'function') removeRefs();
+      else window.electron.ipcRenderer.removeAllListeners('receive-refs');
     };
   }, [drawDiff, isDarkMode, tabRepoPath]);
 
@@ -294,15 +323,6 @@ export default function GitDiff({
     }
   };
 
-  const clear = () => {
-    const targetElement = document.getElementById('git-diff');
-    if (targetElement) {
-      targetElement.innerHTML = '';
-    }
-    setDiffMode(false);
-    diffRef.current = null;
-  };
-
   const findDifference = () => {
     clear();
     setLoading(true);
@@ -323,8 +343,9 @@ export default function GitDiff({
         targetElement.innerHTML = '';
       }
       setLoading(true);
-      setTimeout(() => {
-        drawDiff(diffRef.current);
+      if (themeTimerRef.current) clearTimeout(themeTimerRef.current);
+      themeTimerRef.current = setTimeout(() => {
+        if (diffRef.current) drawDiff(diffRef.current);
         setLoading(false);
       }, 4);
     }

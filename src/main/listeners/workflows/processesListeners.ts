@@ -431,19 +431,23 @@ export default async function playWorkflow(
     logStates,
   );
   event.sender.send('workflow-started-states-updated', worktreesStates);
-  event.sender.send('workflow-started-log-received', logStates);
-  if (workflow.mode === 'parallel') {
-    await executeProcessesForDirectoriesInParallel(
-      commands,
-      workflow.worktrees,
-      event,
-    );
-  } else {
-    await executeProcessesForDirectoriesInSeries(
-      commands,
-      workflow.worktrees,
-      event,
-    );
+  try {
+    if (workflow.mode === 'parallel') {
+      await executeProcessesForDirectoriesInParallel(
+        commands,
+        workflow.worktrees,
+        event,
+      );
+    } else {
+      await executeProcessesForDirectoriesInSeries(
+        commands,
+        workflow.worktrees,
+        event,
+      );
+    }
+  } finally {
+    event.sender.send('workflow-stopped');
+    logStates = [];
+    worktreesStates = [];
   }
-  event.sender.send('workflow-stopped');
 }

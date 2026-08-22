@@ -25,10 +25,24 @@ const registeredOwners = new Set<number>();
 
 let installedCommandsCache: string[] | null = null;
 let installedCommandsPromise: Promise<string[]> | null = null;
+const MAX_PACKAGE_SCRIPTS_CACHE_ENTRIES = 20;
 const packageScriptsCache = new Map<
   string,
   { expiresAt: number; commands: { command: string; description: string }[] }
 >();
+
+function setPackageScriptsCache(
+  key: string,
+  entry: { expiresAt: number; commands: { command: string; description: string }[] },
+) {
+  if (packageScriptsCache.has(key)) {
+    packageScriptsCache.delete(key);
+  } else if (packageScriptsCache.size >= MAX_PACKAGE_SCRIPTS_CACHE_ENTRIES) {
+    const oldestKey = packageScriptsCache.keys().next().value;
+    if (oldestKey) packageScriptsCache.delete(oldestKey);
+  }
+  packageScriptsCache.set(key, entry);
+}
 
 const COMMON_COMMANDS = [
   'git status',
@@ -369,7 +383,7 @@ async function packageScriptSuggestions(directory: string) {
       command: `npm run ${script}`,
       description: `package.json script: ${script}`,
     }));
-    packageScriptsCache.set(directory, {
+    setPackageScriptsCache(directory, {
       expiresAt: Date.now() + 30_000,
       commands,
     });

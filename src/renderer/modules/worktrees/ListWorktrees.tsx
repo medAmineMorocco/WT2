@@ -1,4 +1,12 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  forwardRef,
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   Tooltip,
   Space,
@@ -10,6 +18,7 @@ import {
   Button,
   Collapse,
   Avatar,
+  Spin,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -37,13 +46,15 @@ import log from 'electron-log';
 import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
-import TerminalInteractive, {
-  type TerminalAgentActivity,
-} from '../terminal/TerminalInteractive';
-import RenameWorktree from './RenameWorktree';
-import MoveWorktree from './MoveWorktree';
-import ChangePatternWorktree from './ChangePatternWorktree';
+import type { TerminalAgentActivity } from '../terminal/TerminalInteractive';
 import { useItemsContext } from '../../TabsContext';
+
+const TerminalInteractive = lazy(
+  () => import('../terminal/TerminalInteractive'),
+);
+const RenameWorktree = lazy(() => import('./RenameWorktree'));
+const MoveWorktree = lazy(() => import('./MoveWorktree'));
+const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 
 const { useToken } = theme;
 
@@ -877,7 +888,7 @@ export default function ListWorktrees({
                         <Avatar
                           style={{ backgroundColor: '#722ed1', fontSize: 9 }}
                         >
-                          {agent.shortLabel}
+                          {(agent as any).shortLabel || agent.label.slice(0, 2)}
                         </Avatar>
                       </Tooltip>
                     ))}
@@ -905,42 +916,50 @@ export default function ListWorktrees({
           ))}
         </ul>
         {openTerminalModal && (
-          <TerminalInteractive
-            isModalOpen={openTerminalModal}
-            initialRepository={repositoryInTerminal}
-            worktrees={worktrees}
-            handleCancel={closeTerminalModal}
-            isDarkMode={isDarkMode}
-            onAgentActivity={onTerminalAgentActivity}
-            initialMode={terminalInitialMode}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <TerminalInteractive
+              isModalOpen={openTerminalModal}
+              initialRepository={repositoryInTerminal}
+              worktrees={worktrees}
+              handleCancel={closeTerminalModal}
+              isDarkMode={isDarkMode}
+              onAgentActivity={onTerminalAgentActivity}
+              initialMode={terminalInitialMode}
+            />
+          </Suspense>
         )}
         {isModalOpen && (
-          <RenameWorktree
-            isModalOpen={isModalOpen}
-            form={form}
-            onFinish={onFinish}
-            handleCancel={handleCancel}
-            loading={loadingRenameWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <RenameWorktree
+              isModalOpen={isModalOpen}
+              form={form}
+              onFinish={onFinish}
+              handleCancel={handleCancel}
+              loading={loadingRenameWorktree}
+            />
+          </Suspense>
         )}
         {isMoveModalOpen && (
-          <MoveWorktree
-            isModalOpen={isMoveModalOpen}
-            form={form}
-            onFinish={onFinishMoveWorktree}
-            handleCancel={handleCancelMoveWorktree}
-            loading={loadingMoveWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <MoveWorktree
+              isModalOpen={isMoveModalOpen}
+              form={form}
+              onFinish={onFinishMoveWorktree}
+              handleCancel={handleCancelMoveWorktree}
+              loading={loadingMoveWorktree}
+            />
+          </Suspense>
         )}
         {isChangePatternModalOpen && (
-          <ChangePatternWorktree
-            isModalOpen={isChangePatternModalOpen}
-            form={form}
-            onFinish={onFinishChangePatternWorktree}
-            handleCancel={handleCancelChangePatternWorktree}
-            loading={loadingChangePatternWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <ChangePatternWorktree
+              isModalOpen={isChangePatternModalOpen}
+              form={form}
+              onFinish={onFinishChangePatternWorktree}
+              handleCancel={handleCancelChangePatternWorktree}
+              loading={loadingChangePatternWorktree}
+            />
+          </Suspense>
         )}
       </Collapse.Panel>
     </Collapse>

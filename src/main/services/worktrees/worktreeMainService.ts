@@ -100,11 +100,25 @@ const buildAndCacheDirectories = new Set([
   '.gradle',
   '__pycache__',
 ]);
+const MAX_DISK_USAGE_CACHE_ENTRIES = 20;
 const diskUsageCache = new Map<
   string,
   { measuredAt: number; usage: WorktreeDashboardDiskUsage }
 >();
 const diskUsageCacheDuration = 2 * 60 * 1000;
+
+function setDiskUsageCache(
+  key: string,
+  entry: { measuredAt: number; usage: WorktreeDashboardDiskUsage },
+) {
+  if (diskUsageCache.has(key)) {
+    diskUsageCache.delete(key);
+  } else if (diskUsageCache.size >= MAX_DISK_USAGE_CACHE_ENTRIES) {
+    const oldestKey = diskUsageCache.keys().next().value;
+    if (oldestKey) diskUsageCache.delete(oldestKey);
+  }
+  diskUsageCache.set(key, entry);
+}
 
 function emptyDiskUsage(): WorktreeDashboardDiskUsage {
   return {
@@ -179,7 +193,7 @@ async function directorySize(directory: string) {
     );
     pending = pending.concat(discovered.flat());
   }
-  diskUsageCache.set(directory, { measuredAt: Date.now(), usage });
+  setDiskUsageCache(directory, { measuredAt: Date.now(), usage });
   return usage;
 }
 
