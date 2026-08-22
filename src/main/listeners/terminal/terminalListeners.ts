@@ -3,6 +3,7 @@ import path from 'path';
 import { ipcMain, WebContents } from 'electron';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
+import { AiAgentConfig, aiAgentsDefault } from '../../../shared/aiAgents';
 
 const pty = require('node-pty');
 
@@ -243,6 +244,102 @@ ipcMain.on(
 
 ipcMain.on('terminal-input', (event, sessionId: string, data: string) => {
   ownedSession(sessionId, event.sender.id)?.process.write(data);
+});
+
+function quoteForShell(value: string) {
+  if (process.platform === 'win32') return `"${value.replace(/"/g, '""')}"`;
+  return `'${value.replace(/'/g, "'\\''")}'`;
+}
+
+async function configuredAiAgents() {
+  const stored = await utils.getStorageItem('aiAgents');
+  if (!stored) return aiAgentsDefault;
+  try {
+    const configured = JSON.parse(stored) as AiAgentConfig[];
+    return aiAgentsDefault.map((defaultAgent) => ({
+      ...defaultAgent,
+      ...configured.find((agent) => agent.id === defaultAgent.id),
+    }));
+  } catch {
+    return aiAgentsDefault;
+  }
+}
+
+ipcMain.on(
+  'terminal-start-ai-agent',
+  async (event, sessionId: string, agentId: string, prompt: string) => {
+    const session = ownedSession(sessionId, event.sender.id);
+    if (!session) return;
+    try {
+      const agent = (await configuredAiAgents()).find(
+        (candidate) => candidate.id === agentId,
+      );
+      if (!agent?.enabled) {
+        throw new Error(
+          'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
+        );
+      }
+      if (!agent.command.trim()) {
+        throw new Error(
+          'Configure an executable command for this AI agent in Settings > AI Agents.',
+        );
+      }
+      const command = [
+        quoteForShell(agent.command.trim()),
+        agent.args.trim(),
+        prompt.trim() ? quoteForShell(prompt.trim()) : '',
+      ]
+        .filter(Boolean)
+        .join(' ');
+      session.process.write(`${command}\r`);
+      event.sender.send('terminal-ai-agent-started', sessionId, agent.id);
+    } catch (error: any) {
+      event.sender.send(
+        'terminal-ai-agent-error',
+        sessionId,
+        error.message || 'Unable to start the AI agent.',
+      );
+    }
+  },
+);
+
+ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
+  try {
+    if (!agent.command?.trim())
+      throw new Error('Enter an executable command first.');
+    const child = require('child_process').spawn(
+      agent.command.trim(),
+      ['--version'],
+      {
+        shell: false,
+        windowsHide: true,
+      },
+    );
+    let output = '';
+    let settled = false;
+    const sendResult = (code: number, message: string) => {
+      if (settled) return;
+      settled = true;
+      event.sender.send('ai-agent-tested', agent.id, code, message);
+    };
+    child.stdout.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.stderr.on('data', (chunk: Buffer) => {
+      output += chunk.toString();
+    });
+    child.on('error', (error: Error) => {
+      sendResult(-1, error.message);
+    });
+    child.on('close', (code: number) => {
+      sendResult(
+        code === 0 ? 0 : -1,
+        output.trim() || `Exited with code ${code}`,
+      );
+    });
+  } catch (error: any) {
+    event.sender.send('ai-agent-tested', agent.id, -1, error.message);
+  }
 });
 
 ipcMain.on(

@@ -31,6 +31,11 @@ import {
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
+import {
+  AiAgentConfig,
+  AiAgentId,
+  aiAgentsDefault,
+} from '../../../shared/aiAgents';
 import './TerminalInteractive.css';
 
 type WorktreeOption = {
@@ -44,13 +49,7 @@ type TerminalDescriptor = WorktreeOption & {
   mode?: 'terminal' | 'agent';
 };
 
-type AiAgentId = 'claude' | 'codex' | 'cursor' | 'antigravity';
-
-type AiAgent = {
-  id: AiAgentId;
-  label: string;
-  command: string;
-};
+type AiAgent = AiAgentConfig;
 
 export type TerminalAgentActivity = {
   terminalId: string;
@@ -58,21 +57,6 @@ export type TerminalAgentActivity = {
   agent: AiAgent;
   active: boolean;
 };
-
-const AI_AGENTS: AiAgent[] = [
-  { id: 'claude', label: 'Claude Code', command: 'claude' },
-  { id: 'codex', label: 'Codex', command: 'codex' },
-  {
-    id: 'cursor',
-    label: 'Cursor CLI',
-    command: 'cursor-agent',
-  },
-  {
-    id: 'antigravity',
-    label: 'Antigravity CLI',
-    command: 'antigravity',
-  },
-];
 
 function AgentIcon({ agent, size = 18 }: { agent: AiAgent; size?: number }) {
   const commonProps = {
@@ -196,6 +180,7 @@ function TerminalPane({
   const suggestionTimerRef = useRef<number | null>(null);
   const agentFinishedRef = useRef(false);
   const agentStartedRef = useRef(false);
+  const pendingAgentRef = useRef<AiAgent | undefined>();
   const isAgentModeRef = useRef(terminal.mode === 'agent');
   const activeAgentRef = useRef<AiAgent | undefined>(terminal.agent);
   const [suggestions, setSuggestions] = useState<TerminalSuggestion[]>([]);
@@ -204,6 +189,9 @@ function TerminalPane({
     'starting' | 'ready' | 'agent-running' | 'exited' | 'error'
   >('starting');
   const [selectedAgentId, setSelectedAgentId] = useState<AiAgentId>('claude');
+  const [configuredAgents, setConfiguredAgents] = useState<AiAgent[]>(
+    aiAgentsDefault,
+  );
   const [agentPrompt, setAgentPrompt] = useState('');
   const [activeAgent, setActiveAgent] = useState<AiAgent | undefined>(
     terminal.agent,
@@ -228,6 +216,33 @@ function TerminalPane({
       xtermRef.current?.reset();
     }
   }, [mode]);
+
+  useEffect(() => {
+    const refreshConfiguredAgents = () => {
+      try {
+        const stored = window.localStorage.getItem('aiAgents');
+        const saved = stored ? (JSON.parse(stored) as AiAgent[]) : [];
+        setConfiguredAgents(
+          aiAgentsDefault.map((defaultAgent) => ({
+            ...defaultAgent,
+            ...saved.find((agent) => agent.id === defaultAgent.id),
+          })),
+        );
+      } catch {
+        setConfiguredAgents(aiAgentsDefault);
+      }
+    };
+    refreshConfiguredAgents();
+    window.addEventListener('focus', refreshConfiguredAgents);
+    return () => window.removeEventListener('focus', refreshConfiguredAgents);
+  }, []);
+
+  const enabledAgents = configuredAgents.filter((agent) => agent.enabled);
+
+  useEffect(() => {
+    if (enabledAgents.some((agent) => agent.id === selectedAgentId)) return;
+    if (enabledAgents[0]) setSelectedAgentId(enabledAgents[0].id);
+  }, [enabledAgents, selectedAgentId]);
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
@@ -452,31 +467,41 @@ function TerminalPane({
       'terminal-ready',
       (id: string) => {
         if (id !== terminal.id) return;
-        if (terminal.agent) {
-          setStatus('agent-running');
-          onAgentActivity?.({
-            terminalId: terminal.id,
-            worktreePath: terminal.path,
-            agent: terminal.agent,
-            active: true,
-          });
-          window.setTimeout(() => {
-            window.electron.ipcRenderer.send(
-              'terminal-input',
-              terminal.id,
-              `${terminal.agent?.command}\r`,
-            );
-            // Let the shell's first prompt render before treating a returned
-            // prompt as the agent having finished.
-            agentStartedRef.current = true;
-          }, 250);
-        } else {
-          setStatus('ready');
-        }
+        setStatus('ready');
         if (terminal.mode === 'agent') {
           window.setTimeout(() => xterm.reset(), 350);
         }
         window.setTimeout(() => xterm.focus(), 300);
+      },
+    );
+    const removeAgentStarted = window.electron.ipcRenderer.on(
+      'terminal-ai-agent-started',
+      (id: string, agentId: AiAgentId) => {
+        if (id !== terminal.id || pendingAgentRef.current?.id !== agentId) return;
+        const agent = pendingAgentRef.current;
+        if (!agent) return;
+        pendingAgentRef.current = undefined;
+        activeAgentRef.current = agent;
+        agentStartedRef.current = true;
+        agentFinishedRef.current = false;
+        setActiveAgent(agent);
+        setStatus('agent-running');
+        setAgentPrompt('');
+        onAgentActivity?.({
+          terminalId: terminal.id,
+          worktreePath: terminal.path,
+          agent,
+          active: true,
+        });
+      },
+    );
+    const removeAgentError = window.electron.ipcRenderer.on(
+      'terminal-ai-agent-error',
+      (id: string, message: string) => {
+        if (id !== terminal.id) return;
+        pendingAgentRef.current = undefined;
+        setStatus('ready');
+        xterm.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
       },
     );
     const removeExit = window.electron.ipcRenderer.on(
@@ -596,6 +621,8 @@ function TerminalPane({
       removeReady();
       removeExit();
       removeError();
+      removeAgentStarted();
+      removeAgentError();
       removeSuggestions();
       removeCommandIndex();
       window.electron.ipcRenderer.send('terminal-close', terminal.id);
@@ -615,9 +642,7 @@ function TerminalPane({
   }, [
     onAgentActivity,
     registerFocus,
-    terminal.agent,
     terminal.id,
-    terminal.mode,
     terminal.path,
   ]);
 
@@ -644,7 +669,7 @@ function TerminalPane({
   };
 
   const startAgent = () => {
-    const agent = AI_AGENTS.find((item) => item.id === selectedAgentId);
+    const agent = enabledAgents.find((item) => item.id === selectedAgentId);
     if (!agent || status === 'starting' || status === 'agent-running') return;
 
     const attachedFiles = promptFiles
@@ -656,27 +681,14 @@ function TerminalPane({
     ]
       .filter(Boolean)
       .join('\n');
-    const escapedPrompt = prompt.replace(/"/g, '""');
-    const command = prompt
-      ? `${agent.command} "${escapedPrompt}"`
-      : agent.command;
-    activeAgentRef.current = agent;
-    agentStartedRef.current = true;
-    agentFinishedRef.current = false;
-    setActiveAgent(agent);
-    setStatus('agent-running');
-    onAgentActivity?.({
-      terminalId: terminal.id,
-      worktreePath: terminal.path,
-      agent,
-      active: true,
-    });
+    pendingAgentRef.current = agent;
+    setStatus('starting');
     window.electron.ipcRenderer.send(
-      'terminal-input',
+      'terminal-start-ai-agent',
       terminal.id,
-      `${command}\r`,
+      agent.id,
+      prompt,
     );
-    xtermRef.current?.focus();
   };
 
   const statusPresentation = {
@@ -715,7 +727,9 @@ function TerminalPane({
               size="small"
               value={selectedAgentId}
               aria-label="AI agent for this terminal"
-              options={AI_AGENTS.map((agent) => ({
+              disabled={enabledAgents.length === 0}
+              placeholder="Configure an AI agent"
+              options={enabledAgents.map((agent) => ({
                 value: agent.id,
                 label: (
                   <Space size={6}>
@@ -780,6 +794,11 @@ function TerminalPane({
       </header>
       {mode === 'terminal' ? null : (
         <div className="terminal-agent-toolbar">
+          {enabledAgents.length === 0 && (
+            <Typography.Text type="secondary">
+              Enable and configure an AI agent in Settings before starting one.
+            </Typography.Text>
+          )}
           <Input.TextArea
             size="small"
             value={agentPrompt}
@@ -787,7 +806,11 @@ function TerminalPane({
             onFocus={() => {
               if (!isFocusedMode) onToggleFocusedMode(terminal.id);
             }}
-            onPressEnter={startAgent}
+            onPressEnter={(event) => {
+              if (event.shiftKey) return;
+              event.preventDefault();
+              startAgent();
+            }}
             placeholder="Prompt for AI agent"
             disabled={status === 'agent-running'}
             autoSize={{ minRows: 2, maxRows: 5 }}
@@ -822,7 +845,11 @@ function TerminalPane({
               type="text"
               icon={<SendOutlined />}
               aria-label="Start AI agent"
-              disabled={status === 'starting' || status === 'agent-running'}
+              disabled={
+                enabledAgents.length === 0 ||
+                status === 'starting' ||
+                status === 'agent-running'
+              }
               onClick={startAgent}
             />
           </Tooltip>

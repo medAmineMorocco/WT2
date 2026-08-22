@@ -6,6 +6,7 @@ import {
   CodeOutlined,
   NodeIndexOutlined,
   FontSizeOutlined,
+  RobotOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { useEffect, useState } from 'react';
@@ -16,6 +17,7 @@ import GitSettings from './GitSettings';
 import ShellSettings from './ShellSettings';
 import EncodingSettings from './EncodingSettings';
 import WorktreeSettings from './WorktreeSettings';
+import AiAgentSettings from './AiAgentSettings';
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -35,6 +37,11 @@ const itemsMenu: MenuProps['items'] = [
     key: '2',
     label: 'Editors',
     icon: <ApiOutlined />,
+  },
+  {
+    key: '7',
+    label: 'AI Agents',
+    icon: <RobotOutlined />,
   },
   {
     key: '3',
@@ -95,7 +102,10 @@ export default function Settings() {
     if (keyNavigation === '5') {
       return <EncodingSettings />;
     }
-    return <CacheSettings />;
+    if (keyNavigation === '6') {
+      return <CacheSettings />;
+    }
+    return <AiAgentSettings />;
   };
 
   return (
