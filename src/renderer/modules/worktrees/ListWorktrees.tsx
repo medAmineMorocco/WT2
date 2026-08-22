@@ -5,12 +5,13 @@ import {
   theme,
   App as AntdApp,
   Form,
-  Cascader,
+  Dropdown,
   notification,
   Button,
   Collapse,
   Avatar,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   MoreOutlined,
   EditOutlined,
@@ -45,50 +46,6 @@ import ChangePatternWorktree from './ChangePatternWorktree';
 import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
-
-const items = [
-  {
-    label: 'Open in Explorer',
-    value: '-1',
-    icon: <ExportOutlined />,
-  },
-  {
-    label: 'Open in Terminal',
-    value: '-3',
-    icon: <CodeOutlined />,
-  },
-  {
-    label: 'Work with AI Agent',
-    value: '-4',
-    icon: <RobotOutlined />,
-  },
-  {
-    label: 'Open in',
-    value: '0',
-    icon: <FolderOpenOutlined />,
-    children: [
-      {
-        value: '',
-        label: '',
-      },
-    ],
-  },
-  {
-    label: 'Copy',
-    value: '1',
-    icon: <CopyOutlined />,
-    children: [
-      {
-        value: '1-2',
-        label: 'name',
-      },
-      {
-        label: 'path',
-        value: '1-3',
-      },
-    ],
-  },
-];
 
 type ActiveAgent = TerminalAgentActivity['agent'];
 
@@ -503,98 +460,107 @@ export default function ListWorktrees({
     setIsChangePatternModalOpen(false);
   };
 
-  const getMenuItems = (
-    isWorktreeLocked: boolean,
-    isPrimaryWorktree: boolean,
-    isWorktreeHealthy: boolean,
-  ) => {
-    if (isWorktreeLocked) {
-      return [
-        ...items,
-        {
-          label: 'Unlock',
-          value: '3',
-          icon: <UnlockOutlined />,
-        },
-        {
-          label: 'Rename',
-          value: '-2',
-          icon: <EditOutlined />,
-          disabled: true,
-        },
-        {
-          label: 'Change Naming Pattern',
-          value: '-6',
-          icon: <FieldStringOutlined />,
-          disabled: true,
-        },
-        {
-          label: 'Change Folder',
-          value: '5',
-          icon: <FolderEditIcon size={16} />,
-          disabled: true,
-        },
-        {
-          label: 'Delete',
-          value: '2',
-          icon: <DeleteOutlined />,
-          disabled: true,
-        },
-        {
-          label: 'Repair',
-          value: '-7',
-          icon: <ToolOutlined />,
-          disabled: isPrimaryWorktree || isWorktreeHealthy,
-        },
-      ];
-    }
+  const getWorktreeMenuItems = (worktree: any): MenuProps['items'] => {
+    const isLocked = worktree.isLocked;
+    const isPrimary = worktree.isPrimary;
+    const isHealthy = worktree.directoryExists !== false && !worktree.prunable;
+
+    const editorItems = enabledEditors.map((editor: any) => ({
+      key: `editor:${editor.name || editor.key}`,
+      label: editor.name || editor.label,
+      icon: editor.icon ? React.cloneElement(editor.icon) : <CodeOutlined />,
+    }));
+
     return [
-      ...items,
       {
-        label: 'Rename',
-        value: '-2',
-        icon: <EditOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-explorer',
+        label: 'Open in Explorer',
+        icon: <ExportOutlined />,
       },
       {
-        label: 'Change Naming Pattern',
-        value: '-6',
-        icon: <FieldStringOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-terminal',
+        label: 'Open in Terminal',
+        icon: <CodeOutlined />,
       },
       {
-        label: 'Change Folder',
-        value: '5',
-        icon: <FolderEditIcon size={16} />,
-        disabled: isPrimaryWorktree,
+        key: 'work-agent',
+        label: 'Work with AI Agent',
+        icon: <RobotOutlined />,
       },
       {
-        label: 'Delete',
-        value: '2',
-        icon: <DeleteOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-in',
+        label: 'Open in',
+        icon: <FolderOpenOutlined />,
+        children: editorItems.length > 0 ? editorItems : undefined,
+        disabled: editorItems.length === 0,
+      },
+      {
+        key: 'copy',
+        label: 'Copy',
+        icon: <CopyOutlined />,
         children: [
           {
-            label: 'worktree',
-            value: '2-0',
+            key: 'copy-name',
+            label: 'name',
           },
           {
-            label: 'worktree and local branch',
-            value: '2-1',
+            key: 'copy-path',
+            label: 'path',
           },
         ],
       },
       {
-        label: 'Lock',
-        value: '4',
-        icon: <LockOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'rename',
+        label: 'Rename',
+        icon: <EditOutlined />,
+        disabled: isLocked || isPrimary,
       },
       {
+        key: 'change-pattern',
+        label: 'Change Naming Pattern',
+        icon: <FieldStringOutlined />,
+        disabled: isLocked || isPrimary,
+      },
+      {
+        key: 'change-folder',
+        label: 'Change Folder',
+        icon: <FolderEditIcon size={16} />,
+        disabled: isLocked || isPrimary,
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        icon: <DeleteOutlined />,
+        disabled: isLocked || isPrimary,
+        children: [
+          {
+            key: 'delete-worktree',
+            label: 'worktree',
+          },
+          {
+            key: 'delete-worktree-branch',
+            label: 'worktree and local branch',
+          },
+        ],
+      },
+      isLocked
+        ? {
+            key: 'unlock',
+            label: 'Unlock',
+            icon: <UnlockOutlined />,
+            disabled: isPrimary,
+          }
+        : {
+            key: 'lock',
+            label: 'Lock',
+            icon: <LockOutlined />,
+            disabled: isPrimary,
+          },
+      {
+        key: 'repair',
         label: 'Repair',
-        value: '-7',
         icon: <ToolOutlined />,
-        disabled: isPrimaryWorktree || isWorktreeHealthy,
+        disabled: isPrimary || isHealthy,
       },
     ];
   };
@@ -605,162 +571,65 @@ export default function ListWorktrees({
     setOpenTerminalModal(false);
   };
 
-  const onClickWorktree = (worktree: any) => {
-    return (event: any) => {
-      const key = event[event.length - 1];
-      if (key === '-6') {
-        setIsChangePatternModalOpen(true);
-        form.setFieldValue('worktreeToChange', worktree);
-        form.setFieldValue('repo', tabRepoPath);
+  const handleWorktreeMenuClick =
+    (worktree: any) =>
+    ({ key }: { key: string }) => {
+      if (key === 'open-explorer') {
+        window.electron.ipcRenderer.send('open-explorer', worktree.path);
         return;
       }
-      if (key === '-7') {
-        window.electron.ipcRenderer.send(
-          'choose-moved-worktrees-for-repair',
-          false,
-        );
-        return;
-      }
-      if (key === '-3') {
+      if (key === 'open-terminal') {
         setRepositoryInTerminal(worktree.path);
         setTerminalInitialMode('terminal');
         setOpenTerminalModal(true);
         return;
       }
-      if (key === '-4') {
+      if (key === 'work-agent') {
         setRepositoryInTerminal(worktree.path);
         setTerminalInitialMode('agent');
         setOpenTerminalModal(true);
         return;
       }
-      if (key === '-2') {
+      if (key.startsWith('editor:')) {
+        const editorName = key.replace('editor:', '');
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          editorName,
+          worktree.path,
+          tabRepoPath,
+        );
+        return;
+      }
+      if (key === 'copy-name') {
+        navigator.clipboard.writeText(worktree.name);
+        return;
+      }
+      if (key === 'copy-path') {
+        navigator.clipboard.writeText(worktree.path);
+        return;
+      }
+      if (key === 'rename') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
         form.setFieldValue('oldWorktreePath', worktree.path);
         form.setFieldValue('newWorktreeName', worktree.name);
         return;
       }
-      if (key === '-1') {
-        window.electron.ipcRenderer.send('open-explorer', worktree.path);
+      if (key === 'change-pattern') {
+        setIsChangePatternModalOpen(true);
+        form.setFieldValue('worktreeToChange', worktree);
+        form.setFieldValue('repo', tabRepoPath);
         return;
       }
-      if (key === '0-2') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Intellij',
-          worktree.path,
-          tabRepoPath,
-        );
+      if (key === 'change-folder') {
+        setIsMoveModalOpen(true);
+        form.setFieldValue('nameWorktreeToMove', worktree.name);
+        form.setFieldValue('newWorktreePath', worktree.path);
+        form.setFieldValue('oldPathWorktreeToMove', worktree.path);
+        form.setFieldValue('resolvedName', worktree.resolvedName);
         return;
       }
-      if (key === '0-3') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Webstorm',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-4') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Rider',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-5') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'PyCharm',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-6') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'CLion',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-7') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'PhpStorm',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-8') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'RubyMine',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-9') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'GoLand',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-10') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Visual Studio',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-12') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Brackets',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-13') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Android Studio',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-14') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Sublime Text',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '1-2') {
-        navigator.clipboard.writeText(worktree.name);
-        return;
-      }
-      if (key === '1-3') {
-        navigator.clipboard.writeText(worktree.path);
-        return;
-      }
-      if (key === '2-0') {
+      if (key === 'delete-worktree') {
         api.open({
           key: 'updatable',
           icon: <LoadingOutlined />,
@@ -778,7 +647,7 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '2-1') {
+      if (key === 'delete-worktree-branch') {
         api.open({
           key: 'updatable',
           icon: <LoadingOutlined />,
@@ -796,16 +665,7 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '3') {
-        window.electron.ipcRenderer.send(
-          'change-lock-worktree',
-          false,
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '4') {
+      if (key === 'lock') {
         window.electron.ipcRenderer.send(
           'change-lock-worktree',
           true,
@@ -814,35 +674,22 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '5') {
-        setIsMoveModalOpen(true);
-        form.setFieldValue('nameWorktreeToMove', worktree.name);
-        form.setFieldValue('newWorktreePath', worktree.path);
-        form.setFieldValue('oldPathWorktreeToMove', worktree.path);
-        form.setFieldValue('resolvedName', worktree.resolvedName);
+      if (key === 'unlock') {
+        window.electron.ipcRenderer.send(
+          'change-lock-worktree',
+          false,
+          worktree.path,
+          tabRepoPath,
+        );
+        return;
+      }
+      if (key === 'repair') {
+        window.electron.ipcRenderer.send(
+          'choose-moved-worktrees-for-repair',
+          false,
+        );
       }
     };
-  };
-
-  const loadData = (selectedOptions: any[]) => {
-    const targetOption = selectedOptions[selectedOptions.length - 1];
-
-    if (targetOption.value === '0') {
-      targetOption.children = enabledEditors.map((editor: any) => {
-        editor.value = editor.key;
-        return editor;
-      });
-    }
-  };
-
-  const renderOption = (option: any) => {
-    return (
-      <Space>
-        {option.icon && React.cloneElement(option.icon)}
-        <span>{option.label}</span>
-      </Space>
-    );
-  };
 
   const onClickRefresh = (event: any) => {
     event.stopPropagation();
@@ -1037,17 +884,13 @@ export default function ListWorktrees({
                   </Avatar.Group>
                 )}
               </Space>
-              <Cascader
-                options={getMenuItems(
-                  worktree.isLocked,
-                  worktree.isPrimary,
-                  worktree.directoryExists !== false && !worktree.prunable,
-                )}
-                onChange={onClickWorktree(worktree)}
-                loadData={loadData}
-                optionRender={renderOption}
-                expandTrigger="hover"
-                popupClassName="worktree-menu"
+              <Dropdown
+                menu={{
+                  items: getWorktreeMenuItems(worktree),
+                  onClick: handleWorktreeMenuClick(worktree),
+                }}
+                trigger={['click']}
+                placement="bottomRight"
               >
                 <Tooltip
                   title="actions"
@@ -1055,9 +898,9 @@ export default function ListWorktrees({
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}
                 >
-                  <MoreOutlined style={{ cursor: 'pointer' }} />
+                  <MoreOutlined style={{ cursor: 'pointer', padding: '2px 4px' }} />
                 </Tooltip>
-              </Cascader>
+              </Dropdown>
             </li>
           ))}
         </ul>
