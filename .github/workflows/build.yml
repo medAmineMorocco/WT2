@@ -11,42 +11,47 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Package Linux application
         run: npm run package:linux
 
       - name: Upload to GoFile
         run: |
-          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+          for file in release/build/*.deb release/build/*.rpm; do
             [ -e "$file" ] || continue
             echo "Uploading $file..."
             curl -F "file=@$file" https://store1.gofile.io/uploadFile
           done
 
+
   build-macos:
     runs-on: macos-latest
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Import Apple Developer ID certificate
         env:
@@ -59,17 +64,23 @@ jobs:
           security default-keychain -s build.keychain
           security unlock-keychain -p actions build.keychain
 
-          security import certificate.p12 -k build.keychain -P "$MAC_CERTIFICATE_PASSWORD" -T /usr/bin/codesign
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "$MAC_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
 
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions build.keychain
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k actions \
+            build.keychain
 
           security list-keychains -d user -s build.keychain
 
       - name: Show available code signing identities
-        run: |
-          security find-identity -v -p codesigning
+        run: security find-identity -v -p codesigning
 
-      - name: Check notarytool login
+      - name: Configure notarytool
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
@@ -94,25 +105,33 @@ jobs:
 
       - name: Upload to GoFile
         run: |
-          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+          for file in release/build/*.dmg; do
             [ -e "$file" ] || continue
             echo "Uploading $file..."
             curl -F "file=@$file" https://store1.gofile.io/uploadFile
           done
 
+
   build-windows:
-    runs-on: windows-latest
+    runs-on: windows-2022
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Package Windows application
         run: npm run package:win
@@ -120,7 +139,7 @@ jobs:
       - name: Upload to GoFile
         shell: bash
         run: |
-          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+          for file in release/build/*.exe; do
             [ -e "$file" ] || continue
             echo "Uploading $file..."
             curl -F "file=@$file" https://store1.gofile.io/uploadFile
