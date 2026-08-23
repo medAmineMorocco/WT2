@@ -177,10 +177,19 @@ ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
     const isWindows = process.platform === 'win32';
     const cmdToRun =
       isWindows && cmd.includes(' ') && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
+    const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.ELECTRON_RUN_AS_NODE;
+    delete cleanEnv.ELECTRON_NO_ASAR;
+    delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
+    delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
+    delete cleanEnv.TS_NODE_PROJECT;
+
     const child = require('child_process').spawn(cmdToRun, ['--version'], {
       shell: isWindows,
       windowsHide: true,
       timeout: 5000,
+      env: cleanEnv,
     });
     let output = '';
     let settled = false;
@@ -240,6 +249,7 @@ ipcMain.handle('terminal:get-git-branches', async (_event, dirPath: string) => {
 
 import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
 import { AiAgentId } from '../../../shared/aiAgents';
+import shellDetectionService from '../../services/shells/shellDetectionService';
 
 ipcMain.handle(
   'terminal:load-fig-spec',
@@ -254,4 +264,17 @@ ipcMain.handle('ai-agents:detect-all', async () => {
 
 ipcMain.handle('ai-agents:detect-one', async (_event, agentId: AiAgentId) => {
   return aiAgentDetectionService.detectAiAgent(agentId);
+});
+
+ipcMain.handle('shells:detect-all', async () => {
+  return shellDetectionService.detectAllShells();
+});
+
+ipcMain.handle('shells:get-active', async () => {
+  return shellDetectionService.getDefaultOrActiveShell();
+});
+
+ipcMain.handle('shells:set-active', async (_event, shellPath: string) => {
+  await utils.setStorageItem('shellPath', shellPath);
+  return true;
 });

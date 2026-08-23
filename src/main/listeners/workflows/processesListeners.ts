@@ -148,11 +148,21 @@ async function executeCommand(
         ? process.env.COMSPEC || 'cmd.exe'
         : process.env.SHELL || '/bin/bash');
     const shellName = path.basename(shellExecutable).toLowerCase();
-    const shellArgs = shellName === 'cmd.exe' || shellName === 'cmd'
-      ? ['/d', '/s', '/c', command.value]
-      : shellName === 'powershell.exe' || shellName === 'powershell' || shellName === 'pwsh.exe' || shellName === 'pwsh'
-        ? ['-NoLogo', '-NoProfile', '-Command', command.value]
-        : ['-lc', command.value];
+    const shellArgs =
+      shellName === 'cmd.exe' || shellName === 'cmd'
+        ? ['/d', '/s', '/c', command.value]
+        : shellName === 'powershell.exe' ||
+            shellName === 'powershell' ||
+            shellName === 'pwsh.exe' ||
+            shellName === 'pwsh'
+          ? ['-NoLogo', '-NoProfile', '-Command', command.value]
+          : shellName === 'fish.exe' || shellName === 'fish'
+            ? ['-c', command.value]
+            : shellName === 'nu.exe' || shellName === 'nu'
+              ? ['-c', command.value]
+              : shellName === 'wsl.exe' || shellName === 'wsl'
+                ? ['-e', 'sh', '-lc', command.value]
+                : ['-lc', command.value];
 
     const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;

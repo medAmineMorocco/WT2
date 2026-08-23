@@ -114,6 +114,17 @@ function getSearchDirectories(): string[] {
   });
 }
 
+function getCleanEnv(): NodeJS.ProcessEnv {
+  const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
+  delete cleanEnv.NODE_OPTIONS;
+  delete cleanEnv.ELECTRON_RUN_AS_NODE;
+  delete cleanEnv.ELECTRON_NO_ASAR;
+  delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
+  delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
+  delete cleanEnv.TS_NODE_PROJECT;
+  return cleanEnv;
+}
+
 function verifyExecutable(executablePath: string): Promise<{ ok: boolean; version: string | null }> {
   return new Promise((resolve) => {
     try {
@@ -125,9 +136,11 @@ function verifyExecutable(executablePath: string): Promise<{ ok: boolean; versio
         shell: isWindows,
         windowsHide: true,
         timeout: 4000,
+        env: getCleanEnv(),
       });
 
       let output = '';
+      let stderrOutput = '';
       let settled = false;
 
       const finish = (ok: boolean, version: string | null) => {
@@ -141,25 +154,26 @@ function verifyExecutable(executablePath: string): Promise<{ ok: boolean; versio
       });
 
       child.stderr?.on('data', (chunk: Buffer) => {
-        output += chunk.toString();
+        stderrOutput += chunk.toString();
       });
 
       child.on('error', () => finish(false, null));
 
       child.on('close', (code: number) => {
-        const cleanOutput = output.trim().split('\n')[0]?.trim() || '';
-        if (
-          code === 0 &&
-          !cleanOutput.toLowerCase().includes('is not recognized') &&
-          !cleanOutput.toLowerCase().includes('not found')
-        ) {
-          finish(true, cleanOutput || 'Available');
-        } else if (
-          cleanOutput &&
-          !cleanOutput.toLowerCase().includes('is not recognized') &&
-          !cleanOutput.toLowerCase().includes('not found')
-        ) {
+        const cleanOutput = (output.trim() || stderrOutput.trim()).split('\n')[0]?.trim() || '';
+        const lower = cleanOutput.toLowerCase();
+        const isError =
+          lower.includes('is not recognized') ||
+          lower.includes('not found') ||
+          lower.includes('cannot find') ||
+          lower.includes('error:');
+
+        if (code === 0 && !isError && cleanOutput.length > 0) {
           finish(true, cleanOutput);
+        } else if (!isError && cleanOutput.length > 0 && (code === 0 || code === 1)) {
+          finish(true, cleanOutput);
+        } else if (fs.existsSync(executablePath)) {
+          finish(true, 'Installed');
         } else {
           finish(false, null);
         }

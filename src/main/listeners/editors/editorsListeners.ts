@@ -7,13 +7,30 @@ import copyDirectory from '../../services/utils/fileService';
 import { editorsCst } from '../../../renderer/modules/config/EditorsConfig';
 import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
+import editorDetectionService from '../../services/editors/editorDetectionService';
 
 async function getEditor(editorLabel: string) {
   const storedEditors = await utils.getStorageItem('editors');
   const editors = storedEditors
     ? JSON.parse(storedEditors)
     : JSON.parse(JSON.stringify(editorsCst));
-  return editors.find((editor: any) => editor.label === editorLabel);
+  const editor = editors.find(
+    (e: any) =>
+      e.label.toLowerCase() === editorLabel.toLowerCase() ||
+      e.label === editorLabel,
+  );
+  if (editor && (!editor.path || !fs.existsSync(editor.path))) {
+    const detected = await editorDetectionService.detectAllEditors();
+    const found =
+      detected[editor.label] ||
+      Object.values(detected).find(
+        (d) => d.label.toLowerCase() === editorLabel.toLowerCase(),
+      );
+    if (found && found.found && found.path) {
+      editor.path = found.path;
+    }
+  }
+  return editor;
 }
 
 async function openInEditor(editorCommand: string, dir: string, event: any) {
@@ -88,3 +105,12 @@ ipcMain.on(
     }
   },
 );
+
+ipcMain.handle('editors:detect-all', async () => {
+  return editorDetectionService.detectAllEditors();
+});
+
+ipcMain.handle('editors:save-all', async (_event, editorsList: any[]) => {
+  await utils.setStorageItem('editors', JSON.stringify(editorsList));
+  return true;
+});
