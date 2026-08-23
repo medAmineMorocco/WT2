@@ -487,23 +487,26 @@ export default function ListWorktrees({
         key: 'open-explorer',
         label: 'Open in Explorer',
         icon: <ExportOutlined />,
+        disabled: !isHealthy,
       },
       {
         key: 'open-terminal',
         label: 'Open in Terminal',
         icon: <CodeOutlined />,
+        disabled: !isHealthy,
       },
       {
         key: 'work-agent',
         label: 'Work with AI Agent',
         icon: <RobotOutlined />,
+        disabled: !isHealthy,
       },
       {
         key: 'open-in',
         label: 'Open in',
         icon: <FolderOpenOutlined />,
         children: editorItems.length > 0 ? editorItems : undefined,
-        disabled: editorItems.length === 0,
+        disabled: !isHealthy || editorItems.length === 0,
       },
       {
         key: 'copy',
@@ -524,25 +527,25 @@ export default function ListWorktrees({
         key: 'rename',
         label: 'Rename',
         icon: <EditOutlined />,
-        disabled: isLocked || isPrimary,
+        disabled: isLocked || isPrimary || !isHealthy,
       },
       {
         key: 'change-pattern',
         label: 'Change Naming Pattern',
         icon: <FieldStringOutlined />,
-        disabled: isLocked || isPrimary,
+        disabled: isLocked || isPrimary || !isHealthy,
       },
       {
         key: 'change-folder',
         label: 'Change Folder',
         icon: <FolderEditIcon size={16} />,
-        disabled: isLocked || isPrimary,
+        disabled: isLocked || isPrimary || !isHealthy,
       },
       {
         key: 'delete',
         label: 'Delete',
         icon: <DeleteOutlined />,
-        disabled: isLocked || isPrimary,
+        disabled: isLocked || isPrimary || !isHealthy,
         children: [
           {
             key: 'delete-worktree',
@@ -559,13 +562,13 @@ export default function ListWorktrees({
             key: 'unlock',
             label: 'Unlock',
             icon: <UnlockOutlined />,
-            disabled: isPrimary,
+            disabled: isPrimary || !isHealthy,
           }
         : {
             key: 'lock',
             label: 'Lock',
             icon: <LockOutlined />,
-            disabled: isPrimary,
+            disabled: isPrimary || !isHealthy,
           },
       {
         key: 'repair',
@@ -585,6 +588,16 @@ export default function ListWorktrees({
   const handleWorktreeMenuClick =
     (worktree: any) =>
     ({ key }: { key: string }) => {
+      const isHealthy =
+        worktree.directoryExists !== false && !worktree.prunable;
+      if (
+        !isHealthy &&
+        key !== 'repair' &&
+        key !== 'copy-name' &&
+        key !== 'copy-path'
+      ) {
+        return;
+      }
       if (key === 'open-explorer') {
         window.electron.ipcRenderer.send('open-explorer', worktree.path);
         return;
