@@ -1,9 +1,9 @@
 import fs from 'fs';
-import path from 'path';
 import { ipcMain, WebContents } from 'electron';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import { AiAgentConfig, aiAgentsDefault } from '../../../shared/aiAgents';
+import terminalCompletionService from '../../services/terminal/terminalCompletionService';
 
 const pty = require('node-pty');
 
@@ -12,121 +12,8 @@ type TerminalSession = {
   ownerId: number;
 };
 
-type TerminalSuggestion = {
-  id: string;
-  label: string;
-  value: string;
-  type: 'command' | 'directory' | 'file';
-  description?: string;
-};
-
 const sessions = new Map<string, TerminalSession>();
 const registeredOwners = new Set<number>();
-
-let installedCommandsCache: string[] | null = null;
-let installedCommandsPromise: Promise<string[]> | null = null;
-const MAX_PACKAGE_SCRIPTS_CACHE_ENTRIES = 20;
-const packageScriptsCache = new Map<
-  string,
-  { expiresAt: number; commands: { command: string; description: string }[] }
->();
-
-function setPackageScriptsCache(
-  key: string,
-  entry: { expiresAt: number; commands: { command: string; description: string }[] },
-) {
-  if (packageScriptsCache.has(key)) {
-    packageScriptsCache.delete(key);
-  } else if (packageScriptsCache.size >= MAX_PACKAGE_SCRIPTS_CACHE_ENTRIES) {
-    const oldestKey = packageScriptsCache.keys().next().value;
-    if (oldestKey) packageScriptsCache.delete(oldestKey);
-  }
-  packageScriptsCache.set(key, entry);
-}
-
-const COMMON_COMMANDS = [
-  'git status',
-  'git log --oneline --decorate --graph',
-  'git diff',
-  'git branch',
-  'git fetch',
-  'git pull',
-  'git push',
-  'npm install',
-  'npm run dev',
-  'npm run build',
-  'npm test',
-  'yarn',
-  'pnpm install',
-];
-
-const SHELL_BUILTINS = [
-  'cd',
-  'clear',
-  'cls',
-  'copy',
-  'del',
-  'dir',
-  'echo',
-  'exit',
-  'export',
-  'history',
-  'ls',
-  'mkdir',
-  'move',
-  'pwd',
-  'rm',
-  'rmdir',
-  'set',
-  'type',
-  'where',
-  'which',
-];
-
-function normalizedCommandName(fileName: string) {
-  if (process.platform !== 'win32') return fileName;
-  const extension = path.extname(fileName).toLowerCase();
-  return ['.exe', '.cmd', '.bat', '.com', '.ps1'].includes(extension)
-    ? fileName.slice(0, -extension.length)
-    : '';
-}
-
-async function scanInstalledCommands() {
-  const pathDirectories = (process.env.PATH || '')
-    .split(path.delimiter)
-    .map((directory) => directory.trim().replace(/^"|"$/g, ''))
-    .filter(Boolean);
-  const commandGroups = await Promise.all(
-    pathDirectories.map(async (directory) => {
-      try {
-        const entries = await fs.promises.readdir(directory, {
-          withFileTypes: true,
-        });
-        return entries
-          .filter((entry) => entry.isFile())
-          .map((entry) => normalizedCommandName(entry.name))
-          .filter(Boolean);
-      } catch {
-        return [];
-      }
-    }),
-  );
-  return [...new Set([...SHELL_BUILTINS, ...commandGroups.flat()])].sort(
-    (left, right) => left.localeCompare(right),
-  );
-}
-
-function getInstalledCommands() {
-  if (installedCommandsCache) return Promise.resolve(installedCommandsCache);
-  if (!installedCommandsPromise) {
-    installedCommandsPromise = scanInstalledCommands().then((commands) => {
-      installedCommandsCache = commands;
-      installedCommandsPromise = null;
-      return commands;
-    });
-  }
-  return installedCommandsPromise;
-}
 
 function closeSession(sessionId: string) {
   const session = sessions.get(sessionId);
@@ -171,7 +58,6 @@ ipcMain.on(
 
       closeSession(sessionId);
       watchOwner(event.sender);
-      void getInstalledCommands();
       const configuredShell = await utils.getStorageItem('shellPath');
       const shell = configuredShell || defaultShell();
       const terminalProcess = pty.spawn(shell, [], {
@@ -190,49 +76,7 @@ ipcMain.on(
         process: terminalProcess,
         ownerId: event.sender.id,
       });
-      event.sender.send(
-        'terminal-command-index',
-        sessionId,
-        COMMON_COMMANDS.map((command) => ({
-          id: `command:${command}`,
-          label: command,
-          value: command,
-          type: 'command' as const,
-        })),
-      );
-      Promise.all([
-        getInstalledCommands(),
-        packageScriptSuggestions(directory),
-      ]).then(([installedCommands, scripts]) => {
-        if (event.sender.isDestroyed()) return;
-        const catalog = [
-          ...COMMON_COMMANDS.map((command) => ({
-            id: `command:${command}`,
-            label: command,
-            value: command,
-            type: 'command' as const,
-          })),
-          ...scripts.map(({ command, description }) => ({
-            id: `command:${command}`,
-            label: command,
-            value: command,
-            type: 'command' as const,
-            description,
-          })),
-          ...installedCommands.map((command) => ({
-            id: `command:${command}`,
-            label: command,
-            value: command,
-            type: 'command' as const,
-            description: 'Installed command',
-          })),
-        ].filter(
-          (suggestion, index, suggestions) =>
-            suggestions.findIndex((item) => item.value === suggestion.value) ===
-            index,
-        );
-        event.sender.send('terminal-command-index', sessionId, catalog);
-      });
+
       terminalProcess.onData((data: string) => {
         if (!event.sender.isDestroyed()) {
           event.sender.send('terminal-data', sessionId, data);
@@ -372,151 +216,22 @@ ipcMain.on('terminal-close', (event, sessionId: string) => {
   if (ownedSession(sessionId, event.sender.id)) closeSession(sessionId);
 });
 
-async function packageScriptSuggestions(directory: string) {
-  const cached = packageScriptsCache.get(directory);
-  if (cached && cached.expiresAt > Date.now()) return cached.commands;
-  try {
-    const packageJson = JSON.parse(
-      await fs.promises.readFile(path.join(directory, 'package.json'), 'utf8'),
-    );
-    const commands = Object.keys(packageJson.scripts || {}).map((script) => ({
-      command: `npm run ${script}`,
-      description: `package.json script: ${script}`,
-    }));
-    setPackageScriptsCache(directory, {
-      expiresAt: Date.now() + 30_000,
-      commands,
-    });
-    return commands;
-  } catch {
-    return [];
-  }
-}
+// Terminal completion handlers
+ipcMain.handle('terminal:read-dir', async (_event, dirPath: string) => {
+  return terminalCompletionService.readDirectory(dirPath);
+});
 
-function pathQuery(input: string) {
-  const tokenStart =
-    Math.max(input.lastIndexOf(' '), input.lastIndexOf('\t')) + 1;
-  const rawToken = input.slice(tokenStart);
-  const quote =
-    rawToken.startsWith('"') || rawToken.startsWith("'") ? rawToken[0] : '';
-  return { tokenStart, token: quote ? rawToken.slice(1) : rawToken, quote };
-}
+ipcMain.handle('terminal:read-package-json', async (_event, dirPath: string) => {
+  return terminalCompletionService.readPackageJson(dirPath);
+});
 
-async function getSuggestions(directory: string, input: string) {
-  const suggestions: TerminalSuggestion[] = [];
-  const normalizedInput = input.trimStart().toLowerCase();
-  const [scripts, installedCommands] = await Promise.all([
-    packageScriptSuggestions(directory),
-    getInstalledCommands(),
-  ]);
-  const isCommandName = !normalizedInput.includes(' ');
-  [
-    ...COMMON_COMMANDS.map((command) => ({
-      command,
-      description: undefined as string | undefined,
-    })),
-    ...scripts,
-    ...(isCommandName
-      ? installedCommands.map((command) => ({
-          command,
-          description: 'Installed command',
-        }))
-      : []),
-  ]
-    .filter(({ command }) => command.toLowerCase().startsWith(normalizedInput))
-    .filter(
-      ({ command }, index, commands) =>
-        commands.findIndex((item) => item.command === command) === index,
-    )
-    .slice(0, 8)
-    .forEach(({ command, description }) => {
-      suggestions.push({
-        id: `command:${command}`,
-        label: command,
-        value: command,
-        type: 'command',
-        description,
-      });
-    });
+ipcMain.handle('terminal:get-git-branches', async (_event, dirPath: string) => {
+  return terminalCompletionService.getGitBranches(dirPath);
+});
 
-  const { tokenStart, token, quote } = pathQuery(input);
-  if (token || input.endsWith(' ')) {
-    const slashIndex = Math.max(
-      token.lastIndexOf('/'),
-      token.lastIndexOf('\\'),
-    );
-    const parentToken = slashIndex >= 0 ? token.slice(0, slashIndex + 1) : '';
-    const namePrefix = slashIndex >= 0 ? token.slice(slashIndex + 1) : token;
-    const parentPath = path.resolve(directory, parentToken || '.');
-    try {
-      const entries = await fs.promises.readdir(parentPath, {
-        withFileTypes: true,
-      });
-      entries
-        .filter((entry) =>
-          entry.name.toLowerCase().startsWith(namePrefix.toLowerCase()),
-        )
-        .slice(0, 8)
-        .forEach((entry) => {
-          const suffix = entry.isDirectory() ? path.sep : '';
-          const completedToken = `${parentToken}${entry.name}${suffix}`;
-          const completedInput = `${input.slice(0, tokenStart)}${quote}${completedToken}`;
-          suggestions.push({
-            id: `path:${completedToken}`,
-            label: completedToken,
-            value: completedInput,
-            type: entry.isDirectory() ? 'directory' : 'file',
-            description: entry.isDirectory() ? 'Directory' : 'File',
-          });
-        });
-    } catch {
-      // An incomplete or inaccessible path simply has no suggestions.
-    }
-  }
-
-  return suggestions.slice(0, 10);
-}
-
-ipcMain.on(
-  'terminal-suggestions',
-  async (
-    event,
-    sessionId: string,
-    requestId: number,
-    directory: string,
-    input: string,
-  ) => {
-    try {
-      const suggestions = await getSuggestions(directory, input);
-      event.sender.send(
-        'terminal-suggestions-result',
-        sessionId,
-        requestId,
-        suggestions,
-      );
-    } catch (error) {
-      log.warn(`Unable to create terminal suggestions: ${error}`);
-      event.sender.send(
-        'terminal-suggestions-result',
-        sessionId,
-        requestId,
-        [],
-      );
-    }
+ipcMain.handle(
+  'terminal:load-fig-spec',
+  async (_event, commandName: string) => {
+    return terminalCompletionService.loadFigSpec(commandName);
   },
 );
-
-// Kept for the compact command input used by existing log views.
-ipcMain.on('autocomplete', async (event, directory: string, input: string) => {
-  try {
-    const files = await fs.promises.readdir(path.resolve(directory));
-    event.sender.send(
-      'autocomplete-results',
-      files.filter((file) => file.startsWith(input)),
-      input,
-    );
-  } catch (error) {
-    log.error(`Failed to autocomplete ${input}: ${error}`);
-    event.sender.send('autocomplete-results', [], input);
-  }
-});

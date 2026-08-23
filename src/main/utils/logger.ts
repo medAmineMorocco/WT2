@@ -5,7 +5,7 @@ import log from 'electron-log';
 log.transports.file.level = 'info';
 
 // Disable console in production (Windows-safe)
-if (app.isPackaged) {
+if (app?.isPackaged) {
   log.transports.console.level = false;
 }
 

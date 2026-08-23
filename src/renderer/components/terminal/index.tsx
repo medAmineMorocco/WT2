@@ -50,35 +50,6 @@ function Terminal({
     return -width;
   };
 
-  useEffect(() => {
-    const onReceiveAutocompleteResults = (
-      filesNames: string[],
-      searchedInput: string,
-    ) => {
-      if (filesNames && filesNames.length > 0) {
-        const newCurrentLineInput = currentLineInput.replace(
-          searchedInput,
-          `${filesNames[0]} `,
-        );
-        setCurrentLineInput(newCurrentLineInput);
-        setCursorPos(0);
-      }
-      const terminalInput = document.getElementsByClassName(
-        'terminal-hidden-input',
-      );
-      if (terminalInput.length > 0) {
-        const terminalInputElement = terminalInput[0] as any;
-        terminalInputElement.focus();
-      }
-    };
-
-    window.electron.ipcRenderer.on('autocomplete-results', onReceiveAutocompleteResults);
-
-    return () => {
-      window.electron.ipcRenderer.removeAllListeners('autocomplete-results');
-    };
-  }, [currentLineInput]);
-
   const updateCurrentLineInput = (event: ChangeEvent<HTMLInputElement>) => {
     setCurrentLineInput(event.target.value);
   };
@@ -92,13 +63,6 @@ function Terminal({
   const handleInputKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (!onInput) {
       return;
-    }
-    if (event.key === 'Tab') {
-      if (currentLineInput && currentLineInput.trim() !== '') {
-        const splitted = currentLineInput.split(' ');
-        const lastWord = splitted[splitted.length - 1];
-        window.electron.ipcRenderer.send('autocomplete', name, lastWord);
-      }
     }
     if (event.key === 'Enter') {
       onInput(currentLineInput);

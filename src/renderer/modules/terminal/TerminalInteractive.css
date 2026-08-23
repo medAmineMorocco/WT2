@@ -230,51 +230,99 @@
   display: none !important;
 }
 
-.terminal-suggestions {
+.terminal-ghost-overlay {
+  pointer-events: none;
+  white-space: pre;
+  user-select: none;
+}
+
+.terminal-completion-dropdown {
   position: absolute;
-  z-index: 4;
-  right: 10px;
-  bottom: 12px;
-  left: 10px;
-  max-height: 220px;
-  padding: 4px;
-  overflow: auto;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
   border-radius: 6px;
   background: var(--ant-color-bg-elevated, #fff);
-  box-shadow: var(--ant-box-shadow-secondary);
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.08), 0 3px 6px -4px rgba(0, 0, 0, 0.12);
 }
 
-.terminal-suggestions button {
+.completion-items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 184px;
+  padding: 4px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.completion-item {
   display: flex;
   width: 100%;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 5px 8px;
+  gap: 8px;
+  padding: 4px 8px;
   border: 0;
   border-radius: 4px;
-  color: var(--ant-color-text, rgb(0 0 0 / 88%));
+  color: var(--ant-color-text, rgba(0, 0, 0, 0.88));
   font: inherit;
+  font-size: 12px;
   text-align: left;
   background: transparent;
   cursor: pointer;
+  transition: background 0.1s ease;
 }
 
-.terminal-suggestions button.is-selected,
-.terminal-suggestions button:hover {
+.completion-icon {
+  display: inline-flex;
+  width: 20px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.completion-label {
+  flex: 1 1 auto;
+  overflow: hidden;
+  color: inherit;
+  font-family: 'Cascadia Mono', Consolas, Menlo, monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.completion-description {
+  max-width: 130px;
+  margin-left: auto;
+  overflow: hidden;
+  color: var(--ant-color-text-tertiary, rgba(0, 0, 0, 0.45));
+  font-size: 11px;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.completion-item.is-selected,
+.completion-item:hover {
   color: var(--ant-color-primary-text, #0958d9);
   background: var(--ant-color-primary-bg, #e6f4ff);
 }
 
-.terminal-suggestions small,
-.terminal-suggestion-help {
-  color: var(--ant-color-text-tertiary, rgb(0 0 0 / 45%));
-}
-
-.terminal-suggestion-help {
-  padding: 4px 8px 2px;
-  font-size: 11px;
+.completion-dropdown-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 8px;
+  border-top: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  color: var(--ant-color-text-quaternary, rgba(0, 0, 0, 0.35));
+  font-size: 10px;
+  background: rgba(0, 0, 0, 0.02);
 }
 
 .terminal-workspace-empty {
@@ -301,20 +349,37 @@
   border-color: #303030;
 }
 
-.terminal-workspace-theme-dark .terminal-suggestions {
+.terminal-completion-dropdown.is-dark,
+.terminal-workspace-theme-dark .terminal-completion-dropdown {
   border-color: #424242;
-  color: rgb(255 255 255 / 85%);
+  color: rgba(255, 255, 255, 0.85);
   background: #1f1f1f;
+  box-shadow: 0 6px 16px 0 rgba(0, 0, 0, 0.35);
 }
 
-.terminal-workspace-theme-dark .terminal-suggestions button {
-  color: rgb(255 255 255 / 85%);
+.terminal-completion-dropdown.is-dark .completion-item,
+.terminal-workspace-theme-dark .terminal-completion-dropdown .completion-item {
+  color: rgba(255, 255, 255, 0.85);
 }
 
-.terminal-workspace-theme-dark .terminal-suggestions button.is-selected,
-.terminal-workspace-theme-dark .terminal-suggestions button:hover {
+.terminal-completion-dropdown.is-dark .completion-item.is-selected,
+.terminal-completion-dropdown.is-dark .completion-item:hover,
+.terminal-workspace-theme-dark .terminal-completion-dropdown .completion-item.is-selected,
+.terminal-workspace-theme-dark .terminal-completion-dropdown .completion-item:hover {
   color: #fff;
   background: #1668dc;
+}
+
+.terminal-completion-dropdown.is-dark .completion-description,
+.terminal-workspace-theme-dark .terminal-completion-dropdown .completion-description {
+  color: rgba(255, 255, 255, 0.45);
+}
+
+.terminal-completion-dropdown.is-dark .completion-dropdown-footer,
+.terminal-workspace-theme-dark .terminal-completion-dropdown .completion-dropdown-footer {
+  border-color: #303030;
+  color: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .terminal-workspace-theme-dark .terminal-xterm-host .xterm-viewport {
