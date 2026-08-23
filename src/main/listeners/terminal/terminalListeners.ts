@@ -165,14 +165,15 @@ ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
   try {
     if (!agent.command?.trim())
       throw new Error('Enter an executable command first.');
-    const child = require('child_process').spawn(
-      agent.command.trim(),
-      ['--version'],
-      {
-        shell: false,
-        windowsHide: true,
-      },
-    );
+    const cmd = agent.command.trim();
+    const isWindows = process.platform === 'win32';
+    const cmdToRun =
+      isWindows && cmd.includes(' ') && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
+    const child = require('child_process').spawn(cmdToRun, ['--version'], {
+      shell: isWindows,
+      windowsHide: true,
+      timeout: 5000,
+    });
     let output = '';
     let settled = false;
     const sendResult = (code: number, message: string) => {
@@ -229,9 +230,20 @@ ipcMain.handle('terminal:get-git-branches', async (_event, dirPath: string) => {
   return terminalCompletionService.getGitBranches(dirPath);
 });
 
+import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
+import { AiAgentId } from '../../../shared/aiAgents';
+
 ipcMain.handle(
   'terminal:load-fig-spec',
   async (_event, commandName: string) => {
     return terminalCompletionService.loadFigSpec(commandName);
   },
 );
+
+ipcMain.handle('ai-agents:detect-all', async () => {
+  return aiAgentDetectionService.detectAllAiAgents();
+});
+
+ipcMain.handle('ai-agents:detect-one', async (_event, agentId: AiAgentId) => {
+  return aiAgentDetectionService.detectAiAgent(agentId);
+});

@@ -1,0 +1,252 @@
+import fs from 'fs';
+import path from 'path';
+import os from 'os';
+import { spawn } from 'child_process';
+import { AiAgentId } from '../../../shared/aiAgents';
+import log from '../../utils/logger';
+
+export interface DetectionResult {
+  agentId: AiAgentId;
+  found: boolean;
+  executablePath: string | null;
+  version: string | null;
+  command: string | null;
+}
+
+const AGENT_BINARIES: Record<AiAgentId, string[]> = {
+  claude: ['claude.cmd', 'claude.exe', 'claude', 'claude.bat', 'claude.ps1'],
+  codex: ['codex.cmd', 'codex.exe', 'codex', 'codex.bat', 'codex.ps1'],
+  cursor: [
+    'cursor-agent.cmd',
+    'cursor-agent.exe',
+    'cursor-agent',
+    'cursor.cmd',
+    'cursor.exe',
+    'cursor',
+  ],
+  antigravity: [
+    'antigravity.cmd',
+    'antigravity.exe',
+    'antigravity',
+    'antigravity-ide.cmd',
+    'antigravity-ide.exe',
+    'antigravity-ide',
+    'agy.cmd',
+    'agy.exe',
+    'agy',
+  ],
+};
+
+function getSearchDirectories(): string[] {
+  const dirs = new Set<string>();
+  const isWindows = process.platform === 'win32';
+  const isMac = process.platform === 'darwin';
+  const home = os.homedir();
+
+  // 1. Current Environment PATH entries
+  const pathEnv = process.env.PATH || process.env.Path || '';
+  const pathSeparator = isWindows ? ';' : ':';
+  for (const entry of pathEnv.split(pathSeparator)) {
+    const trimmed = entry.trim().replace(/^['"]|['"]$/g, '');
+    if (trimmed) dirs.add(trimmed);
+  }
+
+  // 2. Windows-specific well-known directories
+  if (isWindows) {
+    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    const localAppData =
+      process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
+    const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
+    const programFilesX86 =
+      process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
+
+    dirs.add(path.join(programFiles, 'nodejs'));
+    dirs.add(path.join(programFilesX86, 'nodejs'));
+    dirs.add(path.join(appData, 'npm'));
+    dirs.add(path.join(localAppData, 'pnpm'));
+    dirs.add(path.join(localAppData, 'Microsoft', 'WinGet', 'Links'));
+    dirs.add(path.join(localAppData, 'Programs', 'cursor', 'resources', 'app', 'bin'));
+    dirs.add(path.join(localAppData, 'Programs', 'Antigravity IDE', 'bin'));
+    dirs.add(path.join(localAppData, 'Programs', 'Python', 'Scripts'));
+    dirs.add(path.join(home, '.cargo', 'bin'));
+    dirs.add(path.join(home, '.yarn', 'bin'));
+    dirs.add(path.join(home, '.local', 'bin'));
+    dirs.add(path.join(home, '.gemini', 'bin'));
+    dirs.add(path.join(home, '.gemini', 'antigravity-ide', 'bin'));
+  } else {
+    // 3. macOS and Linux well-known directories
+    if (isMac) {
+      dirs.add('/opt/homebrew/bin');
+      dirs.add('/opt/homebrew/sbin');
+      dirs.add('/usr/local/bin');
+      dirs.add('/Applications/Cursor.app/Contents/Resources/app/bin');
+      dirs.add('/Applications/Antigravity.app/Contents/Resources/app/bin');
+    }
+    dirs.add('/usr/local/bin');
+    dirs.add('/usr/bin');
+    dirs.add('/bin');
+    dirs.add('/snap/bin');
+    dirs.add(path.join(home, '.local', 'bin'));
+    dirs.add(path.join(home, '.cargo', 'bin'));
+    dirs.add(path.join(home, '.npm-global', 'bin'));
+    dirs.add(path.join(home, '.gemini', 'bin'));
+
+    // Look in NVM directories if present
+    const nvmDir = path.join(home, '.nvm', 'versions', 'node');
+    try {
+      if (fs.existsSync(nvmDir)) {
+        const versions = fs.readdirSync(nvmDir);
+        for (const v of versions) {
+          dirs.add(path.join(nvmDir, v, 'bin'));
+        }
+      }
+    } catch {
+      // Ignore NVM scan errors
+    }
+  }
+
+  return Array.from(dirs).filter((dir) => {
+    try {
+      return fs.existsSync(dir);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function verifyExecutable(executablePath: string): Promise<{ ok: boolean; version: string | null }> {
+  return new Promise((resolve) => {
+    try {
+      const isWindows = process.platform === 'win32';
+      const cmdToRun = isWindows && executablePath.includes(' ') && !executablePath.startsWith('"')
+        ? `"${executablePath}"`
+        : executablePath;
+      const child = spawn(cmdToRun, ['--version'], {
+        shell: isWindows,
+        windowsHide: true,
+        timeout: 4000,
+      });
+
+      let output = '';
+      let settled = false;
+
+      const finish = (ok: boolean, version: string | null) => {
+        if (settled) return;
+        settled = true;
+        resolve({ ok, version });
+      };
+
+      child.stdout?.on('data', (chunk: Buffer) => {
+        output += chunk.toString();
+      });
+
+      child.stderr?.on('data', (chunk: Buffer) => {
+        output += chunk.toString();
+      });
+
+      child.on('error', () => finish(false, null));
+
+      child.on('close', (code: number) => {
+        const cleanOutput = output.trim().split('\n')[0]?.trim() || '';
+        if (
+          code === 0 &&
+          !cleanOutput.toLowerCase().includes('is not recognized') &&
+          !cleanOutput.toLowerCase().includes('not found')
+        ) {
+          finish(true, cleanOutput || 'Available');
+        } else if (
+          cleanOutput &&
+          !cleanOutput.toLowerCase().includes('is not recognized') &&
+          !cleanOutput.toLowerCase().includes('not found')
+        ) {
+          finish(true, cleanOutput);
+        } else {
+          finish(false, null);
+        }
+      });
+    } catch {
+      resolve({ ok: false, version: null });
+    }
+  });
+}
+
+export async function detectAiAgent(agentId: AiAgentId): Promise<DetectionResult> {
+  const binaryNames = AGENT_BINARIES[agentId] || [agentId];
+  const searchDirs = getSearchDirectories();
+
+  for (const dir of searchDirs) {
+    for (const bin of binaryNames) {
+      const candidatePath = path.join(dir, bin);
+      try {
+        if (fs.existsSync(candidatePath)) {
+          const stats = fs.statSync(candidatePath);
+          if (stats.isFile()) {
+            const verification = await verifyExecutable(candidatePath);
+            if (verification.ok) {
+              return {
+                agentId,
+                found: true,
+                executablePath: candidatePath,
+                command: candidatePath,
+                version: verification.version,
+              };
+            }
+          }
+        }
+      } catch {
+        // Continue searching next candidate
+      }
+    }
+  }
+
+  // Fallback: Test if the raw command works in current shell environment
+  for (const bin of binaryNames) {
+    const verification = await verifyExecutable(bin);
+    if (verification.ok) {
+      return {
+        agentId,
+        found: true,
+        executablePath: bin,
+        command: bin,
+        version: verification.version,
+      };
+    }
+  }
+
+  return {
+    agentId,
+    found: false,
+    executablePath: null,
+    command: null,
+    version: null,
+  };
+}
+
+export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionResult>> {
+  const agentIds: AiAgentId[] = ['claude', 'codex', 'cursor', 'antigravity'];
+  const results: Partial<Record<AiAgentId, DetectionResult>> = {};
+
+  await Promise.all(
+    agentIds.map(async (id) => {
+      try {
+        results[id] = await detectAiAgent(id);
+      } catch (error: any) {
+        log.warn?.(`Failed auto-detecting AI agent ${id}: ${error?.message}`);
+        results[id] = {
+          agentId: id,
+          found: false,
+          executablePath: null,
+          command: null,
+          version: null,
+        };
+      }
+    }),
+  );
+
+  return results as Record<AiAgentId, DetectionResult>;
+}
+
+export default {
+  detectAiAgent,
+  detectAllAiAgents,
+};
