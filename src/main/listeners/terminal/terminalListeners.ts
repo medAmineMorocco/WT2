@@ -60,13 +60,21 @@ ipcMain.on(
       watchOwner(event.sender);
       const configuredShell = await utils.getStorageItem('shellPath');
       const shell = configuredShell || defaultShell();
+      const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
+      delete cleanEnv.NODE_OPTIONS;
+      delete cleanEnv.ELECTRON_RUN_AS_NODE;
+      delete cleanEnv.ELECTRON_NO_ASAR;
+      delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
+      delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
+      delete cleanEnv.TS_NODE_PROJECT;
+
       const terminalProcess = pty.spawn(shell, [], {
         name: 'xterm-256color',
         cols: Math.max(2, cols),
         rows: Math.max(1, rows),
         cwd: directory,
         env: {
-          ...process.env,
+          ...cleanEnv,
           TERM: 'xterm-256color',
           COLORTERM: 'truecolor',
         },

@@ -33,13 +33,114 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
 
   const [logMode, setLogMode] = useState('segment');
 
+  const latestLogsRef = React.useRef<any[]>(initialLogStates || []);
+
   const removeANSI = useCallback((str: string) => {
-    return str.replace(
-      // eslint-disable-next-line no-control-regex
-      /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
-      '',
-    );
+    if (!str) return '';
+    return str
+      // OSC sequences: ESC ] ... (BEL or ESC \)
+      .replace(/\x1b\][^\x07\x1b]*(\x07|\x1b\\)/g, '')
+      // CSI / ANSI control sequences
+      .replace(
+        // eslint-disable-next-line no-control-regex
+        /[\u001b\u009b][[()#;?]*(?:[0-9]{1,4}(?:;[0-9]{0,4})*)?[0-9A-ORZcf-nqry=><]/g,
+        '',
+      )
+      .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
+      .replace(/\r\n/g, '\n');
   }, []);
+
+  const buildLog = useCallback(
+    (logStatesReceived: any[]) => {
+      if (!logStatesReceived) return [];
+      return logStatesReceived.map((item) => {
+        const copy = { ...item };
+        copy.children = Object.entries(item.data || {}).map(
+          ([commandKey, value]) => {
+            const commandLog = value as any;
+            const isCommandFinished =
+              commandLog.status &&
+              (commandLog.status === 'finished' || commandLog.status === 'error');
+            const plainTextOutput = removeANSI(commandLog.output || '');
+            const rawOutput = commandLog.output || '';
+            return (
+              <div key={commandKey}>
+                <Alert
+                  showIcon
+                  icon={
+                    isCommandFinished ? (
+                      <Typography.Text
+                        copyable={{
+                          text: commandLog.command,
+                          icon: <CodeOutlined />,
+                        }}
+                      />
+                    ) : (
+                      <CodeOutlined />
+                    )
+                  }
+                  message={commandLog.command}
+                  action={
+                    isCommandFinished ? (
+                      <Typography.Text
+                        copyable={{
+                          text: plainTextOutput,
+                          icon: <FileOutlined />,
+                        }}
+                      />
+                    ) : null
+                  }
+                  type="info"
+                  style={{
+                    position: 'sticky',
+                    top: 0,
+                    marginTop: '8px',
+                    marginBottom: '8px',
+                    borderRadius: 0,
+                    zIndex: 88,
+                  }}
+                />
+                <div>
+                  <TerminalUI output={rawOutput} />
+                </div>
+                {commandLog.suggestedCommands?.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <Typography.Title level={5}>
+                      Suggested commands
+                    </Typography.Title>
+                    {commandLog.suggestedCommands.map((suggestion: any) => (
+                      <div key={suggestion.id} style={{ marginBottom: 10 }}>
+                        <Typography.Text strong>
+                          {suggestion.label}
+                        </Typography.Text>
+                        {suggestion.description && (
+                          <Typography.Paragraph
+                            type="secondary"
+                            style={{ marginBottom: 4 }}
+                          >
+                            {suggestion.description}
+                          </Typography.Paragraph>
+                        )}
+                        <Typography.Paragraph
+                          code
+                          copyable={{ text: suggestion.command }}
+                          style={{ marginBottom: 0 }}
+                        >
+                          {suggestion.command}
+                        </Typography.Paragraph>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          },
+        );
+        return copy;
+      });
+    },
+    [removeANSI],
+  );
 
   useEffect(() => {
     if (isWorkflowPlaying === true) {
@@ -48,111 +149,51 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
   }, [isWorkflowPlaying]);
 
   useEffect(() => {
-    const buildLog = (logStatesReceived: any[]) => {
-      return logStatesReceived.map((item) => {
-        item.children = Object.entries(item.data).map(([commandKey, value]) => {
-          const commandLog = value as any;
-          const isCommandFinished =
-            commandLog.status &&
-            (commandLog.status === 'finished' || commandLog.status === 'error');
-          const commandOutput = removeANSI(commandLog.output);
-          return (
-            <div key={commandKey}>
-              <Alert
-                showIcon
-                icon={
-                  isCommandFinished ? (
-                    <Typography.Text
-                      copyable={{
-                        text: commandLog.command,
-                        icon: <CodeOutlined />,
-                      }}
-                    />
-                  ) : (
-                    <CodeOutlined />
-                  )
-                }
-                message={commandLog.command}
-                action={
-                  isCommandFinished ? (
-                    <Typography.Text
-                      copyable={{
-                        text: commandOutput,
-                        icon: <FileOutlined />,
-                      }}
-                    />
-                  ) : null
-                }
-                type="info"
-                style={{
-                  position: 'sticky',
-                  top: 0,
-                  marginTop: '8px',
-                  marginBottom: '8px',
-                  borderRadius: 0,
-                  zIndex: 88,
-                }}
-              />
-              <div>
-                <TerminalUI output={commandOutput} />
-              </div>
-              {commandLog.suggestedCommands?.length > 0 && (
-                <div style={{ marginTop: 12 }}>
-                  <Typography.Title level={5}>
-                    Suggested commands
-                  </Typography.Title>
-                  {commandLog.suggestedCommands.map((suggestion: any) => (
-                    <div key={suggestion.id} style={{ marginBottom: 10 }}>
-                      <Typography.Text strong>
-                        {suggestion.label}
-                      </Typography.Text>
-                      {suggestion.description && (
-                        <Typography.Paragraph
-                          type="secondary"
-                          style={{ marginBottom: 4 }}
-                        >
-                          {suggestion.description}
-                        </Typography.Paragraph>
-                      )}
-                      <Typography.Paragraph
-                        code
-                        copyable={{ text: suggestion.command }}
-                        style={{ marginBottom: 0 }}
-                      >
-                        {suggestion.command}
-                      </Typography.Paragraph>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          );
-        });
-        return item;
-      });
-    };
-
-    if (initialLogStates) {
-      const mappedLogStates = buildLog(initialLogStates);
-      setData(mappedLogStates);
+    if (
+      initialLogStates &&
+      initialLogStates.length > 0 &&
+      (!latestLogsRef.current || latestLogsRef.current.length === 0)
+    ) {
+      latestLogsRef.current = initialLogStates;
+      setData(buildLog(initialLogStates));
     }
+  }, [initialLogStates, buildLog]);
+
+  useEffect(() => {
     const onReceiveLog = (logStatesReceived: any[]) => {
       log.debug('logStatesReceived: ', JSON.stringify(logStatesReceived));
+      if (!logStatesReceived || logStatesReceived.length === 0) {
+        return;
+      }
+      latestLogsRef.current = logStatesReceived;
       const mappedLogStates = buildLog(logStatesReceived);
-      setData(mappedLogStates);
+      if (mappedLogStates && mappedLogStates.length > 0) {
+        setData(mappedLogStates);
+      }
     };
 
-    window.electron.ipcRenderer.on(
+    if (latestLogsRef.current && latestLogsRef.current.length > 0) {
+      setData(buildLog(latestLogsRef.current));
+    } else if (initialLogStates && initialLogStates.length > 0) {
+      latestLogsRef.current = initialLogStates;
+      setData(buildLog(initialLogStates));
+    }
+
+    const removeLogListener = window.electron.ipcRenderer.on(
       'workflow-started-log-received',
       onReceiveLog,
     );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners(
-        'workflow-started-log-received',
-      );
+      if (typeof removeLogListener === 'function') {
+        removeLogListener();
+      } else {
+        window.electron.ipcRenderer.removeAllListeners(
+          'workflow-started-log-received',
+        );
+      }
     };
-  }, [initialLogStates, removeANSI]);
+  }, [buildLog, initialLogStates]);
 
   const toggleFullScreenMode = () => {
     setFullScreenMode(!isFullScreenMode);

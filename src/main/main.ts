@@ -54,6 +54,19 @@ class AppUpdater {
 let mainWindow: BrowserWindow | null = null;
 let pendingOpenProject: { path: string; name: string } | null = null;
 
+process.on('uncaughtException', (error: any) => {
+  const msg = error?.message || String(error);
+  if (
+    msg.includes('Pty seems to have been killed already') ||
+    msg.includes('AttachConsole failed') ||
+    msg.includes('ESRCH')
+  ) {
+    log.warn(`Suppressed known pty shutdown exception: ${msg}`);
+    return;
+  }
+  log.error('Uncaught Exception:', error);
+});
+
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();

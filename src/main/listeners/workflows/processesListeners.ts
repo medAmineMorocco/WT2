@@ -12,16 +12,22 @@ let logStates: any[] = [];
 
 let worktreesStates: any[] = [];
 
-const activeWorkflowProcesses = new Set<any>();
+type ActiveProcessEntry = {
+  process: any;
+  kill: () => void;
+};
+
+const activeWorkflowProcesses = new Set<ActiveProcessEntry>();
 
 export function stopActiveWorkflowProcesses() {
-  activeWorkflowProcesses.forEach((process) => {
+  activeWorkflowProcesses.forEach((entry) => {
     try {
-      process.kill();
+      entry.kill();
     } catch (error) {
       log.warn(`Unable to stop workflow PTY: ${error}`);
     }
   });
+  activeWorkflowProcesses.clear();
 }
 
 function updateWorktreesStates(
@@ -147,13 +153,23 @@ async function executeCommand(
       : shellName === 'powershell.exe' || shellName === 'powershell' || shellName === 'pwsh.exe' || shellName === 'pwsh'
         ? ['-NoLogo', '-NoProfile', '-Command', command.value]
         : ['-lc', command.value];
+
+    const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.ELECTRON_RUN_AS_NODE;
+    delete cleanEnv.ELECTRON_NO_ASAR;
+    delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
+    delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
+    delete cleanEnv.TS_NODE_PROJECT;
+
     const options: any = {
       cwd: normalizedPath,
       name: 'xterm-256color',
       cols: 120,
       rows: 30,
+      useConpty: false,
       env: {
-        ...process.env,
+        ...cleanEnv,
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
       },
@@ -175,9 +191,34 @@ async function executeCommand(
       resolve(value);
     };
 
+    let isTerminated = false;
+    const safeKillProcess = () => {
+      if (isTerminated) return;
+      isTerminated = true;
+      if (!commandProcess) return;
+      try {
+        if (Array.isArray((commandProcess as any)._deferreds)) {
+          (commandProcess as any)._deferreds = [];
+        }
+        commandProcess.kill();
+      } catch (err) {
+        log.warn(`Safe kill caught: ${err}`);
+      }
+    };
+
+    let processEntry: ActiveProcessEntry | null = null;
+
     try {
+      if (getStopExecution()) {
+        fail(new Error('aborted'));
+        return;
+      }
       commandProcess = pty.spawn(shellExecutable, shellArgs, options);
-      activeWorkflowProcesses.add(commandProcess);
+      processEntry = {
+        process: commandProcess,
+        kill: safeKillProcess,
+      };
+      activeWorkflowProcesses.add(processEntry);
     } catch (err: any) {
       logStates = await getNewlogStates(
         worktreeLabel,
@@ -191,13 +232,21 @@ async function executeCommand(
       return;
     }
 
+    if (getStopExecution()) {
+      safeKillProcess();
+      fail(new Error('aborted'));
+      return;
+    }
+
     commandProcess.onData(async (data: string) => {
       if (getStopExecution()) {
-        commandProcess.kill();
+        safeKillProcess();
+        fail(new Error('aborted'));
+        return;
       }
       if (command.value.includes('hygen') && data.includes('Overwrite?')) {
         stoppedForPrompt = true;
-        commandProcess.kill();
+        safeKillProcess();
       }
       logStates = await getNewlogStates(
         worktreeLabel,
@@ -210,8 +259,21 @@ async function executeCommand(
     });
 
     commandProcess.onExit(async ({ exitCode }: { exitCode: number }) => {
-      activeWorkflowProcesses.delete(commandProcess);
-      if (exitCode === 0) {
+      isTerminated = true;
+      if (processEntry) {
+        activeWorkflowProcesses.delete(processEntry);
+      }
+      if (getStopExecution() || stoppedForPrompt) {
+        logStates = await getNewlogStates(
+          worktreeLabel,
+          '',
+          storedEncoding,
+          command,
+          'error',
+        );
+        event.sender.send('workflow-started-log-received', logStates);
+        fail(new Error('aborted'));
+      } else if (exitCode === 0) {
         logStates = await getNewlogStates(
           worktreeLabel,
           '',
@@ -225,8 +287,6 @@ async function executeCommand(
           event.sender.send('worktrees-found', 0, JSON.stringify(worktrees));
         }
         finish('finish command');
-      } else if (getStopExecution() || stoppedForPrompt) {
-        fail(new Error('aborted'));
       } else {
         logStates = await getNewlogStates(
           worktreeLabel,
@@ -235,6 +295,7 @@ async function executeCommand(
           command,
           'error',
         );
+        event.sender.send('workflow-started-log-received', logStates);
         fail(new Error(String(exitCode)));
       }
     });
@@ -285,7 +346,7 @@ async function executeCommandAtWorktree(
       event.sender.send('workflow-started-states-updated', worktreesStates);
     }
   } catch (err: any) {
-    if (err.message.includes('aborted')) {
+    if (err.message.includes('aborted') || getStopExecution()) {
       worktreesStates = updateWorktreesStates(
         worktreesStates,
         worktree.label,
@@ -321,7 +382,6 @@ export async function executeProcessesAtWorktree(
         'warning',
       );
       event.sender.send('workflow-started-states-updated', worktreesStates);
-      event.sender.send('workflow-stopped');
       break;
     }
     const command = commands[i];
@@ -333,6 +393,9 @@ export async function executeProcessesAtWorktree(
       worktree,
       event,
     );
+    if (getStopExecution()) {
+      break;
+    }
   }
 }
 
@@ -344,11 +407,13 @@ async function executeProcessesForDirectoriesInSeries(
   // eslint-disable-next-line no-restricted-syntax
   for (const worktree of worktrees) {
     if (getStopExecution()) {
-      event.sender.send('workflow-stopped');
       break;
     }
     // eslint-disable-next-line no-await-in-loop
     await executeProcessesAtWorktree(worktree, commands, event);
+    if (getStopExecution()) {
+      break;
+    }
   }
 }
 async function executeProcessesForDirectoriesInParallel(
@@ -446,8 +511,12 @@ export default async function playWorkflow(
       );
     }
   } finally {
+    try {
+      if (logStates && logStates.length > 0) {
+        event.sender.send('workflow-started-log-received', logStates);
+      }
+    } catch {}
     event.sender.send('workflow-stopped');
-    logStates = [];
-    worktreesStates = [];
+    stopActiveWorkflowProcesses();
   }
 }

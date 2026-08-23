@@ -324,6 +324,116 @@ body {
   overflow-wrap: break-word;
 }
 
+.workflow-terminal-output .xterm {
+  height: 100%;
+}
+
+.workflow-terminal-output .xterm-viewport {
+  overflow-y: auto !important;
+  scrollbar-width: thin;
+}
+
+[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport,
+.workflow-terminal-output.is-light .xterm-viewport,
+[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder,
+[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap {
+  scrollbar-color: #ccc transparent;
+}
+
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport,
+.workflow-terminal-output.is-dark .xterm-viewport,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap {
+  scrollbar-color: #333 transparent;
+}
+
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar,
+.log-tabs .ant-tabs-content-holder::-webkit-scrollbar,
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-track,
+.log-tabs .ant-tabs-content-holder::-webkit-scrollbar-track,
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+}
+
+[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
+  background: #ccc;
+}
+
+[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3;
+}
+
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
+  background: #333;
+}
+
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
+  background: #444;
+}
+
+/* Xterm 6 custom scrollbar element */
+.workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical {
+  width: 8px !important;
+  background: transparent !important;
+}
+
+.workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  left: 0 !important;
+  width: 8px !important;
+  border-radius: 4px !important;
+}
+
+.workflow-terminal-output.is-light .xterm-scrollable-element > .scrollbar.vertical > .slider,
+[data-color-scheme='light'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  background: #ccc !important;
+}
+
+.workflow-terminal-output.is-light .xterm-scrollable-element > .scrollbar.vertical > .slider:hover,
+[data-color-scheme='light'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider:hover {
+  background: #b3b3b3 !important;
+}
+
+.workflow-terminal-output.is-dark .xterm-scrollable-element > .scrollbar.vertical > .slider,
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+  background: #333 !important;
+}
+
+.workflow-terminal-output.is-dark .xterm-scrollable-element > .scrollbar.vertical > .slider:hover,
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider:hover {
+  background: #444 !important;
+}
+
+.workflow-terminal-output .xterm-scrollable-element > .scrollbar > .scra {
+  display: none !important;
+}
+
+.fullscreen-modal .workflow-terminal-output {
+  height: 520px !important;
+}
+
 .xterm-helper-textarea {
   display: none;
 }

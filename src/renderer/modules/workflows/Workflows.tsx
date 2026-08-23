@@ -286,6 +286,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
     return () => {
       window.electron.ipcRenderer.send('stop-workflow', record);
       setPlayingWorkflow(null);
+      setIsWorkflowPlaying(false);
     };
   };
 
