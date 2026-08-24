@@ -95,66 +95,6 @@ const data = {
       shortcut1: 'ESC',
     },
   ],
-  generator: [
-    {
-      title: 'Add Generator',
-      shortcut1: 'Shift',
-      shortcut2: 'A',
-    },
-    {
-      title: 'Import Generator',
-      shortcut1: 'Shift',
-      shortcut2: 'I',
-    },
-  ],
-  terminal: [
-    {
-      title: 'Clear Console',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: 'L',
-    },
-    {
-      title: 'Clear Input',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: 'U',
-    },
-    {
-      title: 'Clear Word',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: 'Backspace',
-    },
-    {
-      title: 'Go to Start of Input',
-      shortcut1: 'Home',
-    },
-    {
-      title: 'Go to End of Input',
-      shortcut1: 'End',
-    },
-    {
-      title: 'Navigate Command History',
-      shortcut1: '↑/↓',
-    },
-    {
-      title: 'Navigate Suggestions',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: '↑/↓',
-    },
-    {
-      title: 'Accept Suggestion',
-      shortcut1: 'Tab',
-    },
-    {
-      title: 'Previous Open Terminal',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: 'PageUp',
-    },
-    {
-      title: 'Next Open Terminal',
-      shortcut1: 'Ctrl/Cmd',
-      shortcut2: 'PageDown',
-    },
-  ],
 };
 export default function KeyboardShortcuts({
   open,
@@ -248,44 +188,6 @@ export default function KeyboardShortcuts({
               <List
                 grid={{ column: 1 }}
                 dataSource={data.workflow}
-                renderItem={(item) => (
-                  <List.Item>
-                    <div style={{ display: 'flex' }}>
-                      <span style={{ flex: 1 }}>{item.title}</span>{' '}
-                      <Text keyboard>{item.shortcut1}</Text>
-                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
-                    </div>
-                  </List.Item>
-                )}
-              />
-            ),
-          },
-          {
-            label: 'Generator',
-            key: '50',
-            children: (
-              <List
-                grid={{ column: 1 }}
-                dataSource={data.generator}
-                renderItem={(item) => (
-                  <List.Item>
-                    <div style={{ display: 'flex' }}>
-                      <span style={{ flex: 1 }}>{item.title}</span>{' '}
-                      <Text keyboard>{item.shortcut1}</Text>
-                      {item.shortcut2 && <Text keyboard>{item.shortcut2}</Text>}
-                    </div>
-                  </List.Item>
-                )}
-              />
-            ),
-          },
-          {
-            label: 'Terminal',
-            key: '60',
-            children: (
-              <List
-                grid={{ column: 1 }}
-                dataSource={data.terminal}
                 renderItem={(item) => (
                   <List.Item>
                     <div style={{ display: 'flex' }}>
