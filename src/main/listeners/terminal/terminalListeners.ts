@@ -3,12 +3,14 @@ import { ipcMain, WebContents } from 'electron';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import {
+  AgentAttachment,
   AiAgentConfig,
   AiAgentId,
   aiAgentsDefault,
 } from '../../../shared/aiAgents';
 import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
 import shellDetectionService from '../../services/shells/shellDetectionService';
+import aiAgentSessionManager from '../../services/aiAgents/AIAgentSessionManager';
 
 const pty = require('node-pty');
 
@@ -25,6 +27,7 @@ function closeSession(sessionId: string) {
   const session = sessions.get(sessionId);
   if (!session) return;
   sessions.delete(sessionId);
+  aiAgentSessionManager.closeSession(sessionId);
   try {
     session.process.kill();
   } catch (error) {
@@ -95,10 +98,12 @@ ipcMain.on(
       terminalProcess.onData((data: string) => {
         if (!event.sender.isDestroyed()) {
           event.sender.send('terminal-data', sessionId, data);
+          aiAgentSessionManager.handleData(sessionId, data);
         }
       });
       terminalProcess.onExit(({ exitCode }: { exitCode: number }) => {
         sessions.delete(sessionId);
+        aiAgentSessionManager.handleExit(sessionId, exitCode);
         if (!event.sender.isDestroyed()) {
           event.sender.send('terminal-exit', sessionId, exitCode);
         }
@@ -106,6 +111,10 @@ ipcMain.on(
       event.sender.send('terminal-ready', sessionId);
     } catch (error: any) {
       log.error(`Failed to create terminal in ${directory}: ${error.message}`);
+      aiAgentSessionManager.handleError(
+        sessionId,
+        error.message || 'Unable to start terminal',
+      );
       event.sender.send(
         'terminal-error',
         sessionId,
@@ -119,68 +128,7 @@ ipcMain.on('terminal-input', (event, sessionId: string, data: string) => {
   ownedSession(sessionId, event.sender.id)?.process.write(data);
 });
 
-function buildAgentCommand(
-  shell: string,
-  commandPath: string,
-  args: string,
-  prompt: string,
-  agentId: string,
-): string {
-  const isPosixShell =
-    /bash|sh|zsh|wsl/i.test(shell) || process.platform !== 'win32';
-  const isPowerShell = /powershell|pwsh/i.test(shell);
-
-  // Normalize path with forward slashes for cross-shell compatibility
-  let normalizedPath = commandPath.trim().replace(/\\/g, '/');
-
-  // In POSIX shells (like Git Bash on Windows), nodejs scripts (.cmd) have matching native shell scripts without .cmd
-  if (isPosixShell && normalizedPath.toLowerCase().endsWith('.cmd')) {
-    const withoutCmd = normalizedPath.slice(0, -4);
-    if (fs.existsSync(withoutCmd)) {
-      normalizedPath = withoutCmd;
-    }
-  }
-
-  // Format prompt argument (Antigravity CLI uses -i flag for interactive prompts)
-  let promptArg = '';
-  if (prompt.trim()) {
-    if (isPosixShell) {
-      const escaped = prompt.trim().replace(/'/g, "'\\''");
-      promptArg =
-        agentId === 'antigravity' ? `-i '${escaped}'` : `'${escaped}'`;
-    } else if (isPowerShell) {
-      const escaped = prompt.trim().replace(/'/g, "''");
-      promptArg =
-        agentId === 'antigravity' ? `-i '${escaped}'` : `'${escaped}'`;
-    } else {
-      // CMD.exe
-      const escaped = prompt.trim().replace(/"/g, '""');
-      promptArg =
-        agentId === 'antigravity' ? `-i "${escaped}"` : `"${escaped}"`;
-    }
-  }
-
-  // Format command path for execution
-  let formattedCmd = normalizedPath;
-  if (isPosixShell) {
-    formattedCmd = normalizedPath.includes(' ')
-      ? `'${normalizedPath}'`
-      : normalizedPath;
-  } else if (isPowerShell) {
-    formattedCmd = normalizedPath.includes(' ')
-      ? `& '${normalizedPath}'`
-      : normalizedPath;
-  } else {
-    // CMD
-    formattedCmd = normalizedPath.includes(' ')
-      ? `"${normalizedPath}"`
-      : normalizedPath;
-  }
-
-  return [formattedCmd, args.trim(), promptArg].filter(Boolean).join(' ');
-}
-
-async function configuredAiAgents() {
+async function configuredAiAgents(): Promise<AiAgentConfig[]> {
   const stored = await utils.getStorageItem('aiAgents');
   if (!stored) return aiAgentsDefault;
   try {
@@ -189,7 +137,14 @@ async function configuredAiAgents() {
       const match = configured.find((agent) => agent.id === defaultAgent.id);
       let cmd = match?.command ?? defaultAgent.command;
       const lower = cmd.toLowerCase().trim();
-      if (defaultAgent.id === 'cursor' && (lower.includes('resources\\app\\bin\\cursor') || lower.includes('resources/app/bin/cursor') || lower === 'cursor' || lower === 'cursor.exe' || lower === 'cursor.cmd')) {
+      if (
+        defaultAgent.id === 'cursor' &&
+        (lower.includes('resources\\app\\bin\\cursor') ||
+          lower.includes('resources/app/bin/cursor') ||
+          lower === 'cursor' ||
+          lower === 'cursor.exe' ||
+          lower === 'cursor.cmd')
+      ) {
         const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
         if (lastSlash !== -1) {
           const dir = cmd.slice(0, lastSlash + 1);
@@ -201,7 +156,17 @@ async function configuredAiAgents() {
           cmd = 'cursor-agent';
         }
       }
-      if (defaultAgent.id === 'antigravity' && (lower.includes('programs\\antigravity ide') || lower.includes('programs/antigravity ide') || lower === 'antigravity' || lower === 'antigravity.exe' || lower === 'antigravity.cmd' || lower === 'antigravity-ide' || lower === 'antigravity-ide.exe' || lower === 'antigravity-ide.cmd')) {
+      if (
+        defaultAgent.id === 'antigravity' &&
+        (lower.includes('programs\\antigravity ide') ||
+          lower.includes('programs/antigravity ide') ||
+          lower === 'antigravity' ||
+          lower === 'antigravity.exe' ||
+          lower === 'antigravity.cmd' ||
+          lower === 'antigravity-ide' ||
+          lower === 'antigravity-ide.exe' ||
+          lower === 'antigravity-ide.cmd')
+      ) {
         const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
         if (lastSlash !== -1) {
           const dir = cmd.slice(0, lastSlash + 1);
@@ -226,13 +191,18 @@ async function configuredAiAgents() {
 
 ipcMain.on(
   'terminal-start-ai-agent',
-  async (event, sessionId: string, agentId: string, prompt: string) => {
+  async (
+    event,
+    sessionId: string,
+    agentId: string,
+    prompt: string,
+    attachments: AgentAttachment[] = [],
+  ) => {
     const session = ownedSession(sessionId, event.sender.id);
     if (!session) return;
     try {
-      const agent = (await configuredAiAgents()).find(
-        (candidate) => candidate.id === agentId,
-      );
+      const agents = await configuredAiAgents();
+      const agent = agents.find((candidate) => candidate.id === agentId);
       if (!agent?.enabled) {
         throw new Error(
           'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
@@ -243,25 +213,58 @@ ipcMain.on(
           'Configure an executable command for this AI agent in Settings > AI Agents.',
         );
       }
-      const command = buildAgentCommand(
-        session.shell || defaultShell(),
-        agent.command,
-        agent.args,
+
+      await aiAgentSessionManager.startAgent(
+        sessionId,
+        agent,
         prompt,
-        agent.id,
+        attachments,
+        session.process,
+        event.sender,
+        session.shell || defaultShell(),
       );
-      // Clear any partial text in the shell line before sending command
-      session.process.write('\x03');
-      setTimeout(() => {
-        session.process.write(`${command}\r`);
-      }, 50);
       event.sender.send('terminal-ai-agent-started', sessionId, agent.id);
     } catch (error: any) {
+      log.error(
+        `Failed to start AI agent ${agentId} on session ${sessionId}: ${error.message}`,
+      );
       event.sender.send(
         'terminal-ai-agent-error',
         sessionId,
         error.message || 'Unable to start the AI agent.',
       );
+    }
+  },
+);
+
+ipcMain.on('terminal-stop-ai-agent', async (event, sessionId: string) => {
+  const session = ownedSession(sessionId, event.sender.id);
+  if (!session) return;
+  try {
+    await aiAgentSessionManager.interruptAgent(sessionId);
+  } catch (error: any) {
+    log.error(`Failed to interrupt AI agent on ${sessionId}: ${error.message}`);
+  }
+});
+
+ipcMain.on(
+  'terminal-switch-ai-agent',
+  async (event, sessionId: string, newAgentId: string) => {
+    const session = ownedSession(sessionId, event.sender.id);
+    if (!session) return;
+    try {
+      const agents = await configuredAiAgents();
+      const agent = agents.find((candidate) => candidate.id === newAgentId);
+      if (agent) {
+        aiAgentSessionManager.switchAgent(
+          sessionId,
+          agent,
+          session.process,
+          event.sender,
+        );
+      }
+    } catch (error: any) {
+      log.error(`Failed to switch agent on ${sessionId}: ${error.message}`);
     }
   },
 );
@@ -330,7 +333,6 @@ ipcMain.on(
 ipcMain.on('terminal-close', (event, sessionId: string) => {
   if (ownedSession(sessionId, event.sender.id)) closeSession(sessionId);
 });
-
 
 ipcMain.handle('ai-agents:detect-all', async () => {
   return aiAgentDetectionService.detectAllAiAgents();
