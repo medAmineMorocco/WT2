@@ -257,6 +257,7 @@ ipcMain.handle('shells:get-active', async () => {
 });
 
 ipcMain.handle('shells:set-active', async (_event, shellPath: string) => {
+  log.info('shellPath', shellPath);
   await utils.setStorageItem('shellPath', shellPath);
   return true;
 });

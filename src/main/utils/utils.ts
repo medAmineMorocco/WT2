@@ -10,7 +10,7 @@ function getStorageItem(key: string) {
 
 function setStorageItem(key: string, value: string) {
   return BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
-    `localStorage.setItem("${key}","${value}");`,
+    `localStorage.setItem("${key}", ${JSON.stringify(value)});`,
     true,
   );
 }
