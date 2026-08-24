@@ -1,11 +1,10 @@
 import React, { forwardRef, lazy, Suspense, useState } from 'react';
-import { Button, Layout, Tooltip, Space, Tag, theme, Modal, Radio, Spin } from 'antd';
+import { Button, Layout, Tooltip, Space, Tag, theme, Radio, Spin } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import ListWorktrees from './ListWorktrees';
 import PackInfos from '../packInfos/PackInfos';
 import { useItemsContext } from '../../TabsContext';
 
-const GitLog = lazy(() => import('../gitLog/GitLog'));
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
 const AddWorktree = lazy(() => import('./AddWorktree'));
 
@@ -26,8 +25,6 @@ const Worktrees = forwardRef<
   const [collapsed, setCollapsed] = useState(false);
 
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const [openGitLog, setOpenGitLog] = useState(false);
 
   const [openGitDiff, setOpenGitDiff] = useState(false);
 
@@ -62,18 +59,6 @@ const Worktrees = forwardRef<
     preventDefault: true,
   });
 
-  const ShowGitLog = () => {
-    setOpenGitLog(true);
-  };
-
-  const onCloseGitLog = () => {
-    setOpenGitLog(false);
-  };
-
-  useHotkeys('shift+g', () => setOpenGitLog(true), {
-    preventDefault: true,
-  });
-
   const ShowGitDiff = () => {
     setOpenGitDiff(true);
   };
@@ -105,27 +90,6 @@ const Worktrees = forwardRef<
             showModal={showModal}
           />
 
-          {openGitLog && (
-            <Modal
-              open={openGitLog}
-              footer={null}
-              onCancel={onCloseGitLog}
-              destroyOnClose
-              className="git-log-modal"
-              width="calc(100% - 216px)"
-              style={{
-                position: 'absolute',
-                right: '8px',
-                top: '48px',
-                height: 'calc(100% - 56px)',
-                paddingBottom: 0,
-              }}
-            >
-              <Suspense fallback={<Spin size="large" />}>
-                <GitLog isModal />
-              </Suspense>
-            </Modal>
-          )}
           {openGitDiff && (
             <Suspense fallback={<Spin size="large" />}>
               <GitDiff isModalOpen={openGitDiff} handleCancel={onCloseGitDiff} />
@@ -141,37 +105,6 @@ const Worktrees = forwardRef<
             </Suspense>
           )}
           <ul style={{ marginTop: 0, paddingLeft: '0' }}>
-            {mode === 'WORKFLOW' && (
-              <li
-                key="git-log"
-                style={{
-                  color: token.colorTextBase,
-                  cursor: 'pointer',
-                }}
-              >
-                <Tooltip
-                  title={<small>Shift+G</small>}
-                  placement="right"
-                  mouseEnterDelay={0}
-                  mouseLeaveDelay={0}
-                >
-                  <Button
-                    type="text"
-                    block
-                    onClick={ShowGitLog}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'flex-start',
-                      borderRadius: 0,
-                      paddingLeft: '8px',
-                      fontWeight: 'bold',
-                    }}
-                  >
-                    Git Log
-                  </Button>
-                </Tooltip>
-              </li>
-            )}
             <li
               key="git-diff"
               style={{
