@@ -35,6 +35,7 @@ import {
   AiAgentId,
   aiAgentsDefault,
 } from '../../../shared/aiAgents';
+import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 import './TerminalInteractive.css';
 
 type WorktreeOption = {
@@ -56,63 +57,6 @@ export type TerminalAgentActivity = {
   agent: AiAgent;
   active: boolean;
 };
-
-function AgentIcon({ agent, size = 18 }: { agent: AiAgent; size?: number }) {
-  const commonProps = {
-    width: size,
-    height: size,
-    viewBox: '0 0 24 24',
-    fill: 'none',
-    'aria-hidden': true,
-  } as const;
-
-  if (agent.id === 'claude') {
-    return (
-      <svg {...commonProps} className="ai-agent-icon ai-agent-icon-claude">
-        <path
-          fill="currentColor"
-          d="M12 2.3c1.2 0 1.6 2.26 2.57 2.77 1.01.54 2.92-.72 3.77.13.85.85-.41 2.76.13 3.77.51.97 2.77 1.37 2.77 2.57s-2.26 1.6-2.77 2.57c-.54 1.01.72 2.92-.13 3.77-.85.85-2.76-.41-3.77.13C13.6 19.44 13.2 21.7 12 21.7s-1.6-2.26-2.57-2.77c-1.01-.54-2.92.72-3.77-.13-.85-.85.41-2.76-.13-3.77C5.02 14.06 2.76 13.66 2.76 12s2.26-1.6 2.77-2.57c.54-1.01-.72-2.92.13-3.77.85-.85 2.76.41 3.77-.13C10.4 4.56 10.8 2.3 12 2.3Zm0 6.2a3.5 3.5 0 1 0 0 7 3.5 3.5 0 0 0 0-7Z"
-        />
-      </svg>
-    );
-  }
-
-  if (agent.id === 'codex') {
-    return (
-      <svg {...commonProps} className="ai-agent-icon ai-agent-icon-codex">
-        <path
-          fill="currentColor"
-          d="M12 2.2 16.1 4v4.15L19.7 10v4L16.1 16v4.1L12 21.8 7.9 20.1V16L4.3 14v-4l3.6-1.85V4L12 2.2Zm0 3.05-1.55.68v3.05l-2.8 1.44v3.17l2.8 1.45v3.03L12 18.75l1.55-.68v-3.03l2.8-1.45v-3.17l-2.8-1.44V5.93L12 5.25Z"
-        />
-      </svg>
-    );
-  }
-
-  if (agent.id === 'cursor') {
-    return (
-      <svg {...commonProps} className="ai-agent-icon ai-agent-icon-cursor">
-        <path
-          fill="currentColor"
-          d="m12 2.3 8.4 4.85v9.7L12 21.7l-8.4-4.85v-9.7L12 2.3Z"
-        />
-        <path
-          fill="var(--cursor-cutout)"
-          d="m12 6.5 4.7 2.72v5.56L12 17.5l-4.7-2.72V9.22L12 6.5Z"
-        />
-      </svg>
-    );
-  }
-
-  return (
-    <svg {...commonProps} className="ai-agent-icon ai-agent-icon-antigravity">
-      <path
-        fill="currentColor"
-        d="M12 2.5 22 19H2L12 2.5Zm0 4.45L6.37 16h11.26L12 6.95Z"
-      />
-      <path fill="currentColor" d="M9.5 12.2h5l-2.5 4.3-2.5-4.3Z" />
-    </svg>
-  );
-}
 
 function sessionId() {
   return `terminal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -306,7 +250,7 @@ function TerminalPane({
 
     const inputDisposable = xterm.onData((data) => {
       isFocusedRef.current = true;
-      if (isAgentModeRef.current) return;
+      if (isAgentModeRef.current && !(agentStartedRef.current && !agentFinishedRef.current)) return;
 
       // Forward native terminal keystroke data directly to the PTY process
       window.electron.ipcRenderer.send('terminal-input', terminal.id, data);
@@ -579,7 +523,7 @@ function TerminalPane({
                 value: agent.id,
                 label: (
                   <Space size={6}>
-                    <AgentIcon agent={agent} />
+                    {getAiAgentIcon(agent.id, 18)}
                     {agent.label}
                   </Space>
                 ),

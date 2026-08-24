@@ -1744,3 +1744,24 @@ html[data-color-scheme='dark'] .git-log-file-diff-header {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+@keyframes agent-working-pulse {
+  0% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(0.85);
+    opacity: 0.75;
+  }
+}
+
+.agent-working-icon {
+  animation: agent-working-pulse 2s infinite ease-in-out;
+  display: inline-flex;
+}
+

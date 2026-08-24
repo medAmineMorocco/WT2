@@ -47,6 +47,7 @@ import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import type { TerminalAgentActivity } from '../terminal/TerminalInteractive';
 import { useItemsContext } from '../../TabsContext';
+import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -898,9 +899,11 @@ export default function ListWorktrees({
                         key={agent.id}
                       >
                         <Avatar
-                          style={{ backgroundColor: '#722ed1', fontSize: 9 }}
+                          size={18}
+                          className="agent-working-icon"
+                          style={{ backgroundColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                         >
-                          {(agent as any).shortLabel || agent.label.slice(0, 2)}
+                          {getAiAgentIcon(agent.id, 18)}
                         </Avatar>
                       </Tooltip>
                     ))}
