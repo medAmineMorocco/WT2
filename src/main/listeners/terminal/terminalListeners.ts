@@ -2,8 +2,13 @@ import fs from 'fs';
 import { ipcMain, WebContents } from 'electron';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
-import { AiAgentConfig, aiAgentsDefault } from '../../../shared/aiAgents';
-import terminalCompletionService from '../../services/terminal/terminalCompletionService';
+import {
+  AiAgentConfig,
+  AiAgentId,
+  aiAgentsDefault,
+} from '../../../shared/aiAgents';
+import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
+import shellDetectionService from '../../services/shells/shellDetectionService';
 
 const pty = require('node-pty');
 
@@ -234,29 +239,6 @@ ipcMain.on('terminal-close', (event, sessionId: string) => {
   if (ownedSession(sessionId, event.sender.id)) closeSession(sessionId);
 });
 
-// Terminal completion handlers
-ipcMain.handle('terminal:read-dir', async (_event, dirPath: string) => {
-  return terminalCompletionService.readDirectory(dirPath);
-});
-
-ipcMain.handle('terminal:read-package-json', async (_event, dirPath: string) => {
-  return terminalCompletionService.readPackageJson(dirPath);
-});
-
-ipcMain.handle('terminal:get-git-branches', async (_event, dirPath: string) => {
-  return terminalCompletionService.getGitBranches(dirPath);
-});
-
-import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
-import { AiAgentId } from '../../../shared/aiAgents';
-import shellDetectionService from '../../services/shells/shellDetectionService';
-
-ipcMain.handle(
-  'terminal:load-fig-spec',
-  async (_event, commandName: string) => {
-    return terminalCompletionService.loadFigSpec(commandName);
-  },
-);
 
 ipcMain.handle('ai-agents:detect-all', async () => {
   return aiAgentDetectionService.detectAllAiAgents();

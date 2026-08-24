@@ -1,5 +1,4 @@
 import React, {
-  forwardRef,
   lazy,
   Suspense,
   useCallback,

@@ -12,7 +12,6 @@ import {
   ExpandOutlined,
   PaperClipOutlined,
   PlusOutlined,
-  RobotOutlined,
   SendOutlined,
 } from '@ant-design/icons';
 import {
@@ -37,27 +36,6 @@ import {
   aiAgentsDefault,
 } from '../../../shared/aiAgents';
 import './TerminalInteractive.css';
-import { CompletionEngine } from './completion/engine';
-import {
-  calculateAcceptanceDelta,
-  createCommandLineState,
-  extractCompletionContext,
-  handleBackspace,
-  handleClearLine,
-  handleClearWord,
-  handleEnd,
-  handleHome,
-  handleMoveLeft,
-  handleMoveRight,
-  updateLineWithChar,
-} from './completion/commandLineState';
-import { CommandLineState, CompletionItem, CompletionResult } from './completion/types';
-import {
-  CellDimensions,
-  CursorPosition,
-  GhostCompletionOverlay,
-} from './completion/ui/GhostCompletionOverlay';
-import { CompletionDropdown } from './completion/ui/CompletionDropdown';
 
 type WorktreeOption = {
   name: string;
@@ -186,35 +164,9 @@ function TerminalPane({
   const isFocusedRef = useRef(false);
   const outputTailRef = useRef('');
 
-  const completionEngineRef = useRef<CompletionEngine>(new CompletionEngine());
-  const lineStateRef = useRef<CommandLineState>(createCommandLineState(''));
-  const completionResultRef = useRef<CompletionResult | null>(null);
   const selectedDropdownIndexRef = useRef(0);
 
-  const [currentCwd, setCurrentCwd] = useState(terminal.path);
   const currentCwdRef = useRef(terminal.path);
-
-  const [completionResult, setCompletionResult] = useState<CompletionResult | null>(null);
-  const [selectedDropdownIndex, setSelectedDropdownIndex] = useState(0);
-  const [cursorScreenPos, setCursorScreenPos] = useState<CursorPosition>({ x: 0, y: 0 });
-  const [cellDimensions, setCellDimensions] = useState<CellDimensions>({
-    width: 7.8,
-    height: 17,
-  });
-  const [hostDimensions, setHostDimensions] = useState<{ width: number; height: number }>({
-    width: 800,
-    height: 400,
-  });
-
-  const setCompletionResultSync = useCallback((res: CompletionResult | null) => {
-    completionResultRef.current = res;
-    setCompletionResult(res);
-  }, []);
-
-  const setSelectedDropdownIndexSync = useCallback((idx: number) => {
-    selectedDropdownIndexRef.current = idx;
-    setSelectedDropdownIndex(idx);
-  }, []);
 
   const agentFinishedRef = useRef(false);
   const agentStartedRef = useRef(false);
@@ -282,10 +234,6 @@ function TerminalPane({
 
   const updateCursorDimensions = useCallback(() => {
     if (xtermRef.current) {
-      setCursorScreenPos({
-        x: xtermRef.current.buffer.active.cursorX,
-        y: xtermRef.current.buffer.active.cursorY,
-      });
     }
     if (hostRef.current && xtermRef.current) {
       const host = hostRef.current;
@@ -300,72 +248,9 @@ function TerminalPane({
         screenEl && screenEl.clientHeight > 0
           ? screenEl.clientHeight / rows
           : (xtermRef.current as any)._core?._renderService?.dimensions?.css?.cell?.height || 17;
-      setCellDimensions({ width: Math.max(w, 6), height: Math.max(h, 12) });
-      setHostDimensions({ width: host.clientWidth, height: host.clientHeight });
     }
   }, []);
 
-  const hideSuggestions = useCallback(() => {
-    completionEngineRef.current.cancel();
-    setCompletionResultSync(null);
-    setSelectedDropdownIndexSync(0);
-  }, [setCompletionResultSync, setSelectedDropdownIndexSync]);
-
-  const triggerCompletion = useCallback(async () => {
-    if (isAgentModeRef.current) {
-      hideSuggestions();
-      return;
-    }
-    const context = extractCompletionContext(lineStateRef.current, currentCwdRef.current, {
-      worktreePath: terminal.path,
-      history: completionEngineRef.current.historyProvider.getHistory(),
-    });
-    updateCursorDimensions();
-    const result = await completionEngineRef.current.complete(context);
-    if (result) {
-      setCompletionResultSync(result);
-      setSelectedDropdownIndexSync(0);
-      updateCursorDimensions();
-    }
-  }, [hideSuggestions, setCompletionResultSync, setSelectedDropdownIndexSync, terminal.path, updateCursorDimensions]);
-
-  const acceptSuggestion = useCallback(
-    (item?: CompletionItem) => {
-      const currentRes = completionResultRef.current;
-      const currentIdx = selectedDropdownIndexRef.current;
-      const targetItem =
-        item ||
-        (currentRes?.mode === 'dropdown'
-          ? currentRes.suggestions[currentIdx]
-          : currentRes?.topSuggestion);
-      if (!targetItem) return;
-
-      const context = extractCompletionContext(lineStateRef.current, currentCwdRef.current, {
-        worktreePath: terminal.path,
-        history: completionEngineRef.current.historyProvider.getHistory(),
-      });
-      const { ptyInput, nextState } = calculateAcceptanceDelta(
-        context,
-        targetItem,
-        lineStateRef.current,
-      );
-      lineStateRef.current = nextState;
-      if (ptyInput) {
-        window.electron.ipcRenderer.send('terminal-input', terminal.id, ptyInput);
-      }
-      hideSuggestions();
-
-      // Ensure focus is strictly kept on xterm
-      requestAnimationFrame(() => {
-        xtermRef.current?.focus();
-        const textarea = hostRef.current?.querySelector(
-          '.xterm-helper-textarea',
-        ) as HTMLTextAreaElement | null;
-        textarea?.focus();
-      });
-    },
-    [hideSuggestions, terminal.id, terminal.path],
-  );
 
   useEffect(() => {
     if (!hostRef.current) return undefined;
@@ -388,7 +273,6 @@ function TerminalPane({
     xterm.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true;
 
-      const currentRes = completionResultRef.current;
       const currentIdx = selectedDropdownIndexRef.current;
 
       // Prevent Tab from moving browser DOM focus away from the terminal
@@ -396,13 +280,7 @@ function TerminalPane({
         event.preventDefault();
         event.stopPropagation();
 
-        if (currentRes?.mode === 'dropdown' && currentRes.suggestions.length > 0) {
-          acceptSuggestion(currentRes.suggestions[currentIdx]);
-        } else if (currentRes?.mode === 'ghost' && currentRes.topSuggestion) {
-          acceptSuggestion(currentRes.topSuggestion);
-        } else {
-          window.electron.ipcRenderer.send('terminal-input', terminal.id, '\t');
-        }
+        window.electron.ipcRenderer.send('terminal-input', terminal.id, '\t');
 
         requestAnimationFrame(() => {
           xtermRef.current?.focus();
@@ -415,49 +293,11 @@ function TerminalPane({
         return false;
       }
 
-      // Autocomplete navigation when dropdown is visible
-      if (currentRes?.mode === 'dropdown' && currentRes.suggestions.length > 0) {
-        if (event.key === 'ArrowDown') {
-          event.preventDefault();
-          event.stopPropagation();
-          setSelectedDropdownIndexSync(
-            (currentIdx + 1) % currentRes.suggestions.length,
-          );
-          return false;
-        }
-        if (event.key === 'ArrowUp') {
-          event.preventDefault();
-          event.stopPropagation();
-          setSelectedDropdownIndexSync(
-            (currentIdx - 1 + currentRes.suggestions.length) %
-              currentRes.suggestions.length,
-          );
-          return false;
-        }
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          event.stopPropagation();
-          hideSuggestions();
-          xtermRef.current?.focus();
-          return false;
-        }
-      } else if (currentRes?.mode === 'ghost' && currentRes.ghostSuffix) {
-        if (event.key === 'Escape') {
-          event.preventDefault();
-          event.stopPropagation();
-          hideSuggestions();
-          xtermRef.current?.focus();
-          return false;
-        }
-      }
-
       // Ctrl+Backspace: erase word before cursor
       if ((event.ctrlKey || event.metaKey) && event.key === 'Backspace') {
         event.preventDefault();
         event.stopPropagation();
         window.electron.ipcRenderer.send('terminal-input', terminal.id, '\x17');
-        lineStateRef.current = handleClearWord(lineStateRef.current);
-        triggerCompletion();
         return false;
       }
 
@@ -471,114 +311,6 @@ function TerminalPane({
       // Forward native terminal keystroke data directly to the PTY process
       window.electron.ipcRenderer.send('terminal-input', terminal.id, data);
 
-      if (data === '\x0c') {
-        // Ctrl+L (Clear screen)
-        xterm.clear();
-        hideSuggestions();
-      } else if (data === '\x15') {
-        // Ctrl+U (Clear line before cursor in shell)
-        lineStateRef.current = createCommandLineState('');
-        hideSuggestions();
-      } else if (data === '\x17' || data === '\x08') {
-        // Ctrl+W / Ctrl+Backspace (Delete word)
-        lineStateRef.current = handleClearWord(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x03') {
-        // Ctrl+C (Interrupt/Cancel line)
-        lineStateRef.current = createCommandLineState('');
-        hideSuggestions();
-      } else if (data === '\x1b') {
-        // Escape
-        hideSuggestions();
-      } else if (data === '\x7f' || data === '\b') {
-        // Backspace
-        lineStateRef.current = handleBackspace(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x1b[3~') {
-        // Delete key
-        const { text, cursor } = lineStateRef.current;
-        if (cursor < text.length) {
-          lineStateRef.current = {
-            text: text.slice(0, cursor) + text.slice(cursor + 1),
-            cursor,
-          };
-          triggerCompletion();
-        }
-      } else if (data === '\x1b[3;5~') {
-        // Ctrl+Delete (Delete forward word)
-        const { text, cursor } = lineStateRef.current;
-        const afterCursor = text.slice(cursor);
-        const match = afterCursor.match(/^(\s*\S+|\s+)/);
-        if (match) {
-          lineStateRef.current = {
-            text: text.slice(0, cursor) + text.slice(cursor + match[0].length),
-            cursor,
-          };
-          triggerCompletion();
-        }
-      } else if (data === '\x1b[D') {
-        // Left arrow
-        lineStateRef.current = handleMoveLeft(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x1b[C') {
-        // Right arrow
-        lineStateRef.current = handleMoveRight(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x01' || data === '\x1b[H' || data === '\x1b[1~') {
-        // Home / Ctrl+A
-        lineStateRef.current = handleHome(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x05' || data === '\x1b[F' || data === '\x1b[4~') {
-        // End / Ctrl+E
-        lineStateRef.current = handleEnd(lineStateRef.current);
-        triggerCompletion();
-      } else if (data === '\x0b') {
-        // Ctrl+K (Kill to end of line)
-        lineStateRef.current = {
-          text: lineStateRef.current.text.slice(0, lineStateRef.current.cursor),
-          cursor: lineStateRef.current.cursor,
-        };
-        triggerCompletion();
-      } else if (data === '\r' || data === '\n') {
-        const lineText = lineStateRef.current.text.trim();
-        if (lineText) {
-          completionEngineRef.current.historyProvider.recordCommand(lineText);
-          const match = lineText.match(/^(?:cd|pushd)\s*(.*)$/i);
-          if (match) {
-            const rawTarget = match[1].trim().replace(/^['"]|['"]$/g, '');
-            if (!rawTarget || rawTarget === '~') {
-              currentCwdRef.current = terminal.path;
-              setCurrentCwd(terminal.path);
-            } else if (rawTarget === '..') {
-              const clean = currentCwdRef.current.replace(/[/\\]+$/, '');
-              const lastSlash = Math.max(clean.lastIndexOf('/'), clean.lastIndexOf('\\'));
-              if (lastSlash > 0) {
-                const parent = clean.slice(0, lastSlash);
-                currentCwdRef.current = parent;
-                setCurrentCwd(parent);
-              }
-            } else {
-              const isAbsolute = /^[a-zA-Z]:[/\\]/.test(rawTarget) || rawTarget.startsWith('/');
-              if (isAbsolute) {
-                currentCwdRef.current = rawTarget;
-                setCurrentCwd(rawTarget);
-              } else {
-                const cleanBase = currentCwdRef.current.replace(/[/\\]+$/, '');
-                const cleanRel = rawTarget.replace(/^[./\\]+/, '');
-                const nextPath = `${cleanBase}/${cleanRel}`;
-                currentCwdRef.current = nextPath;
-                setCurrentCwd(nextPath);
-              }
-            }
-          }
-        }
-        lineStateRef.current = createCommandLineState('');
-        acceptingCommandRef.current = false;
-        hideSuggestions();
-      } else if (/^[\x20-\x7e\u00a0-\uffff]+$/.test(data)) {
-        lineStateRef.current = updateLineWithChar(lineStateRef.current, data);
-        triggerCompletion();
-      }
     });
 
     const removeData = window.electron.ipcRenderer.on(
@@ -599,7 +331,6 @@ function TerminalPane({
           const matchedDir = (promptMatch[1] || promptMatch[2] || promptMatch[3] || '').trim();
           if (matchedDir && matchedDir !== currentCwdRef.current) {
             currentCwdRef.current = matchedDir;
-            setCurrentCwd(matchedDir);
           }
         }
 
@@ -715,7 +446,6 @@ function TerminalPane({
     };
     const handleBlur = () => {
       isFocusedRef.current = false;
-      hideSuggestions();
     };
     terminalInput?.addEventListener('focus', handleFocus);
     terminalInput?.addEventListener('blur', handleBlur);
@@ -777,14 +507,10 @@ function TerminalPane({
       xtermRef.current = null;
     };
   }, [
-    acceptSuggestion,
-    hideSuggestions,
     onAgentActivity,
     registerFocus,
-    setSelectedDropdownIndexSync,
     terminal.id,
     terminal.path,
-    triggerCompletion,
     updateCursorDimensions,
   ]);
 
@@ -998,27 +724,6 @@ function TerminalPane({
           role="presentation"
           onMouseDown={() => xtermRef.current?.focus()}
         />
-        {completionResult?.mode === 'ghost' && completionResult.ghostSuffix && (
-          <GhostCompletionOverlay
-            ghostSuffix={completionResult.ghostSuffix}
-            cursor={cursorScreenPos}
-            cellDimensions={cellDimensions}
-            isDarkMode={isDarkMode}
-          />
-        )}
-        {completionResult?.mode === 'dropdown' &&
-          completionResult.suggestions.length > 0 && (
-            <CompletionDropdown
-              suggestions={completionResult.suggestions}
-              selectedIndex={selectedDropdownIndex}
-              cursor={cursorScreenPos}
-              cellDimensions={cellDimensions}
-              containerDimensions={hostDimensions}
-              isDarkMode={isDarkMode}
-              onSelect={(item) => acceptSuggestion(item)}
-              onHover={(index) => setSelectedDropdownIndex(index)}
-            />
-          )}
       </div>
     </section>
   );
