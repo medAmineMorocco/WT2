@@ -27,7 +27,7 @@ export const aiAgentsDefault: AiAgentConfig[] = [
   {
     id: 'antigravity',
     label: 'Antigravity CLI',
-    command: 'antigravity',
+    command: 'agy',
     args: '',
     enabled: false,
   },

@@ -15,6 +15,7 @@ const pty = require('node-pty');
 type TerminalSession = {
   process: any;
   ownerId: number;
+  shell: string;
 };
 
 const sessions = new Map<string, TerminalSession>();
@@ -88,6 +89,7 @@ ipcMain.on(
       sessions.set(sessionId, {
         process: terminalProcess,
         ownerId: event.sender.id,
+        shell,
       });
 
       terminalProcess.onData((data: string) => {
@@ -117,9 +119,65 @@ ipcMain.on('terminal-input', (event, sessionId: string, data: string) => {
   ownedSession(sessionId, event.sender.id)?.process.write(data);
 });
 
-function quoteForShell(value: string) {
-  if (process.platform === 'win32') return `"${value.replace(/"/g, '""')}"`;
-  return `'${value.replace(/'/g, "'\\''")}'`;
+function buildAgentCommand(
+  shell: string,
+  commandPath: string,
+  args: string,
+  prompt: string,
+  agentId: string,
+): string {
+  const isPosixShell =
+    /bash|sh|zsh|wsl/i.test(shell) || process.platform !== 'win32';
+  const isPowerShell = /powershell|pwsh/i.test(shell);
+
+  // Normalize path with forward slashes for cross-shell compatibility
+  let normalizedPath = commandPath.trim().replace(/\\/g, '/');
+
+  // In POSIX shells (like Git Bash on Windows), nodejs scripts (.cmd) have matching native shell scripts without .cmd
+  if (isPosixShell && normalizedPath.toLowerCase().endsWith('.cmd')) {
+    const withoutCmd = normalizedPath.slice(0, -4);
+    if (fs.existsSync(withoutCmd)) {
+      normalizedPath = withoutCmd;
+    }
+  }
+
+  // Format prompt argument (Antigravity CLI uses -i flag for interactive prompts)
+  let promptArg = '';
+  if (prompt.trim()) {
+    if (isPosixShell) {
+      const escaped = prompt.trim().replace(/'/g, "'\\''");
+      promptArg =
+        agentId === 'antigravity' ? `-i '${escaped}'` : `'${escaped}'`;
+    } else if (isPowerShell) {
+      const escaped = prompt.trim().replace(/'/g, "''");
+      promptArg =
+        agentId === 'antigravity' ? `-i '${escaped}'` : `'${escaped}'`;
+    } else {
+      // CMD.exe
+      const escaped = prompt.trim().replace(/"/g, '""');
+      promptArg =
+        agentId === 'antigravity' ? `-i "${escaped}"` : `"${escaped}"`;
+    }
+  }
+
+  // Format command path for execution
+  let formattedCmd = normalizedPath;
+  if (isPosixShell) {
+    formattedCmd = normalizedPath.includes(' ')
+      ? `'${normalizedPath}'`
+      : normalizedPath;
+  } else if (isPowerShell) {
+    formattedCmd = normalizedPath.includes(' ')
+      ? `& '${normalizedPath}'`
+      : normalizedPath;
+  } else {
+    // CMD
+    formattedCmd = normalizedPath.includes(' ')
+      ? `"${normalizedPath}"`
+      : normalizedPath;
+  }
+
+  return [formattedCmd, args.trim(), promptArg].filter(Boolean).join(' ');
 }
 
 async function configuredAiAgents() {
@@ -127,10 +185,40 @@ async function configuredAiAgents() {
   if (!stored) return aiAgentsDefault;
   try {
     const configured = JSON.parse(stored) as AiAgentConfig[];
-    return aiAgentsDefault.map((defaultAgent) => ({
-      ...defaultAgent,
-      ...configured.find((agent) => agent.id === defaultAgent.id),
-    }));
+    return aiAgentsDefault.map((defaultAgent) => {
+      const match = configured.find((agent) => agent.id === defaultAgent.id);
+      let cmd = match?.command ?? defaultAgent.command;
+      const lower = cmd.toLowerCase().trim();
+      if (defaultAgent.id === 'cursor' && (lower.includes('resources\\app\\bin\\cursor') || lower.includes('resources/app/bin/cursor') || lower === 'cursor' || lower === 'cursor.exe' || lower === 'cursor.cmd')) {
+        const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
+        if (lastSlash !== -1) {
+          const dir = cmd.slice(0, lastSlash + 1);
+          const file = cmd.slice(lastSlash + 1).toLowerCase();
+          if (file.endsWith('.exe')) cmd = `${dir}cursor-agent.exe`;
+          else if (file.endsWith('.cmd')) cmd = `${dir}cursor-agent.cmd`;
+          else cmd = `${dir}cursor-agent`;
+        } else {
+          cmd = 'cursor-agent';
+        }
+      }
+      if (defaultAgent.id === 'antigravity' && (lower.includes('programs\\antigravity ide') || lower.includes('programs/antigravity ide') || lower === 'antigravity' || lower === 'antigravity.exe' || lower === 'antigravity.cmd' || lower === 'antigravity-ide' || lower === 'antigravity-ide.exe' || lower === 'antigravity-ide.cmd')) {
+        const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
+        if (lastSlash !== -1) {
+          const dir = cmd.slice(0, lastSlash + 1);
+          const file = cmd.slice(lastSlash + 1).toLowerCase();
+          if (file.endsWith('.exe')) cmd = `${dir}agy.exe`;
+          else if (file.endsWith('.cmd')) cmd = `${dir}agy.cmd`;
+          else cmd = `${dir}agy`;
+        } else {
+          cmd = 'agy';
+        }
+      }
+      return {
+        ...defaultAgent,
+        ...match,
+        command: cmd,
+      };
+    });
   } catch {
     return aiAgentsDefault;
   }
@@ -155,14 +243,18 @@ ipcMain.on(
           'Configure an executable command for this AI agent in Settings > AI Agents.',
         );
       }
-      const command = [
-        quoteForShell(agent.command.trim()),
-        agent.args.trim(),
-        prompt.trim() ? quoteForShell(prompt.trim()) : '',
-      ]
-        .filter(Boolean)
-        .join(' ');
-      session.process.write(`${command}\r`);
+      const command = buildAgentCommand(
+        session.shell || defaultShell(),
+        agent.command,
+        agent.args,
+        prompt,
+        agent.id,
+      );
+      // Clear any partial text in the shell line before sending command
+      session.process.write('\x03');
+      setTimeout(() => {
+        session.process.write(`${command}\r`);
+      }, 50);
       event.sender.send('terminal-ai-agent-started', sessionId, agent.id);
     } catch (error: any) {
       event.sender.send(

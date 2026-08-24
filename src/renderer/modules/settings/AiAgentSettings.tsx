@@ -45,10 +45,40 @@ function readConfiguredAgents(): AiAgentConfig[] {
   try {
     const stored = window.localStorage.getItem('aiAgents');
     const saved = stored ? (JSON.parse(stored) as AiAgentConfig[]) : [];
-    return aiAgentsDefault.map((defaultAgent) => ({
-      ...defaultAgent,
-      ...saved.find((agent) => agent.id === defaultAgent.id),
-    }));
+    return aiAgentsDefault.map((defaultAgent) => {
+      const match = saved.find((agent) => agent.id === defaultAgent.id);
+      let cmd = match?.command ?? defaultAgent.command;
+      const lower = cmd.toLowerCase().trim();
+      if (defaultAgent.id === 'cursor' && (lower.includes('resources\\app\\bin\\cursor') || lower.includes('resources/app/bin/cursor') || lower === 'cursor' || lower === 'cursor.exe' || lower === 'cursor.cmd')) {
+        const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
+        if (lastSlash !== -1) {
+          const dir = cmd.slice(0, lastSlash + 1);
+          const file = cmd.slice(lastSlash + 1).toLowerCase();
+          if (file.endsWith('.exe')) cmd = `${dir}cursor-agent.exe`;
+          else if (file.endsWith('.cmd')) cmd = `${dir}cursor-agent.cmd`;
+          else cmd = `${dir}cursor-agent`;
+        } else {
+          cmd = 'cursor-agent';
+        }
+      }
+      if (defaultAgent.id === 'antigravity' && (lower.includes('programs\\antigravity ide') || lower.includes('programs/antigravity ide') || lower === 'antigravity' || lower === 'antigravity.exe' || lower === 'antigravity.cmd' || lower === 'antigravity-ide' || lower === 'antigravity-ide.exe' || lower === 'antigravity-ide.cmd')) {
+        const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
+        if (lastSlash !== -1) {
+          const dir = cmd.slice(0, lastSlash + 1);
+          const file = cmd.slice(lastSlash + 1).toLowerCase();
+          if (file.endsWith('.exe')) cmd = `${dir}agy.exe`;
+          else if (file.endsWith('.cmd')) cmd = `${dir}agy.cmd`;
+          else cmd = `${dir}agy`;
+        } else {
+          cmd = 'agy';
+        }
+      }
+      return {
+        ...defaultAgent,
+        ...match,
+        command: cmd,
+      };
+    });
   } catch {
     return aiAgentsDefault;
   }

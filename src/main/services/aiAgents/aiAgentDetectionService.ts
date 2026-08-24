@@ -20,19 +20,13 @@ const AGENT_BINARIES: Record<AiAgentId, string[]> = {
     'cursor-agent.cmd',
     'cursor-agent.exe',
     'cursor-agent',
-    'cursor.cmd',
-    'cursor.exe',
-    'cursor',
+    'agent.cmd',
+    'agent.exe',
+    'agent',
   ],
   antigravity: [
-    'antigravity.cmd',
-    'antigravity.exe',
-    'antigravity',
-    'antigravity-ide.cmd',
-    'antigravity-ide.exe',
-    'antigravity-ide',
-    'agy.cmd',
     'agy.exe',
+    'agy.cmd',
     'agy',
   ],
 };
@@ -65,12 +59,16 @@ function getSearchDirectories(): string[] {
     dirs.add(path.join(appData, 'npm'));
     dirs.add(path.join(localAppData, 'pnpm'));
     dirs.add(path.join(localAppData, 'Microsoft', 'WinGet', 'Links'));
-    dirs.add(path.join(localAppData, 'Programs', 'cursor', 'resources', 'app', 'bin'));
-    dirs.add(path.join(localAppData, 'Programs', 'Antigravity IDE', 'bin'));
+    dirs.add(path.join(localAppData, 'agy', 'bin'));
+    dirs.add(path.join(localAppData, 'agy'));
+    dirs.add(path.join(localAppData, 'cursor-agent'));
+    dirs.add(path.join(localAppData, 'cursor-agent', 'bin'));
     dirs.add(path.join(localAppData, 'Programs', 'Python', 'Scripts'));
     dirs.add(path.join(home, '.cargo', 'bin'));
     dirs.add(path.join(home, '.yarn', 'bin'));
     dirs.add(path.join(home, '.local', 'bin'));
+    dirs.add(path.join(home, '.cursor', 'bin'));
+    dirs.add(path.join(home, '.agy', 'bin'));
     dirs.add(path.join(home, '.gemini', 'bin'));
     dirs.add(path.join(home, '.gemini', 'antigravity-ide', 'bin'));
   } else {
