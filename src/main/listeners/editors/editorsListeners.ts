@@ -9,22 +9,22 @@ import utils from '../../utils/utils';
 import gitMainService from '../../services/git/gitMainService';
 import editorDetectionService from '../../services/editors/editorDetectionService';
 
-async function getEditor(editorLabel: string) {
+async function getEditor(editorKey: string) {
   const storedEditors = await utils.getStorageItem('editors');
   const editors = storedEditors
     ? JSON.parse(storedEditors)
     : JSON.parse(JSON.stringify(editorsCst));
   const editor = editors.find(
     (e: any) =>
-      e.label.toLowerCase() === editorLabel.toLowerCase() ||
-      e.label === editorLabel,
+      e.key.toLowerCase() === editorKey.toLowerCase() ||
+      e.key === editorKey,
   );
   if (editor && (!editor.path || !fs.existsSync(editor.path))) {
     const detected = await editorDetectionService.detectAllEditors();
     const found =
-      detected[editor.label] ||
+      detected[editor.key] ||
       Object.values(detected).find(
-        (d) => d.label.toLowerCase() === editorLabel.toLowerCase(),
+        (d) => d.key.toLowerCase() === editorKey.toLowerCase(),
       );
     if (found && found.found && found.path) {
       editor.path = found.path;
@@ -89,12 +89,12 @@ ipcMain.on(
   'open-editor',
   async function (
     event,
-    editorName: string,
+    editorKey: string,
     worktreePath: string,
     dir: string,
   ) {
-    log.info(`Opening ${editorName} in ${worktreePath}`);
-    const editor = await getEditor(editorName);
+    log.info(`Opening ${editorKey} in ${worktreePath}`);
+    const editor = await getEditor(editorKey);
     if (editor) {
       const command =
         editor.path !== ''
