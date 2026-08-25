@@ -73,6 +73,7 @@ export default function TerminalUI({
   useEffect(() => {
     if (xtermRef.current) {
       xtermRef.current.options.theme = getTerminalTheme(isDarkMode);
+      xtermRef.current.options.minimumContrastRatio = 4.5;
     }
   }, [isDarkMode]);
 
@@ -89,6 +90,7 @@ export default function TerminalUI({
       fontSize: 12.5,
       lineHeight: 1.2,
       scrollback: 5000,
+      minimumContrastRatio: 4.5,
       theme: getTerminalTheme(isDarkMode),
     });
 

@@ -108,7 +108,7 @@ function terminalTheme(isDarkMode: boolean) {
         blue: '#0969da',
         magenta: '#8250df',
         cyan: '#1b7c83',
-        white: '#6e7781',
+        white: '#ffffff',
         brightBlack: '#57606a',
         brightRed: '#a40e26',
         brightGreen: '#116329',
@@ -116,7 +116,7 @@ function terminalTheme(isDarkMode: boolean) {
         brightBlue: '#0550ae',
         brightMagenta: '#5a32a3',
         brightCyan: '#005f63',
-        brightWhite: '#24292f',
+        brightWhite: '#ffffff',
       };
 }
 
@@ -183,6 +183,7 @@ function TerminalPane({
   useEffect(() => {
     if (xtermRef.current) {
       xtermRef.current.options.theme = terminalTheme(isDarkMode);
+      xtermRef.current.options.minimumContrastRatio = 4.5;
     }
   }, [isDarkMode]);
 
@@ -336,6 +337,7 @@ function TerminalPane({
       fontSize: 13,
       lineHeight: 1.15,
       scrollback: 10000,
+      minimumContrastRatio: 4.5,
       theme: terminalTheme(initialDarkModeRef.current),
     });
     const fitAddon = new FitAddon();
@@ -504,6 +506,7 @@ function TerminalPane({
       terminal.path,
       xterm.cols,
       xterm.rows,
+      initialDarkModeRef.current,
     );
     xterm.focus();
 

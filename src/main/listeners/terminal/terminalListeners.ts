@@ -59,7 +59,14 @@ function defaultShell() {
 
 ipcMain.on(
   'terminal-create',
-  async (event, sessionId: string, directory: string, cols = 80, rows = 24) => {
+  async (
+    event,
+    sessionId: string,
+    directory: string,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
+  ) => {
     try {
       const stat = await fs.promises.stat(directory);
       if (!stat.isDirectory())
@@ -84,6 +91,8 @@ ipcMain.on(
         cwd: directory,
         env: {
           ...cleanEnv,
+          COLORFGBG: isDarkMode ? '15;0' : '0;15',
+          TERM_THEME: isDarkMode ? 'dark' : 'light',
           TERM: 'xterm-256color',
           COLORTERM: 'truecolor',
         },
