@@ -109,8 +109,6 @@ export default function ListWorktrees({
 
   const [pruneLoading, setPruneLoading] = useState<boolean>(false);
 
-  const [repairLoading, setRepairLoading] = useState<boolean>(false);
-
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
 
   const { isWorkflowPlaying } = useItemsContext();
@@ -360,7 +358,6 @@ export default function ListWorktrees({
       selectionMode: 'single' | 'multiple',
     ) => {
       if (!paths?.length) return;
-      setRepairLoading(true);
       window.electron.ipcRenderer.send(
         'repair-moved-worktrees',
         tabRepoPath,
@@ -369,7 +366,6 @@ export default function ListWorktrees({
     };
 
     const onMovedWorktreesRepaired = (code: number, result: any) => {
-      setRepairLoading(false);
       if (code === 0) {
         notification.success({
           message: 'Git worktree metadata repaired',
@@ -727,20 +723,6 @@ export default function ListWorktrees({
     window.electron.ipcRenderer.send('prune-worktrees', tabRepoPath);
   };
 
-  const onClickRepairMovedWorktrees = (event: any) => {
-    if (!hasUnhealthyWorktrees) return;
-    event.stopPropagation();
-    window.electron.ipcRenderer.send(
-      'choose-moved-worktrees-for-repair',
-      true,
-    );
-  };
-
-  const hasUnhealthyWorktrees = worktrees.some(
-    (worktree: any) =>
-      worktree.directoryExists === false || worktree.prunable === true,
-  );
-
   useHotkeys('shift+p', onClickPrune, {
     preventDefault: true,
   });
@@ -789,28 +771,6 @@ export default function ListWorktrees({
                   className="icon-action"
                   style={{ cursor: 'pointer' }}
                   onClick={onClickPrune}
-                />
-              </Tooltip>
-            ) : (
-              <LoadingOutlined />
-            )}
-            {!repairLoading ? (
-              <Tooltip
-                title={
-                  hasUnhealthyWorktrees
-                    ? 'Repair'
-                    : 'All worktrees are healthy'
-                }
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <ToolOutlined
-                  className="icon-action"
-                  style={{
-                    cursor: hasUnhealthyWorktrees ? 'pointer' : 'not-allowed',
-                    opacity: hasUnhealthyWorktrees ? 1 : 0.4,
-                  }}
-                  onClick={onClickRepairMovedWorktrees}
                 />
               </Tooltip>
             ) : (
