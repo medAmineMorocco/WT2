@@ -7,14 +7,17 @@ import React, {
 } from 'react';
 import {
   AppstoreOutlined,
+  CheckOutlined,
   CloseOutlined,
   CompressOutlined,
+  CopyOutlined,
   ExpandOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import {
   Button,
   Empty,
+  message,
   Modal,
   Radio,
   Segmented,
@@ -107,6 +110,24 @@ function terminalTheme(isDarkMode: boolean) {
       };
 }
 
+function extractTerminalText(xterm: XTerm): string {
+  if (xterm.hasSelection()) {
+    return xterm.getSelection();
+  }
+  const buffer = xterm.buffer.active;
+  const lines: string[] = [];
+  for (let i = 0; i < buffer.length; i++) {
+    const line = buffer.getLine(i);
+    if (line) {
+      lines.push(line.translateToString(true));
+    }
+  }
+  while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
+    lines.pop();
+  }
+  return lines.join('\n');
+}
+
 function TerminalPane({
   terminal,
   isDarkMode,
@@ -145,6 +166,7 @@ function TerminalPane({
     terminal.mode || 'terminal',
   );
   const [isAgentStarting, setIsAgentStarting] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const activeAgent = useMemo(() => {
     return (
@@ -581,6 +603,29 @@ function TerminalPane({
     onClose(terminal.id);
   };
 
+  const handleCopyOutput = () => {
+    if (!xtermRef.current) return;
+    const text = extractTerminalText(xtermRef.current);
+    if (!text || !text.trim()) {
+      message.info('No terminal output to copy');
+      return;
+    }
+    navigator.clipboard
+      .writeText(text)
+      .then(() => {
+        setIsCopied(true);
+        message.success(
+          mode === 'agent'
+            ? `${activeAgent?.label || 'Agent'} output copied to clipboard`
+            : 'Terminal output copied to clipboard',
+        );
+        window.setTimeout(() => setIsCopied(false), 2000);
+      })
+      .catch(() => {
+        message.error('Failed to copy to clipboard');
+      });
+  };
+
   return (
     <section
       className={`terminal-pane${isDarkMode ? ' is-dark' : ''}${
@@ -655,6 +700,29 @@ function TerminalPane({
               </Tag>
             </Tooltip>
           )}
+          <Tooltip
+            title={
+              isCopied
+                ? 'Copied!'
+                : mode === 'agent'
+                ? `Copy ${activeAgent?.label || 'agent'} output`
+                : 'Copy terminal output'
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              aria-label="Copy output to clipboard"
+              icon={
+                isCopied ? (
+                  <CheckOutlined style={{ color: '#52c41a' }} />
+                ) : (
+                  <CopyOutlined />
+                )
+              }
+              onClick={handleCopyOutput}
+            />
+          </Tooltip>
           <Button
             type="text"
             size="small"
