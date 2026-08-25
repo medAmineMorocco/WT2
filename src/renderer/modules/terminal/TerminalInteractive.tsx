@@ -7,23 +7,14 @@ import React, {
 } from 'react';
 import {
   AppstoreOutlined,
-  CloseCircleFilled,
   CloseOutlined,
   CompressOutlined,
   ExpandOutlined,
-  EyeOutlined,
-  FileOutlined,
-  FileTextOutlined,
-  PaperClipOutlined,
-  PictureOutlined,
   PlusOutlined,
-  SendOutlined,
-  StopOutlined,
 } from '@ant-design/icons';
 import {
   Button,
   Empty,
-  Input,
   Modal,
   Radio,
   Segmented,
@@ -33,14 +24,10 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
-import type { InputRef } from 'antd';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import {
-  AgentAttachment,
-  AgentExecutionState,
-  AgentStateChangeEvent,
   AiAgentConfig,
   AiAgentId,
   aiAgentsDefault,
@@ -120,11 +107,6 @@ function terminalTheme(isDarkMode: boolean) {
       };
 }
 
-function isImageFile(nameOrPath: string, mimeType?: string): boolean {
-  if (mimeType?.startsWith('image/')) return true;
-  return /\.(png|jpe?g|webp|gif|svg|bmp|ico)$/i.test(nameOrPath);
-}
-
 function TerminalPane({
   terminal,
   isDarkMode,
@@ -152,23 +134,17 @@ function TerminalPane({
   const xtermRef = useRef<XTerm | null>(null);
   const initialDarkModeRef = useRef(isDarkMode);
   const isFocusedRef = useRef(false);
-  const promptInputRef = useRef<InputRef>(null);
 
-  const [agentState, setAgentState] = useState<AgentExecutionState>('idle');
   const [selectedAgentId, setSelectedAgentId] = useState<AiAgentId>(
     terminal.agent?.id || 'claude',
   );
   const [configuredAgents, setConfiguredAgents] = useState<AiAgent[]>(
     aiAgentsDefault,
   );
-  const [agentPrompt, setAgentPrompt] = useState('');
   const [mode, setMode] = useState<'terminal' | 'agent'>(
     terminal.mode || 'terminal',
   );
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [attachments, setAttachments] = useState<AgentAttachment[]>([]);
-  const [previewAttachment, setPreviewAttachment] =
-    useState<AgentAttachment | null>(null);
+  const [isAgentStarting, setIsAgentStarting] = useState(false);
 
   const activeAgent = useMemo(() => {
     return (
@@ -179,6 +155,10 @@ function TerminalPane({
 
   const activeAgentRef = useRef(activeAgent);
   activeAgentRef.current = activeAgent;
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const selectedAgentIdRef = useRef(selectedAgentId);
+  selectedAgentIdRef.current = selectedAgentId;
 
   useEffect(() => {
     if (xtermRef.current) {
@@ -270,92 +250,113 @@ function TerminalPane({
     if (enabledAgents[0]) setSelectedAgentId(enabledAgents[0].id);
   }, [enabledAgents, selectedAgentId]);
 
-  // Clean up object URLs when attachments are modified or unmounted
-  const attachmentsRef = useRef(attachments);
-  attachmentsRef.current = attachments;
-  useEffect(() => {
-    return () => {
-      attachmentsRef.current.forEach((att) => {
-        if (att.previewUrl) {
-          try {
-            URL.revokeObjectURL(att.previewUrl);
-          } catch {}
-        }
-      });
-    };
-  }, []);
-
-  const handleRemoveAttachment = (idToRemove: string) => {
-    setAttachments((prev) => {
-      const match = prev.find((a) => a.id === idToRemove);
-      if (match?.previewUrl) {
-        try {
-          URL.revokeObjectURL(match.previewUrl);
-        } catch {}
-      }
-      if (previewAttachment?.id === idToRemove) {
-        setPreviewAttachment(null);
-      }
-      return prev.filter((a) => a.id !== idToRemove);
-    });
-  };
-
-  const handleFilesSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
-
-    const newAttachments: AgentAttachment[] = files.map((file) => {
-      const isImg = isImageFile(file.name, file.type);
-      let previewUrl: string | undefined;
-      if (isImg) {
-        try {
-          previewUrl = URL.createObjectURL(file);
-        } catch {}
-      }
-      const rawPath = (file as File & { path?: string }).path || file.name;
-      return {
-        id: `att-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name,
-        path: rawPath,
-        size: file.size,
-        type: file.type,
-        previewUrl,
-      };
-    });
-
-    setAttachments((prev) => [...prev, ...newAttachments]);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
-
   useEffect(() => {
     if (!hostRef.current) return undefined;
 
     const xterm = new XTerm({
       cursorBlink: true,
-      convertEol: false,
-      fontFamily: 'Cascadia Mono, Consolas, Menlo, monospace',
+      fontFamily: 'Consolas, Menlo, Monaco, "Courier New", monospace',
       fontSize: 13,
-      lineHeight: 1.15,
-      scrollback: 10000,
+      lineHeight: 1.25,
+      allowTransparency: true,
       minimumContrastRatio: 4.5,
       theme: terminalTheme(initialDarkModeRef.current),
+      convertEol: true,
+      scrollback: 5000,
     });
     const fitAddon = new FitAddon();
     xterm.loadAddon(fitAddon);
     xterm.open(hostRef.current);
     xtermRef.current = xterm;
-    registerFocus(terminal.id, () => xterm.focus());
 
-    xterm.attachCustomKeyEventHandler((event) => {
+    registerFocus(terminal.id, () => {
+      xterm.focus();
+    });
+
+    const isWindows = navigator.userAgent.includes('Windows');
+
+    xterm.attachCustomKeyEventHandler((event: KeyboardEvent) => {
+      // Allow browser shortcuts: F12 (DevTools), Ctrl+Shift+I / Cmd+Option+I
+      if (
+        event.key === 'F12' ||
+        (event.key === 'I' &&
+          event.shiftKey &&
+          (event.ctrlKey || event.metaKey))
+      ) {
+        return false;
+      }
+
       if (event.type !== 'keydown') return true;
 
-      // Prevent Tab from moving browser DOM focus away from the terminal
-      if (event.key === 'Tab') {
+      // Copy: Ctrl+Shift+C (all platforms), Cmd+C (macOS)
+      const isCopy =
+        (event.ctrlKey && event.shiftKey && event.key === 'C') ||
+        (!isWindows && event.metaKey && !event.ctrlKey && event.key === 'c');
+      if (isCopy && xterm.hasSelection()) {
+        const selected = xterm.getSelection();
+        navigator.clipboard.writeText(selected);
+        return false;
+      }
+
+      // Windows copy: Ctrl+C with text selected
+      if (
+        isWindows &&
+        event.ctrlKey &&
+        !event.shiftKey &&
+        !event.altKey &&
+        event.key === 'c' &&
+        xterm.hasSelection()
+      ) {
+        const selected = xterm.getSelection();
+        navigator.clipboard.writeText(selected);
+        return false;
+      }
+
+      // Paste: Ctrl+Shift+V (all), Cmd+V (macOS), Ctrl+V (Windows if configured)
+      const isPaste =
+        (event.ctrlKey && event.shiftKey && event.key === 'V') ||
+        (!isWindows && event.metaKey && !event.ctrlKey && event.key === 'v') ||
+        (isWindows && event.ctrlKey && !event.shiftKey && event.key === 'v');
+      if (isPaste) {
         event.preventDefault();
         event.stopPropagation();
-        window.electron.ipcRenderer.send('terminal-input', terminal.id, '\t');
-        requestAnimationFrame(() => {
-          xtermRef.current?.focus();
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (text) {
+              window.electron.ipcRenderer.send(
+                'terminal-input',
+                terminal.id,
+                text,
+              );
+            }
+          })
+          .catch(() => {});
+        return false;
+      }
+
+      // Shift+Insert: classic paste
+      if (event.shiftKey && event.key === 'Insert') {
+        event.preventDefault();
+        event.stopPropagation();
+        navigator.clipboard
+          .readText()
+          .then((text) => {
+            if (text) {
+              window.electron.ipcRenderer.send(
+                'terminal-input',
+                terminal.id,
+                text,
+              );
+            }
+          })
+          .catch(() => {});
+        return false;
+      }
+
+      // Enter key focus insurance
+      if (event.key === 'Enter') {
+        window.requestAnimationFrame(() => {
           const textarea = hostRef.current?.querySelector(
             '.xterm-helper-textarea',
           ) as HTMLTextAreaElement | null;
@@ -384,6 +385,7 @@ function TerminalPane({
       'terminal-data',
       (id: string, data: string) => {
         if (id !== terminal.id) return;
+        setIsAgentStarting(false);
         const isAtBottom =
           !xterm.buffer.active ||
           xterm.buffer.active.viewportY >= xterm.buffer.active.baseY - 2;
@@ -391,6 +393,17 @@ function TerminalPane({
         if (isAtBottom) {
           xterm.scrollToBottom();
         }
+      },
+    );
+
+    const removeRehydrate = window.electron.ipcRenderer.on(
+      'terminal-ai-agent-rehydrate',
+      (id: string, outputBuffer: string) => {
+        if (id !== terminal.id) return;
+        setIsAgentStarting(false);
+        xterm.reset();
+        xterm.write(outputBuffer);
+        xterm.scrollToBottom();
       },
     );
 
@@ -404,49 +417,11 @@ function TerminalPane({
       },
     );
 
-    const removeStateChange = window.electron.ipcRenderer.on(
-      'terminal-ai-agent-state-changed',
-      (eventPayload: AgentStateChangeEvent) => {
-        if (eventPayload.sessionId !== terminal.id) return;
-        setAgentState(eventPayload.state);
-
-        const currentAgent = activeAgentRef.current;
-        if (eventPayload.state === 'working') {
-          if (currentAgent) {
-            onAgentActivity?.({
-              terminalId: terminal.id,
-              worktreePath: terminal.path,
-              agent: currentAgent,
-              active: true,
-            });
-          }
-        } else if (
-          eventPayload.state === 'idle' ||
-          eventPayload.state === 'error' ||
-          eventPayload.state === 'exited'
-        ) {
-          if (currentAgent) {
-            onAgentActivity?.({
-              terminalId: terminal.id,
-              worktreePath: terminal.path,
-              agent: currentAgent,
-              active: false,
-            });
-          }
-          if (eventPayload.state === 'idle') {
-            window.setTimeout(() => {
-              promptInputRef.current?.focus();
-            }, 50);
-          }
-        }
-      },
-    );
-
     const removeAgentError = window.electron.ipcRenderer.on(
       'terminal-ai-agent-error',
       (id: string, message: string) => {
         if (id !== terminal.id) return;
-        setAgentState('error');
+        setIsAgentStarting(false);
         xterm.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
       },
     );
@@ -455,7 +430,7 @@ function TerminalPane({
       'terminal-exit',
       (id: string, exitCode: number) => {
         if (id !== terminal.id) return;
-        setAgentState('exited');
+        setIsAgentStarting(false);
         xterm.writeln(`\r\n[Process exited with code ${exitCode}]`);
       },
     );
@@ -464,7 +439,7 @@ function TerminalPane({
       'terminal-error',
       (id: string, message: string) => {
         if (id !== terminal.id) return;
-        setAgentState('error');
+        setIsAgentStarting(false);
         xterm.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
       },
     );
@@ -500,14 +475,32 @@ function TerminalPane({
     });
     resizeObserver.observe(hostRef.current);
     fitAddon.fit();
-    window.electron.ipcRenderer.send(
-      'terminal-create',
-      terminal.id,
-      terminal.path,
-      xterm.cols,
-      xterm.rows,
-      initialDarkModeRef.current,
-    );
+
+    if (mode === 'agent') {
+      setIsAgentStarting(true);
+      xterm.writeln(
+        `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+      );
+      window.electron.ipcRenderer.send(
+        'terminal-switch-mode',
+        terminal.id,
+        'agent',
+        selectedAgentId,
+        terminal.path,
+        xterm.cols,
+        xterm.rows,
+        initialDarkModeRef.current,
+      );
+    } else {
+      window.electron.ipcRenderer.send(
+        'terminal-create',
+        terminal.id,
+        terminal.path,
+        xterm.cols,
+        xterm.rows,
+        initialDarkModeRef.current,
+      );
+    }
     xterm.focus();
 
     return () => {
@@ -517,11 +510,11 @@ function TerminalPane({
       terminalInput?.removeEventListener('focus', handleFocus);
       terminalInput?.removeEventListener('blur', handleBlur);
       removeData();
+      removeRehydrate();
       removeReady();
       removeExit();
       removeError();
       removeAgentError();
-      removeStateChange();
       window.electron.ipcRenderer.send('terminal-close', terminal.id);
       registerFocus(terminal.id, null);
       xterm.dispose();
@@ -529,60 +522,64 @@ function TerminalPane({
     };
   }, [onAgentActivity, registerFocus, terminal.id, terminal.path]);
 
-  const canChangeAgent =
-    agentState === 'idle' ||
-    agentState === 'error' ||
-    agentState === 'exited';
-
-  const isWorkingOrStarting =
-    agentState === 'working' || agentState === 'starting';
-  const isStopping = agentState === 'stopping';
-
   const handleAgentSelectChange = (newAgentId: AiAgentId) => {
-    if (!canChangeAgent) return;
     setSelectedAgentId(newAgentId);
-    window.electron.ipcRenderer.send(
-      'terminal-switch-ai-agent',
-      terminal.id,
-      newAgentId,
-    );
+    const targetAgent =
+      configuredAgents.find((item) => item.id === newAgentId) || activeAgent;
+    if (xtermRef.current) {
+      setIsAgentStarting(true);
+      xtermRef.current.reset();
+      xtermRef.current.writeln(
+        `\x1b[90m➜ Starting ${targetAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+      );
+      window.electron.ipcRenderer.send(
+        'terminal-switch-ai-agent',
+        terminal.id,
+        newAgentId,
+        terminal.path,
+        xtermRef.current.cols,
+        xtermRef.current.rows,
+        isDarkMode,
+      );
+      xtermRef.current.focus();
+    }
   };
 
-  const handleStartAgent = () => {
-    const agent = enabledAgents.find((item) => item.id === selectedAgentId);
-    if (!agent || isWorkingOrStarting || isStopping) return;
-
-    const currentPrompt = agentPrompt;
-    const currentAttachments = [...attachments];
-
-    setAgentState('starting');
-    window.electron.ipcRenderer.send(
-      'terminal-start-ai-agent',
-      terminal.id,
-      agent.id,
-      currentPrompt,
-      currentAttachments,
-    );
-
-    // Clear prompt and attachments only upon sending
-    setAgentPrompt('');
-    setAttachments([]);
+  const handleModeChange = (nextMode: 'terminal' | 'agent') => {
+    setMode(nextMode);
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      if (nextMode === 'agent') {
+        setIsAgentStarting(true);
+        xtermRef.current.writeln(
+          `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+        );
+      }
+      window.electron.ipcRenderer.send(
+        'terminal-switch-mode',
+        terminal.id,
+        nextMode,
+        selectedAgentId,
+        terminal.path,
+        xtermRef.current.cols,
+        xtermRef.current.rows,
+        isDarkMode,
+      );
+      xtermRef.current.focus();
+    }
   };
 
-  const handleStop = () => {
-    if (isStopping) return;
-    setAgentState('stopping');
-    window.electron.ipcRenderer.send('terminal-stop-ai-agent', terminal.id);
+  const handleClose = () => {
+    if (mode === 'agent') {
+      window.electron.ipcRenderer.send(
+        'terminal-stop-ai-agent',
+        terminal.id,
+        terminal.path,
+        selectedAgentId,
+      );
+    }
+    onClose(terminal.id);
   };
-
-  const statusPresentation = {
-    starting: { label: `Starting ${activeAgent?.label || 'AI agent'}...`, color: 'processing' },
-    idle: { label: `${activeAgent?.label || 'AI agent'} ready`, color: 'success' },
-    working: { label: `${activeAgent?.label || 'AI agent'} working...`, color: 'purple' },
-    stopping: { label: `Stopping ${activeAgent?.label || 'AI agent'}...`, color: 'warning' },
-    error: { label: 'Error', color: 'error' },
-    exited: { label: 'Shell exited', color: 'default' },
-  }[agentState];
 
   return (
     <section
@@ -609,7 +606,7 @@ function TerminalPane({
               size="small"
               value={selectedAgentId}
               aria-label="AI agent for this terminal"
-              disabled={!canChangeAgent || enabledAgents.length === 0}
+              disabled={enabledAgents.length === 0}
               placeholder="Select AI Agent"
               className="terminal-agent-select"
               options={enabledAgents.map((agent) => ({
@@ -630,24 +627,31 @@ function TerminalPane({
             buttonStyle="solid"
             value={mode}
             aria-label="Switch between terminal and AI agent"
-            disabled={isWorkingOrStarting || isStopping}
             options={[
               { label: 'Terminal', value: 'terminal' },
               { label: 'AI Agent', value: 'agent' },
             ]}
             onChange={(event) => {
               const nextMode = event.target.value as 'terminal' | 'agent';
-              setMode(nextMode);
+              handleModeChange(nextMode);
             }}
           />
           {mode === 'agent' && (
-            <Tooltip title={statusPresentation.label}>
+            <Tooltip
+              title={
+                isAgentStarting
+                  ? `Initializing ${activeAgent?.label || 'AI agent'}...`
+                  : `${activeAgent?.label || 'AI agent'} ready`
+              }
+            >
               <Tag
                 bordered={false}
-                color={statusPresentation.color}
+                color={isAgentStarting ? 'processing' : 'success'}
                 className="terminal-status-tag"
               >
-                {statusPresentation.label}
+                {isAgentStarting
+                  ? `Starting ${activeAgent?.label || 'Agent'}...`
+                  : `${activeAgent?.label || 'Agent'} ready`}
               </Tag>
             </Tooltip>
           )}
@@ -656,7 +660,7 @@ function TerminalPane({
             size="small"
             aria-label={`Close ${terminal.name} terminal`}
             icon={<CloseOutlined />}
-            onClick={() => onClose(terminal.id)}
+            onClick={handleClose}
           />
           {canFocus && (
             <Button
@@ -669,183 +673,6 @@ function TerminalPane({
           )}
         </Space>
       </header>
-
-      {mode === 'agent' && (
-        <div className="terminal-agent-composer">
-          {enabledAgents.length === 0 ? (
-            <Typography.Text type="secondary" className="terminal-agent-empty-hint">
-              Enable and configure an AI agent in Settings &gt; AI Agents before starting one.
-            </Typography.Text>
-          ) : (
-            <>
-              <div className="terminal-composer-input-row">
-                <Input.TextArea
-                  ref={promptInputRef}
-                  size="small"
-                  className="terminal-composer-textarea"
-                  value={agentPrompt}
-                  onChange={(event) => setAgentPrompt(event.target.value)}
-                  onFocus={() => {
-                    if (!isFocusedMode && canFocus) onToggleFocusedMode(terminal.id);
-                  }}
-                  onPressEnter={(event) => {
-                    if (event.shiftKey) return;
-                    event.preventDefault();
-                    if (!isWorkingOrStarting && !isStopping) {
-                      handleStartAgent();
-                    }
-                  }}
-                  placeholder={
-                    isWorkingOrStarting
-                      ? `${activeAgent?.label || 'Agent'} is working... Prompt disabled`
-                      : isStopping
-                      ? 'Stopping agent...'
-                      : `Prompt for ${activeAgent?.label || 'AI agent'}...`
-                  }
-                  disabled={isWorkingOrStarting || isStopping}
-                  autoSize={{ minRows: 2, maxRows: 5 }}
-                />
-
-                <div className="terminal-composer-actions">
-                  <input
-                    ref={fileInputRef}
-                    className="terminal-agent-file-input"
-                    type="file"
-                    multiple
-                    accept="image/*,text/*,.txt,.log,.json,.md,.ts,.tsx,.js,.jsx,.py,.go,.rs,.c,.cpp,.h,.java,.html,.css,.yml,.yaml,.toml,.env,*"
-                    onChange={handleFilesSelected}
-                  />
-
-                  <Tooltip title="Add files or images to prompt">
-                    <Button
-                      size="middle"
-                      type="text"
-                      className="terminal-attach-btn"
-                      icon={<PaperClipOutlined />}
-                      aria-label="Add files or images"
-                      disabled={isWorkingOrStarting || isStopping}
-                      onClick={() => fileInputRef.current?.click()}
-                    />
-                  </Tooltip>
-
-                  {isWorkingOrStarting || isStopping ? (
-                    <Tooltip title="Stop AI agent immediately">
-                      <Button
-                        size="middle"
-                        danger
-                        type="primary"
-                        className="terminal-stop-button"
-                        icon={<StopOutlined />}
-                        loading={isStopping}
-                        disabled={isStopping}
-                        onClick={handleStop}
-                      >
-                        {isStopping ? 'Stopping' : 'Stop'}
-                      </Button>
-                    </Tooltip>
-                  ) : (
-                    <Tooltip title={`Send prompt to ${activeAgent?.label || 'AI agent'}`}>
-                      <Button
-                        size="middle"
-                        type="primary"
-                        className="terminal-send-button"
-                        icon={<SendOutlined />}
-                        aria-label="Send to AI agent"
-                        disabled={
-                          enabledAgents.length === 0 ||
-                          (!agentPrompt.trim() && attachments.length === 0)
-                        }
-                        onClick={handleStartAgent}
-                      />
-                    </Tooltip>
-                  )}
-                </div>
-              </div>
-
-              {attachments.length > 0 && (
-                <div className="terminal-attachments-strip">
-                  {attachments.map((att) => {
-                    const isImg = isImageFile(att.name, att.type);
-                    return (
-                      <div
-                        key={att.id}
-                        className="terminal-attachment-chip"
-                        title={att.path}
-                      >
-                        <div
-                          className="terminal-attachment-content"
-                          onClick={() => {
-                            if (isImg) setPreviewAttachment(att);
-                          }}
-                          role={isImg ? 'button' : undefined}
-                          tabIndex={isImg ? 0 : undefined}
-                        >
-                          {isImg && att.previewUrl ? (
-                            <img
-                              src={att.previewUrl}
-                              alt={att.name}
-                              className="terminal-attachment-thumb"
-                            />
-                          ) : isImg ? (
-                            <PictureOutlined className="terminal-attachment-icon" />
-                          ) : (
-                            <FileTextOutlined className="terminal-attachment-icon" />
-                          )}
-                          <span className="terminal-attachment-name">
-                            {att.name}
-                          </span>
-                          {isImg && (
-                            <EyeOutlined className="terminal-attachment-preview-hint" />
-                          )}
-                        </div>
-                        <button
-                          type="button"
-                          className="terminal-attachment-remove-btn"
-                          aria-label={`Remove ${att.name}`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleRemoveAttachment(att.id);
-                          }}
-                        >
-                          <CloseCircleFilled />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      )}
-
-      {/* Large Image Preview Modal */}
-      <Modal
-        open={previewAttachment !== null}
-        title={
-          <div className="terminal-image-modal-title">
-            <PictureOutlined />
-            <span>{previewAttachment?.name}</span>
-          </div>
-        }
-        footer={null}
-        destroyOnClose
-        centered
-        maskClosable={true}
-        className="terminal-image-preview-modal"
-        rootClassName={isDarkMode ? 'terminal-workspace-theme-dark' : ''}
-        onCancel={() => setPreviewAttachment(null)}
-      >
-        {previewAttachment && (
-          <div className="terminal-image-modal-body">
-            <img
-              src={previewAttachment.previewUrl || previewAttachment.path}
-              alt={previewAttachment.name}
-              className="terminal-image-modal-img"
-            />
-          </div>
-        )}
-      </Modal>
 
       <div
         className="terminal-host-wrapper"

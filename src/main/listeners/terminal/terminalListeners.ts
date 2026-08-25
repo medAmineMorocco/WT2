@@ -1,16 +1,15 @@
-import fs from 'fs';
 import { ipcMain, WebContents } from 'electron';
-import log from '../../utils/logger';
-import utils from '../../utils/utils';
+import fs from 'fs';
 import {
-  AgentAttachment,
   AiAgentConfig,
   AiAgentId,
   aiAgentsDefault,
 } from '../../../shared/aiAgents';
+import log from '../../utils/logger';
+import utils from '../../utils/utils';
 import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
-import shellDetectionService from '../../services/shells/shellDetectionService';
 import aiAgentSessionManager from '../../services/aiAgents/AIAgentSessionManager';
+import shellDetectionService from '../../services/shells/shellDetectionService';
 
 const pty = require('node-pty');
 
@@ -18,6 +17,7 @@ type TerminalSession = {
   process: any;
   ownerId: number;
   shell: string;
+  directory: string;
 };
 
 const sessions = new Map<string, TerminalSession>();
@@ -102,28 +102,37 @@ ipcMain.on(
         process: terminalProcess,
         ownerId: event.sender.id,
         shell,
+        directory,
       });
+
+      aiAgentSessionManager.setBinding(
+        sessionId,
+        directory,
+        'claude',
+        'terminal',
+        event.sender,
+      );
 
       terminalProcess.onData((data: string) => {
         if (!event.sender.isDestroyed()) {
-          event.sender.send('terminal-data', sessionId, data);
-          aiAgentSessionManager.handleData(sessionId, data);
+          const binding = aiAgentSessionManager.getBinding(sessionId);
+          if (!binding || binding.mode === 'terminal') {
+            event.sender.send('terminal-data', sessionId, data);
+          }
         }
       });
       terminalProcess.onExit(({ exitCode }: { exitCode: number }) => {
         sessions.delete(sessionId);
-        aiAgentSessionManager.handleExit(sessionId, exitCode);
         if (!event.sender.isDestroyed()) {
-          event.sender.send('terminal-exit', sessionId, exitCode);
+          const binding = aiAgentSessionManager.getBinding(sessionId);
+          if (!binding || binding.mode === 'terminal') {
+            event.sender.send('terminal-exit', sessionId, exitCode);
+          }
         }
       });
       event.sender.send('terminal-ready', sessionId);
     } catch (error: any) {
       log.error(`Failed to create terminal in ${directory}: ${error.message}`);
-      aiAgentSessionManager.handleError(
-        sessionId,
-        error.message || 'Unable to start terminal',
-      );
       event.sender.send(
         'terminal-error',
         sessionId,
@@ -134,7 +143,12 @@ ipcMain.on(
 );
 
 ipcMain.on('terminal-input', (event, sessionId: string, data: string) => {
-  ownedSession(sessionId, event.sender.id)?.process.write(data);
+  const binding = aiAgentSessionManager.getBinding(sessionId);
+  if (binding && binding.mode === 'agent') {
+    aiAgentSessionManager.writeInput(sessionId, data);
+  } else {
+    ownedSession(sessionId, event.sender.id)?.process.write(data);
+  }
 });
 
 async function configuredAiAgents(): Promise<AiAgentConfig[]> {
@@ -199,19 +213,85 @@ async function configuredAiAgents(): Promise<AiAgentConfig[]> {
 }
 
 ipcMain.on(
-  'terminal-start-ai-agent',
+  'terminal-switch-mode',
   async (
     event,
     sessionId: string,
-    agentId: string,
-    prompt: string,
-    attachments: AgentAttachment[] = [],
+    mode: 'terminal' | 'agent',
+    agentId?: AiAgentId,
+    worktreePath?: string,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
-    if (!session) return;
+    const targetPath = worktreePath || session?.directory || '';
+
+    const binding = aiAgentSessionManager.getBinding(sessionId);
+    const targetAgentId = agentId || binding?.activeAgentId || 'claude';
+
+    aiAgentSessionManager.setBinding(
+      sessionId,
+      targetPath,
+      targetAgentId,
+      mode,
+      event.sender,
+    );
+
+    if (mode === 'agent') {
+      try {
+        const agents = await configuredAiAgents();
+        const agent = agents.find((candidate) => candidate.id === targetAgentId);
+        if (!agent?.enabled) {
+          throw new Error(
+            'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
+          );
+        }
+        if (!agent.command.trim()) {
+          throw new Error(
+            'Configure an executable command for this AI agent in Settings > AI Agents.',
+          );
+        }
+
+        aiAgentSessionManager.switchActiveAgent(
+          sessionId,
+          targetPath,
+          agent,
+          cols,
+          rows,
+          isDarkMode,
+          event.sender,
+        );
+      } catch (error: any) {
+        log.error(
+          `Failed switching to AI agent ${targetAgentId} on session ${sessionId}: ${error.message}`,
+        );
+        event.sender.send(
+          'terminal-ai-agent-error',
+          sessionId,
+          error.message || 'Unable to start the AI agent.',
+        );
+      }
+    }
+  },
+);
+
+ipcMain.on(
+  'terminal-switch-ai-agent',
+  async (
+    event,
+    sessionId: string,
+    newAgentId: string,
+    worktreePath?: string,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
+  ) => {
+    const session = ownedSession(sessionId, event.sender.id);
+    const targetPath = worktreePath || session?.directory || '';
     try {
       const agents = await configuredAiAgents();
-      const agent = agents.find((candidate) => candidate.id === agentId);
+      const agent = agents.find((candidate) => candidate.id === newAgentId);
       if (!agent?.enabled) {
         throw new Error(
           'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
@@ -223,57 +303,35 @@ ipcMain.on(
         );
       }
 
-      await aiAgentSessionManager.startAgent(
+      aiAgentSessionManager.switchActiveAgent(
         sessionId,
+        targetPath,
         agent,
-        prompt,
-        attachments,
-        session.process,
+        cols,
+        rows,
+        isDarkMode,
         event.sender,
-        session.shell || defaultShell(),
       );
-      event.sender.send('terminal-ai-agent-started', sessionId, agent.id);
     } catch (error: any) {
-      log.error(
-        `Failed to start AI agent ${agentId} on session ${sessionId}: ${error.message}`,
-      );
+      log.error(`Failed to switch agent on ${sessionId}: ${error.message}`);
       event.sender.send(
         'terminal-ai-agent-error',
         sessionId,
-        error.message || 'Unable to start the AI agent.',
+        error.message || 'Unable to switch agent.',
       );
     }
   },
 );
 
-ipcMain.on('terminal-stop-ai-agent', async (event, sessionId: string) => {
-  const session = ownedSession(sessionId, event.sender.id);
-  if (!session) return;
-  try {
-    await aiAgentSessionManager.interruptAgent(sessionId);
-  } catch (error: any) {
-    log.error(`Failed to interrupt AI agent on ${sessionId}: ${error.message}`);
-  }
-});
-
 ipcMain.on(
-  'terminal-switch-ai-agent',
-  async (event, sessionId: string, newAgentId: string) => {
+  'terminal-stop-ai-agent',
+  async (event, sessionId: string, worktreePath?: string, agentId?: AiAgentId) => {
     const session = ownedSession(sessionId, event.sender.id);
-    if (!session) return;
+    const targetPath = worktreePath || session?.directory || '';
     try {
-      const agents = await configuredAiAgents();
-      const agent = agents.find((candidate) => candidate.id === newAgentId);
-      if (agent) {
-        aiAgentSessionManager.switchAgent(
-          sessionId,
-          agent,
-          session.process,
-          event.sender,
-        );
-      }
+      aiAgentSessionManager.stopAgent(sessionId, targetPath, agentId);
     } catch (error: any) {
-      log.error(`Failed to switch agent on ${sessionId}: ${error.message}`);
+      log.error(`Failed to interrupt AI agent on ${sessionId}: ${error.message}`);
     }
   },
 );
@@ -332,6 +390,7 @@ ipcMain.on(
   (event, sessionId: string, cols: number, rows: number) => {
     if (cols < 2 || rows < 1) return;
     try {
+      aiAgentSessionManager.resize(sessionId, cols, rows);
       ownedSession(sessionId, event.sender.id)?.process.resize(cols, rows);
     } catch (error) {
       log.warn(`Unable to resize terminal ${sessionId}: ${error}`);
@@ -357,10 +416,4 @@ ipcMain.handle('shells:detect-all', async () => {
 
 ipcMain.handle('shells:get-active', async () => {
   return shellDetectionService.getDefaultOrActiveShell();
-});
-
-ipcMain.handle('shells:set-active', async (_event, shellPath: string) => {
-  log.info('shellPath', shellPath);
-  await utils.setStorageItem('shellPath', shellPath);
-  return true;
 });

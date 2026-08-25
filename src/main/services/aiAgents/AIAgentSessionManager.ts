@@ -1,301 +1,341 @@
-import { exec } from 'child_process';
 import { WebContents } from 'electron';
 import {
-  AgentAttachment,
-  AgentExecutionState,
   AiAgentConfig,
   AiAgentId,
 } from '../../../shared/aiAgents';
 import log from '../../utils/logger';
-import { AIAgentAdapter, getAgentAdapter } from './adapters';
 
-export interface AgentPanelSession {
-  sessionId: string;
+const pty = require('node-pty');
+
+export interface AgentPtySession {
   agentId: AiAgentId;
-  state: AgentExecutionState;
+  config: AiAgentConfig;
+  worktreePath: string;
   ptyProcess: any;
+  outputBuffer: string;
+  cols: number;
+  rows: number;
+  activeSessionId: string;
   sender: WebContents;
-  generationId: number;
-  stopTimeout: NodeJS.Timeout | null;
-  outputTail: string;
 }
 
 export class AIAgentSessionManager {
-  private sessions = new Map<string, AgentPanelSession>();
+  // Map of normalized worktreePath -> (Map of agentId -> AgentPtySession)
+  private worktreeSessions = new Map<
+    string,
+    Map<AiAgentId, AgentPtySession>
+  >();
 
-  getSession(sessionId: string): AgentPanelSession | undefined {
-    return this.sessions.get(sessionId);
+  // Map of terminal pane sessionId -> { worktreePath, activeAgentId, mode: 'terminal' | 'agent', sender }
+  private activeTerminalBindings = new Map<
+    string,
+    {
+      worktreePath: string;
+      activeAgentId: AiAgentId;
+      mode: 'terminal' | 'agent';
+      sender: WebContents;
+    }
+  >();
+
+  private normalizePath(dir: string): string {
+    return (dir || '').replace(/\\/g, '/').toLowerCase();
   }
 
-  getOrCreateSession(
+  getBinding(sessionId: string) {
+    return this.activeTerminalBindings.get(sessionId);
+  }
+
+  setBinding(
     sessionId: string,
-    agentId: AiAgentId,
-    ptyProcess: any,
+    worktreePath: string,
+    activeAgentId: AiAgentId,
+    mode: 'terminal' | 'agent',
     sender: WebContents,
-  ): AgentPanelSession {
-    let session = this.sessions.get(sessionId);
-    if (!session) {
-      session = {
-        sessionId,
-        agentId,
-        state: 'idle',
-        ptyProcess,
-        sender,
-        generationId: 0,
-        stopTimeout: null,
-        outputTail: '',
-      };
-      this.sessions.set(sessionId, session);
-    } else {
-      session.ptyProcess = ptyProcess;
-      session.sender = sender;
-      session.agentId = agentId;
+  ) {
+    this.activeTerminalBindings.set(sessionId, {
+      worktreePath,
+      activeAgentId,
+      mode,
+      sender,
+    });
+  }
+
+  getAgentSession(
+    worktreePath: string,
+    agentId: AiAgentId,
+  ): AgentPtySession | undefined {
+    const norm = this.normalizePath(worktreePath);
+    return this.worktreeSessions.get(norm)?.get(agentId);
+  }
+
+  getOrCreateAgentPtySession(
+    sessionId: string,
+    worktreePath: string,
+    agentConfig: AiAgentConfig,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
+    sender: WebContents,
+  ): AgentPtySession {
+    const norm = this.normalizePath(worktreePath);
+    let agentMap = this.worktreeSessions.get(norm);
+    if (!agentMap) {
+      agentMap = new Map<AiAgentId, AgentPtySession>();
+      this.worktreeSessions.set(norm, agentMap);
     }
+
+    let session = agentMap.get(agentConfig.id);
+    if (!session || !session.ptyProcess) {
+      const cleanEnv: NodeJS.ProcessEnv = {
+        ...process.env,
+        COLORFGBG: isDarkMode ? '15;0' : '0;15',
+        TERM_THEME: isDarkMode ? 'dark' : 'light',
+        TERM: 'xterm-256color',
+        COLORTERM: 'truecolor',
+        FORCE_COLOR: '1',
+      };
+      delete cleanEnv.NODE_OPTIONS;
+      delete cleanEnv.ELECTRON_RUN_AS_NODE;
+      delete cleanEnv.ELECTRON_NO_ASAR;
+      delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
+      delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
+      delete cleanEnv.TS_NODE_PROJECT;
+
+      const rawCommand = agentConfig.command.trim();
+      const rawArgs = agentConfig.args.trim()
+        ? agentConfig.args.trim().split(/\s+/).filter(Boolean)
+        : [];
+
+      log.info(
+        `[AIAgentSessionManager] Spawning interactive PTY for ${agentConfig.id}: "${rawCommand}" with args [${rawArgs.join(', ')}] in ${worktreePath}`,
+      );
+
+      let ptyProcess: any;
+      try {
+        if (process.platform === 'win32') {
+          const lower = rawCommand.toLowerCase();
+          const isDirectExe = lower.endsWith('.exe');
+
+          if (isDirectExe) {
+            ptyProcess = pty.spawn(rawCommand, rawArgs, {
+              name: 'xterm-256color',
+              cols: Math.max(2, cols),
+              rows: Math.max(1, rows),
+              cwd: worktreePath,
+              env: cleanEnv,
+            });
+          } else {
+            // For .cmd, .bat, or generic binary names (claude, codex, cursor-agent),
+            // spawn via cmd.exe /d /c to allow Windows to resolve the script in PATH
+            const shell = process.env.COMSPEC || 'cmd.exe';
+            ptyProcess = pty.spawn(
+              shell,
+              ['/d', '/c', rawCommand, ...rawArgs],
+              {
+                name: 'xterm-256color',
+                cols: Math.max(2, cols),
+                rows: Math.max(1, rows),
+                cwd: worktreePath,
+                env: cleanEnv,
+              },
+            );
+          }
+        } else {
+          ptyProcess = pty.spawn(rawCommand, rawArgs, {
+            name: 'xterm-256color',
+            cols: Math.max(2, cols),
+            rows: Math.max(1, rows),
+            cwd: worktreePath,
+            env: cleanEnv,
+          });
+        }
+      } catch (err: any) {
+        log.error(
+          `Failed spawning PTY for agent ${agentConfig.id}: ${err?.message}`,
+        );
+        throw err;
+      }
+
+      session = {
+        agentId: agentConfig.id,
+        config: agentConfig,
+        worktreePath,
+        ptyProcess,
+        outputBuffer: '',
+        cols,
+        rows,
+        activeSessionId: sessionId,
+        sender,
+      };
+
+      agentMap.set(agentConfig.id, session);
+
+      ptyProcess.onData((data: string) => {
+        if (!session) return;
+        // Keep bounded output buffer for rehydration (up to 100k characters)
+        session.outputBuffer = (session.outputBuffer + data).slice(-100000);
+
+        const binding = this.activeTerminalBindings.get(session.activeSessionId);
+        if (
+          binding &&
+          binding.mode === 'agent' &&
+          binding.activeAgentId === session.agentId &&
+          !session.sender.isDestroyed()
+        ) {
+          session.sender.send('terminal-data', session.activeSessionId, data);
+        }
+      });
+
+      ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+        log.info(
+          `Agent PTY ${session?.agentId} exited with code ${exitCode}`,
+        );
+        if (session) {
+          const binding = this.activeTerminalBindings.get(session.activeSessionId);
+          if (
+            binding &&
+            binding.mode === 'agent' &&
+            binding.activeAgentId === session.agentId &&
+            !session.sender.isDestroyed()
+          ) {
+            session.sender.send(
+              'terminal-data',
+              session.activeSessionId,
+              `\r\n\x1b[90m[Process exited with code ${exitCode}]\x1b[0m\r\n`,
+            );
+          }
+          agentMap?.delete(session.agentId);
+        }
+      });
+    } else {
+      // Re-attach active session ID and sender
+      session.activeSessionId = sessionId;
+      session.sender = sender;
+      if (cols && rows) {
+        session.cols = cols;
+        session.rows = rows;
+        try {
+          session.ptyProcess.resize(Math.max(2, cols), Math.max(1, rows));
+        } catch {}
+      }
+    }
+
+    this.setBinding(sessionId, worktreePath, agentConfig.id, 'agent', sender);
     return session;
   }
 
-  private notifyState(
-    session: AgentPanelSession,
-    state: AgentExecutionState,
-    message?: string,
-  ) {
-    session.state = state;
-    if (state === 'idle' || state === 'error' || state === 'exited') {
-      if (session.stopTimeout) {
-        clearTimeout(session.stopTimeout);
-        session.stopTimeout = null;
-      }
-    }
-
-    if (!session.sender.isDestroyed()) {
-      session.sender.send('terminal-ai-agent-state-changed', {
-        sessionId: session.sessionId,
-        agentId: session.agentId,
-        state,
-        message,
-      });
-    }
-  }
-
-  async startAgent(
+  switchActiveAgent(
     sessionId: string,
+    worktreePath: string,
     agentConfig: AiAgentConfig,
-    prompt: string,
-    attachments: AgentAttachment[] = [],
-    ptyProcess: any,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
     sender: WebContents,
-    shell: string,
-  ): Promise<void> {
-    const session = this.getOrCreateSession(
+  ): AgentPtySession {
+    const session = this.getOrCreateAgentPtySession(
       sessionId,
-      agentConfig.id,
-      ptyProcess,
-      sender,
-    );
-
-    if (session.state === 'working' || session.state === 'stopping') {
-      log.warn(`Session ${sessionId} is already ${session.state}, cannot start.`);
-      return;
-    }
-
-    const adapter = getAgentAdapter(agentConfig.id);
-    const validation = adapter.validateAttachments(attachments);
-    if (!validation.valid) {
-      const errorMsg =
-        validation.error ||
-        `Attachments are not supported by ${adapter.label}.`;
-      this.notifyState(session, 'error', errorMsg);
-      throw new Error(errorMsg);
-    }
-
-    session.generationId += 1;
-    const currentGeneration = session.generationId;
-    session.agentId = agentConfig.id;
-    session.outputTail = '';
-    this.notifyState(session, 'starting');
-
-    const command = adapter.buildCommand(
-      shell,
+      worktreePath,
       agentConfig,
-      prompt,
-      attachments,
-    );
-
-    // Gracefully clear line first then execute
-    try {
-      ptyProcess.write('\x03');
-    } catch (err) {
-      log.warn(`Failed writing clear signal to session ${sessionId}: ${err}`);
-    }
-
-    setTimeout(() => {
-      if (session.generationId !== currentGeneration) return;
-      try {
-        ptyProcess.write(`${command}\r`);
-        this.notifyState(session, 'working');
-      } catch (err: any) {
-        log.error(`Failed to write command for session ${sessionId}: ${err}`);
-        this.notifyState(session, 'error', err?.message || 'Failed to start agent');
-      }
-    }, 60);
-  }
-
-  async interruptAgent(sessionId: string): Promise<void> {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-
-    if (session.state !== 'working' && session.state !== 'starting') {
-      return;
-    }
-
-    // Set state to stopping immediately to disable repeat clicks
-    this.notifyState(session, 'stopping');
-
-    const adapter = getAgentAdapter(session.agentId);
-    const interruptSeq = adapter.getInterruptSequence();
-
-    try {
-      session.ptyProcess.write(interruptSeq);
-      // Send secondary newline to ensure CLI returns to prompt
-      setTimeout(() => {
-        try {
-          session.ptyProcess.write('\x03\r');
-        } catch {}
-      }, 100);
-    } catch (err) {
-      log.warn(`Error writing interrupt to session ${sessionId}: ${err}`);
-    }
-
-    // Set a safety timeout: if still not idle after 2.5s, safely kill child processes
-    if (session.stopTimeout) clearTimeout(session.stopTimeout);
-
-    session.stopTimeout = setTimeout(() => {
-      if (session.state === 'stopping') {
-        log.info(
-          `Escalating interrupt to process tree cleanup for session ${sessionId}`,
-        );
-        this.killPtyChildProcesses(session.ptyProcess?.pid);
-        this.notifyState(session, 'idle', 'Agent stopped.');
-      }
-    }, 2500);
-  }
-
-  switchAgent(
-    sessionId: string,
-    newAgentConfig: AiAgentConfig,
-    ptyProcess: any,
-    sender: WebContents,
-  ): void {
-    const session = this.getOrCreateSession(
-      sessionId,
-      newAgentConfig.id,
-      ptyProcess,
+      cols,
+      rows,
+      isDarkMode,
       sender,
     );
 
-    if (session.state === 'working' || session.state === 'stopping') {
-      log.warn(
-        `Cannot switch agent while session ${sessionId} is ${session.state}`,
-      );
-      return;
+    this.setBinding(sessionId, worktreePath, agentConfig.id, 'agent', sender);
+
+    // Replay existing output buffer to xterm
+    if (session.outputBuffer && !sender.isDestroyed()) {
+      sender.send('terminal-ai-agent-rehydrate', sessionId, session.outputBuffer);
     }
 
-    if (session.stopTimeout) {
-      clearTimeout(session.stopTimeout);
-      session.stopTimeout = null;
-    }
-
-    session.generationId += 1;
-    session.agentId = newAgentConfig.id;
-    session.outputTail = '';
-
-    // Print a subtle switch banner into the terminal without clearing history
-    try {
-      ptyProcess.write(
-        `\r\n\x1b[90m--- Switched to ${newAgentConfig.label} ---\x1b[0m\r\n`,
-      );
-    } catch {}
-
-    this.notifyState(session, 'idle');
+    return session;
   }
 
-  handleData(sessionId: string, data: string): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
+  writeInput(sessionId: string, data: string): boolean {
+    const binding = this.activeTerminalBindings.get(sessionId);
+    if (!binding || binding.mode !== 'agent') return false;
 
-    session.outputTail = `${session.outputTail}${data}`
-      .replace(/\x1b\[[0-9;?]*[ -/]*[@-~]/g, '')
-      .slice(-600);
-
-    const adapter = getAgentAdapter(session.agentId);
-
-    if (session.state === 'working' || session.state === 'stopping') {
-      if (adapter.isCompletionSignal(session.outputTail)) {
-        const wasStopping = session.state === 'stopping';
-        this.notifyState(
-          session,
-          'idle',
-          wasStopping ? 'Agent stopped.' : 'Agent finished.',
-        );
+    const session = this.getAgentSession(
+      binding.worktreePath,
+      binding.activeAgentId,
+    );
+    if (session && session.ptyProcess) {
+      try {
+        session.ptyProcess.write(data);
+        return true;
+      } catch (err) {
+        log.warn(`Failed writing to agent PTY: ${err}`);
       }
     }
+    return false;
   }
 
-  handleExit(sessionId: string, exitCode: number): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
+  resize(sessionId: string, cols: number, rows: number): boolean {
+    const binding = this.activeTerminalBindings.get(sessionId);
+    if (!binding || binding.mode !== 'agent') return false;
 
-    this.notifyState(
-      session,
-      'exited',
-      `Terminal exited with code ${exitCode}`,
+    const session = this.getAgentSession(
+      binding.worktreePath,
+      binding.activeAgentId,
     );
+    if (session && session.ptyProcess) {
+      try {
+        session.cols = cols;
+        session.rows = rows;
+        session.ptyProcess.resize(Math.max(2, cols), Math.max(1, rows));
+        return true;
+      } catch {}
+    }
+    return false;
   }
 
-  handleError(sessionId: string, errorMsg: string): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
+  stopAgent(sessionId: string, worktreePath?: string, agentId?: AiAgentId): void {
+    const binding = this.activeTerminalBindings.get(sessionId);
+    const targetPath = worktreePath || binding?.worktreePath || '';
+    const targetAgentId = agentId || binding?.activeAgentId;
 
-    this.notifyState(session, 'error', errorMsg);
+    if (!targetPath || !targetAgentId) return;
+
+    const session = this.getAgentSession(targetPath, targetAgentId);
+    if (session && session.ptyProcess) {
+      try {
+        // Send Ctrl+C interrupt
+        session.ptyProcess.write('\x03');
+      } catch (err) {
+        log.warn(`Failed interrupting agent ${targetAgentId}: ${err}`);
+      }
+    }
   }
 
   closeSession(sessionId: string): void {
-    const session = this.sessions.get(sessionId);
-    if (!session) return;
-
-    if (session.stopTimeout) {
-      clearTimeout(session.stopTimeout);
-      session.stopTimeout = null;
-    }
-
-    this.killPtyChildProcesses(session.ptyProcess?.pid);
-    this.sessions.delete(sessionId);
+    this.activeTerminalBindings.delete(sessionId);
   }
 
-  private killPtyChildProcesses(pid?: number) {
-    if (!pid || pid <= 0) return;
+  closeWorktreeSessions(worktreePath: string): void {
+    const norm = this.normalizePath(worktreePath);
+    const agentMap = this.worktreeSessions.get(norm);
+    if (!agentMap) return;
 
-    try {
-      if (process.platform === 'win32') {
-        // Windows: taskkill /pid <pid> /T /F terminates the child tree
-        exec(`taskkill /pid ${pid} /T /F`, (err) => {
-          if (err) {
-            log.warn?.(`Taskkill for pid ${pid} completed: ${err.message}`);
-          }
-        });
-      } else {
-        // POSIX: kill process group
-        try {
-          process.kill(-pid, 'SIGTERM');
-        } catch {
-          try {
-            process.kill(pid, 'SIGTERM');
-          } catch {}
-        }
-      }
-    } catch (error: any) {
-      log.warn?.(`Failed killing child processes for pid ${pid}: ${error.message}`);
+    for (const [, session] of agentMap.entries()) {
+      try {
+        session.ptyProcess?.kill();
+      } catch {}
     }
+    this.worktreeSessions.delete(norm);
+  }
+
+  disposeAll(): void {
+    for (const [, agentMap] of this.worktreeSessions.entries()) {
+      for (const [, session] of agentMap.entries()) {
+        try {
+          session.ptyProcess?.kill();
+        } catch {}
+      }
+    }
+    this.worktreeSessions.clear();
+    this.activeTerminalBindings.clear();
   }
 }
 
