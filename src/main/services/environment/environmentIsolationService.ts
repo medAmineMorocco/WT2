@@ -116,18 +116,6 @@ async function resolveSettings(
   return { settings: resolved, values, portAllocations };
 }
 
-export async function previewIsolationValues(
-  settings: EnvironmentSetting[],
-  strategies: Record<string, IsolationStrategy>,
-  worktreeName: string,
-): Promise<{
-  values: Record<string, string>;
-  portAllocations: Record<string, number>;
-}> {
-  const result = await resolveSettings(settings, strategies, worktreeName);
-  return { values: result.values, portAllocations: result.portAllocations };
-}
-
 export async function previewSuggestedCommands(
   projectPath: string,
   worktreeName: string,
@@ -161,14 +149,12 @@ export async function previewSuggestedCommands(
 export async function generateIsolatedEnvironmentSources(
   context: WorktreeIsolationContext,
   config: EnvironmentIsolationConfig,
-  onProgress?: (key: string, label: string) => void,
 ): Promise<EnvironmentIsolationResult> {
   const generatedSources = [];
   const allocatedPorts = new Set<number>();
   try {
     for (const sourceConfig of config.sources) {
       const { source } = sourceConfig;
-      onProgress?.(`read:${source.id}`, `Reading ${source.relativePath}`);
       const adapter = getEnvironmentAdapter(source.adapterId);
       // Re-read after Git worktree creation so generation is based on source truth.
       // eslint-disable-next-line no-await-in-loop
@@ -181,10 +167,6 @@ export async function generateIsolatedEnvironmentSources(
         sourceConfig.portAllocations,
         allocatedPorts,
       );
-      onProgress?.(
-        `write:${source.id}`,
-        `Generating isolated ${source.relativePath}`,
-      );
       // eslint-disable-next-line no-await-in-loop
       const generated = await adapter.writeIsolated(
         source,
@@ -192,10 +174,6 @@ export async function generateIsolatedEnvironmentSources(
         context,
       );
       generatedSources.push(generated);
-      onProgress?.(
-        `generated:${source.id}`,
-        `Generated ${generated.relativePath}`,
-      );
     }
   } catch (error) {
     await Promise.all(
@@ -224,10 +202,8 @@ export async function generateIsolatedEnvironmentSources(
 
 export default {
   sanitizeWorktreeName,
-  findAvailablePort,
   detectEnvironmentSources,
   readEnvironmentSource,
-  previewIsolationValues,
   previewSuggestedCommands,
   generateIsolatedEnvironmentSources,
 };

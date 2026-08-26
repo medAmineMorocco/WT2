@@ -5,6 +5,7 @@ import gitMainService from '../../services/git/gitMainService';
 import { getStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import environmentIsolationService from '../../services/environment/environmentIsolationService';
+import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
 
 const pty = require('node-pty');
 
@@ -93,6 +94,36 @@ async function executeCommand(
 ) {
   log.info(`command to execute: ${command.value}`);
   const storedEncoding = (await utils.getStorageItem('encoding')) || 'utf-8';
+
+  if (command.shareNodeModules) {
+    const { projectPath, worktreePath } = command.shareNodeModules;
+    try {
+      await nodeModulesSharingService.linkNodeModules(
+        projectPath,
+        worktreePath,
+      );
+      const generatedOutput = `Shared node_modules with main worktree (${projectPath} -> ${worktreePath})`;
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        generatedOutput,
+        storedEncoding,
+        command,
+        'finished',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      return 'finish command';
+    } catch (err: any) {
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        Buffer.from(err.message),
+        storedEncoding,
+        command,
+        'error',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      throw err;
+    }
+  }
 
   if (command.environmentIsolation) {
     const { projectPath, worktreePath, worktreeName, config } =

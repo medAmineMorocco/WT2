@@ -5,7 +5,6 @@ import {
   Form,
   Input,
   Modal,
-  Alert,
   Segmented,
   Select,
   Table,
@@ -57,6 +56,13 @@ export default function AddWorktree({
 
   const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
 
+  const [nodeModulesWorktrees, setNodeModulesWorktrees] = useState<
+    Array<{ path: string; name: string; isPrimary: boolean }>
+  >([]);
+  const [selectedNodeModulesSourcePath, setSelectedNodeModulesSourcePath] =
+    useState<string>('');
+  const [shareNodeModules, setShareNodeModules] = useState(false);
+
   const [isolateEnvironment, setIsolateEnvironment] = useState(false);
 
   const [environmentSources, setEnvironmentSources] = useState<
@@ -78,8 +84,6 @@ export default function AddWorktree({
 
   const [rememberEnvironmentChoices, setRememberEnvironmentChoices] =
     useState(true);
-
-  const [creationProgress, setCreationProgress] = useState<string[]>([]);
 
   const [generatedEnvironmentValues, setGeneratedEnvironmentValues] = useState<
     Record<string, string>
@@ -309,10 +313,6 @@ export default function AddWorktree({
       }));
     };
 
-    const onCreationProgress = (_key: string, label: string) => {
-      setCreationProgress((current) => [...current, label]);
-    };
-
     const onEnvironmentIsolationPreviewed = (
       code: number,
       result: any,
@@ -343,6 +343,25 @@ export default function AddWorktree({
       setSuggestedCommands(code === 0 ? result : []);
     };
 
+    const onMainNodeModulesChecked = (
+      code: number,
+      result: Array<{ path: string; name: string; isPrimary: boolean }>,
+    ) => {
+      if (code === 0 && Array.isArray(result) && result.length > 0) {
+        setNodeModulesWorktrees(result);
+        setSelectedNodeModulesSourcePath((current) => {
+          if (current && result.some((item) => item.path === current)) {
+            return current;
+          }
+          const primary = result.find((item) => item.isPrimary);
+          return primary ? primary.path : result[0].path;
+        });
+      } else {
+        setNodeModulesWorktrees([]);
+        setSelectedNodeModulesSourcePath('');
+      }
+    };
+
     window.electron.ipcRenderer.on('worktree-created', onWorktreeCreated);
     window.electron.ipcRenderer.on('receive-branches', onBranchesFound);
     window.electron.ipcRenderer.on('receive-tags', onTagsFound);
@@ -367,16 +386,16 @@ export default function AddWorktree({
       onEnvironmentSourceRead,
     );
     window.electron.ipcRenderer.on(
-      'worktree-creation-progress',
-      onCreationProgress,
-    );
-    window.electron.ipcRenderer.on(
       'environment-isolation-previewed',
       onEnvironmentIsolationPreviewed,
     );
     window.electron.ipcRenderer.on(
       'environment-suggestions-previewed',
       onEnvironmentSuggestionsPreviewed,
+    );
+    window.electron.ipcRenderer.on(
+      'main-node-modules-checked',
+      onMainNodeModulesChecked,
     );
 
     return () => {
@@ -393,13 +412,13 @@ export default function AddWorktree({
       );
       window.electron.ipcRenderer.removeAllListeners('environment-source-read');
       window.electron.ipcRenderer.removeAllListeners(
-        'worktree-creation-progress',
-      );
-      window.electron.ipcRenderer.removeAllListeners(
         'environment-isolation-previewed',
       );
       window.electron.ipcRenderer.removeAllListeners(
         'environment-suggestions-previewed',
+      );
+      window.electron.ipcRenderer.removeAllListeners(
+        'main-node-modules-checked',
       );
     };
     // do not touch
@@ -421,6 +440,14 @@ export default function AddWorktree({
       form.setFieldValue('postHook', activeTabValue.postHook);
     }
   }, [activeTab, form, isModalOpen, tabRepoPath]);
+
+  useEffect(() => {
+    if (isModalOpen && tabRepoPath) {
+      window.electron.ipcRenderer.send('check-main-node-modules', tabRepoPath);
+    } else if (!isModalOpen) {
+      setShareNodeModules(false);
+    }
+  }, [isModalOpen, tabRepoPath]);
 
   useEffect(() => {
     if (!isModalOpen) return;
@@ -580,7 +607,9 @@ export default function AddWorktree({
             }),
           }
         : undefined;
-    setCreationProgress([]);
+    const shouldShareNodeModules =
+      shareNodeModules && nodeModulesWorktrees.length > 0;
+
     if (
       !environmentIsolation &&
       !isNotBlank(values.preHook) &&
@@ -596,6 +625,8 @@ export default function AddWorktree({
         createWorktreeMode,
         tabRepoPath,
         environmentIsolation,
+        shouldShareNodeModules,
+        shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
       );
     } else {
       log.debug('== create-worktree-workflow ==');
@@ -607,6 +638,8 @@ export default function AddWorktree({
         worktreesFolder + pathSeparator + getWorktreeName(),
         tabRepoPath,
         environmentIsolation,
+        shouldShareNodeModules,
+        shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
       );
       setIsWorkflowPlaying(true);
       handleCancel();
@@ -891,6 +924,44 @@ export default function AddWorktree({
               </Tooltip>
             </div>
           </Form.Item>
+          {nodeModulesWorktrees.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <Checkbox
+                checked={shareNodeModules}
+                onChange={(event) =>
+                  setShareNodeModules(event.target.checked)
+                }
+              >
+                Share node_modules
+              </Checkbox>
+              {shareNodeModules && (
+                <div style={{ marginTop: 6, paddingLeft: 24 }}>
+                  <Typography.Text
+                    type="secondary"
+                    style={{
+                      display: 'block',
+                      marginBottom: 4,
+                      fontSize: 12,
+                    }}
+                  >
+                    Share from worktree:
+                  </Typography.Text>
+                  <Select
+                    size="small"
+                    style={{ width: '100%' }}
+                    value={selectedNodeModulesSourcePath}
+                    onChange={(val) => setSelectedNodeModulesSourcePath(val)}
+                    options={nodeModulesWorktrees.map((wt) => ({
+                      value: wt.path,
+                      label: wt.isPrimary
+                        ? `${wt.name} (Main worktree)`
+                        : wt.name,
+                    }))}
+                  />
+                </div>
+              )}
+            </div>
+          )}
           <Form.Item style={{ marginBottom: isolateEnvironment ? 12 : 24 }}>
             <Checkbox
               checked={isolateEnvironment}
@@ -1066,17 +1137,6 @@ export default function AddWorktree({
                 </div>
               )}
             </div>
-          )}
-          {loadingCreateWorktree && creationProgress.length > 0 && (
-            <Alert
-              type="info"
-              showIcon
-              style={{ marginBottom: 16 }}
-              message="Creating worktree"
-              description={creationProgress.map((step) => (
-                <div key={step}>{`\u2713 ${step}`}</div>
-              ))}
-            />
           )}
         </div>
         <Form.Item style={{ flex: 'none', marginBottom: 0, paddingTop: 10 }}>

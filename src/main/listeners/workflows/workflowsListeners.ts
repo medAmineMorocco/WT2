@@ -37,6 +37,8 @@ ipcMain.on(
     worktreesFolder,
     dir,
     environmentIsolation?: EnvironmentIsolationConfig,
+    shareNodeModules?: boolean,
+    nodeModulesSourcePath?: string,
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -133,6 +135,24 @@ ipcMain.on(
           worktreeName,
         },
       ];
+    }
+    if (shareNodeModules) {
+      const sourcePath = nodeModulesSourcePath || dir;
+      const shareNodeModulesCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Share node_modules with worktree',
+        display: 'Share node_modules with worktree',
+        shareNodeModules: {
+          projectPath: sourcePath,
+          worktreePath: worktreesFolder,
+          worktreeName,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = shareNodeModulesCommand;
+      } else {
+        workflow.commands.push(shareNodeModulesCommand);
+      }
     }
     if (environmentIsolation) {
       const environmentCommand = {
