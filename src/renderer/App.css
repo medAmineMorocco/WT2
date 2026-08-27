@@ -1765,3 +1765,27 @@ html[data-color-scheme='dark'] .git-log-file-diff-header {
   display: inline-flex;
 }
 
+.worktree-agent-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.worktree-agent-status .ant-avatar {
+  margin-inline-start: 0;
+  border: 0;
+}
+
+html[data-color-scheme='light'] .worktree-agent-status .ant-avatar {
+  color: #1f2328;
+}
+
+html[data-color-scheme='dark'] .worktree-agent-status .ant-avatar {
+  color: #f0f6fc;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .agent-working-icon {
+    animation: none;
+  }
+}

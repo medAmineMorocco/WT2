@@ -15,6 +15,7 @@
     "link-modules": "node -r ts-node/register ../../.erb/scripts/link-modules.ts"
   },
   "dependencies": {
+    "@nanonets/graft": "0.10.1",
     "node-pty": "^1.1.0"
   }
 }

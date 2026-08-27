@@ -179,6 +179,38 @@
 
 .terminal-agent-select {
   width: 176px;
+  max-width: 100%;
+}
+
+.terminal-agent-select .ant-select-selection-item {
+  display: flex;
+  align-items: center;
+}
+
+.terminal-agent-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+}
+
+.terminal-agent-option-icon {
+  display: inline-flex;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.terminal-agent-option-icon svg {
+  display: block;
+  width: 16px;
+  height: 16px;
+  max-width: 16px;
+  max-height: 16px;
+  overflow: hidden;
 }
 
 .terminal-agent-select.ant-select-disabled .ant-select-selector {
@@ -188,12 +220,22 @@
   cursor: not-allowed;
 }
 
-.terminal-status-tag {
-  margin: 0 2px;
-  font-weight: 500;
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 4px;
+.terminal-pane.is-agent-mode .terminal-pane-header {
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  padding-top: 7px;
+  padding-bottom: 7px;
+}
+
+.terminal-pane.is-agent-mode .terminal-pane-title {
+  flex: 1 0 100%;
+}
+
+.terminal-pane.is-agent-mode .terminal-pane-actions {
+  width: 100%;
+  flex-wrap: wrap !important;
+  justify-content: flex-end;
+  row-gap: 6px;
 }
 
 /* AI Agent Composer Area */

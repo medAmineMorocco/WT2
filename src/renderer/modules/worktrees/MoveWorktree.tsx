@@ -72,7 +72,7 @@ export default function MoveWorktree({
           <Tooltip
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
-            title="Change Folder"
+            title="Move"
             placement="top"
           >
             <Button icon={<FolderOutlined />} onClick={chooseWorktreesDir} />

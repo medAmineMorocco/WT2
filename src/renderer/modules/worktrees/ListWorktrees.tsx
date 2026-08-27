@@ -60,6 +60,11 @@ const { useToken } = theme;
 
 type ActiveAgent = TerminalAgentActivity['agent'];
 
+function worktreeActivityKey(worktreePath: string) {
+  const normalized = worktreePath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return /^[a-z]:\//i.test(normalized) ? normalized.toLowerCase() : normalized;
+}
+
 export default function ListWorktrees({
   isDarkMode,
   ref,
@@ -116,14 +121,15 @@ export default function ListWorktrees({
   const onTerminalAgentActivity = useCallback(
     ({ terminalId, worktreePath, agent, active }: TerminalAgentActivity) => {
       setActiveAgentsByWorktree((current) => {
+        const worktreeKey = worktreeActivityKey(worktreePath);
         const next = { ...current };
-        const activeForWorktree = { ...(next[worktreePath] || {}) };
+        const activeForWorktree = { ...(next[worktreeKey] || {}) };
         if (active) activeForWorktree[terminalId] = agent;
         else delete activeForWorktree[terminalId];
 
         if (Object.keys(activeForWorktree).length === 0)
-          delete next[worktreePath];
-        else next[worktreePath] = activeForWorktree;
+          delete next[worktreeKey];
+        else next[worktreeKey] = activeForWorktree;
         return next;
       });
     },
@@ -533,7 +539,7 @@ export default function ListWorktrees({
       },
       {
         key: 'change-folder',
-        label: 'Change Folder',
+        label: 'Move',
         icon: <FolderEditIcon size={16} />,
         disabled: isLocked || isPrimary || !isHealthy,
       },
@@ -842,32 +848,39 @@ export default function ListWorktrees({
                     {worktree.name}
                   </Tooltip>
                 </span>
-                {Object.values(activeAgentsByWorktree[worktree.path] || {})
-                  .length > 0 && (
-                  <Avatar.Group
-                    size={18}
-                    max={{
-                      count: 2,
-                      style: { color: '#fff', backgroundColor: '#722ed1' },
-                    }}
+                {Object.values(
+                  activeAgentsByWorktree[
+                    worktreeActivityKey(worktree.path)
+                  ] || {},
+                ).length > 0 && (
+                  <span
+                    className="worktree-agent-status"
+                    aria-label="Active AI agents"
                   >
-                    {Object.values(
-                      activeAgentsByWorktree[worktree.path] || {},
-                    ).map((agent) => (
+                    {Object.entries(
+                      activeAgentsByWorktree[
+                        worktreeActivityKey(worktree.path)
+                      ] || {},
+                    ).map(([terminalId, agent]) => (
                       <Tooltip
-                        title={`${agent.label} is running`}
-                        key={agent.id}
+                        title={`${agent.label} is working`}
+                        key={terminalId}
                       >
                         <Avatar
                           size={18}
                           className="agent-working-icon"
-                          style={{ backgroundColor: 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                          style={{
+                            backgroundColor: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
                         >
                           {getAiAgentIcon(agent.id, 18)}
                         </Avatar>
                       </Tooltip>
                     ))}
-                  </Avatar.Group>
+                  </span>
                 )}
               </Space>
               <Dropdown

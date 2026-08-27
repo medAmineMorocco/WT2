@@ -47,7 +47,13 @@ export const aiAgentsDefault: AiAgentConfig[] = [
     args: '',
     enabled: false,
   },
-  { id: 'codex', label: 'Codex', command: 'codex', args: '', enabled: false },
+  {
+    id: 'codex',
+    label: 'Codex',
+    command: 'codex',
+    args: '',
+    enabled: false,
+  },
   {
     id: 'cursor',
     label: 'Cursor CLI',

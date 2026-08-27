@@ -7,15 +7,14 @@ import React, {
 } from 'react';
 import {
   AppstoreOutlined,
-  CheckOutlined,
   CloseOutlined,
   CompressOutlined,
-  CopyOutlined,
   ExpandOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import {
   Button,
+  Checkbox,
   Empty,
   message,
   Modal,
@@ -23,7 +22,6 @@ import {
   Segmented,
   Select,
   Space,
-  Tag,
   Tooltip,
   Typography,
 } from 'antd';
@@ -110,24 +108,6 @@ function terminalTheme(isDarkMode: boolean) {
       };
 }
 
-function extractTerminalText(xterm: XTerm): string {
-  if (xterm.hasSelection()) {
-    return xterm.getSelection();
-  }
-  const buffer = xterm.buffer.active;
-  const lines: string[] = [];
-  for (let i = 0; i < buffer.length; i++) {
-    const line = buffer.getLine(i);
-    if (line) {
-      lines.push(line.translateToString(true));
-    }
-  }
-  while (lines.length > 0 && lines[lines.length - 1].trim() === '') {
-    lines.pop();
-  }
-  return lines.join('\n');
-}
-
 function TerminalPane({
   terminal,
   isDarkMode,
@@ -165,8 +145,9 @@ function TerminalPane({
   const [mode, setMode] = useState<'terminal' | 'agent'>(
     terminal.mode || 'terminal',
   );
-  const [isAgentStarting, setIsAgentStarting] = useState(false);
-  const [isCopied, setIsCopied] = useState(false);
+  const [smartContextEnabled, setSmartContextEnabled] = useState(false);
+  const smartContextEnabledRef = useRef(false);
+  smartContextEnabledRef.current = smartContextEnabled;
 
   const activeAgent = useMemo(() => {
     return (
@@ -400,14 +381,18 @@ function TerminalPane({
 
     const inputDisposable = xterm.onData((data) => {
       isFocusedRef.current = true;
-      window.electron.ipcRenderer.send('terminal-input', terminal.id, data);
+      window.electron.ipcRenderer.send(
+        'terminal-input',
+        terminal.id,
+        data,
+        smartContextEnabledRef.current,
+      );
     });
 
     const removeData = window.electron.ipcRenderer.on(
       'terminal-data',
       (id: string, data: string) => {
         if (id !== terminal.id) return;
-        setIsAgentStarting(false);
         const isAtBottom =
           !xterm.buffer.active ||
           xterm.buffer.active.viewportY >= xterm.buffer.active.baseY - 2;
@@ -422,10 +407,35 @@ function TerminalPane({
       'terminal-ai-agent-rehydrate',
       (id: string, outputBuffer: string) => {
         if (id !== terminal.id) return;
-        setIsAgentStarting(false);
         xterm.reset();
         xterm.write(outputBuffer);
         xterm.scrollToBottom();
+      },
+    );
+
+    const removeShellRehydrate = window.electron.ipcRenderer.on(
+      'terminal-shell-rehydrate',
+      (id: string, outputBuffer: string) => {
+        if (id !== terminal.id) return;
+        xterm.reset();
+        if (outputBuffer) xterm.write(outputBuffer);
+        xterm.scrollToBottom();
+        xterm.focus();
+      },
+    );
+
+    const removeShellNeedsCreate = window.electron.ipcRenderer.on(
+      'terminal-shell-needs-create',
+      (id: string) => {
+        if (id !== terminal.id) return;
+        window.electron.ipcRenderer.send(
+          'terminal-create',
+          terminal.id,
+          terminal.path,
+          xterm.cols,
+          xterm.rows,
+          initialDarkModeRef.current,
+        );
       },
     );
 
@@ -443,8 +453,26 @@ function TerminalPane({
       'terminal-ai-agent-error',
       (id: string, message: string) => {
         if (id !== terminal.id) return;
-        setIsAgentStarting(false);
         xterm.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
+      },
+    );
+
+    const removeSmartContextInjected = window.electron.ipcRenderer.on(
+      'terminal-smart-context-injected',
+      (id: string, context: string) => {
+        if (id !== terminal.id) return;
+        const visibleContext = context.replace(/\n/g, '\r\n');
+        xterm.writeln(
+          `\r\n\x1b[36m[WorktreeWise Smart Context injected]\x1b[0m\r\n${visibleContext}\r\n\x1b[36m[End Smart Context]\x1b[0m`,
+        );
+      },
+    );
+
+    const removeSmartContextUnavailable = window.electron.ipcRenderer.on(
+      'terminal-smart-context-unavailable',
+      (id: string, detail: string) => {
+        if (id !== terminal.id) return;
+        xterm.writeln(`\r\n\x1b[33m[WorktreeWise] ${detail}\x1b[0m`);
       },
     );
 
@@ -452,7 +480,6 @@ function TerminalPane({
       'terminal-exit',
       (id: string, exitCode: number) => {
         if (id !== terminal.id) return;
-        setIsAgentStarting(false);
         xterm.writeln(`\r\n[Process exited with code ${exitCode}]`);
       },
     );
@@ -461,7 +488,6 @@ function TerminalPane({
       'terminal-error',
       (id: string, message: string) => {
         if (id !== terminal.id) return;
-        setIsAgentStarting(false);
         xterm.writeln(`\r\n\x1b[31m${message}\x1b[0m`);
       },
     );
@@ -499,7 +525,6 @@ function TerminalPane({
     fitAddon.fit();
 
     if (mode === 'agent') {
-      setIsAgentStarting(true);
       xterm.writeln(
         `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
       );
@@ -533,10 +558,14 @@ function TerminalPane({
       terminalInput?.removeEventListener('blur', handleBlur);
       removeData();
       removeRehydrate();
+      removeShellRehydrate();
+      removeShellNeedsCreate();
       removeReady();
       removeExit();
       removeError();
       removeAgentError();
+      removeSmartContextInjected();
+      removeSmartContextUnavailable();
       window.electron.ipcRenderer.send('terminal-close', terminal.id);
       registerFocus(terminal.id, null);
       xterm.dispose();
@@ -544,12 +573,32 @@ function TerminalPane({
     };
   }, [onAgentActivity, registerFocus, terminal.id, terminal.path]);
 
+  useEffect(() => {
+    if (!onAgentActivity || !activeAgent) return undefined;
+
+    onAgentActivity({
+      terminalId: terminal.id,
+      worktreePath: terminal.path,
+      agent: activeAgent,
+      active: mode === 'agent',
+    });
+
+    return () => {
+      if (mode !== 'agent') return;
+      onAgentActivity({
+        terminalId: terminal.id,
+        worktreePath: terminal.path,
+        agent: activeAgent,
+        active: false,
+      });
+    };
+  }, [activeAgent, mode, onAgentActivity, terminal.id, terminal.path]);
+
   const handleAgentSelectChange = (newAgentId: AiAgentId) => {
     setSelectedAgentId(newAgentId);
     const targetAgent =
       configuredAgents.find((item) => item.id === newAgentId) || activeAgent;
     if (xtermRef.current) {
-      setIsAgentStarting(true);
       xtermRef.current.reset();
       xtermRef.current.writeln(
         `\x1b[90m➜ Starting ${targetAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
@@ -572,7 +621,6 @@ function TerminalPane({
     if (xtermRef.current) {
       xtermRef.current.reset();
       if (nextMode === 'agent') {
-        setIsAgentStarting(true);
         xtermRef.current.writeln(
           `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
         );
@@ -591,6 +639,16 @@ function TerminalPane({
     }
   };
 
+  const handleSmartContextChange = (smartContext: boolean) => {
+    setSmartContextEnabled(smartContext);
+    window.electron.ipcRenderer.send(
+      'terminal-set-smart-context',
+      terminal.id,
+      smartContext,
+    );
+    xtermRef.current?.focus();
+  };
+
   const handleClose = () => {
     if (mode === 'agent') {
       window.electron.ipcRenderer.send(
@@ -603,27 +661,16 @@ function TerminalPane({
     onClose(terminal.id);
   };
 
-  const handleCopyOutput = () => {
-    if (!xtermRef.current) return;
-    const text = extractTerminalText(xtermRef.current);
-    if (!text || !text.trim()) {
-      message.info('No terminal output to copy');
-      return;
-    }
+  const handleTerminalContextMenu = (
+    event: React.MouseEvent<HTMLDivElement>,
+  ) => {
+    const selection = xtermRef.current?.getSelection();
+    if (!selection) return;
+    event.preventDefault();
     navigator.clipboard
-      .writeText(text)
-      .then(() => {
-        setIsCopied(true);
-        message.success(
-          mode === 'agent'
-            ? `${activeAgent?.label || 'Agent'} output copied to clipboard`
-            : 'Terminal output copied to clipboard',
-        );
-        window.setTimeout(() => setIsCopied(false), 2000);
-      })
-      .catch(() => {
-        message.error('Failed to copy to clipboard');
-      });
+      .writeText(selection)
+      .then(() => message.success('Selection copied'))
+      .catch(() => message.error('Failed to copy selection'));
   };
 
   return (
@@ -657,14 +704,29 @@ function TerminalPane({
               options={enabledAgents.map((agent) => ({
                 value: agent.id,
                 label: (
-                  <Space size={6}>
-                    {getAiAgentIcon(agent.id, 18)}
-                    {agent.label}
-                  </Space>
+                  <span className="terminal-agent-option">
+                    <span className="terminal-agent-option-icon">
+                      {getAiAgentIcon(agent.id, 18)}
+                    </span>
+                    <span>{agent.label}</span>
+                  </span>
                 ),
               }))}
               onChange={handleAgentSelectChange}
             />
+          )}
+          {mode === 'agent' && (
+            <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">
+              <Checkbox
+                checked={smartContextEnabled}
+                aria-label="Enable smart context for this AI agent"
+                onChange={(event) =>
+                  handleSmartContextChange(event.target.checked)
+                }
+              >
+                Smart context
+              </Checkbox>
+            </Tooltip>
           )}
           <Radio.Group
             size="small"
@@ -681,48 +743,6 @@ function TerminalPane({
               handleModeChange(nextMode);
             }}
           />
-          {mode === 'agent' && (
-            <Tooltip
-              title={
-                isAgentStarting
-                  ? `Initializing ${activeAgent?.label || 'AI agent'}...`
-                  : `${activeAgent?.label || 'AI agent'} ready`
-              }
-            >
-              <Tag
-                bordered={false}
-                color={isAgentStarting ? 'processing' : 'success'}
-                className="terminal-status-tag"
-              >
-                {isAgentStarting
-                  ? `Starting ${activeAgent?.label || 'Agent'}...`
-                  : `${activeAgent?.label || 'Agent'} ready`}
-              </Tag>
-            </Tooltip>
-          )}
-          <Tooltip
-            title={
-              isCopied
-                ? 'Copied!'
-                : mode === 'agent'
-                ? `Copy ${activeAgent?.label || 'agent'} output`
-                : 'Copy terminal output'
-            }
-          >
-            <Button
-              type="text"
-              size="small"
-              aria-label="Copy output to clipboard"
-              icon={
-                isCopied ? (
-                  <CheckOutlined style={{ color: '#52c41a' }} />
-                ) : (
-                  <CopyOutlined />
-                )
-              }
-              onClick={handleCopyOutput}
-            />
-          </Tooltip>
           <Button
             type="text"
             size="small"
@@ -757,6 +777,7 @@ function TerminalPane({
           ref={hostRef}
           role="presentation"
           onMouseDown={() => xtermRef.current?.focus()}
+          onContextMenu={handleTerminalContextMenu}
         />
       </div>
     </section>

@@ -18,6 +18,7 @@ type TerminalSession = {
   ownerId: number;
   shell: string;
   directory: string;
+  outputBuffer: string;
 };
 
 const sessions = new Map<string, TerminalSession>();
@@ -103,6 +104,7 @@ ipcMain.on(
         ownerId: event.sender.id,
         shell,
         directory,
+        outputBuffer: '',
       });
 
       aiAgentSessionManager.setBinding(
@@ -114,6 +116,12 @@ ipcMain.on(
       );
 
       terminalProcess.onData((data: string) => {
+        const terminalSession = sessions.get(sessionId);
+        if (terminalSession) {
+          terminalSession.outputBuffer = (
+            terminalSession.outputBuffer + data
+          ).slice(-100000);
+        }
         if (!event.sender.isDestroyed()) {
           const binding = aiAgentSessionManager.getBinding(sessionId);
           if (!binding || binding.mode === 'terminal') {
@@ -142,14 +150,25 @@ ipcMain.on(
   },
 );
 
-ipcMain.on('terminal-input', (event, sessionId: string, data: string) => {
-  const binding = aiAgentSessionManager.getBinding(sessionId);
-  if (binding && binding.mode === 'agent') {
-    aiAgentSessionManager.writeInput(sessionId, data);
-  } else {
-    ownedSession(sessionId, event.sender.id)?.process.write(data);
-  }
-});
+ipcMain.on(
+  'terminal-input',
+  (
+    event,
+    sessionId: string,
+    data: string,
+    smartContextEnabled?: boolean,
+  ) => {
+    const binding = aiAgentSessionManager.getBinding(sessionId);
+    if (binding && binding.mode === 'agent') {
+      if (typeof smartContextEnabled === 'boolean') {
+        aiAgentSessionManager.setSmartContext(sessionId, smartContextEnabled);
+      }
+      aiAgentSessionManager.handleInput(sessionId, data);
+    } else {
+      ownedSession(sessionId, event.sender.id)?.process.write(data);
+    }
+  },
+);
 
 async function configuredAiAgents(): Promise<AiAgentConfig[]> {
   const stored = await utils.getStorageItem('aiAgents');
@@ -272,6 +291,14 @@ ipcMain.on(
           error.message || 'Unable to start the AI agent.',
         );
       }
+    } else if (session) {
+      event.sender.send(
+        'terminal-shell-rehydrate',
+        sessionId,
+        session.outputBuffer,
+      );
+    } else {
+      event.sender.send('terminal-shell-needs-create', sessionId);
     }
   },
 );
@@ -333,6 +360,15 @@ ipcMain.on(
     } catch (error: any) {
       log.error(`Failed to interrupt AI agent on ${sessionId}: ${error.message}`);
     }
+  },
+);
+
+ipcMain.on(
+  'terminal-set-smart-context',
+  (event, sessionId: string, enabled: boolean) => {
+    const binding = aiAgentSessionManager.getBinding(sessionId);
+    if (!binding || binding.sender.id !== event.sender.id) return;
+    aiAgentSessionManager.setSmartContext(sessionId, enabled);
   },
 );
 
