@@ -8,7 +8,12 @@ import {
 } from 'antd';
 import React, { useEffect, useMemo } from 'react';
 import log from 'electron-log';
-import { LoadingOutlined } from '@ant-design/icons';
+import {
+  EditOutlined,
+  LoadingOutlined,
+  MinusOutlined,
+  PlusOutlined,
+} from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
 
 const formatDate = new Intl.DateTimeFormat('en-US', {
@@ -58,6 +63,10 @@ export default function LogUI({
   selectedCommit,
   onCommitSelect,
   hasDetailsPanel = false,
+  workingTreeCount = 0,
+  workingTreeCounts = { modified: 0, added: 0, deleted: 0 },
+  workingTreeSelected = false,
+  onWorkingTreeSelect,
 }: {
   commits: string[];
   isAuthorEnabled: boolean;
@@ -68,6 +77,10 @@ export default function LogUI({
   selectedCommit?: string | null;
   onCommitSelect?: (hash: string) => void;
   hasDetailsPanel?: boolean;
+  workingTreeCount?: number;
+  workingTreeCounts?: { modified: number; added: number; deleted: number };
+  workingTreeSelected?: boolean;
+  onWorkingTreeSelect?: () => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -122,7 +135,10 @@ export default function LogUI({
     return () => {
       timers.forEach(clearTimeout);
       if (typeof removeWorktreeCreated === 'function') removeWorktreeCreated();
-      else window.electron.ipcRenderer.removeAllListeners('worktree-from-commit-created');
+      else
+        window.electron.ipcRenderer.removeAllListeners(
+          'worktree-from-commit-created',
+        );
     };
   }, [api, tabRepoPath]);
 
@@ -191,7 +207,10 @@ export default function LogUI({
   }
 
   function renderRefs(value: string) {
-    const refs = value.split(',').map((ref) => ref.trim()).filter(Boolean);
+    const refs = value
+      .split(',')
+      .map((ref) => ref.trim())
+      .filter(Boolean);
     if (refs.length === 0) return null;
 
     // Prioritize HEAD and branch refs before tags
@@ -215,12 +234,7 @@ export default function LogUI({
             : 'branch';
 
       return (
-        <Tooltip
-          key={ref}
-          title={ref}
-          mouseEnterDelay={0}
-          mouseLeaveDelay={0}
-        >
+        <Tooltip key={ref} title={ref} mouseEnterDelay={0} mouseLeaveDelay={0}>
           <span style={{ display: 'inline-flex', maxWidth: '120px' }}>
             <Tag bordered={false} className={`commit-ref-chip ${refType}`}>
               {ref}
@@ -562,15 +576,68 @@ export default function LogUI({
   return (
     <div className="log-container">
       {contextHolder}
-      <div className="git-log-list-header" style={{ gridTemplateColumns: rowTemplate }}>
+      <div
+        className="git-log-list-header"
+        style={{ gridTemplateColumns: rowTemplate }}
+      >
         <span>Commit</span>
         {!shouldHide && isAuthorEnabled && <span>Author</span>}
         {!shouldHide && isCommitDateEnabled && <span>Date</span>}
         {!shouldHide && isHashEnabled && <span>SHA</span>}
       </div>
+      {workingTreeCount > 0 && (
+        <div
+          className={`commit-row working-tree-row ${workingTreeSelected ? 'selected' : ''}`}
+          style={{ gridTemplateColumns: rowTemplate }}
+          role="button"
+          tabIndex={0}
+          onClick={onWorkingTreeSelect}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ')
+              onWorkingTreeSelect?.();
+          }}
+        >
+          <div className="commit-summary">
+            <span
+              className="commit-graph working-tree-graph"
+              style={{ flexBasis: graphLaneWidth, width: graphLaneWidth }}
+            >
+              <span className="working-tree-node" />
+            </span>
+            <span className="commit-msg">Working tree changes</span>
+            <Tag bordered={false} className="working-tree-count">
+              {workingTreeCount}
+            </Tag>
+            <span className="working-tree-graph-counts">
+              {workingTreeCounts.modified > 0 && (
+                <Tooltip title={`${workingTreeCounts.modified} modified`}>
+                  <span className="modified">
+                    <EditOutlined /> {workingTreeCounts.modified}
+                  </span>
+                </Tooltip>
+              )}
+              {workingTreeCounts.added > 0 && (
+                <Tooltip title={`${workingTreeCounts.added} added`}>
+                  <span className="added">
+                    <PlusOutlined /> {workingTreeCounts.added}
+                  </span>
+                </Tooltip>
+              )}
+              {workingTreeCounts.deleted > 0 && (
+                <Tooltip title={`${workingTreeCounts.deleted} deleted`}>
+                  <span className="deleted">
+                    <MinusOutlined /> {workingTreeCounts.deleted}
+                  </span>
+                </Tooltip>
+              )}
+            </span>
+          </div>
+        </div>
+      )}
       {parsedCommits.map((item, idx) => {
         const prevItem = idx > 0 ? parsedCommits[idx - 1] : undefined;
-        const nextItem = idx < parsedCommits.length - 1 ? parsedCommits[idx + 1] : undefined;
+        const nextItem =
+          idx < parsedCommits.length - 1 ? parsedCommits[idx + 1] : undefined;
 
         return (
           <Dropdown
@@ -598,19 +665,43 @@ export default function LogUI({
               }}
             >
               <div className="commit-summary">
-                <span className="commit-graph" style={{ flexBasis: graphLaneWidth, width: graphLaneWidth }}>
+                <span
+                  className="commit-graph"
+                  style={{ flexBasis: graphLaneWidth, width: graphLaneWidth }}
+                >
                   {renderGraph(item, 39)}
                 </span>
-                <span className="commit-msg" title={item.subject}>{item.subject}</span>
-                {isRefsEnabled && item.refs && <span className="commit-refs">{renderRefs(item.refs)}</span>}
+                <span className="commit-msg" title={item.subject}>
+                  {item.subject}
+                </span>
+                {isRefsEnabled && item.refs && (
+                  <span className="commit-refs">{renderRefs(item.refs)}</span>
+                )}
               </div>
-              {!shouldHide && isAuthorEnabled && <span className="commit-column commit-column-author" title={item.author}>{item.author}</span>}
+              {!shouldHide && isAuthorEnabled && (
+                <span
+                  className="commit-column commit-column-author"
+                  title={item.author}
+                >
+                  {item.author}
+                </span>
+              )}
               {!shouldHide && isCommitDateEnabled && (
-                <Tooltip title={formatToIsoWithoutSeconds(item.date)} mouseEnterDelay={0} mouseLeaveDelay={0}>
-                  <span className="commit-column commit-column-date">{formatCommitDate(item.date)}</span>
+                <Tooltip
+                  title={formatToIsoWithoutSeconds(item.date)}
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <span className="commit-column commit-column-date">
+                    {formatCommitDate(item.date)}
+                  </span>
                 </Tooltip>
               )}
-              {!shouldHide && isHashEnabled && <span className="commit-column commit-column-hash">{item.hash.slice(0, 8)}</span>}
+              {!shouldHide && isHashEnabled && (
+                <span className="commit-column commit-column-hash">
+                  {item.hash.slice(0, 8)}
+                </span>
+              )}
             </div>
           </Dropdown>
         );

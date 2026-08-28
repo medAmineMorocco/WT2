@@ -1,6 +1,59 @@
 import { ipcMain } from 'electron';
 import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
+import { WorkingTreeAction } from '../../../shared/workingTree';
+
+ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
+  gitMainService.getWorkingTreeStatus(directory),
+);
+
+ipcMain.handle(
+  'run-working-tree-action',
+  async (
+    _event,
+    directory: string,
+    action: WorkingTreeAction,
+    paths: string[],
+  ) => gitMainService.runWorkingTreeAction(directory, action, paths),
+);
+
+ipcMain.handle(
+  'commit-working-tree',
+  async (
+    _event,
+    directory: string,
+    summary: string,
+    description: string,
+    amend: boolean,
+  ) => gitMainService.commitWorkingTree(directory, summary, description, amend),
+);
+
+ipcMain.handle(
+  'get-working-tree-file-diff',
+  async (
+    _event,
+    directory: string,
+    filePath: string,
+    staged: boolean,
+    untracked: boolean,
+  ) =>
+    gitMainService.getWorkingTreeFileDiff(
+      directory,
+      filePath,
+      staged,
+      untracked,
+    ),
+);
+
+ipcMain.handle('get-head-commit-message', async (_event, directory: string) =>
+  gitMainService.getHeadCommitMessage(directory),
+);
+
+ipcMain.handle(
+  'apply-working-tree-line',
+  async (_event, directory: string, patch: string, staged: boolean) =>
+    gitMainService.applyWorkingTreeLine(directory, patch, staged),
+);
 
 ipcMain.on(
   'show-git-log',

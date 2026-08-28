@@ -366,31 +366,57 @@ body {
   border-radius: 4px;
 }
 
-[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+[data-color-scheme='light']
+  .workflow-terminal-output
+  .xterm-viewport::-webkit-scrollbar-thumb,
 .workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb,
-[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
-[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
+[data-color-scheme='light']
+  .log-tabs
+  .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='light']
+  .log-tabs
+  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
   background: #ccc;
 }
 
-[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
-.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
+[data-color-scheme='light']
+  .workflow-terminal-output
+  .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-light
+  .xterm-viewport::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light']
+  .log-tabs
+  .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light']
+  .log-tabs
+  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
   background: #b3b3b3;
 }
 
-[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+[data-color-scheme='dark']
+  .workflow-terminal-output
+  .xterm-viewport::-webkit-scrollbar-thumb,
 .workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
+[data-color-scheme='dark']
+  .log-tabs
+  .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='dark']
+  .log-tabs
+  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
   background: #333;
 }
 
-[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
-.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
+[data-color-scheme='dark']
+  .workflow-terminal-output
+  .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-dark
+  .xterm-viewport::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark']
+  .log-tabs
+  .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark']
+  .log-tabs
+  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
   background: #444;
 }
 
@@ -400,29 +426,60 @@ body {
   background: transparent !important;
 }
 
-.workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+.workflow-terminal-output
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider {
   left: 0 !important;
   width: 8px !important;
   border-radius: 4px !important;
 }
 
-.workflow-terminal-output.is-light .xterm-scrollable-element > .scrollbar.vertical > .slider,
-[data-color-scheme='light'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+.workflow-terminal-output.is-light
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider,
+[data-color-scheme='light']
+  .workflow-terminal-output
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider {
   background: #ccc !important;
 }
 
-.workflow-terminal-output.is-light .xterm-scrollable-element > .scrollbar.vertical > .slider:hover,
-[data-color-scheme='light'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider:hover {
+.workflow-terminal-output.is-light
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider:hover,
+[data-color-scheme='light']
+  .workflow-terminal-output
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider:hover {
   background: #b3b3b3 !important;
 }
 
-.workflow-terminal-output.is-dark .xterm-scrollable-element > .scrollbar.vertical > .slider,
-[data-color-scheme='dark'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider {
+.workflow-terminal-output.is-dark
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider,
+[data-color-scheme='dark']
+  .workflow-terminal-output
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider {
   background: #333 !important;
 }
 
-.workflow-terminal-output.is-dark .xterm-scrollable-element > .scrollbar.vertical > .slider:hover,
-[data-color-scheme='dark'] .workflow-terminal-output .xterm-scrollable-element > .scrollbar.vertical > .slider:hover {
+.workflow-terminal-output.is-dark
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider:hover,
+[data-color-scheme='dark']
+  .workflow-terminal-output
+  .xterm-scrollable-element
+  > .scrollbar.vertical
+  > .slider:hover {
   background: #444 !important;
 }
 
@@ -568,13 +625,23 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   z-index: 4;
   padding: 0 0 10px;
   border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
-  background: var(--ant-color-bg-base, var(--ant-color-bg-container, transparent));
+  background: var(
+    --ant-color-bg-base,
+    var(--ant-color-bg-container, transparent)
+  );
 }
 
 .git-log-columns-menu {
   display: grid;
   min-width: 132px;
   gap: 8px;
+}
+
+.git-log-toolbar-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 2px;
+  background: color-mix(in srgb, currentColor 16%, transparent);
 }
 
 .log-container {
@@ -635,7 +702,9 @@ html[data-color-scheme='dark'] .commit-column {
   min-height: 39px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   color: #0f172a;
-  transition: background-color 140ms ease, color 140ms ease;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
   user-select: text;
   cursor: pointer;
 }
@@ -674,7 +743,13 @@ html[data-color-scheme='dark'] .commit-row.selected {
 .commit-graph,
 .commit-graph-line,
 .commit-column-hash {
-  font-family: var(--ant-font-family-code, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(
+    --ant-font-family-code,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
 }
 
 .commit-graph {
@@ -695,7 +770,13 @@ html[data-color-scheme='dark'] .commit-row.selected {
 .commit-msg {
   overflow: hidden;
   color: #0f172a;
-  font-family: var(--ant-font-family-code, ui-monospace, SFMono-Regular, Menlo, monospace);
+  font-family: var(
+    --ant-font-family-code,
+    ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    monospace
+  );
   font-size: 13px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -820,6 +901,64 @@ html[data-color-scheme='dark'] .commit-column-hash {
   border-color: rgba(255, 255, 255, 0.5) !important;
 }
 
+.working-tree-row {
+  position: sticky;
+  top: 30px;
+  z-index: 1;
+  background: var(--ant-color-bg-container, #fff);
+}
+
+html[data-color-scheme='dark'] .working-tree-row {
+  background: var(--ant-color-bg-container, #141414);
+}
+
+.working-tree-graph {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+}
+
+.working-tree-graph::after {
+  position: absolute;
+  top: 50%;
+  bottom: -20px;
+  left: 16px;
+  width: 2.5px;
+  content: '';
+  background: #00b4d8;
+}
+
+.working-tree-node {
+  position: absolute;
+  z-index: 1;
+  left: 9px;
+  width: 14px;
+  height: 14px;
+  border: 3px solid #00b4d8;
+  border-radius: 50%;
+  background: var(--ant-color-bg-container, #fff);
+  box-shadow: 0 0 0 2px var(--ant-color-bg-container, #fff);
+}
+
+.working-tree-row.selected .working-tree-node {
+  border-color: #fff;
+  background: #2563eb;
+  box-shadow: 0 0 0 2px #2563eb;
+}
+
+.working-tree-count {
+  min-width: 25px;
+  margin: 0 !important;
+  color: #1d4ed8;
+  text-align: center;
+  background: #dbeafe;
+}
+
+.working-tree-row.selected .working-tree-count {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.24);
+}
+
 .git-log-load-more {
   display: flex;
   justify-content: center;
@@ -903,6 +1042,337 @@ html[data-color-scheme='dark'] .commit-ref-chip.remaining {
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   background: var(--ant-color-bg-container, #ffffff);
+}
+
+.working-tree-panel {
+  display: flex;
+  flex: 0 0 clamp(320px, 29vw, 440px);
+  flex-direction: column;
+  min-width: 320px;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+  background: var(--ant-color-bg-container, #fff);
+}
+
+html[data-color-scheme='dark'] .working-tree-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: var(--ant-color-bg-container, #141414);
+}
+
+.working-tree-panel-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  background: #f8fafc;
+}
+
+.working-tree-panel-header > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+html[data-color-scheme='dark'] .working-tree-panel-header {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #181d28;
+}
+
+.working-tree-loading {
+  display: grid;
+  flex: 1;
+  place-items: center;
+}
+
+.working-tree-section {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  min-height: 120px;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+html[data-color-scheme='dark'] .working-tree-section {
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+.working-tree-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 7px 10px;
+  color: #334155;
+  background: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.working-tree-section-title > span:first-child {
+  flex: 0 0 auto;
+}
+
+.working-tree-change-counts {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  gap: 5px;
+  margin-left: 8px;
+}
+
+.working-tree-change-count {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.working-tree-change-count.modified {
+  color: #f59e0b;
+}
+
+.working-tree-change-count.added {
+  color: #15803d;
+}
+
+.working-tree-change-count.deleted {
+  color: #dc2626;
+}
+
+html[data-color-scheme='dark'] .working-tree-section-title {
+  color: #cbd5e1;
+  background: #181d28;
+}
+
+.working-tree-section-title b {
+  display: inline-grid;
+  min-width: 20px;
+  height: 20px;
+  margin-left: 4px;
+  place-items: center;
+  border-radius: 10px;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+html[data-color-scheme='dark'] .working-tree-section-title b {
+  color: #93c5fd;
+  background: rgba(37, 99, 235, 0.25);
+}
+
+.working-tree-files {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.working-tree-files .ant-empty {
+  margin-block: 12px;
+}
+
+.working-tree-file {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 28px;
+  align-items: center;
+  min-height: 34px;
+  padding: 2px 6px 2px 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+html[data-color-scheme='dark'] .working-tree-file {
+  border-color: rgba(255, 255, 255, 0.05);
+}
+
+.working-tree-file:hover {
+  background: rgba(37, 99, 235, 0.07);
+}
+
+.working-tree-file.selected {
+  background: rgba(37, 99, 235, 0.15);
+  box-shadow: inset 3px 0 #2563eb;
+}
+
+.working-tree-status {
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  font-size: 14px;
+}
+
+.working-tree-status.modified {
+  color: #f59e0b;
+}
+
+.working-tree-status.added {
+  color: #16a34a;
+}
+
+.working-tree-status.deleted {
+  color: #dc2626;
+}
+
+html[data-color-scheme='dark'] .working-tree-status.modified,
+html[data-color-scheme='dark'] .working-tree-change-count.modified {
+  color: #fbbf24;
+}
+
+html[data-color-scheme='dark'] .working-tree-status.added,
+html[data-color-scheme='dark'] .working-tree-change-count.added {
+  color: #4ade80;
+}
+
+html[data-color-scheme='dark'] .working-tree-status.deleted,
+html[data-color-scheme='dark'] .working-tree-change-count.deleted {
+  color: #f87171;
+}
+
+.working-tree-graph-counts {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.working-tree-graph-counts > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.working-tree-graph-counts .modified {
+  color: #f59e0b;
+}
+.working-tree-graph-counts .added {
+  color: #4ade80;
+}
+.working-tree-graph-counts .deleted {
+  color: #f87171;
+}
+
+.working-tree-file-path {
+  overflow: hidden;
+  font-family: var(--ant-font-family-code, monospace);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.working-tree-commit-form {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-bg-container, #fff) 94%,
+    #2563eb
+  );
+}
+
+html[data-color-scheme='dark'] .working-tree-commit-form {
+  color: #f1f5f9;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  background: #181d28;
+}
+
+html[data-color-scheme='dark'] .working-tree-commit-form .ant-checkbox-wrapper {
+  color: #e2e8f0;
+}
+
+html[data-color-scheme='dark'] .working-tree-commit-form .ant-input,
+html[data-color-scheme='dark']
+  .working-tree-commit-form
+  .ant-input-affix-wrapper,
+html[data-color-scheme='dark'] .working-tree-commit-form .ant-input-data-count {
+  color: #f1f5f9;
+  border-color: #3b4558;
+  background: #111827;
+}
+
+html[data-color-scheme='dark']
+  .working-tree-commit-form
+  .ant-input::placeholder {
+  color: #64748b;
+}
+
+html[data-color-scheme='dark']
+  .working-tree-commit-form
+  .ant-btn-primary:disabled {
+  color: #64748b;
+  border-color: #3b4558;
+  background: #253044;
+  box-shadow: none;
+}
+
+.working-tree-diff-title {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.working-tree-line-action {
+  float: left;
+  display: inline-grid;
+  width: 18px;
+  height: 18px;
+  margin: 0 6px 0 0;
+  padding: 0;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 4px;
+  font: 700 14px/1 var(--ant-font-family, sans-serif);
+  cursor: pointer;
+}
+
+.working-tree-line-action.stage-line {
+  color: #15803d;
+  background: #dcfce7;
+}
+
+.working-tree-line-action.unstage-line {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+.working-tree-line-action.stage-line:hover {
+  color: #fff;
+  background: #16a34a;
+}
+
+.working-tree-line-action.unstage-line:hover {
+  color: #fff;
+  background: #dc2626;
+}
+
+.working-tree-line-action:disabled {
+  opacity: 0.45;
+  cursor: wait;
+}
+
+html[data-color-scheme='dark'] .working-tree-line-action.stage-line {
+  color: #4ade80;
+  background: rgba(22, 163, 74, 0.24);
+}
+
+html[data-color-scheme='dark'] .working-tree-line-action.unstage-line {
+  color: #f87171;
+  background: rgba(220, 38, 38, 0.24);
+}
+
+@media (max-width: 900px) {
+  .working-tree-panel {
+    flex-basis: 300px;
+    min-width: 280px;
+  }
 }
 
 html[data-color-scheme='dark'] .commit-details-panel {
@@ -1028,7 +1498,42 @@ html[data-color-scheme='dark'] .commit-file-binary {
 
 .commit-file-diff-content {
   width: 100%;
+  height: 100%;
   min-width: 0;
+  min-height: 0;
+}
+
+.commit-file-diff-content .d2h-wrapper,
+.commit-file-diff-content .d2h-virtual-container,
+.commit-file-diff-content .d2h-virtual-item {
+  height: 100%;
+  min-height: 0 !important;
+}
+
+.commit-file-diff-content .d2h-file-wrapper {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.commit-file-diff-content .d2h-files-diff {
+  flex: 1;
+  min-height: 0;
+}
+
+.commit-file-diff-content .d2h-file-side-diff {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.commit-file-diff-content .d2h-code-wrapper {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
 }
 
 .git-log-file-diff-pane {
@@ -1074,7 +1579,7 @@ html[data-color-scheme='dark'] .git-log-file-diff-header {
   min-height: 0;
   align-items: flex-start;
   justify-content: center;
-  overflow: auto;
+  overflow: hidden;
   padding: 10px;
 }
 

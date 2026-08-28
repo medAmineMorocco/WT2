@@ -8,12 +8,22 @@ import {
   Tooltip,
   Button,
 } from 'antd';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
 import {
   ReloadOutlined,
   LoadingOutlined,
   SettingOutlined,
+  CloudDownloadOutlined,
+  CloudUploadOutlined,
+  InboxOutlined,
+  ExportOutlined,
 } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
@@ -21,6 +31,11 @@ import LogUI from '../../components/log/LogUI';
 import CommitDetailsPanel from './CommitDetailsPanel';
 import CommitFileDiffPane from './CommitFileDiffPane';
 import { CommitChangedFile } from '../../../shared/gitCommit';
+import { WorkingTreeStatus } from '../../../shared/workingTree';
+import WorkingTreePanel from './WorkingTreePanel';
+import WorkingTreeFileDiffPane, {
+  SelectedWorkingTreeFile,
+} from './WorkingTreeFileDiffPane';
 
 const LIMIT = 40;
 
@@ -36,6 +51,14 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const [commits, setCommits] = useState<string[]>([]);
   const [selectedCommit, setSelectedCommit] = useState<string | null>(null);
+  const [workingTreeSelected, setWorkingTreeSelected] = useState(false);
+  const [selectedWorkingTreeFile, setSelectedWorkingTreeFile] =
+    useState<SelectedWorkingTreeFile | null>(null);
+  const [workingTreeStatus, setWorkingTreeStatus] = useState<WorkingTreeStatus>(
+    { branch: '', files: [] },
+  );
+  const [workingTreeRefresh, setWorkingTreeRefresh] = useState(0);
+  const [gitActionLoading, setGitActionLoading] = useState<string | null>(null);
   const [selectedCommitFile, setSelectedCommitFile] =
     useState<CommitChangedFile | null>(null);
 
@@ -57,6 +80,21 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  const handleWorkingTreeStatusChange = useCallback(
+    (status: WorkingTreeStatus) => {
+      setWorkingTreeStatus(status);
+      if (status.files.length === 0) {
+        setWorkingTreeSelected(false);
+        setSelectedWorkingTreeFile(null);
+      }
+    },
+    [],
+  );
+
+  const closeWorkingTreeFileDiff = useCallback(() => {
+    setSelectedWorkingTreeFile(null);
+  }, []);
 
   useEffect(() => {
     window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
@@ -97,8 +135,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         setWorktrees(
           JSON.parse(result).map((item: any) => {
             return {
-              label: item.name,
+              label: item.isPrimary
+                ? `${item.name || item.resolvedName} (main)`
+                : item.name,
               value: item.name,
+              path: item.path,
+              isPrimary: item.isPrimary,
             };
           }),
         );
@@ -124,9 +166,18 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
     };
 
-    const removeGitLog = window.electron.ipcRenderer.on('receive-git-log', onReceiveGitLog);
-    const removeWorktrees = window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
-    const removeAuthors = window.electron.ipcRenderer.on('receive-authors', onAuthorsFound);
+    const removeGitLog = window.electron.ipcRenderer.on(
+      'receive-git-log',
+      onReceiveGitLog,
+    );
+    const removeWorktrees = window.electron.ipcRenderer.on(
+      'worktrees-found',
+      onWorktreesFound,
+    );
+    const removeAuthors = window.electron.ipcRenderer.on(
+      'receive-authors',
+      onAuthorsFound,
+    );
 
     return () => {
       if (typeof removeGitLog === 'function') removeGitLog();
@@ -139,6 +190,52 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       else window.electron.ipcRenderer.removeAllListeners('receive-authors');
     };
   }, [tabRepoPath]);
+
+  const selectedRepositoryPath = useMemo(() => {
+    if (selectedWorktree) {
+      return (
+        worktrees.find((item) => item.value === selectedWorktree)?.path ||
+        tabRepoPath
+      );
+    }
+    return worktrees.find((item) => item.isPrimary)?.path || tabRepoPath;
+  }, [selectedWorktree, tabRepoPath, worktrees]);
+
+  const workingTreeCounts = useMemo(
+    () =>
+      workingTreeStatus.files.reduce(
+        (counts, file) => {
+          if (
+            file.untracked ||
+            file.indexStatus === 'A' ||
+            file.worktreeStatus === 'A'
+          ) {
+            counts.added += 1;
+          } else if (file.indexStatus === 'D' || file.worktreeStatus === 'D') {
+            counts.deleted += 1;
+          } else {
+            counts.modified += 1;
+          }
+          return counts;
+        },
+        { modified: 0, added: 0, deleted: 0 },
+      ),
+    [workingTreeStatus.files],
+  );
+
+  useEffect(() => {
+    let cancelled = false;
+    window.electron.ipcRenderer
+      .invoke('get-working-tree-status', selectedRepositoryPath)
+      .then((status: WorkingTreeStatus) => {
+        if (!cancelled) setWorkingTreeStatus(status);
+        return undefined;
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedRepositoryPath, workingTreeRefresh]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -157,6 +254,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const handleChange = (worktree: string | null, author: string | null) => {
     setSelectedWorktree(worktree);
+    setSelectedCommit(null);
+    setSelectedCommitFile(null);
+    setWorkingTreeSelected(false);
+    setSelectedWorkingTreeFile(null);
     setSelectedAuthor(author);
     setLoading(true);
     if (selectWorktreeRef.current) {
@@ -173,6 +274,36 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       worktree,
       author,
     );
+  };
+
+  const runToolbarAction = async (
+    action: 'pull' | 'push' | 'stash' | 'pop',
+  ) => {
+    setGitActionLoading(action);
+    try {
+      const result = await window.electron.ipcRenderer.invoke(
+        'run-working-tree-action',
+        selectedRepositoryPath,
+        action,
+        [],
+      );
+      notification.success({
+        message: `${action[0].toUpperCase()}${action.slice(1)} complete`,
+        description: result || undefined,
+        placement: 'bottomLeft',
+      });
+      setWorkingTreeRefresh((value) => value + 1);
+      setLoading(true);
+      window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+    } catch (error: any) {
+      notification.error({
+        message: `Git ${action} failed`,
+        description: error?.message || String(error),
+        placement: 'bottomLeft',
+      });
+    } finally {
+      setGitActionLoading(null);
+    }
   };
 
   const reloadGitLog = () => {
@@ -195,16 +326,28 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const columnsMenu = (
     <div className="git-log-columns-menu">
-      <Checkbox checked={isAuthorEnabled} onChange={(event) => setIsAuthorEnabled(event.target.checked)}>
+      <Checkbox
+        checked={isAuthorEnabled}
+        onChange={(event) => setIsAuthorEnabled(event.target.checked)}
+      >
         Author
       </Checkbox>
-      <Checkbox checked={isCommitDateEnabled} onChange={(event) => setIsCommitDateEnabled(event.target.checked)}>
+      <Checkbox
+        checked={isCommitDateEnabled}
+        onChange={(event) => setIsCommitDateEnabled(event.target.checked)}
+      >
         Date
       </Checkbox>
-      <Checkbox checked={isHashEnabled} onChange={(event) => setIsHashEnabled(event.target.checked)}>
+      <Checkbox
+        checked={isHashEnabled}
+        onChange={(event) => setIsHashEnabled(event.target.checked)}
+      >
         SHA
       </Checkbox>
-      <Checkbox checked={isRefsEnabled} onChange={(event) => setIsRefsEnabled(event.target.checked)}>
+      <Checkbox
+        checked={isRefsEnabled}
+        onChange={(event) => setIsRefsEnabled(event.target.checked)}
+      >
         Refs
       </Checkbox>
     </div>
@@ -226,7 +369,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         }}
       >
         <div className="git-log-controls">
-          <Space>
+          <Space wrap>
             <Select
               ref={selectWorktreeRef}
               value={selectedWorktree}
@@ -247,10 +390,51 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               style={{ width: 220 }}
             />
             {!shouldHide && (
-              <Popover content={columnsMenu} trigger="click" placement="bottomLeft">
+              <Popover
+                content={columnsMenu}
+                trigger="click"
+                placement="bottomLeft"
+              >
                 <Button icon={<SettingOutlined />}>Columns</Button>
               </Popover>
             )}
+            <span className="git-log-toolbar-divider" />
+            <Button
+              icon={<CloudDownloadOutlined />}
+              loading={gitActionLoading === 'pull'}
+              onClick={() => {
+                runToolbarAction('pull');
+              }}
+            >
+              Pull
+            </Button>
+            <Button
+              icon={<CloudUploadOutlined />}
+              loading={gitActionLoading === 'push'}
+              onClick={() => {
+                runToolbarAction('push');
+              }}
+            >
+              Push
+            </Button>
+            <Button
+              icon={<InboxOutlined />}
+              loading={gitActionLoading === 'stash'}
+              onClick={() => {
+                runToolbarAction('stash');
+              }}
+            >
+              Stash
+            </Button>
+            <Button
+              icon={<ExportOutlined />}
+              loading={gitActionLoading === 'pop'}
+              onClick={() => {
+                runToolbarAction('pop');
+              }}
+            >
+              Pop
+            </Button>
             {!loading && (
               <Tooltip
                 title="Reload Git Log"
@@ -258,7 +442,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 mouseEnterDelay={0}
                 mouseLeaveDelay={0}
               >
-                <Button type="text" shape="circle" icon={<ReloadOutlined />} aria-label="Reload Git Log" onClick={reloadGitLog} />
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={<ReloadOutlined />}
+                  aria-label="Reload Git Log"
+                  onClick={reloadGitLog}
+                />
               </Tooltip>
             )}
           </Space>
@@ -278,30 +468,55 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         {!loading && (
           <div className="git-log-workspace">
             <div className="git-log-commits-pane">
-              {selectedCommit && selectedCommitFile ? (
-                <CommitFileDiffPane
-                  commit={selectedCommit}
-                  file={selectedCommitFile}
-                  repositoryPath={tabRepoPath}
-                  onClose={() => setSelectedCommitFile(null)}
-                />
-              ) : (
-                <LogUI
-                  commits={commits}
-                  isAuthorEnabled={isAuthorEnabled}
-                  isCommitDateEnabled={isCommitDateEnabled}
-                  isHashEnabled={isHashEnabled}
-                  shouldHide={shouldHide || Boolean(selectedCommit)}
-                  isRefsEnabled={isRefsEnabled}
-                  selectedCommit={selectedCommit}
-                  hasDetailsPanel={Boolean(selectedCommit)}
-                  onCommitSelect={(hash) => {
-                    setSelectedCommit(hash);
-                    setSelectedCommitFile(null);
-                  }}
+              {workingTreeSelected && selectedWorkingTreeFile && (
+                <WorkingTreeFileDiffPane
+                  selection={selectedWorkingTreeFile}
+                  repositoryPath={selectedRepositoryPath}
+                  onClose={closeWorkingTreeFileDiff}
+                  onChanged={() => setWorkingTreeRefresh((value) => value + 1)}
                 />
               )}
-              {hasMore && !selectedCommitFile && (
+              {!selectedWorkingTreeFile &&
+                selectedCommit &&
+                selectedCommitFile && (
+                  <CommitFileDiffPane
+                    commit={selectedCommit}
+                    file={selectedCommitFile}
+                    repositoryPath={tabRepoPath}
+                    onClose={() => setSelectedCommitFile(null)}
+                  />
+                )}
+              {!selectedWorkingTreeFile &&
+                !(selectedCommit && selectedCommitFile) && (
+                  <LogUI
+                    commits={commits}
+                    isAuthorEnabled={isAuthorEnabled}
+                    isCommitDateEnabled={isCommitDateEnabled}
+                    isHashEnabled={isHashEnabled}
+                    shouldHide={shouldHide || Boolean(selectedCommit)}
+                    isRefsEnabled={isRefsEnabled}
+                    selectedCommit={selectedCommit}
+                    hasDetailsPanel={
+                      Boolean(selectedCommit) || workingTreeSelected
+                    }
+                    workingTreeCount={workingTreeStatus.files.length}
+                    workingTreeCounts={workingTreeCounts}
+                    workingTreeSelected={workingTreeSelected}
+                    onWorkingTreeSelect={() => {
+                      setWorkingTreeSelected(true);
+                      setSelectedWorkingTreeFile(null);
+                      setSelectedCommit(null);
+                      setSelectedCommitFile(null);
+                    }}
+                    onCommitSelect={(hash) => {
+                      setWorkingTreeSelected(false);
+                      setSelectedWorkingTreeFile(null);
+                      setSelectedCommit(hash);
+                      setSelectedCommitFile(null);
+                    }}
+                  />
+                )}
+              {hasMore && !selectedCommitFile && !selectedWorkingTreeFile && (
                 <div className="git-log-load-more">
                   <Button
                     type="link"
@@ -322,6 +537,23 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 onClose={() => {
                   setSelectedCommit(null);
                   setSelectedCommitFile(null);
+                }}
+              />
+            )}
+            {workingTreeSelected && (
+              <WorkingTreePanel
+                repositoryPath={selectedRepositoryPath}
+                refreshToken={workingTreeRefresh}
+                selectedFile={selectedWorkingTreeFile}
+                onFileSelect={setSelectedWorkingTreeFile}
+                onStatusChange={handleWorkingTreeStatusChange}
+                onCommitted={() => {
+                  setWorkingTreeRefresh((value) => value + 1);
+                  reloadGitLog();
+                }}
+                onClose={() => {
+                  setWorkingTreeSelected(false);
+                  setSelectedWorkingTreeFile(null);
                 }}
               />
             )}

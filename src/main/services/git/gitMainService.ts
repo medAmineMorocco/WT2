@@ -6,6 +6,10 @@ import {
   CommitChangedFile,
   CommitChangedFilesResult,
 } from '../../../shared/gitCommit';
+import {
+  WorkingTreeAction,
+  WorkingTreeStatus,
+} from '../../../shared/workingTree';
 
 const zlib = require('zlib');
 
@@ -213,6 +217,171 @@ async function runGit(directory: string, args: string[]): Promise<Buffer> {
       }
     });
   });
+}
+
+async function runGitWithAllowedCodes(
+  directory: string,
+  args: string[],
+  allowedCodes: number[],
+): Promise<Buffer> {
+  const gitCmd = await gitCommand();
+  return new Promise((resolve, reject) => {
+    const child = spawn(gitCmd, args, {
+      cwd: directory,
+      shell: false,
+      windowsHide: true,
+    });
+    const stdout: Buffer[] = [];
+    const stderr: Buffer[] = [];
+    child.stdout.on('data', (chunk) => stdout.push(Buffer.from(chunk)));
+    child.stderr.on('data', (chunk) => stderr.push(Buffer.from(chunk)));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code !== null && allowedCodes.includes(code)) {
+        resolve(Buffer.concat(stdout));
+      } else {
+        reject(new Error(Buffer.concat(stderr).toString().trim()));
+      }
+    });
+  });
+}
+
+async function runGitWithInput(
+  directory: string,
+  args: string[],
+  input: string,
+) {
+  const gitCmd = await gitCommand();
+  return new Promise<void>((resolve, reject) => {
+    const child = spawn(gitCmd, args, {
+      cwd: directory,
+      shell: false,
+      windowsHide: true,
+    });
+    const stderr: Buffer[] = [];
+    child.stderr.on('data', (chunk) => stderr.push(Buffer.from(chunk)));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(Buffer.concat(stderr).toString().trim()));
+    });
+    child.stdin.end(input);
+  });
+}
+
+async function getWorkingTreeStatus(
+  directory: string,
+): Promise<WorkingTreeStatus> {
+  const [statusOutput, branchOutput] = await Promise.all([
+    runGit(directory, [
+      'status',
+      '--porcelain=v1',
+      '-z',
+      '--no-renames',
+      '--untracked-files=all',
+    ]),
+    runGit(directory, ['branch', '--show-current']),
+  ]);
+  const entries = statusOutput.toString('utf8').split('\0').filter(Boolean);
+  const files = [] as WorkingTreeStatus['files'];
+  for (let index = 0; index < entries.length; index += 1) {
+    const entry = entries[index];
+    const indexStatus = entry[0] || ' ';
+    const worktreeStatus = entry[1] || ' ';
+    let filePath = entry.slice(3);
+    if ((indexStatus === 'R' || indexStatus === 'C') && entries[index + 1]) {
+      filePath = `${entries[index + 1]} → ${filePath}`;
+      index += 1;
+    }
+    files.push({
+      path: filePath,
+      indexStatus,
+      worktreeStatus,
+      staged: indexStatus !== ' ' && indexStatus !== '?',
+      unstaged: worktreeStatus !== ' ' || indexStatus === '?',
+      untracked: indexStatus === '?' && worktreeStatus === '?',
+    });
+  }
+  return { branch: branchOutput.toString('utf8').trim(), files };
+}
+
+async function runWorkingTreeAction(
+  directory: string,
+  action: WorkingTreeAction,
+  paths: string[] = [],
+) {
+  const actionArgs: Record<WorkingTreeAction, string[]> = {
+    pull: ['pull'],
+    push: ['push'],
+    stash: ['stash', 'push', '--include-untracked'],
+    pop: ['stash', 'pop'],
+    stage: ['add', '--', ...paths],
+    unstage: ['restore', '--staged', '--', ...paths],
+    'stage-all': ['add', '--all'],
+    'unstage-all': ['reset', '--mixed', 'HEAD'],
+  };
+  const output = await runGit(directory, actionArgs[action]);
+  logCache.delete(directory);
+  return output.toString('utf8').trim();
+}
+
+async function commitWorkingTree(
+  directory: string,
+  summary: string,
+  description: string,
+  amend: boolean,
+) {
+  const message = description.trim()
+    ? `${summary.trim()}\n\n${description.trim()}`
+    : summary.trim();
+  const args = ['commit'];
+  if (amend) args.push('--amend');
+  args.push('-m', message);
+  const output = await runGit(directory, args);
+  logCache.delete(directory);
+  return output.toString('utf8').trim();
+}
+
+async function getWorkingTreeFileDiff(
+  directory: string,
+  filePath: string,
+  staged: boolean,
+  untracked: boolean,
+) {
+  let output: Buffer;
+  if (untracked) {
+    output = await runGitWithAllowedCodes(
+      directory,
+      ['diff', '--no-index', '--no-color', '--', '/dev/null', filePath],
+      [0, 1],
+    );
+  } else {
+    const args = ['diff', '--no-ext-diff', '--no-color', '-U3'];
+    if (staged) args.push('--cached');
+    args.push('--', filePath);
+    output = await runGit(directory, args);
+  }
+  return output.toString('utf8');
+}
+
+async function getHeadCommitMessage(directory: string) {
+  const output = await runGit(directory, ['log', '-1', '--format=%B']);
+  const message = output.toString('utf8').trimEnd();
+  const [summary = '', ...descriptionLines] = message.split(/\r?\n/);
+  return {
+    summary,
+    description: descriptionLines.join('\n').trim(),
+  };
+}
+
+async function applyWorkingTreeLine(
+  directory: string,
+  patch: string,
+  staged: boolean,
+) {
+  const args = ['apply', '--cached', '--unidiff-zero', '--whitespace=nowarn'];
+  if (staged) args.push('--reverse');
+  await runGitWithInput(directory, args, patch);
 }
 
 async function getCommitChangedFiles(
@@ -481,4 +650,10 @@ export default {
   getShell,
   getCommitChangedFiles,
   getCommitFileDiff,
+  getWorkingTreeStatus,
+  runWorkingTreeAction,
+  commitWorkingTree,
+  getWorkingTreeFileDiff,
+  getHeadCommitMessage,
+  applyWorkingTreeLine,
 };
