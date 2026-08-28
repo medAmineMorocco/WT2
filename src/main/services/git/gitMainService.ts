@@ -15,6 +15,7 @@ const zlib = require('zlib');
 
 interface LogCacheEntry {
   buffer: Buffer;
+  hasMore: boolean;
   lastChecked: number;
 }
 
@@ -59,13 +60,98 @@ function getShell() {
   return utils.getStorageItem('shellPath');
 }
 
+function getStashes(
+  gitCmd: string,
+  directory: string,
+): { hash: string; shortHash: string; ref: string }[] {
+  try {
+    const output = execSync(`"${gitCmd}" stash list --format="%H %h %gd"`, {
+      cwd: directory,
+      stdio: ['pipe', 'pipe', 'ignore'],
+    })
+      .toString()
+      .trim();
+    if (!output) return [];
+    return output
+      .split('\n')
+      .map((line) => {
+        const [fullHash, shortHash, ...refParts] = line.trim().split(' ');
+        return {
+          hash: fullHash?.trim(),
+          shortHash: shortHash?.trim(),
+          ref: refParts.join(' ').trim(),
+        };
+      })
+      .filter((item) => Boolean(item.hash && item.ref));
+  } catch {
+    return [];
+  }
+}
+
+function decorateStashLines(
+  text: string,
+  stashHashMap: Map<string, string>,
+): string {
+  return text
+    .split('\n')
+    .filter((line) => {
+      if (!line || !line.trim()) return false;
+      // Filter out internal Git stash index/untracked commits
+      if (/^(?:[*|/\\ ]*)?(?:index|untracked files) on [^:]+:\s/i.test(line)) {
+        return false;
+      }
+      return true;
+    })
+    .map((line) => {
+      const match = line.match(
+        /^(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/,
+      );
+      if (!match) return line;
+
+      const [, subject, existingRefs, author, date, hash, parentsStr = ''] =
+        match;
+      const stashRef = stashHashMap.get(hash);
+      const isStash =
+        Boolean(stashRef) ||
+        Boolean(
+          existingRefs &&
+            (existingRefs.includes('stash') ||
+              existingRefs.includes('refs/stash')),
+        );
+
+      if (!isStash) return line;
+
+      // Keep only first parent (the base branch commit) for clean single-node stash
+      const firstParent = parentsStr.trim().split(/\s+/)[0] || '';
+      const parentSegment = firstParent ? ` parents:[${firstParent}]` : '';
+
+      const targetRef =
+        stashRef ||
+        (existingRefs
+          ? existingRefs.replace(/^refs\/stash/, 'stash@{0}')
+          : 'stash@{0}');
+
+      let refsGroup = targetRef;
+      if (existingRefs) {
+        if (existingRefs.includes('stash')) {
+          refsGroup = existingRefs.replace(/^refs\/stash/, 'stash@{0}');
+        } else {
+          refsGroup = `${existingRefs}, ${targetRef}`;
+        }
+      }
+
+      return `${subject} (${refsGroup}) <${author}> [${date}] ${hash}${parentSegment}`;
+    })
+    .join('\n');
+}
+
 function showLogAsync(
   directory: string,
   branch: string | null,
   author: string | null,
   skip = 0,
   limit = 40,
-): Promise<Buffer> {
+): Promise<{ buffer: Buffer; hasMore: boolean }> {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     // Cache only the default Git Log
@@ -79,45 +165,36 @@ function showLogAsync(
       const cached = logCache.get(directory);
       const now = Date.now();
       if (cached && now - cached.lastChecked < 60000) {
-        resolve(cached.buffer);
+        resolve({ buffer: cached.buffer, hasMore: cached.hasMore });
         return;
       }
     }
 
     const gitCmd = await gitCommand();
+    const stashes = getStashes(gitCmd, directory);
+    const stashHashMap = new Map<string, string>();
+    stashes.forEach((s) => {
+      stashHashMap.set(s.hash, s.ref);
+      stashHashMap.set(s.shortHash, s.ref);
+    });
+
+    const stashArgs =
+      stashes.length > 0
+        ? `--glob=refs/stash ${stashes.map((s) => s.hash).join(' ')}`
+        : '--glob=refs/stash';
+
+    const branchOrAll = branch || '--all';
     const gitFormat = '%s %d <%an> [%ci] %h parents:[%p]';
-    const command = branch
-      ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`
-      : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
+    const command = `"${gitCmd}" log --skip=${skip} -n ${limit} ${branchOrAll} ${stashArgs} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
+
     const git = spawn(command, {
       cwd: directory,
       shell: true,
     });
 
-    const gzip = zlib.createGzip();
+    const rawChunks: Buffer[] = [];
 
-    const chunks: Buffer[] = [];
-
-    git.stdout.pipe(gzip);
-
-    gzip.on('data', (c: any) => chunks.push(c));
-
-    gzip.once('end', async () => {
-      const buffer = Buffer.concat(chunks);
-
-      if (shouldUseCache) {
-        try {
-          setLogCache(directory, {
-            buffer,
-            lastChecked: Date.now(),
-          });
-        } catch {
-          // Ignore cache update errors
-        }
-      }
-
-      resolve(buffer);
-    });
+    git.stdout.on('data', (c: any) => rawChunks.push(c));
 
     git.stderr.on('data', (chunk) => {
       reject(new Error(chunk.toString()));
@@ -130,7 +207,33 @@ function showLogAsync(
         return;
       }
 
-      gzip.end();
+      const rawText = Buffer.concat(rawChunks).toString('utf-8');
+      const rawLines = rawText.split('\n').filter((l) => l.trim().length > 0);
+      const hasMore = rawLines.length >= limit;
+      const decoratedText = decorateStashLines(rawText, stashHashMap);
+      zlib.gzip(
+        Buffer.from(decoratedText, 'utf-8'),
+        (err: any, buffer: Buffer) => {
+          if (err) {
+            reject(err);
+            return;
+          }
+
+          if (shouldUseCache) {
+            try {
+              setLogCache(directory, {
+                buffer,
+                hasMore,
+                lastChecked: Date.now(),
+              });
+            } catch {
+              // Ignore cache update errors
+            }
+          }
+
+          resolve({ buffer, hasMore });
+        },
+      );
     });
   });
 }

@@ -49,6 +49,7 @@ interface ParsedCommit {
   merges: { fromLane: number; toLane: number }[];
   hasTop: boolean;
   hasBottom: boolean;
+  isStash?: boolean;
   graph?: string;
   transitionsAbove?: string[];
   transitionsBelow?: string[];
@@ -220,10 +221,15 @@ export default function LogUI({
       .filter(Boolean);
     if (refs.length === 0) return null;
 
-    // Prioritize HEAD and branch refs before tags
+    // Prioritize HEAD, stash, and branch refs before tags
     const sortedRefs = [...refs].sort((a, b) => {
-      const score = (r: string) =>
-        r.includes('HEAD') ? 0 : !r.startsWith('tag:') ? 1 : 2;
+      const score = (r: string) => {
+        if (r.includes('HEAD')) return 0;
+        if (r.startsWith('stash') || r.includes('refs/stash')) return 1;
+        if (!r.startsWith('tag:') && !r.includes('/')) return 2;
+        if (r.includes('/')) return 3;
+        return 4;
+      };
       return score(a) - score(b);
     });
 
@@ -232,19 +238,29 @@ export default function LogUI({
     const remainingRefs = sortedRefs.slice(maxVisible);
 
     const renderedTags = visibleRefs.map((ref) => {
-      const refType = ref.includes('HEAD')
-        ? 'head'
-        : ref.startsWith('tag:')
-          ? 'tag'
-          : ref.includes('/')
-            ? 'remote'
-            : 'branch';
+      let refType = 'branch';
+      if (ref.includes('HEAD')) {
+        refType = 'head';
+      } else if (ref.startsWith('stash') || ref.includes('refs/stash')) {
+        refType = 'stash';
+      } else if (ref.startsWith('tag:')) {
+        refType = 'tag';
+      } else if (ref.includes('/')) {
+        refType = 'remote';
+      }
+
+      let displayRef = ref;
+      if (ref === 'refs/stash') {
+        displayRef = 'stash@{0}';
+      } else if (ref.startsWith('refs/stash')) {
+        displayRef = ref.replace(/^refs\/stash/, 'stash');
+      }
 
       return (
         <Tooltip key={ref} title={ref} mouseEnterDelay={0} mouseLeaveDelay={0}>
           <span style={{ display: 'inline-flex', maxWidth: '120px' }}>
             <Tag bordered={false} className={`commit-ref-chip ${refType}`}>
-              {ref}
+              {displayRef}
             </Tag>
           </span>
         </Tooltip>
@@ -329,14 +345,19 @@ export default function LogUI({
     }[] = [];
 
     const regex =
-      /^(?:[*|\/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/;
+      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/;
 
     commits.forEach((line) => {
       if (!line || !line.trim()) return;
+      // Filter out internal Git stash index/untracked commits
+      if (/^(?:[*|/\\ ]*)?(?:index|untracked files) on [^:]+:\s/i.test(line)) {
+        return;
+      }
+
       const match = line.match(regex);
       if (match) {
         const [
-          _,
+          ,
           subject = '',
           refs = '',
           author = '',
@@ -344,10 +365,23 @@ export default function LogUI({
           hash = '',
           parentsStr = '',
         ] = match;
-        const parents = parentsStr
+
+        let parents = parentsStr
           ? parentsStr.trim().split(/\s+/).filter(Boolean)
           : [];
-        rawList.push({ hash, parents, subject, refs, author, date });
+
+        const isStash = Boolean(
+          refs.includes('stash') ||
+            refs.includes('refs/stash') ||
+            /^WIP on /i.test(subject),
+        );
+
+        // Keep only first parent (the base commit on the branch) for single-node stash
+        if (isStash && parents.length > 0) {
+          parents = parents.slice(0, 1);
+        }
+
+        rawList.push({ hash, parents, subject, refs, author, date, isStash });
       }
     });
 
@@ -434,6 +468,7 @@ export default function LogUI({
         merges,
         hasTop,
         hasBottom,
+        isStash: (c as any).isStash,
         graph: '',
         transitionsAbove: [],
         transitionsBelow: [],
@@ -553,28 +588,73 @@ export default function LogUI({
           );
         })()}
 
-        {/* Commit dot (GitKraken style: clean background cutout disc + solid colored core) */}
-        <circle
-          cx={cx}
-          cy={cy}
-          r="6.5"
-          fill="var(--commit-node-stroke, #fff)"
-        />
-        <circle
-          cx={cx}
-          cy={cy}
-          r="4.5"
-          fill={isSelected ? '#ffffff' : commitColor}
-        />
-        {isSelected && (
-          <circle
-            cx={cx}
-            cy={cy}
-            r="8"
-            fill="none"
-            stroke="#ffffff"
-            strokeWidth="2"
-          />
+        {/* Commit dot / Stash box (GitKraken style) */}
+        {item.isStash ? (
+          <g>
+            <rect
+              x={cx - 8}
+              y={cy - 6}
+              width={16}
+              height={12}
+              rx={2.5}
+              fill="var(--commit-node-stroke, #fff)"
+              stroke={isSelected ? '#ffffff' : '#10b981'}
+              strokeWidth="1.5"
+            />
+            <line
+              x1={cx - 8}
+              y1={cy - 2}
+              x2={cx + 8}
+              y2={cy - 2}
+              stroke={isSelected ? '#ffffff' : '#10b981'}
+              strokeWidth="1"
+            />
+            <rect
+              x={cx - 2}
+              y={cy - 3}
+              width={4}
+              height={2.5}
+              rx={0.5}
+              fill={isSelected ? '#ffffff' : '#10b981'}
+            />
+            {isSelected && (
+              <rect
+                x={cx - 10}
+                y={cy - 8}
+                width={20}
+                height={16}
+                rx={4}
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="1.5"
+              />
+            )}
+          </g>
+        ) : (
+          <>
+            <circle
+              cx={cx}
+              cy={cy}
+              r="6.5"
+              fill="var(--commit-node-stroke, #fff)"
+            />
+            <circle
+              cx={cx}
+              cy={cy}
+              r="4.5"
+              fill={isSelected ? '#ffffff' : commitColor}
+            />
+            {isSelected && (
+              <circle
+                cx={cx}
+                cy={cy}
+                r="8"
+                fill="none"
+                stroke="#ffffff"
+                strokeWidth="2"
+              />
+            )}
+          </>
         )}
       </svg>
     );
@@ -588,7 +668,7 @@ export default function LogUI({
     if (!container || !onLoadMore || loadingMore || !hasMore) return;
 
     const { scrollTop, scrollHeight, clientHeight } = container;
-    if (scrollHeight - (scrollTop + clientHeight) < 300) {
+    if (scrollHeight - (scrollTop + clientHeight) < 400) {
       onLoadMore();
     }
   }, [onLoadMore, loadingMore, hasMore]);
@@ -609,7 +689,7 @@ export default function LogUI({
       },
       {
         root: container,
-        rootMargin: '300px',
+        rootMargin: '400px',
         threshold: 0,
       },
     );

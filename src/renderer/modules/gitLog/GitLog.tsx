@@ -119,6 +119,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       code: number,
       result: any,
       skipReceived: number,
+      hasMoreReceived?: boolean,
     ) => {
       loadingRef.current = false;
       loadingMoreRef.current = false;
@@ -131,7 +132,11 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           ? decompressed.split('\n').filter((line) => line.trim().length > 0)
           : [];
 
-        const nextHasMore = newCommits.length >= LIMIT;
+        const nextHasMore =
+          typeof hasMoreReceived === 'boolean'
+            ? hasMoreReceived
+            : newCommits.length > 0;
+
         hasMoreRef.current = nextHasMore;
         setHasMore(nextHasMore);
 

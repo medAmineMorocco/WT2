@@ -67,14 +67,14 @@ ipcMain.on(
   ) {
     try {
       log.info('Getting git log');
-      const gitLog = await gitMainService.showLogAsync(
+      const { buffer, hasMore } = await gitMainService.showLogAsync(
         directory,
         branch,
         author,
         skip,
         limit,
       );
-      event.sender.send('receive-git-log', 0, gitLog, skip);
+      event.sender.send('receive-git-log', 0, buffer, skip, hasMore);
     } catch (err: any) {
       log.error(`Failed to get git log: ${err.message}`);
       event.sender.send('receive-git-log', -1, 'Failed to load Git log.');

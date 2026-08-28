@@ -826,6 +826,12 @@ html[data-color-scheme='dark'] .commit-msg {
   border: 1px solid #cbd5e1;
 }
 
+.commit-ref-chip.stash {
+  color: #c2410c;
+  background: #ffedd5;
+  border: 1px solid #fed7aa;
+}
+
 .commit-ref-chip.tag {
   color: #7e22ce;
   background: #f3e8ff;
@@ -997,6 +1003,12 @@ html[data-color-scheme='dark'] .commit-ref-chip.remote {
   color: #f1f5f9;
   background: rgba(148, 163, 184, 0.25);
   border: 1px solid rgba(148, 163, 184, 0.5);
+}
+
+html[data-color-scheme='dark'] .commit-ref-chip.stash {
+  color: #fdba74;
+  background: rgba(234, 88, 12, 0.25);
+  border: 1px solid rgba(251, 146, 60, 0.5);
 }
 
 html[data-color-scheme='dark'] .commit-ref-chip.tag {
