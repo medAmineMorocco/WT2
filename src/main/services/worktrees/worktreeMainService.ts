@@ -650,9 +650,7 @@ function remove(
         await assertWorktreeCleanBeforeDelete(worktreePath, gitCommand);
       }
       assertWriteAccess(worktreePath);
-      const command = force
-        ? `"${gitCommand}" worktree remove ${worktreePath} --force`
-        : `"${gitCommand}" worktree remove ${worktreePath}`;
+      const command = `"${gitCommand}" worktree remove --force "${worktreePath}"`;
       exec(
         command,
         {
@@ -661,8 +659,9 @@ function remove(
         (error: any, stdout: any) => {
           if (error) {
             reject(error);
+            return;
           }
-          resolve(stdout);
+          resolve(stdout || 'ok');
         },
       );
     } catch (e) {
@@ -689,9 +688,7 @@ function removeWithLocalBranch(
       assertBranchIsNotInUseInOtherWorktrees(dir, name, worktreePath);
       assertWriteAccess(worktreePath);
 
-      const command = force
-        ? `"${gitCommand}" worktree remove ${worktreePath} --force`
-        : `"${gitCommand}" worktree remove ${worktreePath}`;
+      const command = `"${gitCommand}" worktree remove --force "${worktreePath}"`;
       exec(
         command,
         {
@@ -700,15 +697,17 @@ function removeWithLocalBranch(
         (error: any) => {
           if (error) {
             reject(error);
+            return;
           }
           exec(
-            `"${gitCommand}" branch -D ${name}`,
+            `"${gitCommand}" branch -D "${name}"`,
             {
               cwd: dir,
             },
             (error2: any) => {
               if (error2) {
                 reject(error2);
+                return;
               }
               resolve('ok');
             },
