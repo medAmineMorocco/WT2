@@ -3,10 +3,11 @@ import {
   FloatButton,
   MenuProps,
   notification,
+  Spin,
   Tag,
   Tooltip,
 } from 'antd';
-import React, { useEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import log from 'electron-log';
 import {
   EditOutlined,
@@ -67,6 +68,9 @@ export default function LogUI({
   workingTreeCounts = { modified: 0, added: 0, deleted: 0 },
   workingTreeSelected = false,
   onWorkingTreeSelect,
+  hasMore = false,
+  loadingMore = false,
+  onLoadMore,
 }: {
   commits: string[];
   isAuthorEnabled: boolean;
@@ -81,6 +85,9 @@ export default function LogUI({
   workingTreeCounts?: { modified: number; added: number; deleted: number };
   workingTreeSelected?: boolean;
   onWorkingTreeSelect?: () => void;
+  hasMore?: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -573,8 +580,50 @@ export default function LogUI({
     );
   }
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
+  const handleScroll = useCallback(() => {
+    const container = containerRef.current;
+    if (!container || !onLoadMore || loadingMore || !hasMore) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    if (scrollHeight - (scrollTop + clientHeight) < 300) {
+      onLoadMore();
+    }
+  }, [onLoadMore, loadingMore, hasMore]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const sentinel = sentinelRef.current;
+    if (!container || !sentinel || !onLoadMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const first = entries[0];
+        if (first && first.isIntersecting) {
+          if (hasMore && !loadingMore) {
+            onLoadMore();
+          }
+        }
+      },
+      {
+        root: container,
+        rootMargin: '300px',
+        threshold: 0,
+      },
+    );
+
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [onLoadMore, hasMore, loadingMore]);
+
   return (
-    <div className="log-container">
+    <div
+      ref={containerRef}
+      className="log-container"
+      onScroll={handleScroll}
+    >
       {contextHolder}
       <div
         className="git-log-list-header"
@@ -706,6 +755,13 @@ export default function LogUI({
           </Dropdown>
         );
       })}
+      {loadingMore && (
+        <div className="git-log-loading-more-row">
+          <Spin size="small" />
+          <span>Loading more commits...</span>
+        </div>
+      )}
+      {hasMore && <div ref={sentinelRef} className="git-log-scroll-sentinel" />}
       <FloatButton.BackTop
         style={{
           insetInlineEnd: hasDetailsPanel
@@ -713,7 +769,9 @@ export default function LogUI({
             : '36px',
         }}
         target={() =>
-          (document.querySelector('.log-container') as HTMLElement) || window
+          containerRef.current ||
+          (document.querySelector('.log-container') as HTMLElement) ||
+          window
         }
       />
     </div>

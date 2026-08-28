@@ -959,27 +959,26 @@ html[data-color-scheme='dark'] .working-tree-row {
   background: rgba(255, 255, 255, 0.24);
 }
 
-.git-log-load-more {
+.git-log-loading-more-row {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 42px;
-  padding: 6px;
-  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  gap: 8px;
+  min-height: 40px;
+  padding: 10px 16px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
 }
 
-html[data-color-scheme='dark'] .git-log-load-more {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+html[data-color-scheme='dark'] .git-log-loading-more-row {
+  color: #94a3b8;
 }
 
-.git-log-load-more .ant-btn {
-  font-weight: 600;
-  font-size: 13px;
-  color: #2563eb;
-}
-
-html[data-color-scheme='dark'] .git-log-load-more .ant-btn {
-  color: #60a5fa;
+.git-log-scroll-sentinel {
+  height: 1px;
+  width: 100%;
+  pointer-events: none;
 }
 
 html[data-color-scheme='dark'] .commit-ref-chip.head {

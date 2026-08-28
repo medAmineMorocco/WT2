@@ -18,7 +18,6 @@ import React, {
 import { GitBranchIcon } from 'hugeicons-react';
 import {
   ReloadOutlined,
-  LoadingOutlined,
   SettingOutlined,
   CloudDownloadOutlined,
   CloudUploadOutlined,
@@ -78,8 +77,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const [shouldHide, setShouldHide] = useState<boolean>(false);
 
-  const [skip, setSkip] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+
+  const loadingRef = useRef(true);
+  const loadingMoreRef = useRef(false);
+  const hasMoreRef = useRef(true);
+  const skipRef = useRef(0);
 
   const handleWorkingTreeStatusChange = useCallback(
     (status: WorkingTreeStatus) => {
@@ -87,7 +90,19 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       if (status.files.length === 0) {
         setWorkingTreeSelected(false);
         setSelectedWorkingTreeFile(null);
+        return;
       }
+
+      setSelectedWorkingTreeFile((selection) => {
+        if (!selection) return null;
+        const currentFile = status.files.find(
+          (file) => file.path === selection.file.path,
+        );
+        if (!currentFile) return null;
+        if (selection.staged && !currentFile.staged) return null;
+        if (!selection.staged && !currentFile.unstaged) return null;
+        return { ...selection, file: currentFile };
+      });
     },
     [],
   );
@@ -97,7 +112,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   }, []);
 
   useEffect(() => {
-    window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
     window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
     window.electron.ipcRenderer.send('list-authors', tabRepoPath);
 
@@ -106,23 +120,27 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       result: any,
       skipReceived: number,
     ) => {
+      loadingRef.current = false;
+      loadingMoreRef.current = false;
+      setLoading(false);
+      setLoadingMore(false);
+
       if (code === 0) {
-        setLoading(false);
         const decompressed = pako.ungzip(result, { to: 'string' });
-        const newCommits = decompressed.split('\n');
+        const newCommits = decompressed
+          ? decompressed.split('\n').filter((line) => line.trim().length > 0)
+          : [];
 
-        if (newCommits.length < LIMIT) {
-          setHasMore(false);
-        }
+        const nextHasMore = newCommits.length >= LIMIT;
+        hasMoreRef.current = nextHasMore;
+        setHasMore(nextHasMore);
 
-        setLoadingMore(false);
         if (skipReceived === 0) {
           setCommits([...newCommits]);
         } else {
           setCommits((prev) => [...prev, ...newCommits]);
         }
       } else {
-        setLoading(false);
         notification.error({
           message: 'Unable to get log',
           placement: 'bottomLeft',
@@ -132,17 +150,27 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
     const onWorktreesFound = (code: number, result: any) => {
       if (code === 0) {
-        setWorktrees(
-          JSON.parse(result).map((item: any) => {
-            return {
-              label: item.isPrimary
-                ? `${item.name || item.resolvedName} (main)`
-                : item.name,
-              value: item.name,
-              path: item.path,
-              isPrimary: item.isPrimary,
-            };
-          }),
+        const nextWorktrees = JSON.parse(result).map((item: any) => {
+          const name = item.name || item.resolvedName;
+          return {
+            label: item.isPrimary ? `${name} (main)` : name,
+            value: name,
+            path: item.path,
+            isPrimary: item.isPrimary,
+          };
+        });
+        const primaryWorktree = nextWorktrees.find(
+          (item: any) => item.isPrimary,
+        );
+        setWorktrees(nextWorktrees);
+        setSelectedWorktree(primaryWorktree?.value || null);
+        skipRef.current = 0;
+        setHasMore(true);
+        hasMoreRef.current = true;
+        window.electron.ipcRenderer.send(
+          'show-git-log',
+          tabRepoPath,
+          primaryWorktree?.value,
         );
       } else {
         notification.error({
@@ -225,17 +253,38 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   useEffect(() => {
     let cancelled = false;
-    window.electron.ipcRenderer
-      .invoke('get-working-tree-status', selectedRepositoryPath)
-      .then((status: WorkingTreeStatus) => {
-        if (!cancelled) setWorkingTreeStatus(status);
-        return undefined;
-      })
-      .catch(() => undefined);
+    let requestInProgress = false;
+
+    const refreshWorkingTree = () => {
+      if (requestInProgress) return;
+      requestInProgress = true;
+      window.electron.ipcRenderer
+        .invoke('get-working-tree-status', selectedRepositoryPath)
+        .then((status: WorkingTreeStatus) => {
+          if (!cancelled) handleWorkingTreeStatusChange(status);
+          return undefined;
+        })
+        .catch(() => undefined)
+        .finally(() => {
+          requestInProgress = false;
+        });
+    };
+
+    const refreshFromExternalChange = () => {
+      refreshWorkingTree();
+      setWorkingTreeRefresh((value) => value + 1);
+    };
+
+    refreshWorkingTree();
+    const interval = window.setInterval(refreshFromExternalChange, 1500);
+    window.addEventListener('focus', refreshFromExternalChange);
+
     return () => {
       cancelled = true;
+      window.clearInterval(interval);
+      window.removeEventListener('focus', refreshFromExternalChange);
     };
-  }, [selectedRepositoryPath, workingTreeRefresh]);
+  }, [handleWorkingTreeStatusChange, selectedRepositoryPath]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -260,6 +309,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     setSelectedWorkingTreeFile(null);
     setSelectedAuthor(author);
     setLoading(true);
+    loadingRef.current = true;
+    skipRef.current = 0;
+    setHasMore(true);
+    hasMoreRef.current = true;
     if (selectWorktreeRef.current) {
       // @ts-ignore
       selectWorktreeRef.current.blur();
@@ -273,6 +326,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       tabRepoPath,
       worktree,
       author,
+      0,
     );
   };
 
@@ -294,7 +348,17 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       });
       setWorkingTreeRefresh((value) => value + 1);
       setLoading(true);
-      window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+      loadingRef.current = true;
+      skipRef.current = 0;
+      setHasMore(true);
+      hasMoreRef.current = true;
+      window.electron.ipcRenderer.send(
+        'show-git-log',
+        tabRepoPath,
+        selectedWorktree,
+        selectedAuthor,
+        0,
+      );
     } catch (error: any) {
       notification.error({
         message: `Git ${action} failed`,
@@ -308,21 +372,35 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const reloadGitLog = () => {
     setLoading(true);
-    window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
-  };
-
-  const handleLoadMore = () => {
-    const nextSkip = skip + LIMIT;
-    setSkip(nextSkip);
-    setLoadingMore(true);
+    loadingRef.current = true;
+    skipRef.current = 0;
+    setHasMore(true);
+    hasMoreRef.current = true;
     window.electron.ipcRenderer.send(
       'show-git-log',
       tabRepoPath,
-      null,
-      null,
-      nextSkip,
+      selectedWorktree,
+      selectedAuthor,
+      0,
     );
   };
+
+  const handleLoadMore = useCallback(() => {
+    if (loadingRef.current || loadingMoreRef.current || !hasMoreRef.current) {
+      return;
+    }
+    loadingMoreRef.current = true;
+    setLoadingMore(true);
+    const nextSkip = skipRef.current + LIMIT;
+    skipRef.current = nextSkip;
+    window.electron.ipcRenderer.send(
+      'show-git-log',
+      tabRepoPath,
+      selectedWorktree,
+      selectedAuthor,
+      nextSkip,
+    );
+  }, [tabRepoPath, selectedWorktree, selectedAuthor]);
 
   const columnsMenu = (
     <div className="git-log-columns-menu">
@@ -376,7 +454,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               placeholder="Worktree"
               options={worktrees}
               onChange={(val: string) => handleChange(val, selectedAuthor)}
-              allowClear
               style={{ width: 220 }}
             />
             <Select
@@ -502,6 +579,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     workingTreeCount={workingTreeStatus.files.length}
                     workingTreeCounts={workingTreeCounts}
                     workingTreeSelected={workingTreeSelected}
+                    hasMore={hasMore}
+                    loadingMore={loadingMore}
+                    onLoadMore={handleLoadMore}
                     onWorkingTreeSelect={() => {
                       setWorkingTreeSelected(true);
                       setSelectedWorkingTreeFile(null);
@@ -516,17 +596,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     }}
                   />
                 )}
-              {hasMore && !selectedCommitFile && !selectedWorkingTreeFile && (
-                <div className="git-log-load-more">
-                  <Button
-                    type="link"
-                    onClick={handleLoadMore}
-                    icon={loadingMore ? <LoadingOutlined /> : null}
-                  >
-                    {!loadingMore && <span>Load more commits</span>}
-                  </Button>
-                </div>
-              )}
             </div>
             {selectedCommit && (
               <CommitDetailsPanel
