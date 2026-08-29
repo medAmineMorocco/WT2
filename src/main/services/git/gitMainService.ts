@@ -115,8 +115,8 @@ function decorateStashLines(
         Boolean(stashRef) ||
         Boolean(
           existingRefs &&
-            (existingRefs.includes('stash') ||
-              existingRefs.includes('refs/stash')),
+          (existingRefs.includes('stash') ||
+            existingRefs.includes('refs/stash')),
         );
 
       if (!isStash) return line;
@@ -487,6 +487,26 @@ async function applyWorkingTreeLine(
   await runGitWithInput(directory, args, patch);
 }
 
+async function discardWorkingTreeLine(directory: string, patch: string) {
+  await runGitWithInput(
+    directory,
+    ['apply', '--reverse', '--unidiff-zero', '--whitespace=nowarn'],
+    patch,
+  );
+}
+
+async function discardWorkingTreeFile(
+  directory: string,
+  filePath: string,
+  untracked: boolean,
+) {
+  if (untracked) {
+    await runGit(directory, ['clean', '-fd', '--', filePath]);
+  } else {
+    await runGit(directory, ['restore', '--worktree', '--', filePath]);
+  }
+}
+
 async function getCommitChangedFiles(
   commit: string,
   directory: string,
@@ -759,4 +779,6 @@ export default {
   getWorkingTreeFileDiff,
   getHeadCommitMessage,
   applyWorkingTreeLine,
+  discardWorkingTreeLine,
+  discardWorkingTreeFile,
 };

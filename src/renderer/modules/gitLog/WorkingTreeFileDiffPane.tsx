@@ -259,6 +259,28 @@ export default function WorkingTreeFileDiffPane({
         if (!change || cell.querySelector('.working-tree-line-action')) return;
         const actionHost =
           cell.querySelector<HTMLElement>('.d2h-code-line-ctn') || cell;
+        const patchForChange = () => {
+          const row = cell.closest<HTMLTableRowElement>('tr');
+          const table = row?.closest<HTMLTableElement>('table');
+          const tables = Array.from(root.querySelectorAll('table'));
+          const otherTable = tables.find((candidate) => candidate !== table);
+          const otherRow =
+            row && otherTable
+              ? otherTable.querySelectorAll('tr')[row.rowIndex]
+              : null;
+          const otherCell = otherRow?.querySelector<HTMLElement>(
+            'td.d2h-ins:not(.d2h-code-side-linenumber), td.d2h-del:not(.d2h-code-side-linenumber)',
+          );
+          const pairedChange = otherCell
+            ? changeByCell.get(otherCell)
+            : undefined;
+          if (pairedChange && pairedChange.kind !== change.kind) {
+            const deletion = change.kind === 'delete' ? change : pairedChange;
+            const addition = change.kind === 'add' ? change : pairedChange;
+            return `${deletion.header}\n@@ -${deletion.oldLine},1 +${addition.newLine},1 @@\n${deletion.line}\n${addition.line}\n`;
+          }
+          return change.patch;
+        };
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `working-tree-line-action ${
@@ -277,30 +299,10 @@ export default function WorkingTreeFileDiffPane({
           event.stopPropagation();
           button.disabled = true;
           try {
-            const row = cell.closest<HTMLTableRowElement>('tr');
-            const table = row?.closest<HTMLTableElement>('table');
-            const tables = Array.from(root.querySelectorAll('table'));
-            const otherTable = tables.find((candidate) => candidate !== table);
-            const otherRow =
-              row && otherTable
-                ? otherTable.querySelectorAll('tr')[row.rowIndex]
-                : null;
-            const otherCell = otherRow?.querySelector<HTMLElement>(
-              'td.d2h-ins:not(.d2h-code-side-linenumber), td.d2h-del:not(.d2h-code-side-linenumber)',
-            );
-            const pairedChange = otherCell
-              ? changeByCell.get(otherCell)
-              : undefined;
-            let patchToApply = change.patch;
-            if (pairedChange && pairedChange.kind !== change.kind) {
-              const deletion = change.kind === 'delete' ? change : pairedChange;
-              const addition = change.kind === 'add' ? change : pairedChange;
-              patchToApply = `${deletion.header}\n@@ -${deletion.oldLine},1 +${addition.newLine},1 @@\n${deletion.line}\n${addition.line}\n`;
-            }
             await window.electron.ipcRenderer.invoke(
               'apply-working-tree-line',
               repositoryPath,
-              patchToApply,
+              patchForChange(),
               selection.staged,
             );
             onChanged();
@@ -312,6 +314,36 @@ export default function WorkingTreeFileDiffPane({
           }
         });
         actionHost.prepend(button);
+        if (!selection.staged) {
+          const discardButton = document.createElement('button');
+          discardButton.type = 'button';
+          discardButton.className = 'working-tree-line-action discard-line';
+          discardButton.textContent = '↶';
+          discardButton.title = 'Discard this line';
+          discardButton.setAttribute('aria-label', 'Discard this line');
+          discardButton.addEventListener('click', async (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!window.confirm('Discard this unstaged line permanently?')) {
+              return;
+            }
+            discardButton.disabled = true;
+            try {
+              await window.electron.ipcRenderer.invoke(
+                'discard-working-tree-line',
+                repositoryPath,
+                patchForChange(),
+              );
+              onChanged();
+              silentRefresh.current = true;
+              setRevision((value) => value + 1);
+            } catch (reason: any) {
+              setError(reason?.message || String(reason));
+              discardButton.disabled = false;
+            }
+          });
+          actionHost.prepend(discardButton);
+        }
       });
     };
     const observer = new MutationObserver(attachLineActions);

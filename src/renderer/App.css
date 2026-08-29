@@ -1200,11 +1200,27 @@ html[data-color-scheme='dark'] .working-tree-section-title b {
 
 .working-tree-file {
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) 28px;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   min-height: 34px;
   padding: 2px 6px 2px 10px;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.working-tree-file-actions {
+  display: inline-flex;
+  min-width: 28px;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.working-tree-file-actions .ant-btn {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
 
 html[data-color-scheme='dark'] .working-tree-file {
@@ -1366,12 +1382,22 @@ html[data-color-scheme='dark']
   background: #fee2e2;
 }
 
+.working-tree-line-action.discard-line {
+  color: #dc2626;
+  background: #fff;
+}
+
 .working-tree-line-action.stage-line:hover {
   color: #fff;
   background: #16a34a;
 }
 
 .working-tree-line-action.unstage-line:hover {
+  color: #fff;
+  background: #dc2626;
+}
+
+.working-tree-line-action.discard-line:hover {
   color: #fff;
   background: #dc2626;
 }
@@ -1389,6 +1415,11 @@ html[data-color-scheme='dark'] .working-tree-line-action.stage-line {
 html[data-color-scheme='dark'] .working-tree-line-action.unstage-line {
   color: #f87171;
   background: rgba(220, 38, 38, 0.24);
+}
+
+html[data-color-scheme='dark'] .working-tree-line-action.discard-line {
+  color: #f87171;
+  background: rgba(220, 38, 38, 0.14);
 }
 
 @media (max-width: 900px) {

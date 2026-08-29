@@ -4,6 +4,7 @@ import {
   Empty,
   Input,
   notification,
+  Popconfirm,
   Spin,
   Tooltip,
   Typography,
@@ -11,6 +12,7 @@ import {
 import {
   CheckOutlined,
   CloseOutlined,
+  DeleteOutlined,
   EditOutlined,
   MinusOutlined,
   PlusOutlined,
@@ -201,6 +203,27 @@ export default function WorkingTreePanel({
     }
   };
 
+  const discardFile = async (file: WorkingTreeFile) => {
+    setBusy(true);
+    try {
+      await window.electron.ipcRenderer.invoke(
+        'discard-working-tree-file',
+        repositoryPath,
+        file.path,
+        file.untracked,
+      );
+      await load(false);
+    } catch (error: any) {
+      notification.error({
+        message: 'Unable to discard file changes',
+        description: error?.message || String(error),
+        placement: 'bottomLeft',
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const renderFile = (file: WorkingTreeFile, isStaged: boolean) => (
     <div
       className={`working-tree-file ${selectedFile?.file.path === file.path && selectedFile.staged === isStaged ? 'selected' : ''}`}
@@ -224,19 +247,48 @@ export default function WorkingTreePanel({
       <span className="working-tree-file-path" title={file.path}>
         {file.path}
       </span>
-      <Tooltip title={isStaged ? 'Unstage file' : 'Stage file'}>
-        <Button
-          type="text"
-          size="small"
-          aria-label={isStaged ? `Unstage ${file.path}` : `Stage ${file.path}`}
-          icon={isStaged ? <MinusOutlined /> : <PlusOutlined />}
-          onClick={(event) => {
-            event.stopPropagation();
-            runAction(isStaged ? 'unstage' : 'stage', [file.path]);
-          }}
-          disabled={busy}
-        />
-      </Tooltip>
+      <span className="working-tree-file-actions">
+        {!isStaged && (
+          <Popconfirm
+            title="Discard changes?"
+            description={
+              file.untracked
+                ? 'This untracked file will be permanently deleted.'
+                : 'All unstaged changes in this file will be lost.'
+            }
+            okText="Discard"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => discardFile(file)}
+          >
+            <Tooltip title="Discard file changes">
+              <Button
+                danger
+                type="text"
+                size="small"
+                aria-label={`Discard changes in ${file.path}`}
+                icon={<DeleteOutlined />}
+                onClick={(event) => event.stopPropagation()}
+                disabled={busy}
+              />
+            </Tooltip>
+          </Popconfirm>
+        )}
+        <Tooltip title={isStaged ? 'Unstage file' : 'Stage file'}>
+          <Button
+            type="text"
+            size="small"
+            aria-label={
+              isStaged ? `Unstage ${file.path}` : `Stage ${file.path}`
+            }
+            icon={isStaged ? <MinusOutlined /> : <PlusOutlined />}
+            onClick={(event) => {
+              event.stopPropagation();
+              runAction(isStaged ? 'unstage' : 'stage', [file.path]);
+            }}
+            disabled={busy}
+          />
+        </Tooltip>
+      </span>
     </div>
   );
 

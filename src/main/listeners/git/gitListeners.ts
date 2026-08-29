@@ -55,6 +55,18 @@ ipcMain.handle(
     gitMainService.applyWorkingTreeLine(directory, patch, staged),
 );
 
+ipcMain.handle(
+  'discard-working-tree-line',
+  async (_event, directory: string, patch: string) =>
+    gitMainService.discardWorkingTreeLine(directory, patch),
+);
+
+ipcMain.handle(
+  'discard-working-tree-file',
+  async (_event, directory: string, filePath: string, untracked: boolean) =>
+    gitMainService.discardWorkingTreeFile(directory, filePath, untracked),
+);
+
 ipcMain.on(
   'show-git-log',
   async function (
