@@ -399,8 +399,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     }
   };
 
-  const reloadGitLog = () => {
-    setLoading(true);
+  const reloadGitLog = (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
     loadingRef.current = true;
     skipRef.current = 0;
     setHasMore(true);
@@ -561,7 +561,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                   shape="circle"
                   icon={<ReloadOutlined />}
                   aria-label="Reload Git Log"
-                  onClick={reloadGitLog}
+                  onClick={() => reloadGitLog()}
                 />
               </Tooltip>
             )}
@@ -655,7 +655,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 onStatusChange={handleWorkingTreeStatusChange}
                 onCommitted={() => {
                   setWorkingTreeRefresh((value) => value + 1);
-                  reloadGitLog();
+                  reloadGitLog(false);
                 }}
                 onClose={() => {
                   setWorkingTreeSelected(false);
