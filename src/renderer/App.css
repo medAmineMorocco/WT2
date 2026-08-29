@@ -29,6 +29,12 @@ body {
   padding-right: 0 !important;
 }
 
+.ant-layout-sider.ant-layout-sider-collapsed {
+  min-width: 36px !important;
+  max-width: 36px !important;
+  flex-basis: 36px !important;
+}
+
 .fullscreen-modal > div[tabindex='0'] {
   height: 100%;
 }

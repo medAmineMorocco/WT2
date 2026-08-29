@@ -62,6 +62,7 @@ const Worktrees = forwardRef<
     <Sider
       theme="light"
       collapsible
+      collapsedWidth={36}
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
     >
