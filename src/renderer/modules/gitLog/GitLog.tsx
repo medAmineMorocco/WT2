@@ -9,18 +9,22 @@ import {
   Button,
 } from 'antd';
 import React, {
+  lazy,
+  Suspense,
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
+import { useHotkeys } from 'react-hotkeys-hook';
 import { GitBranchIcon } from 'hugeicons-react';
 import {
   ReloadOutlined,
   SettingOutlined,
   CloudDownloadOutlined,
   CloudUploadOutlined,
+  DiffOutlined,
   InboxOutlined,
   ExportOutlined,
 } from '@ant-design/icons';
@@ -35,6 +39,8 @@ import WorkingTreePanel from './WorkingTreePanel';
 import WorkingTreeFileDiffPane, {
   SelectedWorkingTreeFile,
 } from './WorkingTreeFileDiffPane';
+
+const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
 
 const LIMIT = 40;
 
@@ -58,6 +64,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   );
   const [workingTreeRefresh, setWorkingTreeRefresh] = useState(0);
   const [gitActionLoading, setGitActionLoading] = useState<string | null>(null);
+  const [openGitDiff, setOpenGitDiff] = useState(false);
   const [selectedCommitFile, setSelectedCommitFile] =
     useState<CommitChangedFile | null>(null);
 
@@ -110,6 +117,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const closeWorkingTreeFileDiff = useCallback(() => {
     setSelectedWorkingTreeFile(null);
   }, []);
+
+  useHotkeys('shift+d', () => setOpenGitDiff(true), {
+    preventDefault: true,
+  });
 
   useEffect(() => {
     window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
@@ -517,6 +528,14 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             >
               Pop
             </Button>
+            <Tooltip title="Open Diff (Shift+D)">
+              <Button
+                icon={<DiffOutlined />}
+                onClick={() => setOpenGitDiff(true)}
+              >
+                Diff
+              </Button>
+            </Tooltip>
             {!loading && (
               <Tooltip
                 title="Reload Git Log"
@@ -634,6 +653,14 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           </div>
         )}
       </div>
+      {openGitDiff && (
+        <Suspense fallback={<Spin size="large" />}>
+          <GitDiff
+            isModalOpen={openGitDiff}
+            handleCancel={() => setOpenGitDiff(false)}
+          />
+        </Suspense>
+      )}
     </>
   );
 }

@@ -74,7 +74,8 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  height: 24px;
+  min-height: 32px;
+  border: 0;
 }
 
 .worktree-item:hover {
@@ -521,6 +522,11 @@ body {
 .worktrees-panel-header .ant-collapse-content-box {
   padding: 0 !important;
   padding-block: 4px !important;
+}
+
+.worktrees-panel-header,
+.worktrees-panel-header > .ant-collapse-content {
+  border: 0 !important;
 }
 
 .ant-table-wrapper {
