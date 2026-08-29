@@ -84,6 +84,40 @@ export default function WorkingTreeFileDiffPane({
     };
   }, [onClose, repositoryPath, revision, selection]);
 
+  useEffect(() => {
+    let cancelled = false;
+    let requestInProgress = false;
+
+    const refreshPatchSilently = async () => {
+      if (requestInProgress) return;
+      requestInProgress = true;
+      try {
+        const contents = await window.electron.ipcRenderer.invoke(
+          'get-working-tree-file-diff',
+          repositoryPath,
+          selection.file.path,
+          selection.staged,
+          selection.file.untracked,
+        );
+        if (!cancelled) {
+          if (!contents.trim()) onClose();
+          else
+            setPatch((current) => (current === contents ? current : contents));
+        }
+      } catch {
+        // Keep the currently rendered diff during a transient refresh failure.
+      } finally {
+        requestInProgress = false;
+      }
+    };
+
+    const interval = window.setInterval(refreshPatchSilently, 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [onClose, repositoryPath, selection]);
+
   const linePatches = useCallback((contents: string) => {
     const lines = contents.split(/\r?\n/);
     const fileHeader: string[] = [];
@@ -151,11 +185,47 @@ export default function WorkingTreeFileDiffPane({
     });
     ui.draw();
     ui.highlightCode();
+    const diffRoot = diffElement.current;
+    let synchronizingScroll = false;
+    let scrollFrame: number | null = null;
+    const synchronizeScroll = (event: Event) => {
+      if (synchronizingScroll || !(event.target instanceof HTMLElement)) return;
+      const source = event.target;
+      const sourceSide = source.closest<HTMLElement>('.d2h-file-side-diff');
+      if (!sourceSide) return;
+      const sides = Array.from(
+        diffRoot.querySelectorAll<HTMLElement>('.d2h-file-side-diff'),
+      );
+      const targetSide = sides.find((side) => side !== sourceSide);
+      if (!targetSide) return;
+
+      const sourceIsCodeWrapper = source.matches('.d2h-code-wrapper');
+      const target = sourceIsCodeWrapper
+        ? targetSide.querySelector<HTMLElement>('.d2h-code-wrapper')
+        : targetSide;
+      if (!target) return;
+
+      synchronizingScroll = true;
+      target.scrollLeft = source.scrollLeft;
+      target.scrollTop = source.scrollTop;
+      if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+      scrollFrame = window.requestAnimationFrame(() => {
+        synchronizingScroll = false;
+        scrollFrame = null;
+      });
+    };
+    diffRoot.addEventListener('scroll', synchronizeScroll, {
+      capture: true,
+      passive: true,
+    });
     const fileStatus = selection.staged
       ? selection.file.indexStatus
       : selection.file.worktreeStatus;
     if (selection.file.untracked || fileStatus === 'A' || fileStatus === 'D') {
-      return () => undefined;
+      return () => {
+        diffRoot.removeEventListener('scroll', synchronizeScroll, true);
+        if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+      };
     }
     const root = diffElement.current;
     const changes = linePatches(patch);
@@ -250,6 +320,8 @@ export default function WorkingTreeFileDiffPane({
     return () => {
       window.cancelAnimationFrame(animationFrame);
       observer.disconnect();
+      diffRoot.removeEventListener('scroll', synchronizeScroll, true);
+      if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
     };
   }, [isDarkMode, linePatches, onChanged, patch, repositoryPath, selection]);
 

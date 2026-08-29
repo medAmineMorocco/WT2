@@ -58,6 +58,44 @@ export default function CommitFileDiffPane({
       });
       ui.draw();
       ui.highlightCode();
+      const diffRoot = diffElement.current;
+      let synchronizingScroll = false;
+      let scrollFrame: number | null = null;
+      const synchronizeScroll = (event: Event) => {
+        if (synchronizingScroll || !(event.target instanceof HTMLElement)) {
+          return;
+        }
+        const source = event.target;
+        const sourceSide = source.closest<HTMLElement>('.d2h-file-side-diff');
+        if (!sourceSide) return;
+        const sides = Array.from(
+          diffRoot.querySelectorAll<HTMLElement>('.d2h-file-side-diff'),
+        );
+        const targetSide = sides.find((side) => side !== sourceSide);
+        if (!targetSide) return;
+
+        const target = source.matches('.d2h-code-wrapper')
+          ? targetSide.querySelector<HTMLElement>('.d2h-code-wrapper')
+          : targetSide;
+        if (!target) return;
+
+        synchronizingScroll = true;
+        target.scrollLeft = source.scrollLeft;
+        target.scrollTop = source.scrollTop;
+        if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+        scrollFrame = window.requestAnimationFrame(() => {
+          synchronizingScroll = false;
+          scrollFrame = null;
+        });
+      };
+      diffRoot.addEventListener('scroll', synchronizeScroll, {
+        capture: true,
+        passive: true,
+      });
+      return () => {
+        diffRoot.removeEventListener('scroll', synchronizeScroll, true);
+        if (scrollFrame !== null) window.cancelAnimationFrame(scrollFrame);
+      };
     },
     [isDarkMode],
   );

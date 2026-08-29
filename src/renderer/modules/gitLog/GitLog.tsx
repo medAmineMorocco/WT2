@@ -108,6 +108,15 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         if (!currentFile) return null;
         if (selection.staged && !currentFile.staged) return null;
         if (!selection.staged && !currentFile.unstaged) return null;
+        if (
+          selection.file.indexStatus === currentFile.indexStatus &&
+          selection.file.worktreeStatus === currentFile.worktreeStatus &&
+          selection.file.staged === currentFile.staged &&
+          selection.file.unstaged === currentFile.unstaged &&
+          selection.file.untracked === currentFile.untracked
+        ) {
+          return selection;
+        }
         return { ...selection, file: currentFile };
       });
     },
@@ -116,6 +125,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const closeWorkingTreeFileDiff = useCallback(() => {
     setSelectedWorkingTreeFile(null);
+  }, []);
+
+  const handleWorkingTreeFileChanged = useCallback(() => {
+    setWorkingTreeRefresh((value) => value + 1);
   }, []);
 
   useHotkeys('shift+d', () => setOpenGitDiff(true), {
@@ -574,7 +587,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                   selection={selectedWorkingTreeFile}
                   repositoryPath={selectedRepositoryPath}
                   onClose={closeWorkingTreeFileDiff}
-                  onChanged={() => setWorkingTreeRefresh((value) => value + 1)}
+                  onChanged={handleWorkingTreeFileChanged}
                 />
               )}
               {!selectedWorkingTreeFile &&
