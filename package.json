@@ -74,7 +74,6 @@
   "dependencies": {
     "@ant-design/pro-components": "2.7.15",
     "@emotion/is-prop-valid": "^1.4.0",
-    "@nanonets/graft": "0.10.1",
     "@sentry/electron": "6.11.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "^6.0.0",
@@ -161,7 +160,8 @@
   },
   "resolutions": {
     "node-abi": "3.94.0",
-    "node-gyp": "^12.1.0"
+    "node-gyp": "^12.1.0",
+    "@electron/node-gyp": "git+https://github.com/electron/node-gyp.git#06b29aafb7708acef8b3669835c8a7857ebc92d2"
   },
   "build": {
     "nativeModules": {
