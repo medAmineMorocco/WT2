@@ -53,6 +53,7 @@ const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
 );
 const RenameWorktree = lazy(() => import('./RenameWorktree'));
+const LockWorktree = lazy(() => import('./LockWorktree'));
 const MoveWorktree = lazy(() => import('./MoveWorktree'));
 const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 
@@ -83,6 +84,7 @@ export default function ListWorktrees({
   const [form] = Form.useForm();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
@@ -106,6 +108,7 @@ export default function ListWorktrees({
   const [enabledEditors, setEnabledEditors] = useState([]);
 
   const [loadingRenameWorktree, setLoadingRenameWorktree] = useState(false);
+  const [loadingLockWorktree, setLoadingLockWorktree] = useState(false);
 
   const [loadingMoveWorktree, setLoadingMoveWorktree] = useState(false);
 
@@ -296,6 +299,7 @@ export default function ListWorktrees({
       toLock: boolean,
       result: any,
     ) => {
+      setLoadingLockWorktree(false);
       if (code === 0) {
         notification.success({
           message: toLock
@@ -304,6 +308,7 @@ export default function ListWorktrees({
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        if (toLock) setIsLockModalOpen(false);
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
@@ -440,6 +445,17 @@ export default function ListWorktrees({
       form.getFieldValue('newWorktreeName'),
       form.getFieldValue('oldWorktreePath'),
       tabRepoPath,
+    );
+  };
+
+  const lockWorktree = () => {
+    setLoadingLockWorktree(true);
+    window.electron.ipcRenderer.send(
+      'change-lock-worktree',
+      true,
+      form.getFieldValue('lockWorktreePath'),
+      tabRepoPath,
+      form.getFieldValue('lockReason') || undefined,
     );
   };
 
@@ -692,12 +708,10 @@ export default function ListWorktrees({
         return;
       }
       if (key === 'lock') {
-        window.electron.ipcRenderer.send(
-          'change-lock-worktree',
-          true,
-          worktree.path,
-          tabRepoPath,
-        );
+        form.setFieldValue('lockWorktreePath', worktree.path);
+        form.setFieldValue('lockWorktreeName', worktree.name);
+        form.setFieldValue('lockReason', '');
+        setIsLockModalOpen(true);
         return;
       }
       if (key === 'unlock') {
@@ -823,7 +837,18 @@ export default function ListWorktrees({
               >
                 {/* eslint-disable-next-line no-nested-ternary */}
                 {worktree.isLocked ? (
-                  <LockOutlined />
+                  <Tooltip
+                    title={
+                      worktree.lockReason
+                        ? `Lock reason: ${worktree.lockReason}`
+                        : 'Worktree is locked'
+                    }
+                    placement="right"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    <LockOutlined style={{ color: token.colorWarning }} />
+                  </Tooltip>
                 ) : worktree.prunable ? (
                   <Tooltip
                     title="Gitdir file points to non-existent location"
@@ -849,9 +874,8 @@ export default function ListWorktrees({
                   </Tooltip>
                 </span>
                 {Object.values(
-                  activeAgentsByWorktree[
-                    worktreeActivityKey(worktree.path)
-                  ] || {},
+                  activeAgentsByWorktree[worktreeActivityKey(worktree.path)] ||
+                    {},
                 ).length > 0 && (
                   <span
                     className="worktree-agent-status"
@@ -897,7 +921,9 @@ export default function ListWorktrees({
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}
                 >
-                  <MoreOutlined style={{ cursor: 'pointer', padding: '2px 4px' }} />
+                  <MoreOutlined
+                    style={{ cursor: 'pointer', padding: '2px 4px' }}
+                  />
                 </Tooltip>
               </Dropdown>
             </li>
@@ -924,6 +950,20 @@ export default function ListWorktrees({
               onFinish={onFinish}
               handleCancel={handleCancel}
               loading={loadingRenameWorktree}
+            />
+          </Suspense>
+        )}
+        {isLockModalOpen && (
+          <Suspense fallback={<Spin size="large" />}>
+            <LockWorktree
+              isModalOpen={isLockModalOpen}
+              form={form}
+              onFinish={lockWorktree}
+              handleCancel={() => {
+                setIsLockModalOpen(false);
+                form.setFieldValue('lockReason', '');
+              }}
+              loading={loadingLockWorktree}
             />
           </Suspense>
         )}

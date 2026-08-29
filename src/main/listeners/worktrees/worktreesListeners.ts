@@ -153,7 +153,10 @@ ipcMain.on(
           'node_modules',
           'Sharing node_modules with selected worktree',
         );
-        await nodeModulesSharingService.linkNodeModules(sourcePath, worktreePath);
+        await nodeModulesSharingService.linkNodeModules(
+          sourcePath,
+          worktreePath,
+        );
       }
       if (environmentIsolation) {
         await environmentIsolationService.generateIsolatedEnvironmentSources(
@@ -452,12 +455,18 @@ ipcMain.on(
     toLock: boolean,
     worktreePath: string,
     directory: string,
+    reason?: string,
   ) {
     try {
       log.info(
         `Changing lock of worktree with path ${worktreePath} to ${toLock}`,
       );
-      await worktreeMainService.changeLock(toLock, worktreePath, directory);
+      await worktreeMainService.changeLock(
+        toLock,
+        worktreePath,
+        directory,
+        reason,
+      );
       event.sender.send('worktrees-changed-lock', 0, toLock);
     } catch (err: any) {
       log.error(

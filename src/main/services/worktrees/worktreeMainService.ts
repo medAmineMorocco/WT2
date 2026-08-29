@@ -475,7 +475,7 @@ function findAll(directory: string) {
     try {
       const gitCommand = await gitMainService.gitCommand();
       exec(
-        `"${gitCommand}" worktree list`,
+        `"${gitCommand}" worktree list --porcelain`,
         {
           cwd: directory,
         },
@@ -483,27 +483,39 @@ function findAll(directory: string) {
           if (error) {
             reject(error);
           }
-          const lines = stdout.trim().split('\n');
+          const records = stdout.trim().split(/\r?\n\r?\n/);
 
-          const worktrees = lines.map((line: string) => {
-            const lineBySpace = line.split(/\s+/g);
-            const pathRep = lineBySpace[0];
-            const head = lineBySpace[1];
-            let name = '';
-            if (lineBySpace[2]) {
-              name = lineBySpace[2].replace('[', '').replace(']', '');
-            }
-            const isLocked = lineBySpace[3] === 'locked';
-            const prunable = lineBySpace[3] === 'prunable';
+          const worktrees = records.map((record: string) => {
+            const lines = record.split(/\r?\n/);
+            const valueFor = (key: string) =>
+              lines
+                .find(
+                  (line: string) => line === key || line.startsWith(`${key} `),
+                )
+                ?.slice(key.length)
+                .trim() || '';
+            const pathRep = valueFor('worktree');
+            const head = valueFor('HEAD');
+            const branch = valueFor('branch').replace(/^refs\/heads\//, '');
+            const isLocked = lines.some(
+              (line: string) => line === 'locked' || line.startsWith('locked '),
+            );
+            const lockReason = isLocked ? valueFor('locked') : '';
+            const prunable = lines.some(
+              (line: string) =>
+                line === 'prunable' || line.startsWith('prunable '),
+            );
 
             return {
               isPrimary: isPrimaryWorktree(pathRep),
               path: pathRep,
               directoryExists: existsSync(pathRep),
-              name,
+              name:
+                branch || (lines.includes('detached') ? 'DETACHED HEAD' : ''),
               resolvedName: path.basename(pathRep),
               head,
               isLocked,
+              lockReason,
               prunable,
             };
           });
@@ -808,32 +820,22 @@ async function repairMovedWorktrees(dir: string, movedWorktreePaths: string[]) {
   return runGit(gitCommand, dir, ['worktree', 'repair', ...paths]);
 }
 
-function changeLock(toLock: boolean, worktreePath: string, dir: string) {
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve, reject) => {
-    try {
-      const gitCommand = await gitMainService.gitCommand();
-      const resolvedWorktreeName = path.basename(worktreePath);
-      assertWorktreeExists(dir, resolvedWorktreeName);
-      const command = toLock
-        ? `"${gitCommand}" worktree lock ${resolvedWorktreeName}`
-        : `"${gitCommand}" worktree unlock ${resolvedWorktreeName}`;
-      exec(
-        command,
-        {
-          cwd: dir,
-        },
-        (error: any, stdout: any) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(stdout);
-        },
-      );
-    } catch (e) {
-      reject(e);
-    }
-  });
+async function changeLock(
+  toLock: boolean,
+  worktreePath: string,
+  dir: string,
+  reason?: string,
+) {
+  const gitCommand = await gitMainService.gitCommand();
+  const resolvedWorktreeName = path.basename(worktreePath);
+  assertWorktreeExists(dir, resolvedWorktreeName);
+  const normalizedReason = reason?.trim();
+  return runGit(gitCommand, dir, [
+    'worktree',
+    toLock ? 'lock' : 'unlock',
+    ...(toLock && normalizedReason ? ['--reason', normalizedReason] : []),
+    resolvedWorktreeName,
+  ]);
 }
 
 function getWorktreesFolder(dir: string) {
