@@ -505,6 +505,7 @@ function findAll(directory: string) {
               (line: string) =>
                 line === 'prunable' || line.startsWith('prunable '),
             );
+            const pruneReason = prunable ? valueFor('prunable') : '';
 
             return {
               isPrimary: isPrimaryWorktree(pathRep),
@@ -517,6 +518,7 @@ function findAll(directory: string) {
               isLocked,
               lockReason,
               prunable,
+              pruneReason,
             };
           });
           resolve(worktrees);
@@ -778,27 +780,64 @@ function rename(
   });
 }
 
-function prune(dir: string) {
+function prune(dir: string, worktreePaths: string[] = []) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
       const gitCommand = await gitMainService.gitCommand();
-      exec(
-        `"${gitCommand}" worktree prune`,
-        {
-          cwd: dir,
-        },
-        (error: any, stdout: any) => {
-          if (error) {
-            reject(error);
-          }
-          resolve(stdout);
-        },
+      if (worktreePaths.length === 0) {
+        throw new Error('Select at least one damaged worktree to prune.');
+      }
+      const latestPreview = await previewPrune(dir);
+      const allowedPaths = new Set(
+        latestPreview.worktrees.map((worktree) =>
+          path.normalize(worktree.path),
+        ),
       );
+      const invalidPath = worktreePaths.find(
+        (worktreePath) => !allowedPaths.has(path.normalize(worktreePath)),
+      );
+      if (invalidPath) {
+        throw new Error(
+          `Worktree is no longer eligible for pruning: ${invalidPath}`,
+        );
+      }
+      const output = await Promise.all(
+        worktreePaths.map((worktreePath) =>
+          runGit(gitCommand, dir, [
+            'worktree',
+            'remove',
+            '--force',
+            worktreePath,
+          ]),
+        ),
+      );
+      resolve(output.join('\n'));
     } catch (e) {
       reject(e);
     }
   });
+}
+
+async function previewPrune(dir: string) {
+  const gitCommand = await gitMainService.gitCommand();
+  const output = await runGit(gitCommand, dir, [
+    'worktree',
+    'prune',
+    '--dry-run',
+    '--verbose',
+  ]);
+  const worktrees = (await findAll(dir)) as Array<{
+    name: string;
+    resolvedName: string;
+    path: string;
+    prunable: boolean;
+    pruneReason?: string;
+  }>;
+  return {
+    output: output.trim(),
+    worktrees: worktrees.filter((worktree) => worktree.prunable),
+  };
 }
 
 /**
@@ -899,6 +938,7 @@ export default {
   removeWithLocalBranch,
   rename,
   prune,
+  previewPrune,
   repairMovedWorktrees,
   changeLock,
   getWorktreesFolder,

@@ -16,8 +16,11 @@ import {
   notification,
   Button,
   Collapse,
+  Checkbox,
   Avatar,
   Spin,
+  Modal,
+  Typography,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -39,6 +42,7 @@ import {
   ToolOutlined,
   RobotOutlined,
   SisternodeOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -116,6 +120,19 @@ export default function ListWorktrees({
     useState(false);
 
   const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+  const [prunePreviewLoading, setPrunePreviewLoading] =
+    useState<boolean>(false);
+  const [pruneModalOpen, setPruneModalOpen] = useState(false);
+  const [prunePreview, setPrunePreview] = useState<{
+    output: string;
+    worktrees: Array<{
+      name: string;
+      resolvedName: string;
+      path: string;
+      pruneReason?: string;
+    }>;
+  }>({ output: '', worktrees: [] });
+  const [selectedPrunePaths, setSelectedPrunePaths] = useState<string[]>([]);
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
 
@@ -349,6 +366,7 @@ export default function ListWorktrees({
         setPruneLoading(false);
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         if (code === 0) {
+          setPruneModalOpen(false);
           notification.success({
             message: 'Stale worktrees have been successfully pruned',
             placement: 'bottomLeft',
@@ -737,10 +755,37 @@ export default function ListWorktrees({
     window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
   };
 
-  const onClickPrune = (event: any) => {
+  const onClickPrune = async (event: any) => {
     event.stopPropagation();
+    setPrunePreviewLoading(true);
+    try {
+      const preview = await window.electron.ipcRenderer.invoke(
+        'preview-prune-worktrees',
+        tabRepoPath,
+      );
+      setPrunePreview(preview);
+      setSelectedPrunePaths(
+        preview.worktrees.map((worktree: { path: string }) => worktree.path),
+      );
+      setPruneModalOpen(true);
+    } catch (error: any) {
+      notification.error({
+        message: 'Unable to inspect prunable worktrees',
+        description: error?.message || String(error),
+        placement: 'bottomLeft',
+      });
+    } finally {
+      setPrunePreviewLoading(false);
+    }
+  };
+
+  const confirmPrune = () => {
     setPruneLoading(true);
-    window.electron.ipcRenderer.send('prune-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send(
+      'prune-worktrees',
+      tabRepoPath,
+      selectedPrunePaths,
+    );
   };
 
   useHotkeys('shift+p', onClickPrune, {
@@ -776,7 +821,7 @@ export default function ListWorktrees({
             ) : (
               <LoadingOutlined />
             )}
-            {!pruneLoading ? (
+            {!pruneLoading && !prunePreviewLoading ? (
               <Tooltip
                 title={
                   <Space>
@@ -822,6 +867,129 @@ export default function ListWorktrees({
         key="1"
       >
         {contextHolder}
+        <Modal
+          className="prune-review-modal"
+          width={620}
+          title={
+            <div className="prune-review-title">
+              <span className="prune-review-title-icon">
+                <WarningOutlined />
+              </span>
+              <span>
+                <strong>Review Damaged Worktrees</strong>
+                <small>
+                  {prunePreview.worktrees.length}{' '}
+                  {prunePreview.worktrees.length === 1
+                    ? 'worktree requires attention'
+                    : 'worktrees require attention'}
+                </small>
+              </span>
+            </div>
+          }
+          open={pruneModalOpen}
+          onCancel={() => {
+            if (!pruneLoading) setPruneModalOpen(false);
+          }}
+          cancelText="Cancel"
+          okText={'Prune Worktrees'}
+          okButtonProps={{
+            danger: true,
+            disabled: selectedPrunePaths.length === 0,
+            loading: pruneLoading,
+          }}
+          onOk={confirmPrune}
+          centered
+        >
+          {prunePreview.worktrees.length > 0 ? (
+            <>
+              <div className="prune-selection-toolbar">
+                <Checkbox
+                  checked={
+                    selectedPrunePaths.length === prunePreview.worktrees.length
+                  }
+                  indeterminate={
+                    selectedPrunePaths.length > 0 &&
+                    selectedPrunePaths.length < prunePreview.worktrees.length
+                  }
+                  onChange={(event) =>
+                    setSelectedPrunePaths(
+                      event.target.checked
+                        ? prunePreview.worktrees.map((item) => item.path)
+                        : [],
+                    )
+                  }
+                >
+                  Select all
+                </Checkbox>
+                <Typography.Text type="secondary">
+                  {selectedPrunePaths.length} selected
+                </Typography.Text>
+              </div>
+              <div className="prune-worktree-list">
+                {prunePreview.worktrees.map((worktree) => {
+                  const selected = selectedPrunePaths.includes(worktree.path);
+                  return (
+                    <div
+                      className={`prune-worktree-item ${selected ? 'selected' : ''}`}
+                      key={worktree.path}
+                      role="checkbox"
+                      aria-checked={selected}
+                      tabIndex={0}
+                      onClick={() =>
+                        setSelectedPrunePaths((current) =>
+                          selected
+                            ? current.filter((item) => item !== worktree.path)
+                            : [...current, worktree.path],
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPrunePaths((current) =>
+                            selected
+                              ? current.filter((item) => item !== worktree.path)
+                              : [...current, worktree.path],
+                          );
+                        }
+                      }}
+                    >
+                      <Checkbox checked={selected} tabIndex={-1} />
+                      <div>
+                        <Typography.Text strong className="prune-worktree-name">
+                          {worktree.name || worktree.resolvedName}
+                        </Typography.Text>
+                        <div className="prune-worktree-detail">
+                          <span>Path</span>
+                          <Typography.Text ellipsis title={worktree.path}>
+                            {worktree.path}
+                          </Typography.Text>
+                        </div>
+                        <div className="prune-worktree-detail reason">
+                          <span>Issue</span>
+                          <Typography.Text>
+                            {worktree.pruneReason ||
+                              'Git marked this worktree as prunable.'}
+                          </Typography.Text>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="prune-worktree-empty">
+              <ClearOutlined />
+              <Typography.Text>No damaged worktrees found.</Typography.Text>
+            </div>
+          )}
+          {prunePreview.output && (
+            <details className="prune-dry-run-output">
+              <summary>Git dry-run output</summary>
+              <pre>{prunePreview.output}</pre>
+            </details>
+          )}
+        </Modal>
         <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
           {worktrees.map((worktree: any) => (
             <li

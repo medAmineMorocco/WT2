@@ -675,6 +675,218 @@ html[data-color-scheme='dark'] .repository-start-card-description {
   border: 0 !important;
 }
 
+.prune-worktree-list {
+  display: flex;
+  max-height: 320px;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+
+.prune-selection-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 2px;
+}
+
+.prune-review-modal .ant-modal-content {
+  overflow: hidden;
+  padding: 0;
+  border-radius: 14px;
+}
+
+.prune-review-modal .ant-modal-header {
+  margin: 0;
+  padding: 22px 24px 18px;
+  border-bottom: 1px solid #e2e8f0;
+  background: linear-gradient(135deg, #fff7ed, #fff);
+}
+
+.prune-review-modal .ant-modal-body {
+  padding: 20px 24px;
+}
+
+.prune-review-modal .ant-modal-footer {
+  margin: 0;
+  padding: 16px 24px 20px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.prune-review-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.prune-review-title > span:last-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.prune-review-title strong {
+  font-size: 18px;
+}
+
+.prune-review-title small {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.prune-review-title-icon,
+.prune-worktree-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 10px;
+  color: #c2410c;
+  background: #ffedd5;
+}
+
+.prune-review-title-icon {
+  width: 40px;
+  height: 40px;
+  font-size: 20px;
+}
+
+.prune-worktree-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #fff7ed, #fffaf5);
+  cursor: pointer;
+  transition:
+    border-color 150ms ease,
+    background 150ms ease,
+    box-shadow 150ms ease;
+}
+
+.prune-worktree-item:hover {
+  border-color: #fb923c;
+}
+
+.prune-worktree-item.selected {
+  border-color: #f97316;
+  background: linear-gradient(135deg, #ffedd5, #fff7ed);
+  box-shadow: inset 3px 0 #f97316;
+}
+
+.prune-worktree-item > div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.prune-worktree-icon {
+  width: 34px;
+  height: 34px;
+  font-size: 17px;
+}
+
+.prune-worktree-name {
+  margin-bottom: 3px;
+  font-size: 15px;
+}
+
+.prune-worktree-detail {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+}
+
+.prune-worktree-detail > span:first-child {
+  color: #94a3b8;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.prune-worktree-detail.reason .ant-typography {
+  color: #c2410c;
+}
+
+.prune-worktree-empty {
+  display: flex;
+  min-height: 100px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.prune-dry-run-output {
+  margin-top: 12px;
+  color: #64748b;
+}
+
+.prune-dry-run-output pre {
+  max-height: 140px;
+  margin-bottom: 0;
+  padding: 10px;
+  overflow: auto;
+  border-radius: 6px;
+  background: #f1f5f9;
+  white-space: pre-wrap;
+}
+
+html[data-color-scheme='dark'] .prune-worktree-item {
+  border-color: #9a3412;
+  background: rgba(124, 45, 18, 0.22);
+}
+
+html[data-color-scheme='dark'] .prune-worktree-item.selected {
+  border-color: #f97316;
+  background: rgba(154, 52, 18, 0.3);
+}
+
+html[data-color-scheme='dark'] .prune-review-modal .ant-modal-header {
+  border-color: #334155;
+  background: linear-gradient(135deg, #29170f, #171717);
+}
+
+html[data-color-scheme='dark'] .prune-review-modal .ant-modal-footer {
+  border-color: #334155;
+}
+
+html[data-color-scheme='dark'] .prune-review-title small {
+  color: #94a3b8;
+}
+
+html[data-color-scheme='dark'] .prune-review-title-icon,
+html[data-color-scheme='dark'] .prune-worktree-icon {
+  color: #fdba74;
+  background: rgba(194, 65, 12, 0.28);
+}
+
+html[data-color-scheme='dark'] .prune-worktree-detail.reason .ant-typography {
+  color: #fb923c;
+}
+
+html[data-color-scheme='dark'] .prune-worktree-icon {
+  color: #fb923c;
+}
+
+html[data-color-scheme='dark'] .prune-worktree-empty {
+  border-color: #475569;
+  background: #111827;
+}
+
+html[data-color-scheme='dark'] .prune-dry-run-output pre {
+  color: #cbd5e1;
+  background: #111827;
+}
+
 .ant-table-wrapper {
   height: 100%;
 

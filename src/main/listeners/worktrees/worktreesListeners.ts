@@ -388,20 +388,27 @@ ipcMain.on('get-worktree-dashboard', async function (event, directory: string) {
   }
 });
 
-ipcMain.on('prune-worktrees', async function (event, directory: string) {
-  try {
-    log.info('Pruning worktrees');
-    await worktreeMainService.prune(directory);
-    event.sender.send('worktrees-pruned', 0);
-  } catch (err: any) {
-    log.error(`Failed to prune worktrees: ${err.message}`);
-    if (err instanceof BusinessError) {
-      event.sender.send('worktrees-pruned', -1, err.message);
-    } else {
-      event.sender.send('worktrees-pruned', -1, 'Failed to prune worktrees.');
+ipcMain.on(
+  'prune-worktrees',
+  async function (event, directory: string, worktreePaths: string[] = []) {
+    try {
+      log.info('Pruning worktrees');
+      await worktreeMainService.prune(directory, worktreePaths);
+      event.sender.send('worktrees-pruned', 0);
+    } catch (err: any) {
+      log.error(`Failed to prune worktrees: ${err.message}`);
+      if (err instanceof BusinessError) {
+        event.sender.send('worktrees-pruned', -1, err.message);
+      } else {
+        event.sender.send('worktrees-pruned', -1, 'Failed to prune worktrees.');
+      }
     }
-  }
-});
+  },
+);
+
+ipcMain.handle('preview-prune-worktrees', async (_event, directory: string) =>
+  worktreeMainService.previewPrune(directory),
+);
 
 ipcMain.on(
   'choose-moved-worktrees-for-repair',
