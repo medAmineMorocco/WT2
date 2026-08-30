@@ -125,6 +125,32 @@ async function executeCommand(
     }
   }
 
+  if (command.sparseCheckout) {
+    const { worktreePath, folders } = command.sparseCheckout;
+    try {
+      await worktreeMainService.configureSparseCheckout(worktreePath, folders);
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        `Sparse checkout configured for ${folders.length} selected folder${folders.length === 1 ? '' : 's'}`,
+        storedEncoding,
+        command,
+        'finished',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      return 'finish command';
+    } catch (err: any) {
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        Buffer.from(err.message),
+        storedEncoding,
+        command,
+        'error',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      throw err;
+    }
+  }
+
   if (command.environmentIsolation) {
     const { projectPath, worktreePath, worktreeName, config } =
       command.environmentIsolation;

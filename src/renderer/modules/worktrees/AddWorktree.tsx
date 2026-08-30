@@ -5,15 +5,19 @@ import {
   Form,
   Input,
   Modal,
+  Progress,
   Segmented,
   Select,
   Switch,
   Table,
   Tooltip,
+  Tree,
   Typography,
 } from 'antd';
 import {
   BranchesOutlined,
+  DatabaseOutlined,
+  FolderOpenOutlined,
   FolderOutlined,
   InfoCircleOutlined,
   StepBackwardOutlined,
@@ -31,6 +35,48 @@ import {
   IsolationStrategy,
   SuggestedCommand,
 } from '../../../shared/environmentIsolation';
+
+type SparseCheckoutFolder = {
+  title: string;
+  key: string;
+  path: string;
+  size: number;
+  children?: SparseCheckoutFolder[];
+};
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const unitIndex = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function getCoveredSize(
+  folders: SparseCheckoutFolder[],
+  checked: Set<string>,
+): number {
+  return folders.reduce(
+    (total, folder) =>
+      total +
+      (checked.has(folder.path)
+        ? folder.size
+        : getCoveredSize(folder.children || [], checked)),
+    0,
+  );
+}
+
+function getMinimalSparseFolders(paths: string[]) {
+  const selected = new Set(paths);
+  return paths.filter((folderPath) => {
+    const segments = folderPath.split('/');
+    return !segments.slice(0, -1).some((_, index) =>
+      selected.has(segments.slice(0, index + 1).join('/')),
+    );
+  });
+}
 
 export default function AddWorktree({
   isModalOpen,
@@ -64,6 +110,19 @@ export default function AddWorktree({
   const [selectedNodeModulesSourcePath, setSelectedNodeModulesSourcePath] =
     useState<string>('');
   const [shareNodeModules, setShareNodeModules] = useState(false);
+
+  const [checkoutScope, setCheckoutScope] = useState<'full' | 'selected'>(
+    'full',
+  );
+  const [sparseFolders, setSparseFolders] = useState<SparseCheckoutFolder[]>(
+    [],
+  );
+  const [selectedSparseFolders, setSelectedSparseFolders] = useState<string[]>(
+    [],
+  );
+  const [sparseTotalSize, setSparseTotalSize] = useState(0);
+  const [sparseRootSize, setSparseRootSize] = useState(0);
+  const [loadingSparseFolders, setLoadingSparseFolders] = useState(false);
 
   const [isolateEnvironment, setIsolateEnvironment] = useState(false);
 
@@ -521,6 +580,59 @@ export default function AddWorktree({
     tabRepoPath,
   ]);
 
+  const sparseCheckoutRef = useMemo(() => {
+    if (createWorktreeMode === 'existing-branch') {
+      return watchedExistingBranch || '';
+    }
+    if (createWorktreeMode === 'existing-tag') {
+      return watchedExistingTag || '';
+    }
+    return 'HEAD';
+  }, [createWorktreeMode, watchedExistingBranch, watchedExistingTag]);
+
+  useEffect(() => {
+    if (
+      !isModalOpen ||
+      checkoutScope !== 'selected' ||
+      !sparseCheckoutRef
+    ) {
+      return undefined;
+    }
+    let cancelled = false;
+    setLoadingSparseFolders(true);
+    setSelectedSparseFolders([]);
+    window.electron.ipcRenderer
+      .invoke('get-sparse-checkout-tree', tabRepoPath, sparseCheckoutRef)
+      .then((result: any) => {
+        if (cancelled) return;
+        setSparseFolders(result.folders || []);
+        setSparseTotalSize(result.totalSize || 0);
+        setSparseRootSize(result.rootSize || 0);
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        setSparseFolders([]);
+        setSparseTotalSize(0);
+        setSparseRootSize(0);
+        notification.error({
+          message: 'Unable to inspect repository folders',
+          description: error?.message || String(error),
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSparseFolders(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutScope,
+    isModalOpen,
+    notification,
+    sparseCheckoutRef,
+    tabRepoPath,
+  ]);
+
   useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {
       window.electron.ipcRenderer.send(
@@ -626,6 +738,17 @@ export default function AddWorktree({
       createWorktreeMode === 'existing-branch' && showRemoteBranches
         ? 'existing-remote-branch'
         : createWorktreeMode;
+    const selectedCheckoutFolders =
+      checkoutScope === 'selected'
+        ? getMinimalSparseFolders(selectedSparseFolders)
+        : [];
+    if (checkoutScope === 'selected' && selectedCheckoutFolders.length === 0) {
+      notification.warning({
+        message: 'Select at least one folder',
+        description: 'Choose the folders to include in this worktree.',
+      });
+      return;
+    }
 
     if (
       !environmentIsolation &&
@@ -644,6 +767,7 @@ export default function AddWorktree({
         environmentIsolation,
         shouldShareNodeModules,
         shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
+        selectedCheckoutFolders,
       );
     } else {
       log.debug('== create-worktree-workflow ==');
@@ -657,6 +781,7 @@ export default function AddWorktree({
         environmentIsolation,
         shouldShareNodeModules,
         shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
+        selectedCheckoutFolders,
       );
       setIsWorkflowPlaying(true);
       handleCancel();
@@ -727,6 +852,19 @@ export default function AddWorktree({
       );
     }
   };
+
+  const sparseCheckedSet = new Set(selectedSparseFolders);
+  const sparseEstimatedSize = Math.min(
+    sparseTotalSize,
+    sparseRootSize + getCoveredSize(sparseFolders, sparseCheckedSet),
+  );
+  const sparseEstimatedPercent =
+    sparseTotalSize > 0
+      ? Math.max(1, Math.round((sparseEstimatedSize / sparseTotalSize) * 100))
+      : 0;
+  const sparseSelectionCount = getMinimalSparseFolders(
+    selectedSparseFolders,
+  ).length;
 
   return (
     <Modal
@@ -975,6 +1113,135 @@ export default function AddWorktree({
               </Tooltip>
             </div>
           </Form.Item>
+          <section className="sparse-checkout-section">
+            <div className="sparse-checkout-heading">
+              <div className="sparse-checkout-title-group">
+                <span className="sparse-checkout-heading-icon">
+                  <BranchesOutlined />
+                </span>
+                <span>
+                  <Typography.Text strong>Repository checkout</Typography.Text>
+                  <Typography.Text type="secondary">
+                    Control which project folders are available in this
+                    worktree.
+                  </Typography.Text>
+                </span>
+              </div>
+              <span className="sparse-checkout-optional">Optional</span>
+            </div>
+            <Segmented
+              block
+              value={checkoutScope}
+              onChange={(value) =>
+                setCheckoutScope(value as 'full' | 'selected')
+              }
+              className="sparse-checkout-options"
+              options={[
+                {
+                  value: 'full',
+                  label: (
+                    <span className="sparse-checkout-option">
+                      <DatabaseOutlined />
+                      <span>
+                        <strong>Full repository</strong>
+                        <small>Checkout every file and folder</small>
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  value: 'selected',
+                  label: (
+                    <span className="sparse-checkout-option">
+                      <FolderOpenOutlined />
+                      <span>
+                        <strong>Selected folders</strong>
+                        <small>Keep the worktree lightweight</small>
+                      </span>
+                    </span>
+                  ),
+                },
+              ]}
+            />
+            {checkoutScope === 'selected' && (
+              <div className="sparse-checkout-picker">
+                <div className="sparse-checkout-picker-header">
+                  <span>
+                    <FolderOpenOutlined />
+                    Choose folders
+                  </span>
+                  {sparseSelectionCount > 0 && (
+                    <span className="sparse-checkout-selection-count">
+                      {sparseSelectionCount} selected
+                    </span>
+                  )}
+                </div>
+                <div className="sparse-checkout-tree-wrap">
+                  {!sparseCheckoutRef ? (
+                    <Typography.Text type="secondary">
+                      Select a branch or tag to browse its folders.
+                    </Typography.Text>
+                  ) : loadingSparseFolders ? (
+                    <Typography.Text type="secondary">
+                      Inspecting repository folders…
+                    </Typography.Text>
+                  ) : sparseFolders.length === 0 ? (
+                    <Typography.Text type="secondary">
+                      This revision has no folders to select.
+                    </Typography.Text>
+                  ) : (
+                    <Tree
+                      checkable
+                      selectable={false}
+                      checkedKeys={selectedSparseFolders}
+                      treeData={sparseFolders}
+                      onCheck={(keys) =>
+                        setSelectedSparseFolders(
+                          (Array.isArray(keys) ? keys : keys.checked).map(
+                            String,
+                          ),
+                        )
+                      }
+                      titleRender={(node: any) => (
+                        <span className="sparse-checkout-folder-label">
+                          <span>{node.title}</span>
+                          <Typography.Text type="secondary">
+                            {formatBytes(node.size)}
+                          </Typography.Text>
+                        </span>
+                      )}
+                    />
+                  )}
+                </div>
+                {sparseTotalSize > 0 && (
+                  <div className="sparse-checkout-estimate">
+                    <div className="sparse-checkout-estimate-copy">
+                      <span>
+                        <Typography.Text type="secondary">
+                          Estimated checkout
+                        </Typography.Text>
+                        <Typography.Text strong>
+                          {formatBytes(sparseEstimatedSize)}
+                        </Typography.Text>
+                      </span>
+                      <span className="sparse-checkout-percent">
+                        ~{sparseEstimatedPercent}%
+                      </span>
+                    </div>
+                    <Progress
+                      percent={sparseEstimatedPercent}
+                      size="small"
+                      showInfo={false}
+                      strokeColor={{ from: '#1677ff', to: '#36cfc9' }}
+                    />
+                    <Typography.Text type="secondary">
+                      Full repository size: {formatBytes(sparseTotalSize)}
+                    </Typography.Text>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
           {nodeModulesWorktrees.length > 0 && (
             <div style={{ marginBottom: 12 }}>
               <Checkbox

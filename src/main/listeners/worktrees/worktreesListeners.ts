@@ -8,6 +8,12 @@ import environmentIsolationService, {
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 
+ipcMain.handle(
+  'get-sparse-checkout-tree',
+  async (_event, directory: string, ref?: string) =>
+    worktreeMainService.getSparseCheckoutTree(directory, ref || 'HEAD'),
+);
+
 ipcMain.on(
   'check-main-node-modules',
   async function (event, directory: string) {
@@ -128,6 +134,7 @@ ipcMain.on(
     environmentIsolation?: EnvironmentIsolationConfig,
     shareNodeModules?: boolean,
     nodeModulesSourcePath?: string,
+    sparseFolders?: string[],
   ) {
     let gitWorktreeCreated = false;
     try {
@@ -144,6 +151,7 @@ ipcMain.on(
         worktreePath,
         createWorktreeMode,
         directory,
+        sparseFolders,
       );
       gitWorktreeCreated = true;
       if (shareNodeModules) {

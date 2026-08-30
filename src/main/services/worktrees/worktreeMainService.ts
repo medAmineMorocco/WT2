@@ -554,15 +554,108 @@ function getWorktreesSeparator() {
   });
 }
 
-function add(
+type SparseCheckoutFolder = {
+  title: string;
+  key: string;
+  path: string;
+  size: number;
+  children: SparseCheckoutFolder[];
+};
+
+async function getSparseCheckoutTree(dir: string, ref = 'HEAD') {
+  const gitCommand = await gitMainService.gitCommand();
+  const output = await runGit(gitCommand, dir, [
+    'ls-tree',
+    '-r',
+    '-l',
+    '-z',
+    ref,
+  ]);
+  const roots = new Map<string, SparseCheckoutFolder>();
+  let totalSize = 0;
+  let rootSize = 0;
+
+  output.split('\0').forEach((record) => {
+    if (!record) return;
+    const separatorIndex = record.indexOf('\t');
+    if (separatorIndex < 0) return;
+    const metadata = record.slice(0, separatorIndex).trim().split(/\s+/);
+    const filePath = record.slice(separatorIndex + 1);
+    if (metadata[1] !== 'blob') return;
+    const size = Number(metadata[3]);
+    const normalizedSize = Number.isFinite(size) ? size : 0;
+    totalSize += normalizedSize;
+    const segments = filePath.split('/');
+    if (segments.length < 2) {
+      rootSize += normalizedSize;
+      return;
+    }
+
+    let level = roots;
+    let currentPath = '';
+    segments.slice(0, -1).forEach((segment) => {
+      currentPath = currentPath ? `${currentPath}/${segment}` : segment;
+      let folder = level.get(segment);
+      if (!folder) {
+        folder = {
+          title: segment,
+          key: currentPath,
+          path: currentPath,
+          size: 0,
+          children: [],
+        };
+        level.set(segment, folder);
+      }
+      folder.size += normalizedSize;
+      const childMap = new Map(
+        folder.children.map((child) => [child.title, child]),
+      );
+      level = childMap;
+      folder.children = Array.from(childMap.values());
+    });
+  });
+
+  const sortFolders = (folders: SparseCheckoutFolder[]) =>
+    folders
+      .map((folder) => ({
+        ...folder,
+        children: sortFolders(folder.children),
+      }))
+      .sort((left, right) => left.title.localeCompare(right.title));
+
+  return {
+    totalSize,
+    rootSize,
+    folders: sortFolders(Array.from(roots.values())),
+  };
+}
+
+async function configureSparseCheckout(
+  worktreePath: string,
+  sparseFolders: string[],
+) {
+  if (sparseFolders.length === 0) return;
+  const gitCommand = await gitMainService.gitCommand();
+  await runGit(gitCommand, worktreePath, [
+    'sparse-checkout',
+    'init',
+    '--cone',
+  ]);
+  await runGit(gitCommand, worktreePath, [
+    'sparse-checkout',
+    'set',
+    ...sparseFolders,
+  ]);
+}
+
+async function add(
   name: string,
   worktreePath: string,
   createWorktreeMode: string,
   dir: string,
+  sparseFolders: string[] = [],
 ) {
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve, reject) => {
-    try {
+  try {
       const gitCommand = await gitMainService.gitCommand();
       assertWorktreeNotExists(dir, name);
       assertWorktreePathIsAvailable(name, worktreePath);
@@ -597,11 +690,13 @@ function add(
       execSync(command, {
         cwd: dir,
       });
-      resolve('created');
+      if (sparseFolders.length > 0) {
+        await configureSparseCheckout(worktreePath, sparseFolders);
+      }
+      return 'created';
     } catch (e) {
-      reject(e);
+      throw e;
     }
-  });
 }
 
 function addFromCommit(
@@ -946,4 +1041,6 @@ export default {
   moveWorktreeToFolder,
   branchExists,
   getPathPreviewOfPattern,
+  getSparseCheckoutTree,
+  configureSparseCheckout,
 };

@@ -39,6 +39,7 @@ ipcMain.on(
     environmentIsolation?: EnvironmentIsolationConfig,
     shareNodeModules?: boolean,
     nodeModulesSourcePath?: string,
+    sparseFolders?: string[],
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -138,6 +139,33 @@ ipcMain.on(
           worktreeName,
         },
       ];
+    }
+    if (sparseFolders && sparseFolders.length > 0) {
+      const sparseCheckoutCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Configure sparse checkout',
+        display: 'Configure sparse checkout',
+        sparseCheckout: {
+          worktreePath: worktreesFolder,
+          folders: sparseFolders,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = sparseCheckoutCommand;
+      } else {
+        const createCommandIndex = workflow.commands.findIndex(
+          (candidate: any) => candidate.worktreeToCreate,
+        );
+        if (createCommandIndex >= 0) {
+          workflow.commands.splice(
+            createCommandIndex + 1,
+            0,
+            sparseCheckoutCommand,
+          );
+        } else {
+          workflow.commands.unshift(sparseCheckoutCommand);
+        }
+      }
     }
     if (shareNodeModules) {
       const sourcePath = nodeModulesSourcePath || dir;
