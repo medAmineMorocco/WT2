@@ -570,6 +570,10 @@ function add(
       if (createWorktreeMode === 'existing-branch') {
         assertBranchExists(dir, name);
         command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
+      } else if (createWorktreeMode === 'existing-remote-branch') {
+        const localBranchName = name.replace(/^[^/]+\//, '');
+        assertBranchNotExists(dir, localBranchName);
+        command = `"${gitCommand}" worktree add --track -b ${localBranchName} ${worktreePath} ${name}`;
       } else if (createWorktreeMode === 'existing-tag') {
         assertTagExists(dir, name);
         const branchNameForTag = name.replaceAll('.', '-');

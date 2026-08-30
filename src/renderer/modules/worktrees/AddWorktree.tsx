@@ -7,6 +7,7 @@ import {
   Modal,
   Segmented,
   Select,
+  Switch,
   Table,
   Tooltip,
   Typography,
@@ -47,6 +48,7 @@ export default function AddWorktree({
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
   const [branches, setBranches] = useState<any[]>([]);
+  const [showRemoteBranches, setShowRemoteBranches] = useState(false);
 
   const [tags, setTags] = useState<any[]>([]);
 
@@ -521,12 +523,23 @@ export default function AddWorktree({
 
   useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {
-      window.electron.ipcRenderer.send('list-branches', tabRepoPath);
+      window.electron.ipcRenderer.send(
+        'list-branches',
+        tabRepoPath,
+        showRemoteBranches,
+      );
     }
     if (createWorktreeMode === 'existing-tag' && isModalOpen) {
       window.electron.ipcRenderer.send('list-tags', tabRepoPath);
     }
-  }, [activeTab, createWorktreeMode, form, isModalOpen, tabRepoPath]);
+  }, [
+    activeTab,
+    createWorktreeMode,
+    form,
+    isModalOpen,
+    showRemoteBranches,
+    tabRepoPath,
+  ]);
 
   const onChangeCreateWorktreeMode = (newVal: string) => {
     setCreateWorktreeMode(newVal);
@@ -609,6 +622,10 @@ export default function AddWorktree({
         : undefined;
     const shouldShareNodeModules =
       shareNodeModules && nodeModulesWorktrees.length > 0;
+    const effectiveCreateWorktreeMode =
+      createWorktreeMode === 'existing-branch' && showRemoteBranches
+        ? 'existing-remote-branch'
+        : createWorktreeMode;
 
     if (
       !environmentIsolation &&
@@ -622,7 +639,7 @@ export default function AddWorktree({
         'create-worktree',
         worktreeName,
         worktreesFolder + pathSeparator + getWorktreeName(),
-        createWorktreeMode,
+        effectiveCreateWorktreeMode,
         tabRepoPath,
         environmentIsolation,
         shouldShareNodeModules,
@@ -633,7 +650,7 @@ export default function AddWorktree({
       window.electron.ipcRenderer.send(
         'create-worktree-workflow',
         values,
-        createWorktreeMode,
+        effectiveCreateWorktreeMode,
         worktreeName.replaceAll('.', '-'),
         worktreesFolder + pathSeparator + getWorktreeName(),
         tabRepoPath,
@@ -793,27 +810,61 @@ export default function AddWorktree({
             </Form.Item>
           )}
           {createWorktreeMode === 'existing-branch' && (
-            <Form.Item
-              label="Existing branch"
-              name="existing-branch"
-              rules={[
-                {
-                  required: true,
-                  whitespace: true,
-                  message: 'Please choose a branch.',
-                },
-              ]}
-              style={{ marginBottom: 12 }}
-            >
-              <Select
-                ref={selectBranchRef}
-                allowClear
-                showSearch
-                placeholder="Select branch"
-                options={branches}
-                onChange={onSelectBranchChange}
-              />
-            </Form.Item>
+            <>
+              <Form.Item
+                label={
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <span>
+                      {showRemoteBranches ? 'Remote branch' : 'Local branch'}
+                    </span>
+                    <Switch
+                      size="small"
+                      checked={showRemoteBranches}
+                      checkedChildren="Remote"
+                      unCheckedChildren="Local"
+                      onChange={(checked) => {
+                        setShowRemoteBranches(checked);
+                        setBranches([]);
+                        form.setFieldValue('existing-branch', undefined);
+                      }}
+                    />
+                  </span>
+                }
+                name="existing-branch"
+                extra={
+                  showRemoteBranches
+                    ? 'Creates a local tracking branch for the selected remote branch'
+                    : undefined
+                }
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Please choose a branch.',
+                  },
+                ]}
+                style={{ marginBottom: 12 }}
+              >
+                <Select
+                  ref={selectBranchRef}
+                  allowClear
+                  showSearch
+                  placeholder={
+                    showRemoteBranches
+                      ? 'Select remote branch'
+                      : 'Select local branch'
+                  }
+                  options={branches}
+                  onChange={onSelectBranchChange}
+                />
+              </Form.Item>
+            </>
           )}
           {createWorktreeMode === 'existing-tag' && (
             <Form.Item
@@ -928,9 +979,7 @@ export default function AddWorktree({
             <div style={{ marginBottom: 12 }}>
               <Checkbox
                 checked={shareNodeModules}
-                onChange={(event) =>
-                  setShareNodeModules(event.target.checked)
-                }
+                onChange={(event) => setShareNodeModules(event.target.checked)}
               >
                 Share node_modules
               </Checkbox>

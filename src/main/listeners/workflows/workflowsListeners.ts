@@ -51,6 +51,9 @@ ipcMain.on(
     const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
     if (createWorktreeMode === 'existing-branch') {
       command = `${gitCmd} worktree add ${worktreesFolder} ${worktreeName}`;
+    } else if (createWorktreeMode === 'existing-remote-branch') {
+      const localBranchName = worktreeName.replace(/^[^/]+\//, '');
+      command = `${gitCmd} worktree add --track -b ${localBranchName} ${worktreesFolder} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {
       const branchNameForTag = worktreeName;
       const branchExist = await worktreeMainService.branchExists(

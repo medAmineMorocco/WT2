@@ -174,16 +174,19 @@ ipcMain.on(
   },
 );
 
-ipcMain.on('list-branches', async function (event, directory: string) {
-  try {
-    log.info('Getting branches');
-    const branches = await gitMainService.listBranches(directory);
-    event.sender.send('receive-branches', 0, JSON.stringify(branches));
-  } catch (err: any) {
-    log.error(`Failed to get branches: ${err.message}`);
-    event.sender.send('receive-branches', -1, 'Failed to list branches.');
-  }
-});
+ipcMain.on(
+  'list-branches',
+  async function (event, directory: string, remote = false) {
+    try {
+      log.info('Getting branches');
+      const branches = await gitMainService.listBranches(directory, remote);
+      event.sender.send('receive-branches', 0, JSON.stringify(branches));
+    } catch (err: any) {
+      log.error(`Failed to get branches: ${err.message}`);
+      event.sender.send('receive-branches', -1, 'Failed to list branches.');
+    }
+  },
+);
 
 ipcMain.on('list-tags', async function (event, directory: string) {
   try {

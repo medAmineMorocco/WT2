@@ -608,7 +608,7 @@ function executeCommand(command: string, directory: string) {
   });
 }
 
-function listBranches(directory: string) {
+function listBranches(directory: string, remote = false) {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const options = {
@@ -619,12 +619,14 @@ function listBranches(directory: string) {
       log.debug(`** gitCmd: ${gitCmd}`);
 
       const allBranches = execSync(
-        `"${gitCmd}" branch --format="%(refname:short)"`,
+        `"${gitCmd}" branch ${remote ? '--remotes ' : ''}--format="%(refname:short)"`,
         options,
       )
         .toString()
         .trim()
-        .split('\n');
+        .split('\n')
+        .map((branch) => branch.trim())
+        .filter(Boolean);
       log.debug(`** allBranches: ${allBranches}`);
 
       const worktreeOutput = execSync(
@@ -640,9 +642,11 @@ function listBranches(directory: string) {
         .map((line) => line.split(' ')[1].replace('refs/heads/', ''));
       log.debug(`** worktreeBranches: ${worktreeBranches}`);
 
-      const branchesNotInWorktrees = allBranches.filter(
-        (branch) => !worktreeBranches.includes(branch),
-      );
+      const branchesNotInWorktrees = allBranches.filter((branch) => {
+        if (!branch || branch.endsWith('/HEAD')) return false;
+        if (remote) return true;
+        return !worktreeBranches.includes(branch);
+      });
       log.debug(`** branchesNotInWorktrees: ${branchesNotInWorktrees}`);
 
       resolve(branchesNotInWorktrees);
