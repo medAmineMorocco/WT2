@@ -12,6 +12,7 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, dialog, screen } from 'electron';
 import fs from 'fs';
 import os from 'os';
+import { spawn } from 'child_process';
 import * as Sentry from '@sentry/electron/main';
 import log from './utils/logger';
 import MenuBuilder from './menu';
@@ -25,6 +26,7 @@ import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
 import workflowsMainService from './services/workflows/workflowsMainService';
 import utils from './utils/utils';
+import gitMainService from './services/git/gitMainService';
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
@@ -361,6 +363,78 @@ ipcMain.on('choose-dir', async function (event, keyTab) {
     );
   }
 });
+
+ipcMain.handle('choose-clone-directory', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Choose where to clone the repository',
+    properties: ['openDirectory', 'createDirectory'],
+  });
+  return result.canceled ? null : result.filePaths[0];
+});
+
+ipcMain.handle(
+  'clone-repository',
+  async (
+    _event,
+    repositoryUrl: string,
+    parentDirectory: string,
+    folderName?: string,
+  ) => {
+    const url = repositoryUrl?.trim();
+    const parent = parentDirectory?.trim();
+    if (!url) throw new Error('Enter a repository URL.');
+    if (!parent || !fs.existsSync(parent)) {
+      throw new Error('Choose an existing destination folder.');
+    }
+    const inferredName = url
+      .replace(/[\\/]+$/, '')
+      .split(/[\\/]/)
+      .pop()
+      ?.replace(/\.git$/i, '');
+    const name = folderName?.trim() || inferredName;
+    if (!name || name === '.' || name === '..' || /[\\/:*?"<>|]/.test(name)) {
+      throw new Error('Enter a valid folder name for the cloned repository.');
+    }
+    const targetPath = path.join(parent, name);
+    if (fs.existsSync(targetPath)) {
+      throw new Error(`The destination already exists: ${targetPath}`);
+    }
+
+    const gitExecutable = await gitMainService.gitCommand();
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn(
+        gitExecutable,
+        ['clone', '--progress', url, targetPath],
+        {
+          cwd: parent,
+          shell: false,
+          windowsHide: true,
+        },
+      );
+      const stderr: Buffer[] = [];
+      child.stderr.on('data', (chunk) => stderr.push(Buffer.from(chunk)));
+      child.on('error', reject);
+      child.on('close', (code) => {
+        if (code === 0) resolve();
+        else {
+          reject(
+            new Error(
+              Buffer.concat(stderr).toString().trim() ||
+                `Git clone exited with code ${code}.`,
+            ),
+          );
+        }
+      });
+    });
+
+    const appMetadataPath = path.join(targetPath, '.git', conf.appPath);
+    if (!fs.existsSync(appMetadataPath)) {
+      fs.mkdirSync(appMetadataPath, { recursive: true });
+    }
+    return { path: targetPath, name };
+  },
+);
 
 ipcMain.on(
   'choose-dir-from-outside',
