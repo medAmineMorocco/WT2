@@ -8,6 +8,9 @@ import {
   CodexAdapter,
   CursorCliAdapter,
   AntigravityCliAdapter,
+  QwenCodeAdapter,
+  KimiCodeAdapter,
+  OpenCodeAdapter,
   getAgentAdapter,
 } from '../index';
 import { AIAgentSessionManager } from '../../AIAgentSessionManager';
@@ -19,6 +22,9 @@ describe('AI Agent Adapters', () => {
       assert.ok(getAgentAdapter('codex') instanceof CodexAdapter);
       assert.ok(getAgentAdapter('cursor') instanceof CursorCliAdapter);
       assert.ok(getAgentAdapter('antigravity') instanceof AntigravityCliAdapter);
+      assert.ok(getAgentAdapter('qwen') instanceof QwenCodeAdapter);
+      assert.ok(getAgentAdapter('kimi') instanceof KimiCodeAdapter);
+      assert.ok(getAgentAdapter('opencode') instanceof OpenCodeAdapter);
     });
   });
 });

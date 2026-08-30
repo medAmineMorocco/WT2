@@ -1,4 +1,11 @@
-export type AiAgentId = 'claude' | 'codex' | 'cursor' | 'antigravity';
+export type AiAgentId =
+  | 'claude'
+  | 'codex'
+  | 'cursor'
+  | 'antigravity'
+  | 'qwen'
+  | 'kimi'
+  | 'opencode';
 
 export type AgentExecutionState =
   | 'starting'
@@ -65,6 +72,27 @@ export const aiAgentsDefault: AiAgentConfig[] = [
     id: 'antigravity',
     label: 'Antigravity CLI',
     command: 'agy',
+    args: '',
+    enabled: false,
+  },
+  {
+    id: 'qwen',
+    label: 'Qwen Code',
+    command: 'qwen',
+    args: '',
+    enabled: false,
+  },
+  {
+    id: 'kimi',
+    label: 'Kimi Code',
+    command: 'kimi',
+    args: '',
+    enabled: false,
+  },
+  {
+    id: 'opencode',
+    label: 'OpenCode',
+    command: 'opencode',
     args: '',
     enabled: false,
   },

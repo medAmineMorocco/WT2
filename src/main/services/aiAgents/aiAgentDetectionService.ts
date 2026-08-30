@@ -29,6 +29,18 @@ const AGENT_BINARIES: Record<AiAgentId, string[]> = {
     'agy.cmd',
     'agy',
   ],
+  qwen: ['qwen.cmd', 'qwen.exe', 'qwen', 'qwen.bat', 'qwen.ps1'],
+  kimi: ['kimi.cmd', 'kimi.exe', 'kimi', 'kimi.bat', 'kimi.ps1'],
+  opencode: [
+    'opencode.cmd',
+    'opencode.exe',
+    'opencode',
+    'opencode.bat',
+    'opencode.ps1',
+    'opencode2.cmd',
+    'opencode2.exe',
+    'opencode2',
+  ],
 };
 
 function getSearchDirectories(): string[] {
@@ -69,7 +81,13 @@ function getSearchDirectories(): string[] {
     dirs.add(path.join(home, '.local', 'bin'));
     dirs.add(path.join(home, '.cursor', 'bin'));
     dirs.add(path.join(home, '.agy', 'bin'));
+    dirs.add(path.join(home, '.qwen', 'bin'));
+    dirs.add(path.join(home, '.kimi', 'bin'));
+    dirs.add(path.join(home, '.opencode', 'bin'));
     dirs.add(path.join(home, '.gemini', 'bin'));
+    dirs.add(path.join(home, '.qwen', 'bin'));
+    dirs.add(path.join(home, '.kimi', 'bin'));
+    dirs.add(path.join(home, '.opencode', 'bin'));
     dirs.add(path.join(home, '.gemini', 'antigravity-ide', 'bin'));
   } else {
     // 3. macOS and Linux well-known directories
@@ -235,7 +253,15 @@ export async function detectAiAgent(agentId: AiAgentId): Promise<DetectionResult
 }
 
 export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionResult>> {
-  const agentIds: AiAgentId[] = ['claude', 'codex', 'cursor', 'antigravity'];
+  const agentIds: AiAgentId[] = [
+    'claude',
+    'codex',
+    'cursor',
+    'antigravity',
+    'qwen',
+    'kimi',
+    'opencode',
+  ];
   const results: Partial<Record<AiAgentId, DetectionResult>> = {};
 
   await Promise.all(

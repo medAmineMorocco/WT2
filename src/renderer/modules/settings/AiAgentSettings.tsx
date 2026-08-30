@@ -408,7 +408,7 @@ export default function AiAgentSettings({
             label="Executable Command / Path"
             name="command"
             rules={[{ required: true, message: 'Please specify the executable command' }]}
-            extra="e.g. claude, codex, cursor-agent, antigravity"
+            extra="e.g. claude, codex, cursor-agent, agy, qwen, kimi, opencode"
           >
             <Input allowClear />
           </Form.Item>
