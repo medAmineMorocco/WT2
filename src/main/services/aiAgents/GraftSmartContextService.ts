@@ -4,6 +4,7 @@ import log from '../../utils/logger';
 type GraftModule = typeof import('@nanonets/graft');
 
 const MAX_CONTEXT_CHARS = 12000;
+const MAX_CACHED_ENGINES = 2;
 
 /**
  * Loads Graft at runtime because it is an ESM package while Electron's main
@@ -20,6 +21,8 @@ export class GraftSmartContextService {
 
   private refreshes = new Map<string, Promise<void>>();
 
+  private lastUsed = new Map<string, number>();
+
   private normalizePath(value: string): string {
     return value.replace(/\\/g, '/').toLowerCase();
   }
@@ -27,12 +30,43 @@ export class GraftSmartContextService {
   private async engineFor(worktreePath: string): Promise<Graft> {
     const key = this.normalizePath(worktreePath);
     const existing = this.engines.get(key);
-    if (existing) return existing;
+    if (existing) {
+      this.lastUsed.set(key, Date.now());
+      return existing;
+    }
+
+    if (this.engines.size >= MAX_CACHED_ENGINES) {
+      const oldestKey = [...this.lastUsed.entries()].sort(
+        (left, right) => left[1] - right[1],
+      )[0]?.[0];
+      if (oldestKey) this.releaseByKey(oldestKey);
+    }
 
     const { Graft: GraftEngine } = await importEsm('@nanonets/graft');
     const engine = new GraftEngine();
     this.engines.set(key, engine);
+    this.lastUsed.set(key, Date.now());
     return engine;
+  }
+
+  private releaseByKey(key: string): void {
+    const engine = this.engines.get(key) as any;
+    this.engines.delete(key);
+    this.lastUsed.delete(key);
+    this.refreshes.delete(key);
+    try {
+      engine?.dispose?.();
+    } catch (error) {
+      log.warn(`Unable to dispose Smart Context for ${key}: ${error}`);
+    }
+  }
+
+  release(worktreePath: string): void {
+    this.releaseByKey(this.normalizePath(worktreePath));
+  }
+
+  disposeAll(): void {
+    [...this.engines.keys()].forEach((key) => this.releaseByKey(key));
   }
 
   private async refresh(worktreePath: string, engine: Graft): Promise<void> {

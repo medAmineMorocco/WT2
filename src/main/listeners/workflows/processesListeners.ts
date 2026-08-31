@@ -13,6 +13,15 @@ let logStates: any[] = [];
 
 let worktreesStates: any[] = [];
 
+const MAX_WORKFLOW_COMMAND_OUTPUT_CHARS = 250000;
+
+function boundedWorkflowOutput(value: string): string {
+  if (value.length <= MAX_WORKFLOW_COMMAND_OUTPUT_CHARS) return value;
+  return `[Earlier output omitted to limit memory usage]\n${value.slice(
+    -MAX_WORKFLOW_COMMAND_OUTPUT_CHARS,
+  )}`;
+}
+
 type ActiveProcessEntry = {
   process: any;
   kill: () => void;
@@ -69,7 +78,9 @@ async function getNewlogStates(
         }
         item.data[command.key] = {
           command: command.display ? command.display : command.value,
-          output: utils.setEncoding(logOutput, storedEncoding),
+          output: boundedWorkflowOutput(
+            utils.setEncoding(logOutput, storedEncoding),
+          ),
           suggestedCommands: command.suggestedCommands || [],
         };
         if (status) {

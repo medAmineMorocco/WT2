@@ -23,6 +23,7 @@ type TerminalSession = {
 
 const sessions = new Map<string, TerminalSession>();
 const registeredOwners = new Set<number>();
+const MAX_TERMINAL_OUTPUT_BUFFER_CHARS = 30000;
 
 function closeSession(sessionId: string) {
   const session = sessions.get(sessionId);
@@ -120,7 +121,7 @@ ipcMain.on(
         if (terminalSession) {
           terminalSession.outputBuffer = (
             terminalSession.outputBuffer + data
-          ).slice(-100000);
+          ).slice(-MAX_TERMINAL_OUTPUT_BUFFER_CHARS);
         }
         if (!event.sender.isDestroyed()) {
           const binding = aiAgentSessionManager.getBinding(sessionId);

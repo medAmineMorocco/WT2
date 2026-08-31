@@ -31,16 +31,19 @@ import {
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
-import CommitDetailsPanel from './CommitDetailsPanel';
-import CommitFileDiffPane from './CommitFileDiffPane';
 import { CommitChangedFile } from '../../../shared/gitCommit';
 import { WorkingTreeStatus } from '../../../shared/workingTree';
-import WorkingTreePanel from './WorkingTreePanel';
-import WorkingTreeFileDiffPane, {
+import type {
   SelectedWorkingTreeFile,
 } from './WorkingTreeFileDiffPane';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
+const CommitDetailsPanel = lazy(() => import('./CommitDetailsPanel'));
+const CommitFileDiffPane = lazy(() => import('./CommitFileDiffPane'));
+const WorkingTreePanel = lazy(() => import('./WorkingTreePanel'));
+const WorkingTreeFileDiffPane = lazy(
+  () => import('./WorkingTreeFileDiffPane'),
+);
 
 const LIMIT = 40;
 
@@ -300,12 +303,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     };
 
     const refreshFromExternalChange = () => {
+      if (document.visibilityState !== 'visible') return;
       refreshWorkingTree();
       setWorkingTreeRefresh((value) => value + 1);
     };
 
     refreshWorkingTree();
-    const interval = window.setInterval(refreshFromExternalChange, 1500);
+    const interval = window.setInterval(refreshFromExternalChange, 4000);
     window.addEventListener('focus', refreshFromExternalChange);
 
     return () => {
@@ -583,22 +587,26 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           <div className="git-log-workspace">
             <div className="git-log-commits-pane">
               {workingTreeSelected && selectedWorkingTreeFile && (
-                <WorkingTreeFileDiffPane
-                  selection={selectedWorkingTreeFile}
-                  repositoryPath={selectedRepositoryPath}
-                  onClose={closeWorkingTreeFileDiff}
-                  onChanged={handleWorkingTreeFileChanged}
-                />
+                <Suspense fallback={<Spin size="large" />}>
+                  <WorkingTreeFileDiffPane
+                    selection={selectedWorkingTreeFile}
+                    repositoryPath={selectedRepositoryPath}
+                    onClose={closeWorkingTreeFileDiff}
+                    onChanged={handleWorkingTreeFileChanged}
+                  />
+                </Suspense>
               )}
               {!selectedWorkingTreeFile &&
                 selectedCommit &&
                 selectedCommitFile && (
-                  <CommitFileDiffPane
-                    commit={selectedCommit}
-                    file={selectedCommitFile}
-                    repositoryPath={tabRepoPath}
-                    onClose={() => setSelectedCommitFile(null)}
-                  />
+                  <Suspense fallback={<Spin size="large" />}>
+                    <CommitFileDiffPane
+                      commit={selectedCommit}
+                      file={selectedCommitFile}
+                      repositoryPath={tabRepoPath}
+                      onClose={() => setSelectedCommitFile(null)}
+                    />
+                  </Suspense>
                 )}
               {!selectedWorkingTreeFile &&
                 !(selectedCommit && selectedCommitFile) && (
@@ -635,33 +643,37 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 )}
             </div>
             {selectedCommit && (
-              <CommitDetailsPanel
-                commit={selectedCommit}
-                repositoryPath={tabRepoPath}
-                selectedFile={selectedCommitFile}
-                onFileSelect={setSelectedCommitFile}
-                onClose={() => {
-                  setSelectedCommit(null);
-                  setSelectedCommitFile(null);
-                }}
-              />
+              <Suspense fallback={<Spin size="large" />}>
+                <CommitDetailsPanel
+                  commit={selectedCommit}
+                  repositoryPath={tabRepoPath}
+                  selectedFile={selectedCommitFile}
+                  onFileSelect={setSelectedCommitFile}
+                  onClose={() => {
+                    setSelectedCommit(null);
+                    setSelectedCommitFile(null);
+                  }}
+                />
+              </Suspense>
             )}
             {workingTreeSelected && (
-              <WorkingTreePanel
-                repositoryPath={selectedRepositoryPath}
-                refreshToken={workingTreeRefresh}
-                selectedFile={selectedWorkingTreeFile}
-                onFileSelect={setSelectedWorkingTreeFile}
-                onStatusChange={handleWorkingTreeStatusChange}
-                onCommitted={() => {
-                  setWorkingTreeRefresh((value) => value + 1);
-                  reloadGitLog(false);
-                }}
-                onClose={() => {
-                  setWorkingTreeSelected(false);
-                  setSelectedWorkingTreeFile(null);
-                }}
-              />
+              <Suspense fallback={<Spin size="large" />}>
+                <WorkingTreePanel
+                  repositoryPath={selectedRepositoryPath}
+                  refreshToken={workingTreeRefresh}
+                  selectedFile={selectedWorkingTreeFile}
+                  onFileSelect={setSelectedWorkingTreeFile}
+                  onStatusChange={handleWorkingTreeStatusChange}
+                  onCommitted={() => {
+                    setWorkingTreeRefresh((value) => value + 1);
+                    reloadGitLog(false);
+                  }}
+                  onClose={() => {
+                    setWorkingTreeSelected(false);
+                    setSelectedWorkingTreeFile(null);
+                  }}
+                />
+              </Suspense>
             )}
           </div>
         )}

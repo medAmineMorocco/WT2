@@ -21,7 +21,11 @@ export interface AgentPtySession {
   promptBuffer: string;
   inputChain: Promise<void>;
   smartContextEnabled: boolean;
+  lastUsedAt: number;
 }
+
+const MAX_CACHED_AGENT_SESSIONS_PER_WORKTREE = 2;
+const MAX_AGENT_OUTPUT_BUFFER_CHARS = 30000;
 
 export class AIAgentSessionManager {
   // Map of normalized worktreePath -> (Map of agentId -> AgentPtySession)
@@ -69,7 +73,42 @@ export class AIAgentSessionManager {
     agentId: AiAgentId,
   ): AgentPtySession | undefined {
     const norm = this.normalizePath(worktreePath);
-    return this.worktreeSessions.get(norm)?.get(agentId);
+    const session = this.worktreeSessions.get(norm)?.get(agentId);
+    if (session) session.lastUsedAt = Date.now();
+    return session;
+  }
+
+  private isSessionBound(worktreePath: string, agentId: AiAgentId): boolean {
+    const normalizedPath = this.normalizePath(worktreePath);
+    return [...this.activeTerminalBindings.values()].some(
+      (binding) =>
+        binding.mode === 'agent' &&
+        binding.activeAgentId === agentId &&
+        this.normalizePath(binding.worktreePath) === normalizedPath,
+    );
+  }
+
+  private evictInactiveSessions(
+    agentMap: Map<AiAgentId, AgentPtySession>,
+    worktreePath: string,
+    incomingAgentId: AiAgentId,
+  ): void {
+    if (agentMap.has(incomingAgentId)) return;
+    while (agentMap.size >= MAX_CACHED_AGENT_SESSIONS_PER_WORKTREE) {
+      const candidate = [...agentMap.values()]
+        .filter(
+          (session) =>
+            !this.isSessionBound(worktreePath, session.agentId),
+        )
+        .sort((left, right) => left.lastUsedAt - right.lastUsedAt)[0];
+      if (!candidate) return;
+      agentMap.delete(candidate.agentId);
+      try {
+        candidate.ptyProcess?.kill();
+      } catch (error) {
+        log.warn(`Unable to release inactive agent ${candidate.agentId}: ${error}`);
+      }
+    }
   }
 
   getOrCreateAgentPtySession(
@@ -87,6 +126,8 @@ export class AIAgentSessionManager {
       agentMap = new Map<AiAgentId, AgentPtySession>();
       this.worktreeSessions.set(norm, agentMap);
     }
+
+    this.evictInactiveSessions(agentMap, worktreePath, agentConfig.id);
 
     let session = agentMap.get(agentConfig.id);
     if (!session || !session.ptyProcess) {
@@ -173,14 +214,17 @@ export class AIAgentSessionManager {
         promptBuffer: '',
         inputChain: Promise.resolve(),
         smartContextEnabled: false,
+        lastUsedAt: Date.now(),
       };
 
       agentMap.set(agentConfig.id, session);
 
       ptyProcess.onData((data: string) => {
         if (!session) return;
-        // Keep bounded output buffer for rehydration (up to 100k characters)
-        session.outputBuffer = (session.outputBuffer + data).slice(-100000);
+        session.lastUsedAt = Date.now();
+        session.outputBuffer = (session.outputBuffer + data).slice(
+          -MAX_AGENT_OUTPUT_BUFFER_CHARS,
+        );
 
         const binding = this.activeTerminalBindings.get(session.activeSessionId);
         if (
@@ -212,12 +256,17 @@ export class AIAgentSessionManager {
             );
           }
           agentMap?.delete(session.agentId);
+          if (agentMap?.size === 0) {
+            this.worktreeSessions.delete(norm);
+            graftSmartContextService.release(session.worktreePath);
+          }
         }
       });
     } else {
       // Re-attach active session ID and sender
       session.activeSessionId = sessionId;
       session.sender = sender;
+      session.lastUsedAt = Date.now();
       if (cols && rows) {
         session.cols = cols;
         session.rows = rows;
@@ -440,7 +489,25 @@ export class AIAgentSessionManager {
   }
 
   closeSession(sessionId: string): void {
+    const binding = this.activeTerminalBindings.get(sessionId);
     this.activeTerminalBindings.delete(sessionId);
+    if (!binding || binding.mode !== 'agent') return;
+    if (this.isSessionBound(binding.worktreePath, binding.activeAgentId)) return;
+    const norm = this.normalizePath(binding.worktreePath);
+    const agentMap = this.worktreeSessions.get(norm);
+    const session = agentMap?.get(binding.activeAgentId);
+    if (session) {
+      agentMap?.delete(binding.activeAgentId);
+      try {
+        session.ptyProcess?.kill();
+      } catch (error) {
+        log.warn(`Unable to close agent ${binding.activeAgentId}: ${error}`);
+      }
+    }
+    if (agentMap?.size === 0) {
+      this.worktreeSessions.delete(norm);
+      graftSmartContextService.release(binding.worktreePath);
+    }
   }
 
   closeWorktreeSessions(worktreePath: string): void {
@@ -454,6 +521,7 @@ export class AIAgentSessionManager {
       } catch {}
     }
     this.worktreeSessions.delete(norm);
+    graftSmartContextService.release(worktreePath);
   }
 
   disposeAll(): void {
@@ -466,6 +534,7 @@ export class AIAgentSessionManager {
     }
     this.worktreeSessions.clear();
     this.activeTerminalBindings.clear();
+    graftSmartContextService.disposeAll();
   }
 }
 

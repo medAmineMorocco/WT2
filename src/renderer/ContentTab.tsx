@@ -30,13 +30,13 @@ import {
 import { useHotkeys } from 'react-hotkeys-hook';
 import { motion } from 'framer-motion';
 import Worktrees from './modules/worktrees/Worktrees';
-import Execution from './modules/execution/Execution';
 import TabService from './services/tab/TabService';
 import { useItemsContext } from './TabsContext';
 import Loader from './components/Loader';
 
 const { Content } = Layout;
 const Workflows = lazy(() => import('./modules/workflows/Workflows'));
+const Execution = lazy(() => import('./modules/execution/Execution'));
 const GitLog = lazy(() => import('./modules/gitLog/GitLog'));
 const WorktreeOverview = lazy(
   () => import('./modules/worktrees/WorktreeOverview'),
@@ -354,9 +354,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
           >
             <Content style={{ margin: '8px' }}>
               {mode === 'WORKFLOW' && (
-                <div ref={ref3}>
-                  <Execution />
-                </div>
+                <Suspense fallback={<Spin size="large" />}>
+                  <div ref={ref3}>
+                    <Execution />
+                  </div>
+                </Suspense>
               )}
               {mode === 'WORKFLOW' && (
                 <Suspense fallback={<Spin size="large" />}>

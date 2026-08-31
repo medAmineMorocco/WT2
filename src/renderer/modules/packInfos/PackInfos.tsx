@@ -22,9 +22,12 @@ import {
   WarningOutlined,
   UserSwitchOutlined,
 } from '@ant-design/icons';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import iconImage from './icon.png';
-import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
+
+const FreelancerIllustration = lazy(
+  () => import('../../components/illustrations/FreelancerIllustration'),
+);
 
 const { useToken } = theme;
 
@@ -299,7 +302,11 @@ export default function PackInfos() {
           width="60%"
         >
           <Result
-            icon={<FreelancerIllustration width="50%" />}
+            icon={
+              <Suspense fallback={null}>
+                <FreelancerIllustration width="50%" />
+              </Suspense>
+            }
             title="Your trial has expired. We hope you enjoyed your trial."
             subTitle="We invite you to upgrade to a paid plan for continued access to our premium features and services."
             extra={

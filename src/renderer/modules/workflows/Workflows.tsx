@@ -1,4 +1,11 @@
-import React, { forwardRef, useEffect, useMemo, useState } from 'react';
+import React, {
+  forwardRef,
+  lazy,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   App as AntdApp,
   Badge,
@@ -10,6 +17,7 @@ import {
   Table,
   theme,
   Tooltip,
+  Spin,
 } from 'antd';
 import {
   ExclamationCircleFilled,
@@ -24,13 +32,14 @@ import {
   Delete02Icon,
   Copy01Icon,
 } from 'hugeicons-react';
-import EditWorkflow from './EditWorkflow';
-import AddWorkflow from './AddWorkflow';
-import ImportWorkflow from './ImportWorkflow';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
 
 const { useToken } = theme;
+
+const EditWorkflow = lazy(() => import('./EditWorkflow'));
+const AddWorkflow = lazy(() => import('./AddWorkflow'));
+const ImportWorkflow = lazy(() => import('./ImportWorkflow'));
 
 const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const {
@@ -521,21 +530,31 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
               </Button>
             </Tooltip>
           </Space>
-          <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
+          {openAdd && (
+            <Suspense fallback={<Spin size="large" />}>
+              <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
+            </Suspense>
+          )}
           {openImport && (
-            <ImportWorkflow
-              isOpen={openImport}
-              onConfirm={onConfirmImport}
-              onCancel={onCancelImport}
-              workflows={workflowsToImport}
-            />
+            <Suspense fallback={<Spin size="large" />}>
+              <ImportWorkflow
+                isOpen={openImport}
+                onConfirm={onConfirmImport}
+                onCancel={onCancelImport}
+                workflows={workflowsToImport}
+              />
+            </Suspense>
           )}
         </div>
-        <EditWorkflow
-          openEdit={openEdit}
-          onCloseEdit={onCloseEdit}
-          workflow={workflowToEdit}
-        />
+        {openEdit && (
+          <Suspense fallback={<Spin size="large" />}>
+            <EditWorkflow
+              openEdit={openEdit}
+              onCloseEdit={onCloseEdit}
+              workflow={workflowToEdit}
+            />
+          </Suspense>
+        )}
         <div
           style={{
             flexGrow: 1,

@@ -1,4 +1,4 @@
-import { ConfigProvider, Layout, Menu, MenuProps, theme } from 'antd';
+import { ConfigProvider, Layout, Menu, MenuProps, Spin, theme } from 'antd';
 import {
   RollbackOutlined,
   ApiOutlined,
@@ -9,15 +9,16 @@ import {
   RobotOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { Tree02Icon } from 'hugeicons-react';
-import EditorSettings from './EditorSettings';
-import CacheSettings from './CacheSettings';
-import GitSettings from './GitSettings';
-import ShellSettings from './ShellSettings';
-import EncodingSettings from './EncodingSettings';
-import WorktreeSettings from './WorktreeSettings';
-import AiAgentSettings from './AiAgentSettings';
+
+const EditorSettings = lazy(() => import('./EditorSettings'));
+const CacheSettings = lazy(() => import('./CacheSettings'));
+const GitSettings = lazy(() => import('./GitSettings'));
+const ShellSettings = lazy(() => import('./ShellSettings'));
+const EncodingSettings = lazy(() => import('./EncodingSettings'));
+const WorktreeSettings = lazy(() => import('./WorktreeSettings'));
+const AiAgentSettings = lazy(() => import('./AiAgentSettings'));
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -136,7 +137,9 @@ export default function Settings() {
                   : colorBgContainer,
               }}
             >
-              {getContent()}
+              <Suspense fallback={<Spin size="large" />}>
+                {getContent()}
+              </Suspense>
             </Layout.Content>
           </Layout>
         </Layout>

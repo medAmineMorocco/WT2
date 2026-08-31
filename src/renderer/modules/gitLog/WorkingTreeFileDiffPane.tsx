@@ -89,7 +89,7 @@ export default function WorkingTreeFileDiffPane({
     let requestInProgress = false;
 
     const refreshPatchSilently = async () => {
-      if (requestInProgress) return;
+      if (requestInProgress || document.visibilityState !== 'visible') return;
       requestInProgress = true;
       try {
         const contents = await window.electron.ipcRenderer.invoke(
@@ -111,7 +111,7 @@ export default function WorkingTreeFileDiffPane({
       }
     };
 
-    const interval = window.setInterval(refreshPatchSilently, 1500);
+    const interval = window.setInterval(refreshPatchSilently, 4000);
     return () => {
       cancelled = true;
       window.clearInterval(interval);
