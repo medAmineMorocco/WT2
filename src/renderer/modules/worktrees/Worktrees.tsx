@@ -1,8 +1,7 @@
 import React, { forwardRef, lazy, Suspense, useState } from 'react';
-import { Layout, Space, Tag, Radio, Spin } from 'antd';
+import { Layout, Radio, Spin } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import ListWorktrees from './ListWorktrees';
-import PackInfos from '../packInfos/PackInfos';
 import { useItemsContext } from '../../TabsContext';
 
 const AddWorktree = lazy(() => import('./AddWorktree'));
@@ -91,31 +90,18 @@ const Worktrees = forwardRef<
               padding: '16px',
             }}
           >
-            <Space direction="vertical" style={{ width: '100%' }}>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
-                <Radio.Group
-                  className="worktree-mode-selector"
-                  options={optionsWithDisabled}
-                  onChange={onChangeMode}
-                  value={mode}
-                  optionType="button"
-                  buttonStyle="solid"
-                  size="small"
-                />
-              </div>
-              <PackInfos />
-            </Space>
+            <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <Radio.Group
+                className="worktree-mode-selector"
+                options={optionsWithDisabled}
+                onChange={onChangeMode}
+                value={mode}
+                optionType="button"
+                buttonStyle="solid"
+                size="small"
+              />
+            </div>
           </div>
-          <Tag
-            style={{
-              position: 'absolute',
-              bottom: '12px',
-              left: 'calc(50% - 25px)',
-              zIndex: 8,
-            }}
-          >
-            {window.localStorage.getItem('VERSION') || ''}
-          </Tag>
         </>
       )}
     </Sider>

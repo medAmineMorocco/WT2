@@ -26,6 +26,7 @@ import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
 
 const KeyboardShortcuts = lazy(() => import('./modules/KeyboardShortcuts'));
+const PackInfos = lazy(() => import('./modules/packInfos/PackInfos'));
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
@@ -379,6 +380,13 @@ function Hello() {
       <AntdApp>
         <Tabs
           type="editable-card"
+          tabBarExtraContent={{
+            right: (
+              <Suspense fallback={null}>
+                <PackInfos />
+              </Suspense>
+            ),
+          }}
           onChange={onChange}
           activeKey={activeKey}
           onEdit={onEdit}

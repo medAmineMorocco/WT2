@@ -2961,3 +2961,118 @@ html[data-color-scheme='dark'] .sparse-checkout-percent {
 .sparse-checkout-estimate .ant-progress {
   margin: 7px 0 2px;
 }
+.profile-tab-button {
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin-inline: 6px 10px;
+  border-radius: 8px;
+}
+
+.profile-tab-button .ant-avatar,
+.profile-popover-header .ant-avatar {
+  flex: none;
+  background: var(--ant-color-primary, #1677ff);
+}
+
+.profile-tab-name {
+  max-width: 130px;
+  overflow: hidden;
+  color: var(--ant-color-text);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.profile-popover .ant-popover-inner {
+  width: 310px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.profile-popover-content {
+  padding: 14px;
+}
+
+.profile-popover-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px;
+}
+
+.profile-popover-header > div:last-child {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.profile-popover-content .ant-divider {
+  margin: 12px 0;
+}
+
+.profile-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 7px 2px;
+}
+
+.profile-info-row > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ant-color-text-secondary);
+}
+
+.profile-trial-block {
+  margin: 6px 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: var(--ant-color-fill-quaternary);
+}
+
+.profile-trial-block > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.profile-trial-block span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.profile-trial-block .ant-progress {
+  margin: 5px 0 1px;
+}
+
+.profile-popover-content > .ant-btn:last-child {
+  margin-top: 5px;
+}
+
+.subscription-modal-brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.subscription-modal-brand .ant-typography {
+  margin: 0;
+}
+
+.subscription-error {
+  margin-top: 12px;
+}
+
+@media (max-width: 850px) {
+  .profile-tab-name {
+    display: none;
+  }
+}
