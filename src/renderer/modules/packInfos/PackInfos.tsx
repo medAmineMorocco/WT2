@@ -17,6 +17,7 @@ import {
 import { Award05Icon } from 'hugeicons-react';
 import {
   CalendarOutlined,
+  CreditCardOutlined,
   DownOutlined,
   KeyOutlined,
   LogoutOutlined,
@@ -221,9 +222,22 @@ export default function PackInfos() {
                 <Segmented
                   block
                   options={[
-                    { label: 'Subscription', value: 'subscription' },
                     {
-                      label: 'Free Trial',
+                      label: (
+                        <Space size={6}>
+                          <CreditCardOutlined />
+                          <span>Subscription</span>
+                        </Space>
+                      ),
+                      value: 'subscription',
+                    },
+                    {
+                      label: (
+                        <Space size={6}>
+                          <RocketOutlined />
+                          <span>Free Trial</span>
+                        </Space>
+                      ),
                       value: 'trial',
                       disabled: packInfos?.pack === 'Free Trial',
                     },
