@@ -821,6 +821,7 @@ export default function TerminalInteractive({
   const [focusedTerminalId, setFocusedTerminalId] = useState<string | null>(
     null,
   );
+  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
 
   const registerTerminalFocus = useCallback(
     (id: string, focus: (() => void) | null) => {
@@ -885,7 +886,10 @@ export default function TerminalInteractive({
       onCancel={handleCancel}
       keyboard={false}
       afterOpenChange={(open) => {
-        if (!open) return;
+        if (!open) {
+          setIsWorkspaceExpanded(false);
+          return;
+        }
         window.setTimeout(() => {
           const input = document.querySelector(
             '.terminal-workspace-modal .xterm-helper-textarea',
@@ -896,10 +900,19 @@ export default function TerminalInteractive({
       footer={null}
       destroyOnClose
       closable={false}
-      className="terminal-workspace-modal"
+      className={`terminal-workspace-modal${
+        isWorkspaceExpanded ? ' is-expanded' : ''
+      }`}
       rootClassName={isDarkMode ? 'terminal-workspace-theme-dark' : ''}
-      width="calc(100% - 216px)"
-      style={{ position: 'absolute', right: 8, top: 48, paddingBottom: 0 }}
+      width={isWorkspaceExpanded ? '100vw' : 'calc(100% - 216px)'}
+      style={{
+        position: 'absolute',
+        right: isWorkspaceExpanded ? 0 : 8,
+        top: isWorkspaceExpanded ? 0 : 48,
+        maxWidth: isWorkspaceExpanded ? 'none' : undefined,
+        margin: isWorkspaceExpanded ? 0 : undefined,
+        paddingBottom: 0,
+      }}
     >
       <div className="terminal-workspace-toolbar">
         <Space>
@@ -933,6 +946,26 @@ export default function TerminalInteractive({
               aria-label="Close terminal workspace"
               icon={<CloseOutlined />}
               onClick={handleCancel}
+            />
+          </Tooltip>
+          <Tooltip
+            title={
+              isWorkspaceExpanded
+                ? 'Restore terminal workspace size'
+                : 'Expand terminal workspace'
+            }
+          >
+            <Button
+              type="text"
+              aria-label={
+                isWorkspaceExpanded
+                  ? 'Restore terminal workspace size'
+                  : 'Expand terminal workspace'
+              }
+              icon={
+                isWorkspaceExpanded ? <CompressOutlined /> : <ExpandOutlined />
+              }
+              onClick={() => setIsWorkspaceExpanded((expanded) => !expanded)}
             />
           </Tooltip>
         </Space>

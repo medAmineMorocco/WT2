@@ -67,6 +67,11 @@
   border-radius: 8px;
 }
 
+.terminal-workspace-modal.is-expanded .ant-modal-content {
+  height: 100vh;
+  border-radius: 0;
+}
+
 .terminal-workspace-theme-dark.ant-modal-root .ant-modal-content,
 .terminal-workspace-theme-dark .ant-modal-content {
   background: var(--terminal-panel-bg) !important;
