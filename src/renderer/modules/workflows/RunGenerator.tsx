@@ -11,7 +11,6 @@ import {
   Space,
   Tag,
 } from 'antd';
-import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
 
@@ -46,7 +45,7 @@ export default function RunGenerator({
       }
     });
     setIsWorkflowPlaying(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'run-generator',
       generator.generatorName,
       parameters,

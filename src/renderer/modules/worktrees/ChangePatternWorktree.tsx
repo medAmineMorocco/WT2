@@ -1,6 +1,5 @@
 import { AutoComplete, Button, Form, Modal, Typography } from 'antd';
 import { useEffect, useState } from 'react';
-import { ipcRenderer } from 'electron';
 import options from '../settings/patternNamingOptions';
 
 export default function ChangePatternWorktree({
@@ -22,7 +21,7 @@ export default function ChangePatternWorktree({
   const [patterns, setPatterns] = useState<any[]>(options);
 
   useEffect(() => {
-    ipcRenderer.send('get-os-separator');
+    window.electron.send('get-os-separator');
 
     const storedWorktreePatterns =
       window.localStorage.getItem('worktreePatterns');
@@ -31,7 +30,6 @@ export default function ChangePatternWorktree({
     }
 
     const onReceivePathPreview = (
-      event: any,
       code: number,
       receivedPath: string,
     ) => {
@@ -41,20 +39,20 @@ export default function ChangePatternWorktree({
       }
     };
 
-    ipcRenderer.on(
+    window.electron.on(
       'received-preview-path-change-pattern',
       onReceivePathPreview,
     );
 
     return () => {
-      ipcRenderer.removeAllListeners('received-preview-path-change-pattern');
+      window.electron.removeAllListeners('received-preview-path-change-pattern');
     };
   }, []);
 
   const onChange = (pattern: any) => {
     const worktreeToChange = form.getFieldValue('worktreeToChange');
     const repo = form.getFieldValue('repo');
-    ipcRenderer.send(
+    window.electron.send(
       'get-preview-path-change-pattern',
       worktreeToChange.name,
       worktreeToChange.path,

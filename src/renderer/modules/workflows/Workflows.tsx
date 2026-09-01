@@ -28,7 +28,6 @@ import {
   CodeIcon,
   Copy01Icon,
 } from 'hugeicons-react';
-import { ipcRenderer } from 'electron';
 import EditWorkflow from './EditWorkflow';
 import AddWorkflow from './AddWorkflow';
 import ImportWorkflow from './ImportWorkflow';
@@ -80,10 +79,10 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   }, []);
 
   useEffect(() => {
-    ipcRenderer.send('check-trial-expiration');
-    ipcRenderer.send('get-worktrees', tabRepoPath);
-    ipcRenderer.send('get-workflows', tabRepoPath);
-    const onWorkflowsFound = (event: any, code: number, result: any) => {
+    window.electron.ipcRenderer.send('check-trial-expiration');
+    window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
+    const onWorkflowsFound = (code: number, result: any) => {
       if (code === 0) {
         setWorkflows(JSON.parse(result));
         setUuid(new Date().toString());
@@ -95,9 +94,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onWorkflowsImported = (event: any, code: number, result: any) => {
+    const onWorkflowsImported = (code: number, result: any) => {
       if (code === 0) {
-        ipcRenderer.send('get-workflows', tabRepoPath);
+        window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
 
         notification.success({
           message: `${result} workflow(s) have been imported`,
@@ -107,9 +106,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onGeneratorsImported = (event: any, code: number, result: any) => {
+    const onGeneratorsImported = (code: number, result: any) => {
       if (code === 0) {
-        ipcRenderer.send('get-generators', tabRepoPath);
+        window.electron.ipcRenderer.send('get-generators', tabRepoPath);
 
         notification.success({
           message: `${result} generator(s) have been imported`,
@@ -119,9 +118,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onGeneratorDuplicated = (event: any, code: number) => {
+    const onGeneratorDuplicated = (code: number) => {
       if (code === 0) {
-        ipcRenderer.send('get-generators', tabRepoPath);
+        window.electron.ipcRenderer.send('get-generators', tabRepoPath);
       }
     };
 
@@ -130,14 +129,14 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       setPlayingWorkflow(null);
     };
 
-    const onWorkflowRemoved = (event: any, code: number, result: any) => {
+    const onWorkflowRemoved = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'The workflow has been removed',
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send('get-workflows', tabRepoPath);
+        window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         notification.error({
           message: 'Unable to Delete Workflow',
@@ -146,7 +145,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onWorktreesFound = (event: any, code: number, result: any) => {
+    const onWorktreesFound = (code: number, result: any) => {
       if (code === 0) {
         setWorktrees(
           JSON.parse(result).map((item: any) => {
@@ -166,35 +165,27 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onWorkflowsToImportFound = (
-      event: any,
-      code: number,
-      result: any,
-    ) => {
+    const onWorkflowsToImportFound = (code: number, result: any) => {
       if (code === 0) {
         setWorkflowsToImport(JSON.parse(result));
         setOpenImport(true);
       }
     };
 
-    const onWorkflowDuplicated = (event: any, code: number) => {
+    const onWorkflowDuplicated = (code: number) => {
       if (code === 0) {
-        ipcRenderer.send('get-workflows', tabRepoPath);
+        window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
       }
     };
 
-    const onWorkflowStartedFailed = (event: any, errorMsg: string) => {
+    const onWorkflowStartedFailed = (errorMsg: string) => {
       notification.error({
         message: errorMsg,
         placement: 'bottomLeft',
       });
     };
 
-    const onGeneratorsToImportFound = (
-      event: any,
-      code: number,
-      result: any,
-    ) => {
+    const onGeneratorsToImportFound = (code: number, result: any) => {
       if (code === 0) {
         setGeneratorsToImport(
           JSON.parse(result).map((generator: any) => {
@@ -206,7 +197,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onGeneratorsFound = (event: any, code: number, result: any) => {
+    const onGeneratorsFound = (code: number, result: any) => {
       if (code === 0) {
         setGenerators(JSON.parse(result));
       } else {
@@ -217,14 +208,14 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onGeneratorRemoved = (event: any, code: number, result: any) => {
+    const onGeneratorRemoved = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'The generator has been removed',
           placement: 'bottomLeft',
           duration: 0.5,
         });
-        ipcRenderer.send('get-generators', tabRepoPath);
+        window.electron.ipcRenderer.send('get-generators', tabRepoPath);
       } else {
         notification.error({
           message: 'Unable to Delete Generator',
@@ -233,9 +224,9 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    const onGeneratorCreated = (event: any, code: number) => {
+    const onGeneratorCreated = (code: number) => {
       if (code === 0) {
-        ipcRenderer.send('get-generators', tabRepoPath);
+        window.electron.ipcRenderer.send('get-generators', tabRepoPath);
       }
     };
 
@@ -254,42 +245,55 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
     };
 
-    ipcRenderer.on('workflows-found', onWorkflowsFound);
-    ipcRenderer.on('workflows-imported', onWorkflowsImported);
-    ipcRenderer.on('workflow-stopped', onWorkflowStopped);
-    ipcRenderer.on('workflow-removed', onWorkflowRemoved);
-    ipcRenderer.on('worktrees-found', onWorktreesFound);
-    ipcRenderer.on('workflows-to-import-found', onWorkflowsToImportFound);
-    ipcRenderer.on('workflow-duplicated', onWorkflowDuplicated);
-    ipcRenderer.on(
+    window.electron.ipcRenderer.on('workflows-found', onWorkflowsFound);
+    window.electron.ipcRenderer.on('workflows-imported', onWorkflowsImported);
+    window.electron.ipcRenderer.on('workflow-stopped', onWorkflowStopped);
+    window.electron.ipcRenderer.on('workflow-removed', onWorkflowRemoved);
+    window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
+    window.electron.ipcRenderer.on(
+      'workflows-to-import-found',
+      onWorkflowsToImportFound,
+    );
+    window.electron.ipcRenderer.on('workflow-duplicated', onWorkflowDuplicated);
+    window.electron.ipcRenderer.on(
       'workflow-started-failed-worktree-not-found',
       onWorkflowStartedFailed,
     );
-    ipcRenderer.on('generators-found', onGeneratorsFound);
-    ipcRenderer.on('generator-removed', onGeneratorRemoved);
-    ipcRenderer.on('generator-created', onGeneratorCreated);
-    ipcRenderer.on('generators-to-import-found', onGeneratorsToImportFound);
-    ipcRenderer.on('generators-imported', onGeneratorsImported);
-    ipcRenderer.on('generator-duplicated', onGeneratorDuplicated);
-    ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
+    window.electron.ipcRenderer.on('generators-found', onGeneratorsFound);
+    window.electron.ipcRenderer.on('generator-removed', onGeneratorRemoved);
+    window.electron.ipcRenderer.on('generator-created', onGeneratorCreated);
+    window.electron.ipcRenderer.on(
+      'generators-to-import-found',
+      onGeneratorsToImportFound,
+    );
+    window.electron.ipcRenderer.on('generators-imported', onGeneratorsImported);
+    window.electron.ipcRenderer.on(
+      'generator-duplicated',
+      onGeneratorDuplicated,
+    );
+    window.electron.ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
 
     return () => {
-      ipcRenderer.removeAllListeners('workflows-found');
-      ipcRenderer.removeAllListeners('workflows-imported');
-      ipcRenderer.removeAllListeners('workflow-stopped');
-      ipcRenderer.removeAllListeners('workflow-removed');
-      ipcRenderer.removeAllListeners('workflows-to-import-found');
-      ipcRenderer.removeAllListeners('workflow-duplicated');
-      ipcRenderer.removeAllListeners(
+      window.electron.ipcRenderer.removeAllListeners('workflows-found');
+      window.electron.ipcRenderer.removeAllListeners('workflows-imported');
+      window.electron.ipcRenderer.removeAllListeners('workflow-stopped');
+      window.electron.ipcRenderer.removeAllListeners('workflow-removed');
+      window.electron.ipcRenderer.removeAllListeners(
+        'workflows-to-import-found',
+      );
+      window.electron.ipcRenderer.removeAllListeners('workflow-duplicated');
+      window.electron.ipcRenderer.removeAllListeners(
         'workflow-started-failed-worktree-not-found',
       );
-      ipcRenderer.removeAllListeners('generators-found');
-      ipcRenderer.removeAllListeners('generator-removed');
-      ipcRenderer.removeAllListeners('generator-created');
-      ipcRenderer.removeAllListeners('generators-to-import-found');
-      ipcRenderer.removeAllListeners('generators-imported');
-      ipcRenderer.removeAllListeners('generator-duplicated');
-      ipcRenderer.removeAllListeners('is-expired');
+      window.electron.ipcRenderer.removeAllListeners('generators-found');
+      window.electron.ipcRenderer.removeAllListeners('generator-removed');
+      window.electron.ipcRenderer.removeAllListeners('generator-created');
+      window.electron.ipcRenderer.removeAllListeners(
+        'generators-to-import-found',
+      );
+      window.electron.ipcRenderer.removeAllListeners('generators-imported');
+      window.electron.ipcRenderer.removeAllListeners('generator-duplicated');
+      window.electron.ipcRenderer.removeAllListeners('is-expired');
     };
   }, [notification, setIsWorkflowPlaying, tabRepoPath]);
 
@@ -298,11 +302,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   };
 
   const importWorkflow = () => {
-    ipcRenderer.send('open-dialog-import-workflows');
+    window.electron.ipcRenderer.send('open-dialog-import-workflows');
   };
 
   const importGenerator = () => {
-    ipcRenderer.send('open-dialog-import-generators');
+    window.electron.ipcRenderer.send('open-dialog-import-generators');
   };
 
   const showGeneratorDrawer = () => {
@@ -329,7 +333,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const duplicateWorkflow = (record: any) => {
     return () => {
-      ipcRenderer.send('duplicate-workflow', record, tabRepoPath);
+      window.electron.ipcRenderer.send(
+        'duplicate-workflow',
+        record,
+        tabRepoPath,
+      );
     };
   };
 
@@ -340,11 +348,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const onCloseAddGenerator = () => {
     setOpenAddGenerator(false);
     setGeneratorToEdit(null);
-    ipcRenderer.send('get-generators', tabRepoPath);
+    window.electron.ipcRenderer.send('get-generators', tabRepoPath);
   };
 
   const onConfirmImport = (selected: any[]) => {
-    ipcRenderer.send('import-workflows', selected, tabRepoPath);
+    window.electron.ipcRenderer.send('import-workflows', selected, tabRepoPath);
     setOpenImport(false);
   };
 
@@ -353,7 +361,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   };
 
   const onConfirmImportGenerators = (selected: any[]) => {
-    ipcRenderer.send('import-generators', selected, tabRepoPath);
+    window.electron.ipcRenderer.send(
+      'import-generators',
+      selected,
+      tabRepoPath,
+    );
     setOpenImportGenerators(false);
   };
 
@@ -379,7 +391,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         cancelText: 'No',
         centered: true,
         onOk() {
-          ipcRenderer.send('remove-workflow', record.name, tabRepoPath);
+          window.electron.ipcRenderer.send(
+            'remove-workflow',
+            record.name,
+            tabRepoPath,
+          );
         },
       });
     };
@@ -395,7 +411,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
         cancelText: 'No',
         centered: true,
         onOk() {
-          ipcRenderer.send(
+          window.electron.ipcRenderer.send(
             'remove-generator',
             record.generatorName,
             tabRepoPath,
@@ -414,7 +430,11 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const duplicateGenerator = (record: any) => {
     return () => {
-      ipcRenderer.send('duplicate-generator', record, tabRepoPath);
+      window.electron.ipcRenderer.send(
+        'duplicate-generator',
+        record,
+        tabRepoPath,
+      );
     };
   };
 
@@ -434,7 +454,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       if (!record.worktrees || record.worktrees.length === 0) {
         workflow.worktrees = worktrees;
       }
-      ipcRenderer.send('play-workflow', workflow, tabRepoPath);
+      window.electron.ipcRenderer.send('play-workflow', workflow, tabRepoPath);
       setPlayingWorkflow(workflow.name);
       setIsWorkflowPlaying(true);
     };
@@ -442,7 +462,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const stopWorkflow = (record: any) => {
     return () => {
-      ipcRenderer.send('stop-workflow', record);
+      window.electron.ipcRenderer.send('stop-workflow', record);
       setPlayingWorkflow(null);
     };
   };
@@ -712,7 +732,7 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
   const onChangeMode = (value: string) => {
     setMode(value);
     if (value === 'generators') {
-      ipcRenderer.send('get-generators', tabRepoPath);
+      window.electron.ipcRenderer.send('get-generators', tabRepoPath);
     }
   };
 

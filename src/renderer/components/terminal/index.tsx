@@ -5,7 +5,6 @@ import React, {
   KeyboardEvent,
   ChangeEvent,
 } from 'react';
-import { ipcRenderer } from 'electron';
 import TerminalInput from './linetypes/TerminalInput';
 import TerminalOutput from './linetypes/TerminalOutput';
 import './style.css';
@@ -53,7 +52,6 @@ function Terminal({
 
   useEffect(() => {
     const onReceiveAutocompleteResults = (
-      event: any,
       filesNames: string[],
       searchedInput: string,
     ) => {
@@ -74,10 +72,10 @@ function Terminal({
       }
     };
 
-    ipcRenderer.on('autocomplete-results', onReceiveAutocompleteResults);
+    window.electron.ipcRenderer.on('autocomplete-results', onReceiveAutocompleteResults);
 
     return () => {
-      ipcRenderer.removeAllListeners('autocomplete-results');
+      window.electron.ipcRenderer.removeAllListeners('autocomplete-results');
     };
   }, [currentLineInput]);
 
@@ -99,7 +97,7 @@ function Terminal({
       if (currentLineInput && currentLineInput.trim() !== '') {
         const splitted = currentLineInput.split(' ');
         const lastWord = splitted[splitted.length - 1];
-        ipcRenderer.send('autocomplete', name, lastWord);
+        window.electron.ipcRenderer.send('autocomplete', name, lastWord);
       }
     }
     if (event.key === 'Enter') {

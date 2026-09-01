@@ -7,7 +7,6 @@ import {
   Tooltip,
   Button,
 } from 'antd';
-import { ipcRenderer } from 'electron';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { GitBranchIcon } from 'hugeicons-react';
 import { ReloadOutlined, LoadingOutlined } from '@ant-design/icons';
@@ -49,11 +48,15 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [hasMore, setHasMore] = useState(true);
 
   useEffect(() => {
-    ipcRenderer.send('show-git-log', tabRepoPath);
-    ipcRenderer.send('get-worktrees', tabRepoPath);
-    ipcRenderer.send('list-authors', tabRepoPath);
+    window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+    window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send('list-authors', tabRepoPath);
 
-    const onReceiveGitLog = (event: any, code: number, result: any, skipReceived: number) => {
+    const onReceiveGitLog = (
+      code: number,
+      result: any,
+      skipReceived: number,
+    ) => {
       if (code === 0) {
         setTimeout(() => {
           setLoading(false);
@@ -80,7 +83,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
     };
 
-    const onWorktreesFound = (event: any, code: number, result: any) => {
+    const onWorktreesFound = (code: number, result: any) => {
       if (code === 0) {
         setWorktrees(
           JSON.parse(result).map((item: any) => {
@@ -99,7 +102,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
     };
 
-    const onAuthorsFound = (event: any, code: number, result: any) => {
+    const onAuthorsFound = (code: number, result: any) => {
       if (code === 0) {
         setAuthors(
           result.map((item: any) => {
@@ -112,13 +115,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
     };
 
-    ipcRenderer.on('receive-git-log', onReceiveGitLog);
-    ipcRenderer.on('worktrees-found', onWorktreesFound);
-    ipcRenderer.on('receive-authors', onAuthorsFound);
+    window.electron.ipcRenderer.on('receive-git-log', onReceiveGitLog);
+    window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
+    window.electron.ipcRenderer.on('receive-authors', onAuthorsFound);
 
     return () => {
-      ipcRenderer.removeAllListeners('receive-git-log');
-      ipcRenderer.removeAllListeners('receive-authors');
+      window.electron.ipcRenderer.removeAllListeners('receive-git-log');
+      window.electron.ipcRenderer.removeAllListeners('receive-authors');
     };
   }, [tabRepoPath]);
 
@@ -149,7 +152,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       // @ts-ignore
       selectAuthorRef.current.blur();
     }
-    ipcRenderer.send('show-git-log', tabRepoPath, worktree, author);
+    window.electron.ipcRenderer.send(
+      'show-git-log',
+      tabRepoPath,
+      worktree,
+      author,
+    );
   };
 
   const onAuthorChange = (event: any) => {
@@ -170,14 +178,20 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const reloadGitLog = () => {
     setLoading(true);
-    ipcRenderer.send('show-git-log', tabRepoPath);
+    window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
   };
 
   const handleLoadMore = () => {
     const nextSkip = skip + LIMIT;
     setSkip(nextSkip);
     setLoadingMore(true);
-    ipcRenderer.send('show-git-log', tabRepoPath, null, null, nextSkip);
+    window.electron.ipcRenderer.send(
+      'show-git-log',
+      tabRepoPath,
+      null,
+      null,
+      nextSkip,
+    );
   };
 
   return (

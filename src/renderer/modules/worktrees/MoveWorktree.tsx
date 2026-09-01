@@ -1,6 +1,5 @@
 import { Button, Form, Input, Modal, Space, Tooltip } from 'antd';
 import { FolderOutlined } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import React, { useEffect, useState } from 'react';
 
 export default function MoveWorktree({
@@ -19,13 +18,9 @@ export default function MoveWorktree({
   const [osSeparator, setOsSeparator] = useState('');
 
   useEffect(() => {
-    ipcRenderer.send('get-os-separator');
+    window.electron.ipcRenderer.send('get-os-separator');
 
-    const onSelectWorktreesDir = (
-      event: any,
-      code: number,
-      dirPath: string,
-    ) => {
+    const onSelectWorktreesDir = (code: number, dirPath: string) => {
       if (code === 0) {
         const resolvedName = form.getFieldValue('resolvedName');
         form.setFieldValue(
@@ -35,12 +30,15 @@ export default function MoveWorktree({
       }
     };
 
-    const onOsSeparatorFound = (event: any, separator: string) => {
+    const onOsSeparatorFound = (separator: string) => {
       setOsSeparator(separator);
     };
 
-    ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
-    ipcRenderer.on('os-separator-found', onOsSeparatorFound);
+    window.electron.ipcRenderer.on(
+      'selected-worktrees-dir',
+      onSelectWorktreesDir,
+    );
+    window.electron.ipcRenderer.on('os-separator-found', onOsSeparatorFound);
 
     return () => {
       ipcRenderer.removeAllListeners('selected-worktrees-dir');
@@ -49,7 +47,7 @@ export default function MoveWorktree({
   }, [form, osSeparator]);
 
   const chooseWorktreesDir = () => {
-    ipcRenderer.send('choose-worktrees-dir');
+    window.electron.ipcRenderer.send('choose-worktrees-dir');
   };
 
   return (

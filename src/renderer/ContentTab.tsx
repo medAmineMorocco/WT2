@@ -22,7 +22,6 @@ import {
   FolderOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { ipcRenderer } from 'electron';
 import { motion } from 'framer-motion';
 import Worktrees from './modules/worktrees/Worktrees';
 import Execution from './modules/execution/Execution';
@@ -95,7 +94,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   useEffect(() => {
     changeIconOfActiveTab(<LoadingOutlined />);
     if (tabRepoPath) {
-      ipcRenderer.send('check-repo-exists', tabRepoPath);
+      window.electron.ipcRenderer.send('check-repo-exists', tabRepoPath);
     } else {
       setIsRepoSelected(false);
     }
@@ -103,7 +102,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   }, [keyTab]);
 
   const onimportAreaClick = () => {
-    ipcRenderer.send('choose-dir', keyTab);
+    window.electron.ipcRenderer.send('choose-dir', keyTab);
   };
 
   useHotkeys('shift+o', onimportAreaClick, {
@@ -115,7 +114,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   useEffect(() => {
     const onSelectRepo = (
-      event: any,
       isCanceled: boolean,
       isGitRepo: boolean,
       isWorktree: boolean,
@@ -171,11 +169,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }
     };
 
-    const onThemeChange = (event: any, isDarkModeNew: boolean) => {
+    const onThemeChange = (isDarkModeNew: boolean) => {
       setIsDarkMode(isDarkModeNew);
     };
 
-    const onRepoExist = (event: any, isExist: boolean) => {
+    const onRepoExist = (isExist: boolean) => {
       if (isExist) {
         setIsRepoSelected(true);
         setIsRepoExistsOnDisk(true);
@@ -185,14 +183,14 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }
     };
 
-    ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
-    ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
-    ipcRenderer.on('is-repo-exist', onRepoExist);
+    window.electron.ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
+    window.electron.ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
+    window.electron.ipcRenderer.on('is-repo-exist', onRepoExist);
 
     return () => {
-      ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
-      ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
-      ipcRenderer.removeAllListeners('is-repo-exist');
+      window.electron.ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
+      window.electron.ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
+      window.electron.ipcRenderer.removeAllListeners('is-repo-exist');
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 

@@ -6,7 +6,6 @@ import {
   PlusOutlined,
   RightOutlined,
 } from '@ant-design/icons';
-import { ipcRenderer } from 'electron';
 import TabService from '../../services/tab/TabService';
 
 export default function AddWorkflow({
@@ -26,7 +25,7 @@ export default function AddWorkflow({
   }, []);
 
   useEffect(() => {
-    const onWorkflowCreated = (event: any, code: number, result: any) => {
+    const onWorkflowCreated = (code: number, result: any) => {
       if (code === 0) {
         notification.success({
           message: 'Your new workflow is ready to use',
@@ -35,7 +34,7 @@ export default function AddWorkflow({
         });
         setLoadingCreateWorkflow(false);
         onCloseAdd();
-        ipcRenderer.send('get-workflows', tabRepoPath);
+        window.electron.ipcRenderer.send('get-workflows', tabRepoPath);
       } else {
         setLoadingCreateWorkflow(false);
         notification.error({
@@ -45,16 +44,16 @@ export default function AddWorkflow({
       }
     };
 
-    ipcRenderer.on('workflow-created', onWorkflowCreated);
+    window.electron.ipcRenderer.on('workflow-created', onWorkflowCreated);
 
     return () => {
-      ipcRenderer.removeAllListeners('workflow-created');
+      window.electron.ipcRenderer.removeAllListeners('workflow-created');
     };
   }, [notification, onCloseAdd, tabRepoPath]);
 
   const onFinish = (values: any) => {
     setLoadingCreateWorkflow(true);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'add-workflow',
       values.name,
       values.command,

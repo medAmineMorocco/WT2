@@ -18,7 +18,6 @@ import {
   FullscreenExitOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { ipcRenderer } from 'electron';
 import log from 'electron-log';
 import TerminalUI from '../../components/terminal/TerminalUI';
 import { useItemsContext } from '../../TabsContext';
@@ -108,16 +107,16 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
       const mappedLogStates = buildLog(initialLogStates);
       setData(mappedLogStates);
     }
-    const onReceiveLog = (event: any, logStatesReceived: any[]) => {
+    const onReceiveLog = (logStatesReceived: any[]) => {
       log.debug('logStatesReceived: ', JSON.stringify(logStatesReceived));
       const mappedLogStates = buildLog(logStatesReceived);
       setData(mappedLogStates);
     };
 
-    ipcRenderer.on('workflow-started-log-received', onReceiveLog);
+    window.electron.ipcRenderer.on('workflow-started-log-received', onReceiveLog);
 
     return () => {
-      ipcRenderer.removeAllListeners('workflow-started-log-received');
+      window.electron.ipcRenderer.removeAllListeners('workflow-started-log-received');
     };
   }, [initialLogStates, removeANSI]);
 

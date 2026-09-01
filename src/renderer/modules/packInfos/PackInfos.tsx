@@ -23,7 +23,6 @@ import {
   UserSwitchOutlined,
 } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { ipcRenderer } from 'electron';
 import iconImage from './icon.png';
 import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
 
@@ -54,8 +53,8 @@ export default function PackInfos() {
   };
 
   useEffect(() => {
-    ipcRenderer.send('check-trial-expiration');
-    const onReceiveExpirationInfos = (event: any, infos: any) => {
+    window.electron.ipcRenderer.send('check-trial-expiration');
+    const onReceiveExpirationInfos = (infos: any) => {
       setPackInfos(infos);
       if (infos && infos.pack === 'Free Trial') {
         const {
@@ -76,7 +75,6 @@ export default function PackInfos() {
     };
 
     const onReceiveSubscriptionInfos = (
-      event: any,
       isValidReceived: boolean,
       hasTrial: boolean,
       _infos: any,
@@ -90,7 +88,7 @@ export default function PackInfos() {
         setIsSubscriptionModalClosable(false);
       }
       if (hasTrial) {
-        ipcRenderer.send('check-trial-expiration');
+        window.electron.ipcRenderer.send('check-trial-expiration');
       }
     };
 
@@ -98,14 +96,14 @@ export default function PackInfos() {
       handleSwitchUser();
     };
 
-    ipcRenderer.on('is-expired', onReceiveExpirationInfos);
-    ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
-    ipcRenderer.on('switch-user', onSwitchUser);
+    window.electron.ipcRenderer.on('is-expired', onReceiveExpirationInfos);
+    window.electron.ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
+    window.electron.ipcRenderer.on('switch-user', onSwitchUser);
 
     return () => {
-      ipcRenderer.removeAllListeners('is-expired');
-      ipcRenderer.removeAllListeners('is-subscribed');
-      ipcRenderer.removeAllListeners('switch-user');
+      window.electron.ipcRenderer.removeAllListeners('is-expired');
+      window.electron.ipcRenderer.removeAllListeners('is-subscribed');
+      window.electron.ipcRenderer.removeAllListeners('switch-user');
     };
   }, []);
 
@@ -120,7 +118,7 @@ export default function PackInfos() {
   const onFinish = (values: any) => {
     setLoading(true);
     setErrorReason(null);
-    ipcRenderer.send(
+    window.electron.ipcRenderer.send(
       'verify-subscription',
       values.trialOrSubscription,
       values.email,
