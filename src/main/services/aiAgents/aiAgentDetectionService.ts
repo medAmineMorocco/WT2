@@ -1,7 +1,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
-import { spawn } from 'child_process';
+import { execFileSync, spawn } from 'child_process';
 import { AiAgentId } from '../../../shared/aiAgents';
 import log from '../../utils/logger';
 
@@ -30,7 +30,19 @@ const AGENT_BINARIES: Record<AiAgentId, string[]> = {
     'agy',
   ],
   qwen: ['qwen.cmd', 'qwen.exe', 'qwen', 'qwen.bat', 'qwen.ps1'],
-  kimi: ['kimi.cmd', 'kimi.exe', 'kimi', 'kimi.bat', 'kimi.ps1'],
+  kimi: [
+    'kimi.cmd',
+    'kimi.exe',
+    'kimi',
+    'kimi.bat',
+    'kimi.ps1',
+    'kimi-cli.cmd',
+    'kimi-cli.exe',
+    'kimi-cli',
+    'kimi-code.cmd',
+    'kimi-code.exe',
+    'kimi-code',
+  ],
   opencode: [
     'opencode.cmd',
     'opencode.exe',
@@ -49,12 +61,50 @@ function getSearchDirectories(): string[] {
   const isMac = process.platform === 'darwin';
   const home = os.homedir();
 
+  const addPathEntries = (value: string | undefined) => {
+    if (!value) return;
+    const separator = process.platform === 'win32' ? ';' : ':';
+    value.split(separator).forEach((entry) => {
+      const trimmed = entry
+        .trim()
+        .replace(/^['"]|['"]$/g, '')
+        .replace(/%([^%]+)%/g, (_match, variableName) => {
+          const key = Object.keys(process.env).find(
+            (candidate) =>
+              candidate.toLowerCase() === String(variableName).toLowerCase(),
+          );
+          return (key && process.env[key]) || `%${variableName}%`;
+        });
+      if (trimmed) dirs.add(trimmed);
+    });
+  };
+
   // 1. Current Environment PATH entries
-  const pathEnv = process.env.PATH || process.env.Path || '';
-  const pathSeparator = isWindows ? ';' : ':';
-  for (const entry of pathEnv.split(pathSeparator)) {
-    const trimmed = entry.trim().replace(/^['"]|['"]$/g, '');
-    if (trimmed) dirs.add(trimmed);
+  addPathEntries(process.env.PATH || process.env.Path || '');
+
+  // Electron can stay open while an installer updates PATH. Read the current
+  // registry values as well so auto-detection works without restarting.
+  if (isWindows) {
+    const registryPaths = [
+      ['HKCU\\Environment', 'Path'],
+      [
+        'HKLM\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environment',
+        'Path',
+      ],
+    ];
+    registryPaths.forEach(([registryKey, valueName]) => {
+      try {
+        const output = execFileSync(
+          'reg.exe',
+          ['query', registryKey, '/v', valueName],
+          { windowsHide: true, encoding: 'utf8' },
+        );
+        const match = output.match(/\bPath\s+REG_(?:EXPAND_)?SZ\s+(.+)$/im);
+        if (match) addPathEntries(match[1]);
+      } catch {
+        // Registry PATH lookup is an optional refresh aid.
+      }
+    });
   }
 
   // 2. Windows-specific well-known directories
@@ -83,10 +133,35 @@ function getSearchDirectories(): string[] {
     dirs.add(path.join(home, '.agy', 'bin'));
     dirs.add(path.join(home, '.qwen', 'bin'));
     dirs.add(path.join(home, '.kimi', 'bin'));
+    dirs.add(path.join(home, '.kimi-code', 'bin'));
+    dirs.add(path.join(home, '.local', 'share', 'kimi', 'bin'));
+    dirs.add(path.join(home, 'scoop', 'apps', 'kimi-cli', 'current'));
+    dirs.add(path.join(home, 'scoop', 'apps', 'kimi-code', 'current'));
+    dirs.add(path.join(home, 'pipx', 'venvs', 'kimi-cli', 'Scripts'));
+    dirs.add(path.join(localAppData, 'pipx', 'venvs', 'kimi-cli', 'Scripts'));
+    dirs.add(path.join(appData, 'uv', 'tools', 'kimi-cli', 'Scripts'));
+    dirs.add(path.join(localAppData, 'uv', 'tools', 'kimi-cli', 'Scripts'));
+    dirs.add(path.join(programFiles, 'Kimi Code'));
+    dirs.add(path.join(localAppData, 'Programs', 'Kimi Code'));
+    [path.join(appData, 'Python'), path.join(localAppData, 'Programs', 'Python')]
+      .filter((pythonRoot) => fs.existsSync(pythonRoot))
+      .forEach((pythonRoot) => {
+        try {
+          fs.readdirSync(pythonRoot, { withFileTypes: true })
+            .filter((entry) => entry.isDirectory())
+            .forEach((entry) =>
+              dirs.add(path.join(pythonRoot, entry.name, 'Scripts')),
+            );
+        } catch {
+          // Continue with other known installation locations.
+        }
+      });
     dirs.add(path.join(home, '.opencode', 'bin'));
     dirs.add(path.join(home, '.gemini', 'bin'));
     dirs.add(path.join(home, '.qwen', 'bin'));
     dirs.add(path.join(home, '.kimi', 'bin'));
+    dirs.add(path.join(home, '.kimi-code', 'bin'));
+    dirs.add(path.join(home, '.local', 'share', 'kimi', 'bin'));
     dirs.add(path.join(home, '.opencode', 'bin'));
     dirs.add(path.join(home, '.gemini', 'antigravity-ide', 'bin'));
   } else {

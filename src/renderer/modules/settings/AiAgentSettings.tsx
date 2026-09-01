@@ -16,7 +16,9 @@ import {
 import {
   CheckCircleOutlined,
   CloseCircleOutlined,
+  DownloadOutlined,
   EditOutlined,
+  LinkOutlined,
   PlayCircleOutlined,
   ReloadOutlined,
   ScanOutlined,
@@ -39,6 +41,45 @@ type DetectionResult = {
   executablePath: string | null;
   version: string | null;
   command: string | null;
+};
+
+const installationGuides: Record<
+  AiAgentId,
+  { command: string; url: string; requirement?: string }
+> = {
+  claude: {
+    command: 'npm install -g @anthropic-ai/claude-code',
+    url: 'https://code.claude.com/docs/en/quickstart',
+    requirement: 'Requires Node.js 18 or later',
+  },
+  codex: {
+    command: 'npm install -g @openai/codex',
+    url: 'https://help.openai.com/en/articles/11096431',
+  },
+  cursor: {
+    command: "irm 'https://cursor.com/install?win32=true' | iex",
+    url: 'https://docs.cursor.com/en/cli/installation',
+    requirement: 'Run in PowerShell',
+  },
+  antigravity: {
+    command: 'irm https://antigravity.google/cli/install.ps1 | iex',
+    url: 'https://antigravity.google/docs/cli/install/',
+    requirement: 'Run in PowerShell',
+  },
+  qwen: {
+    command: 'npm install -g @qwen-code/qwen-code@latest',
+    url: 'https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/',
+    requirement: 'Requires Node.js 22 or later',
+  },
+  kimi: {
+    command: 'npm install -g @moonshot-ai/kimi-code',
+    url: 'https://www.kimi.com/code/docs/en/kimi-code-cli/guides/getting-started.html',
+    requirement: 'Requires Node.js 22.19 or later',
+  },
+  opencode: {
+    command: 'npm install -g opencode-ai',
+    url: 'https://opencode.ai/docs/',
+  },
 };
 
 function readConfiguredAgents(): AiAgentConfig[] {
@@ -92,7 +133,7 @@ export default function AiAgentSettings({
   const [agents, setAgents] = useState<AiAgentConfig[]>(readConfiguredAgents);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, TestResult>>({});
-  const [detectingAll, setDetectingAll] = useState(false);
+  const [detectingAll, setDetectingAll] = useState(true);
   const [detectingId, setDetectingId] = useState<string | null>(null);
   const [detections, setDetections] = useState<
     Record<string, DetectionResult>
@@ -116,6 +157,24 @@ export default function AiAgentSettings({
       if (typeof removeTestResult === 'function') {
         removeTestResult();
       }
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    window.electron.ipcRenderer
+      .invoke('ai-agents:detect-all')
+      .then((detectedMap: Record<AiAgentId, DetectionResult>) => {
+        if (active) setDetections(detectedMap || {});
+      })
+      .catch(() => {
+        // Keep settings usable when detection is temporarily unavailable.
+      })
+      .finally(() => {
+        if (active) setDetectingAll(false);
+      });
+    return () => {
+      active = false;
     };
   }, []);
 
@@ -243,9 +302,11 @@ export default function AiAgentSettings({
       >
         {agents.map((agent) => {
           const det = detections[agent.id];
-          const isDetected = (det && det.found) || (agent.command && agent.command.trim().length > 0);
+          const detectionComplete = Boolean(det);
+          const isDetected = det?.found === true || results[agent.id]?.ok === true;
           const isTesting = testingId === agent.id;
           const testRes = results[agent.id];
+          const installation = installationGuides[agent.id];
 
           return (
             <Card
@@ -284,7 +345,14 @@ export default function AiAgentSettings({
                   </div>
 
                   <div style={{ marginTop: 4, marginBottom: 6 }}>
-                    {isDetected ? (
+                    {!detectionComplete && detectingAll ? (
+                      <Tag
+                        icon={<ReloadOutlined spin />}
+                        style={{ margin: 0, fontSize: 11 }}
+                      >
+                        Checking installation
+                      </Tag>
+                    ) : isDetected ? (
                       <Tag
                         color="success"
                         icon={<CheckCircleOutlined />}
@@ -319,7 +387,7 @@ export default function AiAgentSettings({
                         icon={<CloseCircleOutlined />}
                         style={{ margin: 0, fontSize: 11 }}
                       >
-                        Not Recognized
+                        CLI not installed
                       </Tag>
                     )}
                   </div>
@@ -345,6 +413,35 @@ export default function AiAgentSettings({
                     >
                       No command configured
                     </Typography.Text>
+                  )}
+
+                  {detectionComplete && !isDetected && (
+                    <div className="ai-agent-install-suggestion">
+                      <div className="ai-agent-install-title">
+                        <DownloadOutlined /> Install {agent.label}
+                      </div>
+                      {installation.requirement && (
+                        <Typography.Text type="secondary">
+                          {installation.requirement}
+                        </Typography.Text>
+                      )}
+                      <Typography.Text
+                        code
+                        copyable={{ text: installation.command }}
+                        className="ai-agent-install-command"
+                      >
+                        {installation.command}
+                      </Typography.Text>
+                      <Button
+                        type="link"
+                        size="small"
+                        icon={<LinkOutlined />}
+                        href={installation.url}
+                        target="_blank"
+                      >
+                        Installation guide
+                      </Button>
+                    </div>
                   )}
 
                   <div

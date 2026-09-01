@@ -3076,3 +3076,43 @@ html[data-color-scheme='dark'] .sparse-checkout-percent {
     display: none;
   }
 }
+
+.ai-agent-install-suggestion {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--ant-color-warning-border, #ffe58f);
+  border-radius: 7px;
+  background: var(--ant-color-warning-bg, #fffbe6);
+}
+
+.ai-agent-install-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--ant-color-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ai-agent-install-suggestion > .ant-typography-secondary {
+  font-size: 11px;
+}
+
+.ai-agent-install-command {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ai-agent-install-suggestion .ant-btn-link {
+  height: auto;
+  padding: 0;
+  font-size: 11px;
+}
