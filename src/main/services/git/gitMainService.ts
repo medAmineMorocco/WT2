@@ -5,6 +5,13 @@ import BusinessError from '../../exceptions/BusinessError';
 
 const zlib = require('zlib');
 
+interface LogCacheEntry {
+  buffer: Buffer;
+  lastChecked: number;
+}
+
+const logCache = new Map<string, LogCacheEntry>();
+
 async function gitCommand() {
   const storedGitExecutable = await utils.getStorageItem('gitExecutablePath');
   const gitExecutable = storedGitExecutable || 'git';
@@ -33,33 +40,6 @@ function getShell() {
   return utils.getStorageItem('shellPath');
 }
 
-function showLog(
-  directory: string,
-  branch: string | null,
-  author: string | null,
-  skip = 0,
-  limit = 40,
-) {
-  // eslint-disable-next-line no-async-promise-executor
-  return new Promise(async (resolve, reject) => {
-    const options = {
-      cwd: directory,
-      shell: true,
-    } as any;
-    try {
-      const gitCmd = await gitCommand();
-      const command = branch
-        ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`
-        : `"${gitCmd}" log --skip=${skip} -n ${limit} --all ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`;
-      const stdout = execSync(command, options);
-      const compressed = zlib.gzipSync(stdout.toString());
-      resolve(compressed);
-    } catch (error) {
-      reject(error);
-    }
-  });
-}
-
 function showLogAsync(
   directory: string,
   branch: string | null,
@@ -69,6 +49,22 @@ function showLogAsync(
 ): Promise<Buffer> {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
+    // Cache only the default Git Log
+    const shouldUseCache =
+      branch === undefined &&
+      author === undefined &&
+      skip === 0 &&
+      limit === 40;
+
+    if (shouldUseCache) {
+      const cached = logCache.get(directory);
+      const now = Date.now();
+      if (cached && now - cached.lastChecked < 60000) {
+        resolve(cached.buffer);
+        return;
+      }
+    }
+
     const gitCmd = await gitCommand();
     const command = branch
       ? `"${gitCmd}" log --skip=${skip} -n ${limit} ${branch} ${author ? `--author="${author}"` : ''} --oneline --decorate --graph --abbrev-commit --no-color --date-order --format="%s %d <%an> [%ci] %h"`
@@ -85,13 +81,36 @@ function showLogAsync(
     git.stdout.pipe(gzip);
 
     gzip.on('data', (c: any) => chunks.push(c));
-    gzip.on('end', () => resolve(Buffer.concat(chunks)));
+
+    gzip.once('end', async () => {
+      const buffer = Buffer.concat(chunks);
+
+      if (shouldUseCache) {
+        try {
+          logCache.set(directory, {
+            buffer,
+            lastChecked: Date.now(),
+          });
+        } catch {
+          // Ignore cache update errors
+        }
+      }
+
+      resolve(buffer);
+    });
+
+    git.stderr.on('data', (chunk) => {
+      reject(new Error(chunk.toString()));
+    });
 
     git.on('error', reject);
     git.on('close', (code: any) => {
       if (code !== 0) {
         reject(new Error('git log failed'));
+        return;
       }
+
+      gzip.end();
     });
   });
 }
@@ -322,7 +341,6 @@ async function listAuthors(directory: string) {
 }
 
 export default {
-  showLog,
   showLogAsync,
   showDiff,
   executeCommand,
