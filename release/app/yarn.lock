@@ -2,10 +2,128 @@
 # yarn lockfile v1
 
 
+"@anthropic-ai/sdk@^0.113.0":
+  version "0.113.0"
+  resolved "https://registry.yarnpkg.com/@anthropic-ai/sdk/-/sdk-0.113.0.tgz#536415df70ae1b050b750bf843ea7b2077329677"
+  integrity sha512-8YKIP333ypmy8QjtSP691fIqdes3HL/rSXAT4FDZX/HRnkQaNG+iOVBfEQw4vjPNpYHeoy7FSYc2o/jb8b3AnA==
+  dependencies:
+    json-schema-to-ts "^3.1.1"
+    standardwebhooks "^1.0.0"
+
+"@babel/runtime@^7.18.3":
+  version "7.29.7"
+  resolved "https://registry.yarnpkg.com/@babel/runtime/-/runtime-7.29.7.tgz#12022450c45a4da6d8d8287b18a4ff2ddb23f768"
+  integrity sha512-Nq8OhGWiZIZGV6hLHoyAKLLcJihP/xFeBMGJoUrxTX2psI8dCifzLhZISFb+VWS3wFMRDmCGw5R+dOySCqPLhw==
+
+"@nanonets/graft@0.10.1":
+  version "0.10.1"
+  resolved "https://registry.yarnpkg.com/@nanonets/graft/-/graft-0.10.1.tgz#21422368814196f26ab059d7209c615d3f56313a"
+  integrity sha512-YCA+LPmZeG7Ts6kDblif/nFtvwBfZ6g93ix9UXPEgORoPN9OSSyzy+ck6odmI/n6wTvgYrTwdNHimgHIpH20FQ==
+  dependencies:
+    "@anthropic-ai/sdk" "^0.113.0"
+    commander "^15.0.0"
+    dotenv "^17.4.2"
+    gray-matter "^4.0.3"
+    openai "^6.45.0"
+    tree-sitter "^0.21.1"
+    tree-sitter-go "^0.23.4"
+    tree-sitter-java "^0.23.5"
+    tree-sitter-python "^0.21.0"
+    tree-sitter-typescript "^0.23.2"
+    tree-sitter-wasms "^0.1.13"
+    vscode-jsonrpc "^8.2.1"
+    vscode-languageserver-protocol "^3.18.2"
+    web-tree-sitter "^0.25.10"
+
+"@stablelib/base64@^1.0.0":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@stablelib/base64/-/base64-1.0.1.tgz#bdfc1c6d3a62d7a3b7bbc65b6cce1bb4561641be"
+  integrity sha512-1bnPQqSxSuc3Ii6MhBysoWCg58j97aUjuCSZrGSmDxNqtytIi0k8utUenAwTZN4V5mXXYGsVUI9zeBqy+jBOSQ==
+
+argparse@^1.0.7:
+  version "1.0.10"
+  resolved "https://registry.yarnpkg.com/argparse/-/argparse-1.0.10.tgz#bcd6791ea5ae09725e17e5ad988134cd40b3d911"
+  integrity sha512-o5Roy6tNG4SL/FOkCAN6RzjiakZS25RLYFrcMttJqbdd8BWrnA+fGz57iN5Pb06pvBGvl5gQ0B48dJlslXvoTg==
+  dependencies:
+    sprintf-js "~1.0.2"
+
+commander@^15.0.0:
+  version "15.0.0"
+  resolved "https://registry.yarnpkg.com/commander/-/commander-15.0.0.tgz#96f3961f12adac1799ef3fbd8bc61d40572d1b11"
+  integrity sha512-z67u4ZhzCL/Tydu1lJARtEZYWbWaN7oYLHbsuzocr6y4N6WZAagG3RQ4FW61V1/0+jImpj293XfrcYnd1qxtPg==
+
+dotenv@^17.4.2:
+  version "17.4.2"
+  resolved "https://registry.yarnpkg.com/dotenv/-/dotenv-17.4.2.tgz#c07e54a746e11eba021dd9e1047ced5afdc1c034"
+  integrity sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==
+
+esprima@^4.0.0:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/esprima/-/esprima-4.0.1.tgz#13b04cdb3e6c5d19df91ab6987a8695619b0aa71"
+  integrity sha512-eGuFFw7Upda+g4p+QHvnW0RyTX/SVeJBDM/gCtMARO0cLuT2HcEKnTPvhjV6aGeqrCB/sbNop0Kszm0jsaWU4A==
+
+extend-shallow@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/extend-shallow/-/extend-shallow-2.0.1.tgz#51af7d614ad9a9f610ea1bafbb989d6b1c56890f"
+  integrity sha512-zCnTtlxNoAiDc3gqY2aYAWFx7XWWiasuF2K8Me5WbN8otHKTUKBwjPtNpRs/rbUZm7KxWAaNj7P1a/p52GbVug==
+  dependencies:
+    is-extendable "^0.1.0"
+
+fast-sha256@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/fast-sha256/-/fast-sha256-1.3.0.tgz#7916ba2054eeb255982608cccd0f6660c79b7ae6"
+  integrity sha512-n11RGP/lrWEFI/bWdygLxhI+pVeo1ZYIVwvvPkW7azl/rOy+F3HYRZ2K5zeE9mmkhQppyv9sQFx0JM9UabnpPQ==
+
+gray-matter@^4.0.3:
+  version "4.0.3"
+  resolved "https://registry.yarnpkg.com/gray-matter/-/gray-matter-4.0.3.tgz#e893c064825de73ea1f5f7d88c7a9f7274288798"
+  integrity sha512-5v6yZd4JK3eMI3FqqCouswVqwugaA9r4dNZB1wwcmrD02QkV5H0y7XBQW8QwQqEaZY1pM9aqORSORhJRdNK44Q==
+  dependencies:
+    js-yaml "^3.13.1"
+    kind-of "^6.0.2"
+    section-matter "^1.0.0"
+    strip-bom-string "^1.0.0"
+
+is-extendable@^0.1.0:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/is-extendable/-/is-extendable-0.1.1.tgz#62b110e289a471418e3ec36a617d472e301dfc89"
+  integrity sha512-5BMULNob1vgFX6EjQw5izWDxrecWK9AM72rugNr0TFldMOi0fj6Jk+zeKIt0xGj4cEfQIJth4w3OKWOJ4f+AFw==
+
+js-yaml@^3.13.1:
+  version "3.15.2"
+  resolved "https://registry.yarnpkg.com/js-yaml/-/js-yaml-3.15.2.tgz#3f83823ac6be17f570f23b2ecdef3777ff5ea364"
+  integrity sha512-6EuL879VkRA+1Cz578mKMiKvjPNEuk6+r1JaFzoSWejZmtf7xWbIyw1e3KkxlkzTIt9Taw6JBhEppG7utc1P+w==
+  dependencies:
+    argparse "^1.0.7"
+    esprima "^4.0.0"
+
+json-schema-to-ts@^3.1.1:
+  version "3.1.1"
+  resolved "https://registry.yarnpkg.com/json-schema-to-ts/-/json-schema-to-ts-3.1.1.tgz#81f3acaf5a34736492f6f5f51870ef9ece1ca853"
+  integrity sha512-+DWg8jCJG2TEnpy7kOm/7/AxaYoaRbjVB4LFZLySZlWn8exGs3A4OLJR966cVvU26N7X9TWxl+Jsw7dzAqKT6g==
+  dependencies:
+    "@babel/runtime" "^7.18.3"
+    ts-algebra "^2.0.0"
+
+kind-of@^6.0.0, kind-of@^6.0.2:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/kind-of/-/kind-of-6.0.3.tgz#07c05034a6c349fa06e24fa35aa76db4580ce4dd"
+  integrity sha512-dcS1ul+9tmeD95T+x28/ehLgd9mENa3LsvDTtzm3vyBEO7RPptvAD+t44WVXaUjTBRcrpFeFlC8WCruUR456hw==
+
 node-addon-api@^7.1.0:
   version "7.1.1"
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.1.1.tgz"
   integrity sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==
+
+node-addon-api@^8.0.0, node-addon-api@^8.2.1, node-addon-api@^8.2.2:
+  version "8.9.2"
+  resolved "https://registry.yarnpkg.com/node-addon-api/-/node-addon-api-8.9.2.tgz#db7ac94a13ffd9b55e6cb04584bd5ef8e1d74b18"
+  integrity sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==
+
+node-gyp-build@^4.8.0, node-gyp-build@^4.8.2:
+  version "4.8.4"
+  resolved "https://registry.yarnpkg.com/node-gyp-build/-/node-gyp-build-4.8.4.tgz#8a70ee85464ae52327772a90d66c6077a900cfc8"
+  integrity sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==
 
 node-pty@^1.1.0:
   version "1.1.0"
@@ -13,3 +131,123 @@ node-pty@^1.1.0:
   integrity sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg==
   dependencies:
     node-addon-api "^7.1.0"
+
+openai@^6.45.0:
+  version "6.49.0"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-6.49.0.tgz#6e9f798e146935ed38d955b43d57d6796cee5e6b"
+  integrity sha512-aYCc0C6L864eR6WSYIwQGyXriw/nIyZx0ObvhzOEVuk0zoBDpynjSbrionWI7q65B5H8jJX0DXR9snEzM6bfPg==
+
+section-matter@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/section-matter/-/section-matter-1.0.0.tgz#e9041953506780ec01d59f292a19c7b850b84167"
+  integrity sha512-vfD3pmTzGpufjScBh50YHKzEu2lxBWhVEHsNGoEXmCmn2hKGfeNLYMzCJpe8cD7gqX7TJluOVpBkAequ6dgMmA==
+  dependencies:
+    extend-shallow "^2.0.1"
+    kind-of "^6.0.0"
+
+sprintf-js@~1.0.2:
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
+  integrity sha512-D9cPgkvLlV3t3IzL0D0YLvGA9Ahk4PcvVwUbN0dSGr1aP0Nrt4AEnTUbuGvquEC0mA64Gqt1fzirlRs5ibXx8g==
+
+standardwebhooks@^1.0.0:
+  version "1.1.1"
+  resolved "https://registry.yarnpkg.com/standardwebhooks/-/standardwebhooks-1.1.1.tgz#25b98fa2bbe4edad7b42778135c923563e3d5e2f"
+  integrity sha512-bCbX9ZEyFkWPsRz7Bl3NuQUJohmwGSev/yhr7vhaGPlc4AfIrspIRa6cPTBuI1ItmrTDJ4d/S2hCsfe4+vQGnQ==
+  dependencies:
+    "@stablelib/base64" "^1.0.0"
+    fast-sha256 "^1.3.0"
+
+strip-bom-string@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/strip-bom-string/-/strip-bom-string-1.0.0.tgz#e5211e9224369fbb81d633a2f00044dc8cedad92"
+  integrity sha512-uCC2VHvQRYu+lMh4My/sFNmF2klFymLX1wHJeXnbEJERpV/ZsVuonzerjfrGpIGF7LBVa1O7i9kjiWvJiFck8g==
+
+tree-sitter-go@^0.23.4:
+  version "0.23.4"
+  resolved "https://registry.yarnpkg.com/tree-sitter-go/-/tree-sitter-go-0.23.4.tgz#0bed14d9c71e7dc52c0757c104aa4fbf217139bf"
+  integrity sha512-iQaHEs4yMa/hMo/ZCGqLfG61F0miinULU1fFh+GZreCRtKylFLtvn798ocCZjO2r/ungNZgAY1s1hPFyAwkc7w==
+  dependencies:
+    node-addon-api "^8.2.1"
+    node-gyp-build "^4.8.2"
+
+tree-sitter-java@^0.23.5:
+  version "0.23.5"
+  resolved "https://registry.yarnpkg.com/tree-sitter-java/-/tree-sitter-java-0.23.5.tgz#fb150fdaa9c852b3d71ba3144109008ac6a47ac2"
+  integrity sha512-Yju7oQ0Xx7GcUT01mUglPP+bYfvqjNCGdxqigTnew9nLGoII42PNVP3bHrYeMxswiCRM0yubWmN5qk+zsg0zMA==
+  dependencies:
+    node-addon-api "^8.2.2"
+    node-gyp-build "^4.8.2"
+
+tree-sitter-javascript@^0.23.1:
+  version "0.23.1"
+  resolved "https://registry.yarnpkg.com/tree-sitter-javascript/-/tree-sitter-javascript-0.23.1.tgz#4e49fa3ad5f996b3ac5cf4f78d6c5dd876788faf"
+  integrity sha512-/bnhbrTD9frUYHQTiYnPcxyHORIw157ERBa6dqzaKxvR/x3PC4Yzd+D1pZIMS6zNg2v3a8BZ0oK7jHqsQo9fWA==
+  dependencies:
+    node-addon-api "^8.2.2"
+    node-gyp-build "^4.8.2"
+
+tree-sitter-python@^0.21.0:
+  version "0.21.0"
+  resolved "https://registry.yarnpkg.com/tree-sitter-python/-/tree-sitter-python-0.21.0.tgz#ed45d24a8b8783ccb20eaa5f98070604e494e6de"
+  integrity sha512-IUKx7JcTVbByUx1iHGFS/QsIjx7pqwTMHL9bl/NGyhyyydbfNrpruo2C7W6V4KZrbkkCOlX8QVrCoGOFW5qecg==
+  dependencies:
+    node-addon-api "^7.1.0"
+    node-gyp-build "^4.8.0"
+
+tree-sitter-typescript@^0.23.2:
+  version "0.23.2"
+  resolved "https://registry.yarnpkg.com/tree-sitter-typescript/-/tree-sitter-typescript-0.23.2.tgz#70bc615a2f664a8e9c87c533382beca587f28ab3"
+  integrity sha512-e04JUUKxTT53/x3Uq1zIL45DoYKVfHH4CZqwgZhPg5qYROl5nQjV+85ruFzFGZxu+QeFVbRTPDRnqL9UbU4VeA==
+  dependencies:
+    node-addon-api "^8.2.2"
+    node-gyp-build "^4.8.2"
+    tree-sitter-javascript "^0.23.1"
+
+tree-sitter-wasms@^0.1.11, tree-sitter-wasms@^0.1.13:
+  version "0.1.13"
+  resolved "https://registry.yarnpkg.com/tree-sitter-wasms/-/tree-sitter-wasms-0.1.13.tgz#0502852881d40d0af5720f11d75b348796d8ce20"
+  integrity sha512-wT+cR6DwaIz80/vho3AvSF0N4txuNx/5bcRKoXouOfClpxh/qqrF4URNLQXbbt8MaAxeksZcZd1j8gcGjc+QxQ==
+  dependencies:
+    tree-sitter-wasms "^0.1.11"
+
+tree-sitter@^0.21.1:
+  version "0.21.1"
+  resolved "https://registry.yarnpkg.com/tree-sitter/-/tree-sitter-0.21.1.tgz#fbb34c09056700814af0e1e37688e06463ba04c4"
+  integrity sha512-7dxoA6kYvtgWw80265MyqJlkRl4yawIjO7S5MigytjELkX43fV2WsAXzsNfO7sBpPPCF5Gp0+XzHk0DwLCq3xQ==
+  dependencies:
+    node-addon-api "^8.0.0"
+    node-gyp-build "^4.8.0"
+
+ts-algebra@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/ts-algebra/-/ts-algebra-2.0.0.tgz#4e3e0953878f26518fce7f6bb115064a65388b7a"
+  integrity sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==
+
+vscode-jsonrpc@9.0.2:
+  version "9.0.2"
+  resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-9.0.2.tgz#086b76c4f94f1b0743deeac4e0b57c9c4a55e81d"
+  integrity sha512-SbQSV9yRemARxeXw6LU5sS6Zq0e9/DgCCX5yelH263ZQWukbTk8EF8fjTrr1dziasf4GwlJbvTwFnTrnQFWZXQ==
+
+vscode-jsonrpc@^8.2.1:
+  version "8.2.1"
+  resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz#a322cc0f1d97f794ffd9c4cd2a898a0bde097f34"
+  integrity sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==
+
+vscode-languageserver-protocol@^3.18.2:
+  version "3.18.3"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.18.3.tgz#6393a08060fb94f5529243fa3be056c676398211"
+  integrity sha512-DF49+WeV5py4zO5hhobp60jjsDSK0lAqA0OuKBLBvp423HPWQcCbhZz3JgyfIewsEz2f8U+X75xNIFHdiXZm2w==
+  dependencies:
+    vscode-jsonrpc "9.0.2"
+    vscode-languageserver-types "3.18.3"
+
+vscode-languageserver-types@3.18.3:
+  version "3.18.3"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.18.3.tgz#eb296c42fd659375a82951b9cc33e7672ba9efe7"
+  integrity sha512-XIlzJ7Qp/jzSI1ds7/FwPAWrPeTZA7pAtlW4hdJ1J6xXWJL6dR9QYnDhJOdLzdKhUQ5Mm6mvUMw+3DcOQQasPw==
+
+web-tree-sitter@^0.25.10:
+  version "0.25.10"
+  resolved "https://registry.yarnpkg.com/web-tree-sitter/-/web-tree-sitter-0.25.10.tgz#b21f1df7aaa87ad235b4c3d07005168349496706"
+  integrity sha512-Y09sF44/13XvgVKgO2cNDw5rGk6s26MgoZPXLESvMXeefBf7i6/73eFurre0IsTW6E14Y0ArIzhUMmjoc7xyzA==
