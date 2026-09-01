@@ -1,5 +1,6 @@
 import React, { forwardRef, lazy, Suspense, useState } from 'react';
 import { Layout, Radio, Spin } from 'antd';
+import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import ListWorktrees from './ListWorktrees';
 import { useItemsContext } from '../../TabsContext';
@@ -64,6 +65,7 @@ const Worktrees = forwardRef<
       collapsedWidth={36}
       collapsed={collapsed}
       onCollapse={(value) => setCollapsed(value)}
+      trigger={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
     >
       {!collapsed && (
         <>
