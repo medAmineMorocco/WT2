@@ -6,7 +6,10 @@ import { setStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import branchesMainService from '../../services/branches/branchesMainService';
 import gitMainService from '../../services/git/gitMainService';
-import playWorkflow from './processesListeners';
+import playWorkflow, {
+  stopActiveWorkflowProcesses,
+} from './processesListeners';
+import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
@@ -15,6 +18,7 @@ ipcMain.on('play-workflow', async function (event, workflow, dir) {
 
 ipcMain.on('stop-workflow', function (event) {
   setStopExecution(true);
+  stopActiveWorkflowProcesses();
   log.info('Workflow stopped by user');
   event.sender.send('workflow-stopped');
 });
@@ -32,6 +36,10 @@ ipcMain.on(
     worktreeName,
     worktreesFolder,
     dir,
+    environmentIsolation?: EnvironmentIsolationConfig,
+    shareNodeModules?: boolean,
+    nodeModulesSourcePath?: string,
+    sparseFolders?: string[],
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -44,6 +52,9 @@ ipcMain.on(
     const sanitizedWorktreeName = sanitizeWorktreeName(worktreeName);
     if (createWorktreeMode === 'existing-branch') {
       command = `${gitCmd} worktree add ${worktreesFolder} ${worktreeName}`;
+    } else if (createWorktreeMode === 'existing-remote-branch') {
+      const localBranchName = worktreeName.replace(/^[^/]+\//, '');
+      command = `${gitCmd} worktree add --track -b ${localBranchName} ${worktreesFolder} ${worktreeName}`;
     } else if (createWorktreeMode === 'existing-tag') {
       const branchNameForTag = worktreeName;
       const branchExist = await worktreeMainService.branchExists(
@@ -69,6 +80,14 @@ ipcMain.on(
         },
       ],
     } as any;
+    if (!values.preHook && !values.postHook) {
+      workflow.command = {
+        key: '0',
+        value: command,
+        worktreeToCreate: true,
+        display: 'Create Git Worktree',
+      };
+    }
     if (values.preHook) {
       workflow.command = {
         key: '0',
@@ -120,6 +139,69 @@ ipcMain.on(
           worktreeName,
         },
       ];
+    }
+    if (sparseFolders && sparseFolders.length > 0) {
+      const sparseCheckoutCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Configure sparse checkout',
+        display: 'Configure sparse checkout',
+        sparseCheckout: {
+          worktreePath: worktreesFolder,
+          folders: sparseFolders,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = sparseCheckoutCommand;
+      } else {
+        const createCommandIndex = workflow.commands.findIndex(
+          (candidate: any) => candidate.worktreeToCreate,
+        );
+        if (createCommandIndex >= 0) {
+          workflow.commands.splice(
+            createCommandIndex + 1,
+            0,
+            sparseCheckoutCommand,
+          );
+        } else {
+          workflow.commands.unshift(sparseCheckoutCommand);
+        }
+      }
+    }
+    if (shareNodeModules) {
+      const sourcePath = nodeModulesSourcePath || dir;
+      const shareNodeModulesCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Share node_modules with worktree',
+        display: 'Share node_modules with worktree',
+        shareNodeModules: {
+          projectPath: sourcePath,
+          worktreePath: worktreesFolder,
+          worktreeName,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = shareNodeModulesCommand;
+      } else {
+        workflow.commands.push(shareNodeModulesCommand);
+      }
+    }
+    if (environmentIsolation) {
+      const environmentCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Generate isolated environment sources',
+        display: 'Generate isolated environment sources',
+        environmentIsolation: {
+          config: environmentIsolation,
+          projectPath: dir,
+          worktreePath: worktreesFolder,
+          worktreeName,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = environmentCommand;
+      } else {
+        workflow.commands.push(environmentCommand);
+      }
     }
     await playWorkflow(event, workflow, dir);
   },

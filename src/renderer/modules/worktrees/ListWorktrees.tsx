@@ -1,15 +1,28 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {
   Tooltip,
   Space,
   theme,
   App as AntdApp,
   Form,
-  Cascader,
+  Dropdown,
   notification,
   Button,
   Collapse,
+  Checkbox,
+  Avatar,
+  Spin,
+  Modal,
+  Typography,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   MoreOutlined,
   EditOutlined,
@@ -26,59 +39,36 @@ import {
   FieldStringOutlined,
   SyncOutlined,
   ClearOutlined,
+  ToolOutlined,
+  RobotOutlined,
   SisternodeOutlined,
+  WarningOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
 import { useHotkeys } from 'react-hotkeys-hook';
 import TabService from '../../services/tab/TabService';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
-import TerminalInteractive from '../terminal/TerminalInteractive';
-import RenameWorktree from './RenameWorktree';
-import MoveWorktree from './MoveWorktree';
-import ChangePatternWorktree from './ChangePatternWorktree';
+import type { TerminalAgentActivity } from '../terminal/TerminalInteractive';
 import { useItemsContext } from '../../TabsContext';
+import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
+
+const TerminalInteractive = lazy(
+  () => import('../terminal/TerminalInteractive'),
+);
+const RenameWorktree = lazy(() => import('./RenameWorktree'));
+const LockWorktree = lazy(() => import('./LockWorktree'));
+const MoveWorktree = lazy(() => import('./MoveWorktree'));
+const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 
 const { useToken } = theme;
 
-const items = [
-  {
-    label: 'Open in Explorer',
-    value: '-1',
-    icon: <ExportOutlined />,
-  },
-  {
-    label: 'Open in Terminal',
-    value: '-3',
-    icon: <CodeOutlined />,
-  },
-  {
-    label: 'Open in',
-    value: '0',
-    icon: <FolderOpenOutlined />,
-    children: [
-      {
-        value: '',
-        label: '',
-      },
-    ],
-  },
-  {
-    label: 'Copy',
-    value: '1',
-    icon: <CopyOutlined />,
-    children: [
-      {
-        value: '1-2',
-        label: 'name',
-      },
-      {
-        label: 'path',
-        value: '1-3',
-      },
-    ],
-  },
-];
+type ActiveAgent = TerminalAgentActivity['agent'];
+
+function worktreeActivityKey(worktreePath: string) {
+  const normalized = worktreePath.replace(/\\/g, '/').replace(/\/+$/, '');
+  return /^[a-z]:\//i.test(normalized) ? normalized.toLowerCase() : normalized;
+}
 
 export default function ListWorktrees({
   isDarkMode,
@@ -98,6 +88,7 @@ export default function ListWorktrees({
   const [form] = Form.useForm();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isLockModalOpen, setIsLockModalOpen] = useState(false);
 
   const [isMoveModalOpen, setIsMoveModalOpen] = useState(false);
 
@@ -107,11 +98,21 @@ export default function ListWorktrees({
   const [worktrees, setWorktrees] = useState([]);
 
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
-  const [repositoryInTerminal, setRepositoryInTerminal] = useState(null);
+  const [repositoryInTerminal, setRepositoryInTerminal] = useState<
+    string | null
+  >(null);
+  const [terminalInitialMode, setTerminalInitialMode] = useState<
+    'terminal' | 'agent'
+  >('terminal');
+
+  const [activeAgentsByWorktree, setActiveAgentsByWorktree] = useState<
+    Record<string, Record<string, ActiveAgent>>
+  >({});
 
   const [enabledEditors, setEnabledEditors] = useState([]);
 
   const [loadingRenameWorktree, setLoadingRenameWorktree] = useState(false);
+  const [loadingLockWorktree, setLoadingLockWorktree] = useState(false);
 
   const [loadingMoveWorktree, setLoadingMoveWorktree] = useState(false);
 
@@ -119,10 +120,41 @@ export default function ListWorktrees({
     useState(false);
 
   const [pruneLoading, setPruneLoading] = useState<boolean>(false);
+  const [prunePreviewLoading, setPrunePreviewLoading] =
+    useState<boolean>(false);
+  const [pruneModalOpen, setPruneModalOpen] = useState(false);
+  const [prunePreview, setPrunePreview] = useState<{
+    output: string;
+    worktrees: Array<{
+      name: string;
+      resolvedName: string;
+      path: string;
+      pruneReason?: string;
+    }>;
+  }>({ output: '', worktrees: [] });
+  const [selectedPrunePaths, setSelectedPrunePaths] = useState<string[]>([]);
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
 
   const { isWorkflowPlaying } = useItemsContext();
+
+  const onTerminalAgentActivity = useCallback(
+    ({ terminalId, worktreePath, agent, active }: TerminalAgentActivity) => {
+      setActiveAgentsByWorktree((current) => {
+        const worktreeKey = worktreeActivityKey(worktreePath);
+        const next = { ...current };
+        const activeForWorktree = { ...(next[worktreeKey] || {}) };
+        if (active) activeForWorktree[terminalId] = agent;
+        else delete activeForWorktree[terminalId];
+
+        if (Object.keys(activeForWorktree).length === 0)
+          delete next[worktreeKey];
+        else next[worktreeKey] = activeForWorktree;
+        return next;
+      });
+    },
+    [],
+  );
 
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
@@ -284,6 +316,7 @@ export default function ListWorktrees({
       toLock: boolean,
       result: any,
     ) => {
+      setLoadingLockWorktree(false);
       if (code === 0) {
         notification.success({
           message: toLock
@@ -292,6 +325,7 @@ export default function ListWorktrees({
           placement: 'bottomLeft',
           duration: 0.5,
         });
+        if (toLock) setIsLockModalOpen(false);
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
       } else {
         notification.error({
@@ -332,6 +366,7 @@ export default function ListWorktrees({
         setPruneLoading(false);
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         if (code === 0) {
+          setPruneModalOpen(false);
           notification.success({
             message: 'Stale worktrees have been successfully pruned',
             placement: 'bottomLeft',
@@ -347,13 +382,55 @@ export default function ListWorktrees({
       }, 200);
     };
 
+    const onMovedWorktreesSelectedForRepair = (
+      paths: string[],
+      selectionMode: 'single' | 'multiple',
+    ) => {
+      if (!paths?.length) return;
+      window.electron.ipcRenderer.send(
+        'repair-moved-worktrees',
+        tabRepoPath,
+        selectionMode === 'single' ? [paths[0]] : paths,
+      );
+    };
+
+    const onMovedWorktreesRepaired = (code: number, result: any) => {
+      if (code === 0) {
+        notification.success({
+          message: 'Git worktree metadata repaired',
+          description:
+            'Git now points to the selected relocated worktree folder(s).',
+          placement: 'bottomLeft',
+          duration: 2,
+        });
+        window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+      } else {
+        notification.error({
+          message: 'Unable to repair moved worktrees',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
     window.electron.ipcRenderer.on('open-editor-error', onOpenEditorError);
     window.electron.ipcRenderer.on('worktrees-found', onWorktreesFound);
     window.electron.ipcRenderer.on('worktree-removed', onWorktreeRemoved);
     window.electron.ipcRenderer.on('worktree-renamed', onWorktreeRenamed);
-    window.electron.ipcRenderer.on('worktrees-changed-lock', onWorktreeChangedLock);
+    window.electron.ipcRenderer.on(
+      'worktrees-changed-lock',
+      onWorktreeChangedLock,
+    );
     window.electron.ipcRenderer.on('worktree-moved-to-folder', onWorktreeMoved);
     window.electron.ipcRenderer.on('worktrees-pruned', onWorktreesPruned);
+    window.electron.ipcRenderer.on(
+      'moved-worktrees-selected-for-repair',
+      onMovedWorktreesSelectedForRepair,
+    );
+    window.electron.ipcRenderer.on(
+      'moved-worktrees-repaired',
+      onMovedWorktreesRepaired,
+    );
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('open-editor-error');
@@ -361,8 +438,16 @@ export default function ListWorktrees({
       window.electron.ipcRenderer.removeAllListeners('worktree-removed');
       window.electron.ipcRenderer.removeAllListeners('worktree-renamed');
       window.electron.ipcRenderer.removeAllListeners('worktrees-changed-lock');
-      window.electron.ipcRenderer.removeAllListeners('worktree-moved-to-folder');
+      window.electron.ipcRenderer.removeAllListeners(
+        'worktree-moved-to-folder',
+      );
       window.electron.ipcRenderer.removeAllListeners('worktrees-pruned');
+      window.electron.ipcRenderer.removeAllListeners(
+        'moved-worktrees-selected-for-repair',
+      );
+      window.electron.ipcRenderer.removeAllListeners(
+        'moved-worktrees-repaired',
+      );
     };
   }, [api, modal, tabRepoPath]);
 
@@ -378,6 +463,17 @@ export default function ListWorktrees({
       form.getFieldValue('newWorktreeName'),
       form.getFieldValue('oldWorktreePath'),
       tabRepoPath,
+    );
+  };
+
+  const lockWorktree = () => {
+    setLoadingLockWorktree(true);
+    window.electron.ipcRenderer.send(
+      'change-lock-worktree',
+      true,
+      form.getFieldValue('lockWorktreePath'),
+      tabRepoPath,
+      form.getFieldValue('lockReason') || undefined,
     );
   };
 
@@ -411,191 +507,189 @@ export default function ListWorktrees({
     setIsChangePatternModalOpen(false);
   };
 
-  const getMenuItems = (
-    isWorktreeLocked: boolean,
-    isPrimaryWorktree: boolean,
-  ) => {
-    if (isWorktreeLocked) {
-      return [
-        ...items,
-        {
-          label: 'Unlock',
-          value: '3',
-          icon: <UnlockOutlined />,
-        },
-        {
-          label: 'Rename',
-          value: '-2',
-          icon: <EditOutlined />,
-          disabled: true,
-        },
-        {
-          label: 'Change Naming Pattern',
-          value: '-6',
-          icon: <FieldStringOutlined />,
-          disabled: true,
-        },
-        {
-          label: 'Change Folder',
-          value: '5',
-          icon: <FolderEditIcon size={16} />,
-          disabled: true,
-        },
-        {
-          label: 'Delete',
-          value: '2',
-          icon: <DeleteOutlined />,
-          disabled: true,
-        },
-      ];
-    }
+  const getWorktreeMenuItems = (worktree: any): MenuProps['items'] => {
+    const isLocked = worktree.isLocked;
+    const isPrimary = worktree.isPrimary;
+    const isHealthy = worktree.directoryExists !== false && !worktree.prunable;
+
+    const editorItems = enabledEditors.map((editor: any) => ({
+      key: `editor:${editor.name || editor.key}`,
+      label: editor.name || editor.label,
+      icon: editor.icon ? React.cloneElement(editor.icon) : <CodeOutlined />,
+    }));
+
     return [
-      ...items,
       {
-        label: 'Rename',
-        value: '-2',
-        icon: <EditOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-explorer',
+        label: 'Open in Explorer',
+        icon: <ExportOutlined />,
+        disabled: !isHealthy,
       },
       {
-        label: 'Change Naming Pattern',
-        value: '-6',
-        icon: <FieldStringOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-terminal',
+        label: 'Open in Terminal',
+        icon: <CodeOutlined />,
+        disabled: !isHealthy,
       },
       {
-        label: 'Change Folder',
-        value: '5',
-        icon: <FolderEditIcon size={16} />,
-        disabled: isPrimaryWorktree,
+        key: 'work-agent',
+        label: 'Work with AI Agent',
+        icon: <RobotOutlined />,
+        disabled: !isHealthy,
       },
       {
-        label: 'Delete',
-        value: '2',
-        icon: <DeleteOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'open-in',
+        label: 'Open in',
+        icon: <FolderOpenOutlined />,
+        children: editorItems.length > 0 ? editorItems : undefined,
+        disabled: !isHealthy || editorItems.length === 0,
+      },
+      {
+        key: 'copy',
+        label: 'Copy',
+        icon: <CopyOutlined />,
         children: [
           {
-            label: 'worktree',
-            value: '2-0',
+            key: 'copy-name',
+            label: 'name',
           },
           {
-            label: 'worktree and local branch',
-            value: '2-1',
+            key: 'copy-path',
+            label: 'path',
           },
         ],
       },
       {
-        label: 'Lock',
-        value: '4',
-        icon: <LockOutlined />,
-        disabled: isPrimaryWorktree,
+        key: 'rename',
+        label: 'Rename',
+        icon: <EditOutlined />,
+        disabled: isLocked || isPrimary || !isHealthy,
+      },
+      {
+        key: 'change-pattern',
+        label: 'Change Naming Pattern',
+        icon: <FieldStringOutlined />,
+        disabled: isLocked || isPrimary || !isHealthy,
+      },
+      {
+        key: 'change-folder',
+        label: 'Move',
+        icon: <FolderEditIcon size={16} />,
+        disabled: isLocked || isPrimary || !isHealthy,
+      },
+      {
+        key: 'delete',
+        label: 'Delete',
+        icon: <DeleteOutlined />,
+        disabled: isLocked || isPrimary || !isHealthy,
+        children: [
+          {
+            key: 'delete-worktree',
+            label: 'worktree',
+          },
+          {
+            key: 'delete-worktree-branch',
+            label: 'worktree and local branch',
+          },
+        ],
+      },
+      isLocked
+        ? {
+            key: 'unlock',
+            label: 'Unlock',
+            icon: <UnlockOutlined />,
+            disabled: isPrimary || !isHealthy,
+          }
+        : {
+            key: 'lock',
+            label: 'Lock',
+            icon: <LockOutlined />,
+            disabled: isPrimary || !isHealthy,
+          },
+      {
+        key: 'repair',
+        label: 'Repair',
+        icon: <ToolOutlined />,
+        disabled: isPrimary || isHealthy,
       },
     ];
   };
 
   const closeTerminalModal = () => {
     setRepositoryInTerminal(null);
+    setTerminalInitialMode('terminal');
     setOpenTerminalModal(false);
   };
 
-  const onClickWorktree = (worktree: any) => {
-    return (event: any) => {
-      const key = event[event.length - 1];
-      if (key === '-6') {
-        setIsChangePatternModalOpen(true);
-        form.setFieldValue('worktreeToChange', worktree);
-        form.setFieldValue('repo', tabRepoPath);
+  const handleWorktreeMenuClick =
+    (worktree: any) =>
+    ({ key }: { key: string }) => {
+      const isHealthy =
+        worktree.directoryExists !== false && !worktree.prunable;
+      if (
+        !isHealthy &&
+        key !== 'repair' &&
+        key !== 'copy-name' &&
+        key !== 'copy-path'
+      ) {
         return;
       }
-      if (key === '-3') {
+      if (key === 'open-explorer') {
+        window.electron.ipcRenderer.send('open-explorer', worktree.path);
+        return;
+      }
+      if (key === 'open-terminal') {
         setRepositoryInTerminal(worktree.path);
+        setTerminalInitialMode('terminal');
         setOpenTerminalModal(true);
         return;
       }
-      if (key === '-2') {
+      if (key === 'work-agent') {
+        setRepositoryInTerminal(worktree.path);
+        setTerminalInitialMode('agent');
+        setOpenTerminalModal(true);
+        return;
+      }
+      if (key.startsWith('editor:')) {
+        const editorName = key.replace('editor:', '');
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          editorName,
+          worktree.path,
+          tabRepoPath,
+        );
+        return;
+      }
+      if (key === 'copy-name') {
+        navigator.clipboard.writeText(worktree.name);
+        return;
+      }
+      if (key === 'copy-path') {
+        navigator.clipboard.writeText(worktree.path);
+        return;
+      }
+      if (key === 'rename') {
         setIsModalOpen(true);
         form.setFieldValue('oldWorktreeName', worktree.name);
         form.setFieldValue('oldWorktreePath', worktree.path);
         form.setFieldValue('newWorktreeName', worktree.name);
         return;
       }
-      if (key === '-1') {
-        window.electron.ipcRenderer.send('open-explorer', worktree.path);
+      if (key === 'change-pattern') {
+        setIsChangePatternModalOpen(true);
+        form.setFieldValue('worktreeToChange', worktree);
+        form.setFieldValue('repo', tabRepoPath);
         return;
       }
-      if (key === '0-2') {
-        window.electron.ipcRenderer.send('open-editor', 'Intellij', worktree.path, tabRepoPath);
+      if (key === 'change-folder') {
+        setIsMoveModalOpen(true);
+        form.setFieldValue('nameWorktreeToMove', worktree.name);
+        form.setFieldValue('newWorktreePath', worktree.path);
+        form.setFieldValue('oldPathWorktreeToMove', worktree.path);
+        form.setFieldValue('resolvedName', worktree.resolvedName);
         return;
       }
-      if (key === '0-3') {
-        window.electron.ipcRenderer.send('open-editor', 'Webstorm', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-4') {
-        window.electron.ipcRenderer.send('open-editor', 'Rider', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-5') {
-        window.electron.ipcRenderer.send('open-editor', 'PyCharm', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-6') {
-        window.electron.ipcRenderer.send('open-editor', 'CLion', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-7') {
-        window.electron.ipcRenderer.send('open-editor', 'PhpStorm', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-8') {
-        window.electron.ipcRenderer.send('open-editor', 'RubyMine', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-9') {
-        window.electron.ipcRenderer.send('open-editor', 'GoLand', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-10') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Visual Studio',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-12') {
-        window.electron.ipcRenderer.send('open-editor', 'Brackets', worktree.path, tabRepoPath);
-        return;
-      }
-      if (key === '0-13') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Android Studio',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '0-14') {
-        window.electron.ipcRenderer.send(
-          'open-editor',
-          'Sublime Text',
-          worktree.path,
-          tabRepoPath,
-        );
-        return;
-      }
-      if (key === '1-2') {
-        navigator.clipboard.writeText(worktree.name);
-        return;
-      }
-      if (key === '1-3') {
-        navigator.clipboard.writeText(worktree.path);
-        return;
-      }
-      if (key === '2-0') {
+      if (key === 'delete-worktree') {
         api.open({
           key: 'updatable',
           icon: <LoadingOutlined />,
@@ -613,7 +707,7 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '2-1') {
+      if (key === 'delete-worktree-branch') {
         api.open({
           key: 'updatable',
           icon: <LoadingOutlined />,
@@ -631,7 +725,14 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '3') {
+      if (key === 'lock') {
+        form.setFieldValue('lockWorktreePath', worktree.path);
+        form.setFieldValue('lockWorktreeName', worktree.name);
+        form.setFieldValue('lockReason', '');
+        setIsLockModalOpen(true);
+        return;
+      }
+      if (key === 'unlock') {
         window.electron.ipcRenderer.send(
           'change-lock-worktree',
           false,
@@ -640,44 +741,13 @@ export default function ListWorktrees({
         );
         return;
       }
-      if (key === '4') {
+      if (key === 'repair') {
         window.electron.ipcRenderer.send(
-          'change-lock-worktree',
-          true,
-          worktree.path,
-          tabRepoPath,
+          'choose-moved-worktrees-for-repair',
+          false,
         );
-        return;
-      }
-      if (key === '5') {
-        setIsMoveModalOpen(true);
-        form.setFieldValue('nameWorktreeToMove', worktree.name);
-        form.setFieldValue('newWorktreePath', worktree.path);
-        form.setFieldValue('oldPathWorktreeToMove', worktree.path);
-        form.setFieldValue('resolvedName', worktree.resolvedName);
       }
     };
-  };
-
-  const loadData = (selectedOptions: any[]) => {
-    const targetOption = selectedOptions[selectedOptions.length - 1];
-
-    if (targetOption.value === '0') {
-      targetOption.children = enabledEditors.map((editor: any) => {
-        editor.value = editor.key;
-        return editor;
-      });
-    }
-  };
-
-  const renderOption = (option: any) => {
-    return (
-      <Space>
-        {option.icon && React.cloneElement(option.icon)}
-        <span>{option.label}</span>
-      </Space>
-    );
-  };
 
   const onClickRefresh = (event: any) => {
     event.stopPropagation();
@@ -685,10 +755,37 @@ export default function ListWorktrees({
     window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
   };
 
-  const onClickPrune = (event: any) => {
+  const onClickPrune = async (event: any) => {
     event.stopPropagation();
+    setPrunePreviewLoading(true);
+    try {
+      const preview = await window.electron.ipcRenderer.invoke(
+        'preview-prune-worktrees',
+        tabRepoPath,
+      );
+      setPrunePreview(preview);
+      setSelectedPrunePaths(
+        preview.worktrees.map((worktree: { path: string }) => worktree.path),
+      );
+      setPruneModalOpen(true);
+    } catch (error: any) {
+      notification.error({
+        message: 'Unable to inspect prunable worktrees',
+        description: error?.message || String(error),
+        placement: 'bottomLeft',
+      });
+    } finally {
+      setPrunePreviewLoading(false);
+    }
+  };
+
+  const confirmPrune = () => {
     setPruneLoading(true);
-    window.electron.ipcRenderer.send('prune-worktrees', tabRepoPath);
+    window.electron.ipcRenderer.send(
+      'prune-worktrees',
+      tabRepoPath,
+      selectedPrunePaths,
+    );
   };
 
   useHotkeys('shift+p', onClickPrune, {
@@ -724,7 +821,7 @@ export default function ListWorktrees({
             ) : (
               <LoadingOutlined />
             )}
-            {!pruneLoading ? (
+            {!pruneLoading && !prunePreviewLoading ? (
               <Tooltip
                 title={
                   <Space>
@@ -763,7 +860,6 @@ export default function ListWorktrees({
                 icon={<SisternodeOutlined />}
               />
             </Tooltip>
-            <span>{worktrees.length}</span>
           </Space>
         }
         header={<strong>Worktrees</strong>}
@@ -771,6 +867,129 @@ export default function ListWorktrees({
         key="1"
       >
         {contextHolder}
+        <Modal
+          className="prune-review-modal"
+          width={620}
+          title={
+            <div className="prune-review-title">
+              <span className="prune-review-title-icon">
+                <WarningOutlined />
+              </span>
+              <span>
+                <strong>Review Damaged Worktrees</strong>
+                <small>
+                  {prunePreview.worktrees.length}{' '}
+                  {prunePreview.worktrees.length === 1
+                    ? 'worktree requires attention'
+                    : 'worktrees require attention'}
+                </small>
+              </span>
+            </div>
+          }
+          open={pruneModalOpen}
+          onCancel={() => {
+            if (!pruneLoading) setPruneModalOpen(false);
+          }}
+          cancelText="Cancel"
+          okText={'Prune Worktrees'}
+          okButtonProps={{
+            danger: true,
+            disabled: selectedPrunePaths.length === 0,
+            loading: pruneLoading,
+          }}
+          onOk={confirmPrune}
+          centered
+        >
+          {prunePreview.worktrees.length > 0 ? (
+            <>
+              <div className="prune-selection-toolbar">
+                <Checkbox
+                  checked={
+                    selectedPrunePaths.length === prunePreview.worktrees.length
+                  }
+                  indeterminate={
+                    selectedPrunePaths.length > 0 &&
+                    selectedPrunePaths.length < prunePreview.worktrees.length
+                  }
+                  onChange={(event) =>
+                    setSelectedPrunePaths(
+                      event.target.checked
+                        ? prunePreview.worktrees.map((item) => item.path)
+                        : [],
+                    )
+                  }
+                >
+                  Select all
+                </Checkbox>
+                <Typography.Text type="secondary">
+                  {selectedPrunePaths.length} selected
+                </Typography.Text>
+              </div>
+              <div className="prune-worktree-list">
+                {prunePreview.worktrees.map((worktree) => {
+                  const selected = selectedPrunePaths.includes(worktree.path);
+                  return (
+                    <div
+                      className={`prune-worktree-item ${selected ? 'selected' : ''}`}
+                      key={worktree.path}
+                      role="checkbox"
+                      aria-checked={selected}
+                      tabIndex={0}
+                      onClick={() =>
+                        setSelectedPrunePaths((current) =>
+                          selected
+                            ? current.filter((item) => item !== worktree.path)
+                            : [...current, worktree.path],
+                        )
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPrunePaths((current) =>
+                            selected
+                              ? current.filter((item) => item !== worktree.path)
+                              : [...current, worktree.path],
+                          );
+                        }
+                      }}
+                    >
+                      <Checkbox checked={selected} tabIndex={-1} />
+                      <div>
+                        <Typography.Text strong className="prune-worktree-name">
+                          {worktree.name || worktree.resolvedName}
+                        </Typography.Text>
+                        <div className="prune-worktree-detail">
+                          <span>Path</span>
+                          <Typography.Text ellipsis title={worktree.path}>
+                            {worktree.path}
+                          </Typography.Text>
+                        </div>
+                        <div className="prune-worktree-detail reason">
+                          <span>Issue</span>
+                          <Typography.Text>
+                            {worktree.pruneReason ||
+                              'Git marked this worktree as prunable.'}
+                          </Typography.Text>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="prune-worktree-empty">
+              <ClearOutlined />
+              <Typography.Text>No damaged worktrees found.</Typography.Text>
+            </div>
+          )}
+          {prunePreview.output && (
+            <details className="prune-dry-run-output">
+              <summary>Git dry-run output</summary>
+              <pre>{prunePreview.output}</pre>
+            </details>
+          )}
+        </Modal>
         <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
           {worktrees.map((worktree: any) => (
             <li
@@ -786,7 +1005,18 @@ export default function ListWorktrees({
               >
                 {/* eslint-disable-next-line no-nested-ternary */}
                 {worktree.isLocked ? (
-                  <LockOutlined />
+                  <Tooltip
+                    title={
+                      worktree.lockReason
+                        ? `Lock reason: ${worktree.lockReason}`
+                        : 'Worktree is locked'
+                    }
+                    placement="right"
+                    mouseEnterDelay={0}
+                    mouseLeaveDelay={0}
+                  >
+                    <LockOutlined style={{ color: token.colorWarning }} />
+                  </Tooltip>
                 ) : worktree.prunable ? (
                   <Tooltip
                     title="Gitdir file points to non-existent location"
@@ -811,14 +1041,47 @@ export default function ListWorktrees({
                     {worktree.name}
                   </Tooltip>
                 </span>
+                {Object.values(
+                  activeAgentsByWorktree[worktreeActivityKey(worktree.path)] ||
+                    {},
+                ).length > 0 && (
+                  <span
+                    className="worktree-agent-status"
+                    aria-label="Active AI agents"
+                  >
+                    {Object.entries(
+                      activeAgentsByWorktree[
+                        worktreeActivityKey(worktree.path)
+                      ] || {},
+                    ).map(([terminalId, agent]) => (
+                      <Tooltip
+                        title={`${agent.label} is working`}
+                        key={terminalId}
+                      >
+                        <Avatar
+                          size={18}
+                          className="agent-working-icon"
+                          style={{
+                            backgroundColor: 'transparent',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          {getAiAgentIcon(agent.id, 18)}
+                        </Avatar>
+                      </Tooltip>
+                    ))}
+                  </span>
+                )}
               </Space>
-              <Cascader
-                options={getMenuItems(worktree.isLocked, worktree.isPrimary)}
-                onChange={onClickWorktree(worktree)}
-                loadData={loadData}
-                optionRender={renderOption}
-                expandTrigger="hover"
-                popupClassName="worktree-menu"
+              <Dropdown
+                menu={{
+                  items: getWorktreeMenuItems(worktree),
+                  onClick: handleWorktreeMenuClick(worktree),
+                }}
+                trigger={['click']}
+                placement="bottomRight"
               >
                 <Tooltip
                   title="actions"
@@ -826,46 +1089,73 @@ export default function ListWorktrees({
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}
                 >
-                  <MoreOutlined style={{ cursor: 'pointer' }} />
+                  <MoreOutlined
+                    style={{ cursor: 'pointer', padding: '2px 4px' }}
+                  />
                 </Tooltip>
-              </Cascader>
+              </Dropdown>
             </li>
           ))}
         </ul>
         {openTerminalModal && (
-          <TerminalInteractive
-            isModalOpen={openTerminalModal}
-            repository={repositoryInTerminal}
-            handleCancel={closeTerminalModal}
-            isDarkMode={isDarkMode}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <TerminalInteractive
+              isModalOpen={openTerminalModal}
+              initialRepository={repositoryInTerminal}
+              worktrees={worktrees}
+              handleCancel={closeTerminalModal}
+              isDarkMode={isDarkMode}
+              onAgentActivity={onTerminalAgentActivity}
+              initialMode={terminalInitialMode}
+            />
+          </Suspense>
         )}
         {isModalOpen && (
-          <RenameWorktree
-            isModalOpen={isModalOpen}
-            form={form}
-            onFinish={onFinish}
-            handleCancel={handleCancel}
-            loading={loadingRenameWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <RenameWorktree
+              isModalOpen={isModalOpen}
+              form={form}
+              onFinish={onFinish}
+              handleCancel={handleCancel}
+              loading={loadingRenameWorktree}
+            />
+          </Suspense>
+        )}
+        {isLockModalOpen && (
+          <Suspense fallback={<Spin size="large" />}>
+            <LockWorktree
+              isModalOpen={isLockModalOpen}
+              form={form}
+              onFinish={lockWorktree}
+              handleCancel={() => {
+                setIsLockModalOpen(false);
+                form.setFieldValue('lockReason', '');
+              }}
+              loading={loadingLockWorktree}
+            />
+          </Suspense>
         )}
         {isMoveModalOpen && (
-          <MoveWorktree
-            isModalOpen={isMoveModalOpen}
-            form={form}
-            onFinish={onFinishMoveWorktree}
-            handleCancel={handleCancelMoveWorktree}
-            loading={loadingMoveWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <MoveWorktree
+              isModalOpen={isMoveModalOpen}
+              form={form}
+              onFinish={onFinishMoveWorktree}
+              handleCancel={handleCancelMoveWorktree}
+              loading={loadingMoveWorktree}
+            />
+          </Suspense>
         )}
         {isChangePatternModalOpen && (
-          <ChangePatternWorktree
-            isModalOpen={isChangePatternModalOpen}
-            form={form}
-            onFinish={onFinishChangePatternWorktree}
-            handleCancel={handleCancelChangePatternWorktree}
-            loading={loadingChangePatternWorktree}
-          />
+          <Suspense fallback={<Spin size="large" />}>
+            <ChangePatternWorktree
+              isModalOpen={isChangePatternModalOpen}
+              form={form}
+              onFinish={onFinishChangePatternWorktree}
+              handleCancel={handleCancelChangePatternWorktree}
+              loading={loadingChangePatternWorktree}
+            />
+          </Suspense>
         )}
       </Collapse.Panel>
     </Collapse>

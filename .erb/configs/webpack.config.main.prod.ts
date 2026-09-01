@@ -71,7 +71,7 @@ const configuration: webpack.Configuration = {
         'https://www.worktreewise.com/contact/?utm_source=worktreewise-app',
       PAYMENT_PAGE_URL:
         'https://www.worktreewise.com/pricing/?utm_source=worktreewise-app',
-      VERSION: '1.0.1',
+      VERSION: '1.1.0',
     }),
 
     new webpack.DefinePlugin({

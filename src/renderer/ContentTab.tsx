@@ -8,8 +8,11 @@ import React, {
 } from 'react';
 import {
   Button,
+  Form,
+  Input,
   Layout,
   message,
+  Modal,
   Progress,
   Result,
   Spin,
@@ -18,20 +21,26 @@ import {
 } from 'antd';
 import {
   InboxOutlined,
+  CloudDownloadOutlined,
+  FolderOpenOutlined,
+  LinkOutlined,
   LoadingOutlined,
   FolderOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { motion } from 'framer-motion';
 import Worktrees from './modules/worktrees/Worktrees';
-import Execution from './modules/execution/Execution';
 import TabService from './services/tab/TabService';
 import { useItemsContext } from './TabsContext';
 import Loader from './components/Loader';
 
 const { Content } = Layout;
 const Workflows = lazy(() => import('./modules/workflows/Workflows'));
+const Execution = lazy(() => import('./modules/execution/Execution'));
 const GitLog = lazy(() => import('./modules/gitLog/GitLog'));
+const WorktreeOverview = lazy(
+  () => import('./modules/worktrees/WorktreeOverview'),
+);
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
   const ref1 = useRef(null);
@@ -51,6 +60,9 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
   const tabRepoPath = TabService.getTabRepoPath(keyTab);
   const [isRepoExistsOnDisk, setIsRepoExistsOnDisk] = useState<boolean>(true);
+  const [cloneModalOpen, setCloneModalOpen] = useState(false);
+  const [cloneLoading, setCloneLoading] = useState(false);
+  const [cloneForm] = Form.useForm();
 
   const [mode, setMode] = useState('GIT_LOG');
 
@@ -69,25 +81,31 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   }
 
   useEffect(() => {
-    setInterval(() => {
-      setPercent(percent + 50);
-    }, 10);
-  });
+    if (!isFirstRender) return undefined;
+    const interval = setInterval(() => {
+      setPercent((prev) => (prev >= 100 ? 100 : prev + 25));
+    }, 50);
+    return () => clearInterval(interval);
+  }, [isFirstRender]);
 
   useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
     if (isRepoSelected) {
       setLoading(true);
-      setTimeout(() => {
+      timer = setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
         setIsFirstRender(false);
       }, 20);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
-      setTimeout(() => {
+      timer = setTimeout(() => {
         setIsFirstRender(false);
       }, 20);
     }
+    return () => {
+      if (timer) clearTimeout(timer);
+    };
     // do not touch
   }, [isRepoSelected]);
 
@@ -103,6 +121,46 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
 
   const onimportAreaClick = () => {
     window.electron.ipcRenderer.send('choose-dir', keyTab);
+  };
+
+  const onLocateMovedRepository = () => {
+    window.electron.ipcRenderer.send('choose-dir', keyTab);
+  };
+
+  const chooseCloneDirectory = async () => {
+    const directory = await window.electron.ipcRenderer.invoke(
+      'choose-clone-directory',
+    );
+    if (directory) cloneForm.setFieldValue('destination', directory);
+  };
+
+  const cloneRepository = async (values: {
+    repositoryUrl: string;
+    destination: string;
+    folderName?: string;
+  }) => {
+    setCloneLoading(true);
+    try {
+      const cloned = await window.electron.ipcRenderer.invoke(
+        'clone-repository',
+        values.repositoryUrl,
+        values.destination,
+        values.folderName,
+      );
+      setCloneModalOpen(false);
+      cloneForm.resetFields();
+      window.electron.ipcRenderer.send(
+        'choose-dir-from-outside',
+        cloned.path,
+        cloned.name,
+        keyTab,
+      );
+      message.success('Repository cloned successfully.');
+    } catch (error: any) {
+      message.error(error?.message || String(error));
+    } finally {
+      setCloneLoading(false);
+    }
   };
 
   useHotkeys('shift+o', onimportAreaClick, {
@@ -183,14 +241,34 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       }
     };
 
-    window.electron.ipcRenderer.on(`selected-repo-${keyTab}`, onSelectRepo);
-    window.electron.ipcRenderer.on(`theme-changed-${keyTab}`, onThemeChange);
-    window.electron.ipcRenderer.on('is-repo-exist', onRepoExist);
+    const removeSelectedRepo = window.electron.ipcRenderer.on(
+      `selected-repo-${keyTab}`,
+      onSelectRepo,
+    );
+    const removeThemeChanged = window.electron.ipcRenderer.on(
+      `theme-changed-${keyTab}`,
+      onThemeChange,
+    );
+    const removeRepoExist = window.electron.ipcRenderer.on(
+      'is-repo-exist',
+      onRepoExist,
+    );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners(`selected-repo-${keyTab}`);
-      window.electron.ipcRenderer.removeAllListeners(`theme-changed-${keyTab}`);
-      window.electron.ipcRenderer.removeAllListeners('is-repo-exist');
+      if (typeof removeSelectedRepo === 'function') removeSelectedRepo();
+      else
+        window.electron.ipcRenderer.removeAllListeners(
+          `selected-repo-${keyTab}`,
+        );
+
+      if (typeof removeThemeChanged === 'function') removeThemeChanged();
+      else
+        window.electron.ipcRenderer.removeAllListeners(
+          `theme-changed-${keyTab}`,
+        );
+
+      if (typeof removeRepoExist === 'function') removeRepoExist();
+      else window.electron.ipcRenderer.removeAllListeners('is-repo-exist');
     };
   }, [activeTab, items, keyTab, setActiveKey, updateItems]);
 
@@ -235,6 +313,12 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
               no longer exists on disk.
             </Typography.Title>
           }
+          subTitle="The repository may have been moved or renamed. Locate its new folder to reconnect this tab."
+          extra={
+            <Button type="primary" onClick={onLocateMovedRepository}>
+              Locate moved repository
+            </Button>
+          }
         />
       </div>
     );
@@ -270,9 +354,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
           >
             <Content style={{ margin: '8px' }}>
               {mode === 'WORKFLOW' && (
-                <div ref={ref3}>
-                  <Execution />
-                </div>
+                <Suspense fallback={<Spin size="large" />}>
+                  <div ref={ref3}>
+                    <Execution />
+                  </div>
+                </Suspense>
               )}
               {mode === 'WORKFLOW' && (
                 <Suspense fallback={<Spin size="large" />}>
@@ -283,6 +369,11 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
               {mode === 'GIT_LOG' && (
                 <Suspense fallback={<Spin size="large" />}>
                   <GitLog isModal={false} />
+                </Suspense>
+              )}
+              {mode === 'OVERVIEW' && (
+                <Suspense fallback={<Spin size="large" />}>
+                  <WorktreeOverview />
                 </Suspense>
               )}
             </Content>
@@ -300,21 +391,110 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         className={
           isDarkMode ? 'import-area-dark-container' : 'import-area-container'
         }
-        style={{
-          width: '100vw',
-          height: 'calc(100vh - 40px)',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
+        style={{ width: '100vw', height: 'calc(100vh - 40px)' }}
       >
-        <Button
-          className={isDarkMode ? 'import-area-dark' : 'import-area'}
-          onClick={onimportAreaClick}
+        <div className="repository-start-content">
+          <div className="repository-start-heading">
+            <Typography.Title level={2}>
+              Start with a repository
+            </Typography.Title>
+            <Typography.Text type="secondary">
+              Open a local project or clone one from a remote Git server.
+            </Typography.Text>
+          </div>
+          <div className="repository-start-grid">
+            <Button
+              className="repository-start-card open-repository-card"
+              onClick={onimportAreaClick}
+            >
+              <span className="repository-start-icon">
+                <InboxOutlined />
+              </span>
+              <span className="repository-start-card-title">
+                Open a Repository
+              </span>
+              <span className="repository-start-card-description">
+                Select an existing Git repository from this computer.
+              </span>
+            </Button>
+            <Button
+              className="repository-start-card clone-repository-card"
+              onClick={() => setCloneModalOpen(true)}
+            >
+              <span className="repository-start-icon">
+                <CloudDownloadOutlined />
+              </span>
+              <span className="repository-start-card-title">
+                Clone a Repository
+              </span>
+              <span className="repository-start-card-description">
+                Download a remote repository and open it in WorktreeWise.
+              </span>
+            </Button>
+          </div>
+        </div>
+        <Modal
+          title="Clone a repository"
+          open={cloneModalOpen}
+          onCancel={() => {
+            if (!cloneLoading) setCloneModalOpen(false);
+          }}
+          footer={null}
+          centered
+          destroyOnClose
         >
-          <InboxOutlined style={{ fontSize: '46px', color: '#1677ff' }} />
-          <p className="ant-upload-text">Open a Repository</p>
-        </Button>
+          <Form form={cloneForm} layout="vertical" onFinish={cloneRepository}>
+            <Form.Item
+              label="Repository URL"
+              name="repositoryUrl"
+              rules={[{ required: true, message: 'Enter a repository URL.' }]}
+            >
+              <Input
+                prefix={<LinkOutlined />}
+                placeholder="https://github.com/owner/repository.git"
+                allowClear
+              />
+            </Form.Item>
+            <Form.Item
+              label="Destination folder"
+              name="destination"
+              rules={[
+                { required: true, message: 'Choose a destination folder.' },
+              ]}
+            >
+              <Input
+                prefix={<FolderOpenOutlined />}
+                readOnly
+                placeholder="Choose a parent folder"
+                addonAfter={
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={chooseCloneDirectory}
+                  >
+                    Browse
+                  </Button>
+                }
+              />
+            </Form.Item>
+            <Form.Item
+              label="Folder name"
+              name="folderName"
+              extra="Optional. By default, the repository name is used."
+            >
+              <Input placeholder="repository" allowClear />
+            </Form.Item>
+            <Button
+              type="primary"
+              htmlType="submit"
+              block
+              icon={<CloudDownloadOutlined />}
+              loading={cloneLoading}
+            >
+              Clone Repository
+            </Button>
+          </Form>
+        </Modal>
       </motion.div>
     );
   }

@@ -34,15 +34,18 @@ export default function MoveWorktree({
       setOsSeparator(separator);
     };
 
-    window.electron.ipcRenderer.on(
+    const removeWorktreesDir = window.electron.ipcRenderer.on(
       'selected-worktrees-dir',
       onSelectWorktreesDir,
     );
-    window.electron.ipcRenderer.on('os-separator-found', onOsSeparatorFound);
+    const removeOsSeparator = window.electron.ipcRenderer.on('os-separator-found', onOsSeparatorFound);
 
     return () => {
-      ipcRenderer.removeAllListeners('selected-worktrees-dir');
-      ipcRenderer.removeAllListeners('os-separator-found');
+      if (typeof removeWorktreesDir === 'function') removeWorktreesDir();
+      else window.electron.ipcRenderer.removeAllListeners('selected-worktrees-dir');
+
+      if (typeof removeOsSeparator === 'function') removeOsSeparator();
+      else window.electron.ipcRenderer.removeAllListeners('os-separator-found');
     };
   }, [form, osSeparator]);
 
@@ -69,7 +72,7 @@ export default function MoveWorktree({
           <Tooltip
             mouseEnterDelay={0}
             mouseLeaveDelay={0}
-            title="Change Folder"
+            title="Move"
             placement="top"
           >
             <Button icon={<FolderOutlined />} onClick={chooseWorktreesDir} />

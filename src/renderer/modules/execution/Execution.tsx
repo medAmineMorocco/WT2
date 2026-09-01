@@ -1,12 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { theme, Space, Splitter, StepProps } from 'antd';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
+import { theme, Space, Spin, Splitter, StepProps } from 'antd';
 import { FileOutlined, BlockOutlined } from '@ant-design/icons';
 import { motion } from 'framer-motion';
-import LogIllustration from '../../components/LogIllustration';
-import VisualizationIllustration from '../../components/VisualizationIllustration';
 import { useItemsContext } from '../../TabsContext';
-import Log from './Log';
-import Visualization from './Visualization';
+
+const Log = lazy(() => import('./Log'));
+const Visualization = lazy(() => import('./Visualization'));
+const LogIllustration = lazy(() => import('../../components/LogIllustration'));
+const VisualizationIllustration = lazy(
+  () => import('../../components/VisualizationIllustration'),
+);
 
 const { useToken } = theme;
 
@@ -95,10 +98,12 @@ export default function Execution() {
                 ease: 'easeInOut',
               }}
             >
-              <Visualization
-                commands={commands}
-                initialWorktreesStates={initialWorktreesStates}
-              />
+              <Suspense fallback={<Spin size="large" />}>
+                <Visualization
+                  commands={commands}
+                  initialWorktreesStates={initialWorktreesStates}
+                />
+              </Suspense>
             </motion.div>
           ) : (
             <div
@@ -109,7 +114,9 @@ export default function Execution() {
                 height: '100%',
               }}
             >
-              <VisualizationIllustration />
+              <Suspense fallback={<Spin size="large" />}>
+                <VisualizationIllustration />
+              </Suspense>
             </div>
           )}
         </div>
@@ -142,7 +149,9 @@ export default function Execution() {
               ease: 'easeInOut',
             }}
           >
-            <Log initialLogStates={initialLogStates} />
+            <Suspense fallback={<Spin size="large" />}>
+              <Log initialLogStates={initialLogStates} />
+            </Suspense>
           </motion.div>
         ) : (
           <div
@@ -153,7 +162,9 @@ export default function Execution() {
               height: '100%',
             }}
           >
-            <LogIllustration />
+            <Suspense fallback={<Spin size="large" />}>
+              <LogIllustration />
+            </Suspense>
           </div>
         )}
       </Splitter.Panel>

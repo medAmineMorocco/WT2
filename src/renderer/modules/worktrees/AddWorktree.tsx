@@ -1,16 +1,23 @@
 import {
   App as AntdApp,
   Button,
+  Checkbox,
   Form,
   Input,
   Modal,
+  Progress,
   Segmented,
   Select,
+  Switch,
+  Table,
   Tooltip,
+  Tree,
   Typography,
 } from 'antd';
 import {
   BranchesOutlined,
+  DatabaseOutlined,
+  FolderOpenOutlined,
   FolderOutlined,
   InfoCircleOutlined,
   StepBackwardOutlined,
@@ -21,6 +28,55 @@ import log from 'electron-log';
 import { useNavigate } from 'react-router-dom';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
+import {
+  EnvironmentIsolationConfig,
+  EnvironmentSetting,
+  EnvironmentSource,
+  IsolationStrategy,
+  SuggestedCommand,
+} from '../../../shared/environmentIsolation';
+
+type SparseCheckoutFolder = {
+  title: string;
+  key: string;
+  path: string;
+  size: number;
+  children?: SparseCheckoutFolder[];
+};
+
+function formatBytes(bytes: number) {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const unitIndex = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  );
+  return `${(bytes / 1024 ** unitIndex).toFixed(unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function getCoveredSize(
+  folders: SparseCheckoutFolder[],
+  checked: Set<string>,
+): number {
+  return folders.reduce(
+    (total, folder) =>
+      total +
+      (checked.has(folder.path)
+        ? folder.size
+        : getCoveredSize(folder.children || [], checked)),
+    0,
+  );
+}
+
+function getMinimalSparseFolders(paths: string[]) {
+  const selected = new Set(paths);
+  return paths.filter((folderPath) => {
+    const segments = folderPath.split('/');
+    return !segments.slice(0, -1).some((_, index) =>
+      selected.has(segments.slice(0, index + 1).join('/')),
+    );
+  });
+}
 
 export default function AddWorktree({
   isModalOpen,
@@ -38,6 +94,7 @@ export default function AddWorktree({
   const [createWorktreeMode, setCreateWorktreeMode] = useState('new-branch');
 
   const [branches, setBranches] = useState<any[]>([]);
+  const [showRemoteBranches, setShowRemoteBranches] = useState(false);
 
   const [tags, setTags] = useState<any[]>([]);
 
@@ -47,6 +104,65 @@ export default function AddWorktree({
 
   const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
 
+  const [nodeModulesWorktrees, setNodeModulesWorktrees] = useState<
+    Array<{ path: string; name: string; isPrimary: boolean }>
+  >([]);
+  const [selectedNodeModulesSourcePath, setSelectedNodeModulesSourcePath] =
+    useState<string>('');
+  const [shareNodeModules, setShareNodeModules] = useState(false);
+
+  const [checkoutScope, setCheckoutScope] = useState<'full' | 'selected'>(
+    'full',
+  );
+  const [sparseFolders, setSparseFolders] = useState<SparseCheckoutFolder[]>(
+    [],
+  );
+  const [selectedSparseFolders, setSelectedSparseFolders] = useState<string[]>(
+    [],
+  );
+  const [sparseTotalSize, setSparseTotalSize] = useState(0);
+  const [sparseRootSize, setSparseRootSize] = useState(0);
+  const [loadingSparseFolders, setLoadingSparseFolders] = useState(false);
+
+  const [isolateEnvironment, setIsolateEnvironment] = useState(false);
+
+  const [environmentSources, setEnvironmentSources] = useState<
+    EnvironmentSource[]
+  >([]);
+
+  const [selectedEnvironmentSourceIds, setSelectedEnvironmentSourceIds] =
+    useState<string[]>([]);
+
+  const [activeEnvironmentSourceId, setActiveEnvironmentSourceId] =
+    useState('');
+
+  const [environmentSettingsBySource, setEnvironmentSettingsBySource] =
+    useState<Record<string, EnvironmentSetting[]>>({});
+
+  const [environmentStrategies, setEnvironmentStrategies] = useState<
+    Record<string, IsolationStrategy>
+  >({});
+
+  const [rememberEnvironmentChoices, setRememberEnvironmentChoices] =
+    useState(true);
+
+  const [generatedEnvironmentValues, setGeneratedEnvironmentValues] = useState<
+    Record<string, string>
+  >({});
+
+  const [previewPortAllocations, setPreviewPortAllocations] = useState<
+    Record<string, number>
+  >({});
+
+  const [loadingEnvironmentPreview, setLoadingEnvironmentPreview] =
+    useState(false);
+
+  const [suggestedCommands, setSuggestedCommands] = useState<
+    SuggestedCommand[]
+  >([]);
+
+  const environmentPreviewRequest = useRef(0);
+
   const selectTagRef = useRef(null);
 
   const selectBranchRef = useRef(null);
@@ -55,11 +171,39 @@ export default function AddWorktree({
 
   const [form] = Form.useForm();
 
+  const watchedWorktreeName = Form.useWatch('name', form);
+  const watchedExistingBranch = Form.useWatch('existing-branch', form);
+  const watchedExistingTag = Form.useWatch('existing-tag', form);
+
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   const { selectedRepoPath: tabRepoPath, repoName } = useMemo(() => {
     return TabService.getTab(activeTab);
   }, [activeTab]);
+
+  const selectedEnvironmentSettings = useMemo(
+    () =>
+      selectedEnvironmentSourceIds.flatMap(
+        (sourceId) => environmentSettingsBySource[sourceId] || [],
+      ),
+    [environmentSettingsBySource, selectedEnvironmentSourceIds],
+  );
+
+  const activeEnvironmentSettings = useMemo(
+    () => environmentSettingsBySource[activeEnvironmentSourceId] || [],
+    [activeEnvironmentSourceId, environmentSettingsBySource],
+  );
+
+  const selectedEnvironmentSources = useMemo(
+    () =>
+      selectedEnvironmentSourceIds.flatMap((sourceId) => {
+        const source = environmentSources.find(
+          (candidate) => candidate.id === sourceId,
+        );
+        return source ? [source] : [];
+      }),
+    [environmentSources, selectedEnvironmentSourceIds],
+  );
 
   const storedWorktreePrefix =
     window.localStorage.getItem('worktreePrefix') != null &&
@@ -135,38 +279,208 @@ export default function AddWorktree({
       }
     };
 
-    const onWorktreesSeparatorFound = (
-      code: number,
-      result: any,
-    ) => {
+    const onWorktreesSeparatorFound = (code: number, result: any) => {
       if (code === 0) {
         setPathSeparator(result);
       }
     };
 
-    const onSelectWorktreesDir = (
-      code: number,
-      dirPath: string,
-    ) => {
+    const onSelectWorktreesDir = (code: number, dirPath: string) => {
       if (code === 0) {
         setWorktreesFolder(dirPath);
+      }
+    };
+
+    const onEnvironmentSourcesDetected = (code: number, result: any) => {
+      if (code === 0) {
+        const sources = result as EnvironmentSource[];
+        setEnvironmentSources(sources);
+        if (result.length === 0) {
+          setSelectedEnvironmentSourceIds([]);
+          setActiveEnvironmentSourceId('');
+          setEnvironmentSettingsBySource({});
+          setEnvironmentStrategies({});
+          return;
+        }
+        const saved = TabService.getTab(activeTab)?.environmentIsolation;
+        const rememberedIds = (saved?.sources || [])
+          .map((sourceConfig: any) => sourceConfig.source?.id)
+          .filter((id: string) => sources.some((source) => source.id === id));
+        if (saved?.sourceFile) {
+          const legacySource = sources.find(
+            (source) => source.relativePath === saved.sourceFile,
+          );
+          if (legacySource && !rememberedIds.includes(legacySource.id)) {
+            rememberedIds.push(legacySource.id);
+          }
+        }
+        const selectedIds = rememberedIds.length
+          ? rememberedIds
+          : [sources[0].id];
+        setSelectedEnvironmentSourceIds(selectedIds);
+        setActiveEnvironmentSourceId(selectedIds[0]);
+        selectedIds.forEach((sourceId: string) => {
+          const source = sources.find((candidate) => candidate.id === sourceId);
+          if (!source) return;
+          window.electron.ipcRenderer.send(
+            'read-environment-source',
+            tabRepoPath,
+            source,
+          );
+        });
+      } else {
+        notification.error({
+          message: 'Unable to detect environment sources',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onEnvironmentSourceRead = (
+      code: number,
+      result: any,
+      source: EnvironmentSource,
+    ) => {
+      if (code !== 0) {
+        notification.error({
+          message: 'Unable to read environment source',
+          description: result,
+          placement: 'bottomLeft',
+        });
+        return;
+      }
+      const settings = result as EnvironmentSetting[];
+      setEnvironmentSettingsBySource((current) => ({
+        ...current,
+        [source.id]: settings,
+      }));
+      const saved = TabService.getTab(activeTab)?.environmentIsolation;
+      const savedSource = (saved?.sources || []).find(
+        (sourceConfig: any) => sourceConfig.source?.id === source.id,
+      );
+      const legacyStrategies =
+        saved?.sourceFile === source?.relativePath ? saved.variables || {} : {};
+      setEnvironmentStrategies((current) => ({
+        ...current,
+        ...Object.fromEntries(
+          settings.map((setting) => [
+            setting.id,
+            savedSource?.strategies?.[setting.id] ||
+              legacyStrategies[setting.key] ||
+              setting.suggestedStrategy,
+          ]),
+        ),
+      }));
+    };
+
+    const onEnvironmentIsolationPreviewed = (
+      code: number,
+      result: any,
+      requestId: number,
+    ) => {
+      if (requestId !== environmentPreviewRequest.current) return;
+      setLoadingEnvironmentPreview(false);
+      if (code === 0) {
+        setGeneratedEnvironmentValues(result.values);
+        setPreviewPortAllocations(result.portAllocations);
+      } else {
+        setGeneratedEnvironmentValues({});
+        setPreviewPortAllocations({});
+        notification.error({
+          message: 'Unable to preview environment isolation',
+          description: result,
+          placement: 'bottomLeft',
+        });
+      }
+    };
+
+    const onEnvironmentSuggestionsPreviewed = (
+      code: number,
+      result: any,
+      requestId: number,
+    ) => {
+      if (requestId !== environmentPreviewRequest.current) return;
+      setSuggestedCommands(code === 0 ? result : []);
+    };
+
+    const onMainNodeModulesChecked = (
+      code: number,
+      result: Array<{ path: string; name: string; isPrimary: boolean }>,
+    ) => {
+      if (code === 0 && Array.isArray(result) && result.length > 0) {
+        setNodeModulesWorktrees(result);
+        setSelectedNodeModulesSourcePath((current) => {
+          if (current && result.some((item) => item.path === current)) {
+            return current;
+          }
+          const primary = result.find((item) => item.isPrimary);
+          return primary ? primary.path : result[0].path;
+        });
+      } else {
+        setNodeModulesWorktrees([]);
+        setSelectedNodeModulesSourcePath('');
       }
     };
 
     window.electron.ipcRenderer.on('worktree-created', onWorktreeCreated);
     window.electron.ipcRenderer.on('receive-branches', onBranchesFound);
     window.electron.ipcRenderer.on('receive-tags', onTagsFound);
-    window.electron.ipcRenderer.on('worktrees-folder-found', onWorktreesFolderFound);
-    window.electron.ipcRenderer.on('worktrees-separator-found', onWorktreesSeparatorFound);
-    window.electron.ipcRenderer.on('selected-worktrees-dir', onSelectWorktreesDir);
+    window.electron.ipcRenderer.on(
+      'worktrees-folder-found',
+      onWorktreesFolderFound,
+    );
+    window.electron.ipcRenderer.on(
+      'worktrees-separator-found',
+      onWorktreesSeparatorFound,
+    );
+    window.electron.ipcRenderer.on(
+      'selected-worktrees-dir',
+      onSelectWorktreesDir,
+    );
+    window.electron.ipcRenderer.on(
+      'environment-sources-detected',
+      onEnvironmentSourcesDetected,
+    );
+    window.electron.ipcRenderer.on(
+      'environment-source-read',
+      onEnvironmentSourceRead,
+    );
+    window.electron.ipcRenderer.on(
+      'environment-isolation-previewed',
+      onEnvironmentIsolationPreviewed,
+    );
+    window.electron.ipcRenderer.on(
+      'environment-suggestions-previewed',
+      onEnvironmentSuggestionsPreviewed,
+    );
+    window.electron.ipcRenderer.on(
+      'main-node-modules-checked',
+      onMainNodeModulesChecked,
+    );
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('worktree-created');
       window.electron.ipcRenderer.removeAllListeners('receive-branches');
       window.electron.ipcRenderer.removeAllListeners('receive-tags');
       window.electron.ipcRenderer.removeAllListeners('worktrees-folder-found');
-      window.electron.ipcRenderer.removeAllListeners('worktrees-separator-found');
+      window.electron.ipcRenderer.removeAllListeners(
+        'worktrees-separator-found',
+      );
       window.electron.ipcRenderer.removeAllListeners('selected-worktrees-dir');
+      window.electron.ipcRenderer.removeAllListeners(
+        'environment-sources-detected',
+      );
+      window.electron.ipcRenderer.removeAllListeners('environment-source-read');
+      window.electron.ipcRenderer.removeAllListeners(
+        'environment-isolation-previewed',
+      );
+      window.electron.ipcRenderer.removeAllListeners(
+        'environment-suggestions-previewed',
+      );
+      window.electron.ipcRenderer.removeAllListeners(
+        'main-node-modules-checked',
+      );
     };
     // do not touch
   }, [form, notification, tabRepoPath]);
@@ -189,13 +503,155 @@ export default function AddWorktree({
   }, [activeTab, form, isModalOpen, tabRepoPath]);
 
   useEffect(() => {
+    if (isModalOpen && tabRepoPath) {
+      window.electron.ipcRenderer.send('check-main-node-modules', tabRepoPath);
+    } else if (!isModalOpen) {
+      setShareNodeModules(false);
+    }
+  }, [isModalOpen, tabRepoPath]);
+
+  useEffect(() => {
+    if (!isModalOpen) return;
+    const saved = TabService.getTab(activeTab)?.environmentIsolation;
+    if (saved) {
+      setIsolateEnvironment(true);
+      setRememberEnvironmentChoices(true);
+    }
+  }, [activeTab, isModalOpen]);
+
+  useEffect(() => {
+    if (isolateEnvironment && isModalOpen) {
+      window.electron.ipcRenderer.send(
+        'detect-environment-sources',
+        tabRepoPath,
+      );
+    }
+  }, [isModalOpen, isolateEnvironment, tabRepoPath]);
+
+  useEffect(() => {
+    if (!isolateEnvironment || selectedEnvironmentSources.length === 0) {
+      setGeneratedEnvironmentValues({});
+      setPreviewPortAllocations({});
+      setSuggestedCommands([]);
+      setLoadingEnvironmentPreview(false);
+      return undefined;
+    }
+    const worktreeName =
+      createWorktreeMode === 'new-branch'
+        ? watchedWorktreeName
+        : createWorktreeMode === 'existing-branch'
+          ? watchedExistingBranch
+          : watchedExistingTag;
+    const requestId = environmentPreviewRequest.current + 1;
+    environmentPreviewRequest.current = requestId;
+    setLoadingEnvironmentPreview(selectedEnvironmentSettings.length > 0);
+    const timeout = window.setTimeout(() => {
+      const previewWorktreeName = worktreeName || 'worktree-name';
+      if (selectedEnvironmentSettings.length > 0) {
+        window.electron.ipcRenderer.send(
+          'preview-environment-isolation',
+          requestId,
+          selectedEnvironmentSettings,
+          environmentStrategies,
+          previewWorktreeName,
+        );
+      } else {
+        setGeneratedEnvironmentValues({});
+        setPreviewPortAllocations({});
+      }
+      window.electron.ipcRenderer.send(
+        'preview-environment-suggestions',
+        requestId,
+        tabRepoPath,
+        worktreeName || '{worktree-name}',
+        selectedEnvironmentSources,
+      );
+    }, 200);
+    return () => window.clearTimeout(timeout);
+  }, [
+    createWorktreeMode,
+    environmentStrategies,
+    selectedEnvironmentSettings,
+    selectedEnvironmentSources,
+    isolateEnvironment,
+    watchedExistingBranch,
+    watchedExistingTag,
+    watchedWorktreeName,
+    tabRepoPath,
+  ]);
+
+  const sparseCheckoutRef = useMemo(() => {
+    if (createWorktreeMode === 'existing-branch') {
+      return watchedExistingBranch || '';
+    }
+    if (createWorktreeMode === 'existing-tag') {
+      return watchedExistingTag || '';
+    }
+    return 'HEAD';
+  }, [createWorktreeMode, watchedExistingBranch, watchedExistingTag]);
+
+  useEffect(() => {
+    if (
+      !isModalOpen ||
+      checkoutScope !== 'selected' ||
+      !sparseCheckoutRef
+    ) {
+      return undefined;
+    }
+    let cancelled = false;
+    setLoadingSparseFolders(true);
+    setSelectedSparseFolders([]);
+    window.electron.ipcRenderer
+      .invoke('get-sparse-checkout-tree', tabRepoPath, sparseCheckoutRef)
+      .then((result: any) => {
+        if (cancelled) return;
+        setSparseFolders(result.folders || []);
+        setSparseTotalSize(result.totalSize || 0);
+        setSparseRootSize(result.rootSize || 0);
+      })
+      .catch((error: any) => {
+        if (cancelled) return;
+        setSparseFolders([]);
+        setSparseTotalSize(0);
+        setSparseRootSize(0);
+        notification.error({
+          message: 'Unable to inspect repository folders',
+          description: error?.message || String(error),
+        });
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingSparseFolders(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkoutScope,
+    isModalOpen,
+    notification,
+    sparseCheckoutRef,
+    tabRepoPath,
+  ]);
+
+  useEffect(() => {
     if (createWorktreeMode === 'existing-branch' && isModalOpen) {
-      window.electron.ipcRenderer.send('list-branches', tabRepoPath);
+      window.electron.ipcRenderer.send(
+        'list-branches',
+        tabRepoPath,
+        showRemoteBranches,
+      );
     }
     if (createWorktreeMode === 'existing-tag' && isModalOpen) {
       window.electron.ipcRenderer.send('list-tags', tabRepoPath);
     }
-  }, [activeTab, createWorktreeMode, form, isModalOpen, tabRepoPath]);
+  }, [
+    activeTab,
+    createWorktreeMode,
+    form,
+    isModalOpen,
+    showRemoteBranches,
+    tabRepoPath,
+  ]);
 
   const onChangeCreateWorktreeMode = (newVal: string) => {
     setCreateWorktreeMode(newVal);
@@ -244,7 +700,61 @@ export default function AddWorktree({
     } else {
       worktreeName = values['existing-tag'];
     }
-    if (!isNotBlank(values.preHook) && !isNotBlank(values.postHook)) {
+    const environmentIsolation: EnvironmentIsolationConfig | undefined =
+      isolateEnvironment && selectedEnvironmentSourceIds.length > 0
+        ? {
+            sources: selectedEnvironmentSourceIds.flatMap((sourceId) => {
+              const source = environmentSources.find(
+                (candidate) => candidate.id === sourceId,
+              );
+              if (!source) return [];
+              const sourceSettings =
+                environmentSettingsBySource[sourceId] || [];
+              return [
+                {
+                  source,
+                  strategies: Object.fromEntries(
+                    sourceSettings.map((setting) => [
+                      setting.id,
+                      environmentStrategies[setting.id] ||
+                        setting.suggestedStrategy,
+                    ]),
+                  ),
+                  portAllocations: Object.fromEntries(
+                    sourceSettings.flatMap((setting) =>
+                      previewPortAllocations[setting.id]
+                        ? [[setting.id, previewPortAllocations[setting.id]]]
+                        : [],
+                    ),
+                  ),
+                },
+              ];
+            }),
+          }
+        : undefined;
+    const shouldShareNodeModules =
+      shareNodeModules && nodeModulesWorktrees.length > 0;
+    const effectiveCreateWorktreeMode =
+      createWorktreeMode === 'existing-branch' && showRemoteBranches
+        ? 'existing-remote-branch'
+        : createWorktreeMode;
+    const selectedCheckoutFolders =
+      checkoutScope === 'selected'
+        ? getMinimalSparseFolders(selectedSparseFolders)
+        : [];
+    if (checkoutScope === 'selected' && selectedCheckoutFolders.length === 0) {
+      notification.warning({
+        message: 'Select at least one folder',
+        description: 'Choose the folders to include in this worktree.',
+      });
+      return;
+    }
+
+    if (
+      !environmentIsolation &&
+      !isNotBlank(values.preHook) &&
+      !isNotBlank(values.postHook)
+    ) {
       log.debug('== create-worktree ==');
 
       setLoadingCreateWorktree(true);
@@ -252,18 +762,26 @@ export default function AddWorktree({
         'create-worktree',
         worktreeName,
         worktreesFolder + pathSeparator + getWorktreeName(),
-        createWorktreeMode,
+        effectiveCreateWorktreeMode,
         tabRepoPath,
+        environmentIsolation,
+        shouldShareNodeModules,
+        shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
+        selectedCheckoutFolders,
       );
     } else {
       log.debug('== create-worktree-workflow ==');
       window.electron.ipcRenderer.send(
         'create-worktree-workflow',
         values,
-        createWorktreeMode,
+        effectiveCreateWorktreeMode,
         worktreeName.replaceAll('.', '-'),
         worktreesFolder + pathSeparator + getWorktreeName(),
         tabRepoPath,
+        environmentIsolation,
+        shouldShareNodeModules,
+        shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
+        selectedCheckoutFolders,
       );
       setIsWorkflowPlaying(true);
       handleCancel();
@@ -276,7 +794,18 @@ export default function AddWorktree({
       preHook: values.preHook,
       postHook: values.postHook,
       worktreesPath: worktreesFolder,
+      environmentIsolation: rememberEnvironmentChoices
+        ? environmentIsolation && {
+            sources: environmentIsolation.sources.map((sourceConfig) => ({
+              source: sourceConfig.source,
+              strategies: sourceConfig.strategies,
+            })),
+          }
+        : activeTabValue.environmentIsolation,
     };
+    if (!rememberEnvironmentChoices) {
+      delete activeTabNewValue.environmentIsolation;
+    }
     window.localStorage.setItem(activeTab, JSON.stringify(activeTabNewValue));
   };
 
@@ -302,14 +831,58 @@ export default function AddWorktree({
     navigate('/settings');
   };
 
+  const toggleEnvironmentSource = (
+    source: EnvironmentSource,
+    selected: boolean,
+  ) => {
+    setSelectedEnvironmentSourceIds((current) => {
+      const next = selected
+        ? [...new Set([...current, source.id])]
+        : current.filter((sourceId) => sourceId !== source.id);
+      if (!next.includes(activeEnvironmentSourceId)) {
+        setActiveEnvironmentSourceId(next[0] || '');
+      }
+      return next;
+    });
+    if (selected && !environmentSettingsBySource[source.id]) {
+      window.electron.ipcRenderer.send(
+        'read-environment-source',
+        tabRepoPath,
+        source,
+      );
+    }
+  };
+
+  const sparseCheckedSet = new Set(selectedSparseFolders);
+  const sparseEstimatedSize = Math.min(
+    sparseTotalSize,
+    sparseRootSize + getCoveredSize(sparseFolders, sparseCheckedSet),
+  );
+  const sparseEstimatedPercent =
+    sparseTotalSize > 0
+      ? Math.max(1, Math.round((sparseEstimatedSize / sparseTotalSize) * 100))
+      : 0;
+  const sparseSelectionCount = getMinimalSparseFolders(
+    selectedSparseFolders,
+  ).length;
+
   return (
     <Modal
       open={isModalOpen}
       footer={null}
       onCancel={handleCancel}
       destroyOnClose
-      width={400}
+      width={950}
       closeIcon={false}
+      centered={true}
+      styles={{
+        body: {
+          display: 'flex',
+          flexDirection: 'column',
+          height: '90vh',
+          overflow: 'hidden',
+        },
+      }}
     >
       <Segmented
         defaultValue={createWorktreeMode}
@@ -335,153 +908,564 @@ export default function AddWorktree({
         requiredMark="optional"
         form={form}
         onFinish={onFinish}
-        style={{ marginTop: '8px' }}
+        style={{
+          display: 'flex',
+          flex: 1,
+          flexDirection: 'column',
+          marginTop: 8,
+          minHeight: 0,
+        }}
       >
-        {createWorktreeMode === 'new-branch' && (
-          <Form.Item
-            label="Name"
-            name="name"
-            extra="Always created from HEAD of the main worktree"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Please enter the name of your worktree.',
-              },
-            ]}
-          >
-            <Input
-              prefix={<BranchesOutlined />}
-              placeholder="feature-add-sidebar"
-              allowClear
-            />
-          </Form.Item>
-        )}
-        {createWorktreeMode === 'existing-branch' && (
-          <Form.Item
-            label="Existing branch"
-            name="existing-branch"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Please choose a branch.',
-              },
-            ]}
-          >
-            <Select
-              ref={selectBranchRef}
-              allowClear
-              showSearch
-              placeholder="Select branch"
-              options={branches}
-              onChange={onSelectBranchChange}
-            />
-          </Form.Item>
-        )}
-        {createWorktreeMode === 'existing-tag' && (
-          <Form.Item
-            label="Existing tag"
-            name="existing-tag"
-            extra="A new branch is created from the selected tag, and a worktree is linked to it"
-            rules={[
-              {
-                required: true,
-                whitespace: true,
-                message: 'Please choose a tag.',
-              },
-            ]}
-          >
-            <Select
-              ref={selectTagRef}
-              allowClear
-              showSearch
-              placeholder="Select tag"
-              options={tags}
-              onChange={onSelectTagChange}
-            />
-          </Form.Item>
-        )}
-        <Form.Item
-          label="Pre-hook"
-          name="preHook"
-          tooltip={{
-            title: `command will be executed in main worktree : ${tabRepoPath}`,
-            icon: <InfoCircleOutlined />,
-            placement: 'right',
+        <div
+          className="create-worktree-scrollable-content"
+          style={{
+            flex: 1,
+            minHeight: 0,
+            overflowX: 'hidden',
+            overflowY: 'auto',
+            paddingRight: 4,
           }}
         >
-          <Input
-            prefix={<StepBackwardOutlined />}
-            placeholder="git fetch origin main:main"
-            allowClear
-          />
-        </Form.Item>
-        <Form.Item
-          label="Post-hook"
-          name="postHook"
-          tooltip={{
-            title: `command will be executed in created worktree repository`,
-            icon: <InfoCircleOutlined />,
-            placement: 'right',
-          }}
-        >
-          <Input
-            prefix={<StepForwardOutlined />}
-            placeholder="npm install"
-            allowClear
-          />
-        </Form.Item>
-        <small>The worktree will be created at the specified directory</small>
-        <Form.Item
-          extra={
-            <small>
-              {`The folder name will be based on your current naming pattern: ${storedWorktreePrefix}.`}
-              <Button
-                type="link"
-                onClick={openSettingsPage}
-                style={{ paddingLeft: 0 }}
-              >
-                <small>Want to change it ?</small>
-              </Button>
-            </small>
-          }
-        >
-          <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
-            <Tooltip
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
-              title="Change Location"
-              placement="bottom"
+          {createWorktreeMode === 'new-branch' && (
+            <Form.Item
+              label="Name"
+              name="name"
+              extra="Always created from HEAD of the main worktree"
+              rules={[
+                {
+                  required: true,
+                  whitespace: true,
+                  message: 'Please enter the name of your worktree.',
+                },
+              ]}
+              style={{ marginBottom: 12 }}
             >
-              <Button
-                size="small"
-                icon={<FolderOutlined />}
-                onClick={chooseWorktreesDir}
+              <Input
+                prefix={<BranchesOutlined />}
+                placeholder="feature-add-sidebar"
+                allowClear
               />
-            </Tooltip>
-            <Tooltip
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
-              title={worktreesFolder + pathSeparator + getWorktreeName()}
-              placement="bottom"
-            >
-              <Typography.Text
-                code
-                ellipsis={{ rows: 1 }}
-                style={{ direction: 'rtl' }}
+            </Form.Item>
+          )}
+          {createWorktreeMode === 'existing-branch' && (
+            <>
+              <Form.Item
+                label={
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 10,
+                    }}
+                  >
+                    <span>
+                      {showRemoteBranches ? 'Remote branch' : 'Local branch'}
+                    </span>
+                    <Switch
+                      size="small"
+                      checked={showRemoteBranches}
+                      checkedChildren="Remote"
+                      unCheckedChildren="Local"
+                      onChange={(checked) => {
+                        setShowRemoteBranches(checked);
+                        setBranches([]);
+                        form.setFieldValue('existing-branch', undefined);
+                      }}
+                    />
+                  </span>
+                }
+                name="existing-branch"
+                extra={
+                  showRemoteBranches
+                    ? 'Creates a local tracking branch for the selected remote branch'
+                    : undefined
+                }
+                rules={[
+                  {
+                    required: true,
+                    whitespace: true,
+                    message: 'Please choose a branch.',
+                  },
+                ]}
+                style={{ marginBottom: 12 }}
               >
-                {worktreesFolder + pathSeparator + getWorktreeName()}
-              </Typography.Text>
-            </Tooltip>
+                <Select
+                  ref={selectBranchRef}
+                  allowClear
+                  showSearch
+                  placeholder={
+                    showRemoteBranches
+                      ? 'Select remote branch'
+                      : 'Select local branch'
+                  }
+                  options={branches}
+                  onChange={onSelectBranchChange}
+                />
+              </Form.Item>
+            </>
+          )}
+          {createWorktreeMode === 'existing-tag' && (
+            <Form.Item
+              label="Existing tag"
+              name="existing-tag"
+              extra="A new branch is created from the selected tag, and a worktree is linked to it"
+              rules={[
+                {
+                  required: true,
+                  whitespace: true,
+                  message: 'Please choose a tag.',
+                },
+              ]}
+              style={{ marginBottom: 12 }}
+            >
+              <Select
+                ref={selectTagRef}
+                allowClear
+                showSearch
+                placeholder="Select tag"
+                options={tags}
+                onChange={onSelectTagChange}
+              />
+            </Form.Item>
+          )}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'row',
+              gap: 12,
+            }}
+          >
+            <Form.Item
+              label="Pre-hook"
+              name="preHook"
+              style={{ flex: 1, marginBottom: 10 }}
+              tooltip={{
+                title: `command will be executed in main worktree : ${tabRepoPath}`,
+                icon: <InfoCircleOutlined />,
+                placement: 'right',
+              }}
+            >
+              <Input
+                prefix={<StepBackwardOutlined />}
+                placeholder="git fetch origin main:main"
+                allowClear
+              />
+            </Form.Item>
+            <Form.Item
+              label="Post-hook"
+              name="postHook"
+              style={{ flex: 1, marginBottom: 10 }}
+              tooltip={{
+                title: `command will be executed in created worktree repository`,
+                icon: <InfoCircleOutlined />,
+                placement: 'right',
+              }}
+            >
+              <Input
+                prefix={<StepForwardOutlined />}
+                placeholder="npm install"
+                allowClear
+              />
+            </Form.Item>
           </div>
-        </Form.Item>
-        <Form.Item>
+          <small>The worktree will be created at the specified directory</small>
+          <Form.Item
+            style={{ marginBottom: 10 }}
+            extra={
+              <small>
+                {`The folder name will be based on your current naming pattern: ${storedWorktreePrefix}.`}
+                <Button
+                  type="link"
+                  onClick={openSettingsPage}
+                  style={{ paddingLeft: 0 }}
+                >
+                  <small>Want to change it ?</small>
+                </Button>
+              </small>
+            }
+          >
+            <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title="Change Location"
+                placement="bottom"
+              >
+                <Button
+                  size="small"
+                  icon={<FolderOutlined />}
+                  onClick={chooseWorktreesDir}
+                />
+              </Tooltip>
+              <Tooltip
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+                title={worktreesFolder + pathSeparator + getWorktreeName()}
+                placement="bottom"
+              >
+                <Typography.Text
+                  code
+                  ellipsis={{ rows: 1 }}
+                  style={{ direction: 'rtl' }}
+                >
+                  {worktreesFolder + pathSeparator + getWorktreeName()}
+                </Typography.Text>
+              </Tooltip>
+            </div>
+          </Form.Item>
+          <section className="sparse-checkout-section">
+            <div className="sparse-checkout-heading">
+              <div className="sparse-checkout-title-group">
+                <span className="sparse-checkout-heading-icon">
+                  <BranchesOutlined />
+                </span>
+                <span>
+                  <Typography.Text strong>Repository checkout</Typography.Text>
+                  <Typography.Text type="secondary">
+                    Control which project folders are available in this
+                    worktree.
+                  </Typography.Text>
+                </span>
+              </div>
+              <span className="sparse-checkout-optional">Optional</span>
+            </div>
+            <Segmented
+              block
+              value={checkoutScope}
+              onChange={(value) =>
+                setCheckoutScope(value as 'full' | 'selected')
+              }
+              className="sparse-checkout-options"
+              options={[
+                {
+                  value: 'full',
+                  label: (
+                    <span className="sparse-checkout-option">
+                      <DatabaseOutlined />
+                      <span>
+                        <strong>Full repository</strong>
+                        <small>Checkout every file and folder</small>
+                      </span>
+                    </span>
+                  ),
+                },
+                {
+                  value: 'selected',
+                  label: (
+                    <span className="sparse-checkout-option">
+                      <FolderOpenOutlined />
+                      <span>
+                        <strong>Selected folders</strong>
+                        <small>Keep the worktree lightweight</small>
+                      </span>
+                    </span>
+                  ),
+                },
+              ]}
+            />
+            {checkoutScope === 'selected' && (
+              <div className="sparse-checkout-picker">
+                <div className="sparse-checkout-picker-header">
+                  <span>
+                    <FolderOpenOutlined />
+                    Choose folders
+                  </span>
+                  {sparseSelectionCount > 0 && (
+                    <span className="sparse-checkout-selection-count">
+                      {sparseSelectionCount} selected
+                    </span>
+                  )}
+                </div>
+                <div className="sparse-checkout-tree-wrap">
+                  {!sparseCheckoutRef ? (
+                    <Typography.Text type="secondary">
+                      Select a branch or tag to browse its folders.
+                    </Typography.Text>
+                  ) : loadingSparseFolders ? (
+                    <Typography.Text type="secondary">
+                      Inspecting repository folders…
+                    </Typography.Text>
+                  ) : sparseFolders.length === 0 ? (
+                    <Typography.Text type="secondary">
+                      This revision has no folders to select.
+                    </Typography.Text>
+                  ) : (
+                    <Tree
+                      checkable
+                      selectable={false}
+                      checkedKeys={selectedSparseFolders}
+                      treeData={sparseFolders}
+                      onCheck={(keys) =>
+                        setSelectedSparseFolders(
+                          (Array.isArray(keys) ? keys : keys.checked).map(
+                            String,
+                          ),
+                        )
+                      }
+                      titleRender={(node: any) => (
+                        <span className="sparse-checkout-folder-label">
+                          <span>{node.title}</span>
+                          <Typography.Text type="secondary">
+                            {formatBytes(node.size)}
+                          </Typography.Text>
+                        </span>
+                      )}
+                    />
+                  )}
+                </div>
+                {sparseTotalSize > 0 && (
+                  <div className="sparse-checkout-estimate">
+                    <div className="sparse-checkout-estimate-copy">
+                      <span>
+                        <Typography.Text type="secondary">
+                          Estimated checkout
+                        </Typography.Text>
+                        <Typography.Text strong>
+                          {formatBytes(sparseEstimatedSize)}
+                        </Typography.Text>
+                      </span>
+                      <span className="sparse-checkout-percent">
+                        ~{sparseEstimatedPercent}%
+                      </span>
+                    </div>
+                    <Progress
+                      percent={sparseEstimatedPercent}
+                      size="small"
+                      showInfo={false}
+                      strokeColor={{ from: '#1677ff', to: '#36cfc9' }}
+                    />
+                    <Typography.Text type="secondary">
+                      Full repository size: {formatBytes(sparseTotalSize)}
+                    </Typography.Text>
+                  </div>
+                )}
+              </div>
+            )}
+          </section>
+          {nodeModulesWorktrees.length > 0 && (
+            <div style={{ marginBottom: 12 }}>
+              <Checkbox
+                checked={shareNodeModules}
+                onChange={(event) => setShareNodeModules(event.target.checked)}
+              >
+                Share node_modules
+              </Checkbox>
+              {shareNodeModules && (
+                <div style={{ marginTop: 6, paddingLeft: 24 }}>
+                  <Typography.Text
+                    type="secondary"
+                    style={{
+                      display: 'block',
+                      marginBottom: 4,
+                      fontSize: 12,
+                    }}
+                  >
+                    Share from worktree:
+                  </Typography.Text>
+                  <Select
+                    size="small"
+                    style={{ width: '100%' }}
+                    value={selectedNodeModulesSourcePath}
+                    onChange={(val) => setSelectedNodeModulesSourcePath(val)}
+                    options={nodeModulesWorktrees.map((wt) => ({
+                      value: wt.path,
+                      label: wt.isPrimary
+                        ? `${wt.name} (Main worktree)`
+                        : wt.name,
+                    }))}
+                  />
+                </div>
+              )}
+            </div>
+          )}
+          <Form.Item style={{ marginBottom: isolateEnvironment ? 12 : 24 }}>
+            <Checkbox
+              checked={isolateEnvironment}
+              onChange={(event) => setIsolateEnvironment(event.target.checked)}
+            >
+              Isolate environment
+            </Checkbox>
+          </Form.Item>
+          {isolateEnvironment && (
+            <div style={{ marginBottom: 10 }}>
+              <Typography.Text strong>Environment sources</Typography.Text>
+              <div
+                style={{
+                  maxHeight: 104,
+                  margin: '6px 0 8px',
+                  overflowY: 'auto',
+                }}
+              >
+                {environmentSources.length === 0 ? (
+                  <Typography.Text type="secondary">
+                    No supported environment sources were detected.
+                  </Typography.Text>
+                ) : (
+                  environmentSources.map((source) => (
+                    <div
+                      key={source.id}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        minHeight: 28,
+                        paddingRight: 8,
+                      }}
+                    >
+                      <Checkbox
+                        checked={selectedEnvironmentSourceIds.includes(
+                          source.id,
+                        )}
+                        onChange={(event) =>
+                          toggleEnvironmentSource(source, event.target.checked)
+                        }
+                      >
+                        {source.relativePath}
+                      </Checkbox>
+                      <Typography.Text type="secondary">
+                        {source.detectedType}
+                      </Typography.Text>
+                    </div>
+                  ))
+                )}
+              </div>
+              {selectedEnvironmentSourceIds.length > 0 && (
+                <Select
+                  size="small"
+                  style={{ width: '100%', marginBottom: 6 }}
+                  value={activeEnvironmentSourceId || undefined}
+                  placeholder="Select source settings"
+                  options={selectedEnvironmentSourceIds.flatMap((sourceId) => {
+                    const source = environmentSources.find(
+                      (candidate) => candidate.id === sourceId,
+                    );
+                    return source
+                      ? [{ label: source.relativePath, value: source.id }]
+                      : [];
+                  })}
+                  onChange={setActiveEnvironmentSourceId}
+                />
+              )}
+              {activeEnvironmentSettings.length > 0 && (
+                <Table
+                  className="environment-isolation-table"
+                  size="small"
+                  pagination={false}
+                  rowKey="id"
+                  dataSource={activeEnvironmentSettings}
+                  loading={loadingEnvironmentPreview}
+                  virtual
+                  scroll={{ x: 900, y: 160 }}
+                  tableLayout="fixed"
+                  columns={[
+                    { title: 'Variable', dataIndex: 'key', width: '28%' },
+                    {
+                      title: 'Current value',
+                      width: '24%',
+                      render: (_, setting: EnvironmentSetting) => (
+                        <Typography.Text ellipsis>
+                          {setting.sensitive ? '********' : setting.value}
+                        </Typography.Text>
+                      ),
+                    },
+                    {
+                      title: 'Isolation strategy',
+                      width: '25%',
+                      render: (_, setting: EnvironmentSetting) => (
+                        <Select
+                          style={{ width: '100%' }}
+                          value={environmentStrategies[setting.id] || 'shared'}
+                          options={[
+                            { label: 'Shared', value: 'shared' },
+                            {
+                              label: 'Suffix',
+                              value: 'suffix',
+                              disabled: /^\d+$/.test(setting.value),
+                            },
+                            {
+                              label: 'Auto Port',
+                              value: 'auto-port',
+                              disabled: !/^\d+$/.test(setting.value),
+                            },
+                          ]}
+                          onChange={(strategy: IsolationStrategy) =>
+                            setEnvironmentStrategies((current) => ({
+                              ...current,
+                              [setting.id]: strategy,
+                            }))
+                          }
+                        />
+                      ),
+                    },
+                    {
+                      title: 'Generated value',
+                      width: '23%',
+                      render: (_, setting: EnvironmentSetting) => {
+                        const generatedValue =
+                          generatedEnvironmentValues[setting.id] ??
+                          setting.value;
+                        return (
+                          <Typography.Text ellipsis>
+                            {setting.sensitive
+                              ? '********'
+                              : `\u2192 ${generatedValue}`}
+                          </Typography.Text>
+                        );
+                      },
+                    },
+                  ]}
+                />
+              )}
+              <Checkbox
+                style={{ marginTop: 8 }}
+                checked={rememberEnvironmentChoices}
+                onChange={(event) =>
+                  setRememberEnvironmentChoices(event.target.checked)
+                }
+              >
+                Remember these choices for future worktrees
+              </Checkbox>
+              {suggestedCommands.length > 0 && (
+                <div style={{ marginTop: 10 }}>
+                  <Typography.Text strong>Suggested commands</Typography.Text>
+                  <Typography.Paragraph
+                    type="secondary"
+                    style={{ marginBottom: 4 }}
+                  >
+                    Review before running. WorktreeWise will not execute these
+                    commands automatically.
+                  </Typography.Paragraph>
+                  <div style={{ maxHeight: 110, overflowY: 'auto' }}>
+                    {suggestedCommands.map((suggestion) => (
+                      <div key={suggestion.id} style={{ marginBottom: 6 }}>
+                        <Typography.Text>{suggestion.label}</Typography.Text>
+                        <Typography.Paragraph
+                          code
+                          copyable={{ text: suggestion.command }}
+                          ellipsis={{ rows: 1, tooltip: suggestion.command }}
+                          style={{ marginBottom: 0 }}
+                        >
+                          {suggestion.command}
+                        </Typography.Paragraph>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+        <Form.Item style={{ flex: 'none', marginBottom: 0, paddingTop: 10 }}>
           <Button
             type="primary"
             htmlType="submit"
             style={{ width: '100%' }}
             loading={loadingCreateWorktree}
+            disabled={
+              isolateEnvironment &&
+              (selectedEnvironmentSourceIds.length === 0 ||
+                loadingEnvironmentPreview)
+            }
           >
             Create Worktree
           </Button>

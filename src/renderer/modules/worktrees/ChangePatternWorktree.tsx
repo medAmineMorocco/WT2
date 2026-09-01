@@ -21,7 +21,7 @@ export default function ChangePatternWorktree({
   const [patterns, setPatterns] = useState<any[]>(options);
 
   useEffect(() => {
-    window.electron.send('get-os-separator');
+    window.electron.ipcRenderer.send('get-os-separator');
 
     const storedWorktreePatterns =
       window.localStorage.getItem('worktreePatterns');
@@ -39,20 +39,21 @@ export default function ChangePatternWorktree({
       }
     };
 
-    window.electron.on(
+    const removePreview = window.electron.ipcRenderer.on(
       'received-preview-path-change-pattern',
       onReceivePathPreview,
     );
 
     return () => {
-      window.electron.removeAllListeners('received-preview-path-change-pattern');
+      if (typeof removePreview === 'function') removePreview();
+      else window.electron.ipcRenderer.removeAllListeners('received-preview-path-change-pattern');
     };
   }, []);
 
   const onChange = (pattern: any) => {
     const worktreeToChange = form.getFieldValue('worktreeToChange');
     const repo = form.getFieldValue('repo');
-    window.electron.send(
+    window.electron.ipcRenderer.send(
       'get-preview-path-change-pattern',
       worktreeToChange.name,
       worktreeToChange.path,

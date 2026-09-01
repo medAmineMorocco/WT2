@@ -3,7 +3,7 @@ import TabService from './services/tab/TabService';
 
 const ItemsContext = createContext<any | null>(null);
 
-function ItemsProvider({ children }) {
+function ItemsProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<any[]>([]);
   const [activeKey, setActiveKey] = useState(TabService.getMinTabKey());
   const [isWorkflowPlaying, setIsWorkflowPlaying] = useState<boolean>(false);

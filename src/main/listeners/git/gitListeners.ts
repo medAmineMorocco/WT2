@@ -1,8 +1,71 @@
 import { ipcMain } from 'electron';
-import { spawn } from 'child_process';
 import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
-import utils from '../../utils/utils';
+import { WorkingTreeAction } from '../../../shared/workingTree';
+
+ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
+  gitMainService.getWorkingTreeStatus(directory),
+);
+
+ipcMain.handle(
+  'run-working-tree-action',
+  async (
+    _event,
+    directory: string,
+    action: WorkingTreeAction,
+    paths: string[],
+  ) => gitMainService.runWorkingTreeAction(directory, action, paths),
+);
+
+ipcMain.handle(
+  'commit-working-tree',
+  async (
+    _event,
+    directory: string,
+    summary: string,
+    description: string,
+    amend: boolean,
+  ) => gitMainService.commitWorkingTree(directory, summary, description, amend),
+);
+
+ipcMain.handle(
+  'get-working-tree-file-diff',
+  async (
+    _event,
+    directory: string,
+    filePath: string,
+    staged: boolean,
+    untracked: boolean,
+  ) =>
+    gitMainService.getWorkingTreeFileDiff(
+      directory,
+      filePath,
+      staged,
+      untracked,
+    ),
+);
+
+ipcMain.handle('get-head-commit-message', async (_event, directory: string) =>
+  gitMainService.getHeadCommitMessage(directory),
+);
+
+ipcMain.handle(
+  'apply-working-tree-line',
+  async (_event, directory: string, patch: string, staged: boolean) =>
+    gitMainService.applyWorkingTreeLine(directory, patch, staged),
+);
+
+ipcMain.handle(
+  'discard-working-tree-line',
+  async (_event, directory: string, patch: string) =>
+    gitMainService.discardWorkingTreeLine(directory, patch),
+);
+
+ipcMain.handle(
+  'discard-working-tree-file',
+  async (_event, directory: string, filePath: string, untracked: boolean) =>
+    gitMainService.discardWorkingTreeFile(directory, filePath, untracked),
+);
 
 ipcMain.on(
   'show-git-log',
@@ -16,14 +79,14 @@ ipcMain.on(
   ) {
     try {
       log.info('Getting git log');
-      const gitLog = await gitMainService.showLogAsync(
+      const { buffer, hasMore } = await gitMainService.showLogAsync(
         directory,
         branch,
         author,
         skip,
         limit,
       );
-      event.sender.send('receive-git-log', 0, gitLog, skip);
+      event.sender.send('receive-git-log', 0, buffer, skip, hasMore);
     } catch (err: any) {
       log.error(`Failed to get git log: ${err.message}`);
       event.sender.send('receive-git-log', -1, 'Failed to load Git log.');
@@ -62,16 +125,68 @@ ipcMain.on(
   },
 );
 
-ipcMain.on('list-branches', async function (event, directory: string) {
-  try {
-    log.info('Getting branches');
-    const branches = await gitMainService.listBranches(directory);
-    event.sender.send('receive-branches', 0, JSON.stringify(branches));
-  } catch (err: any) {
-    log.error(`Failed to get branches: ${err.message}`);
-    event.sender.send('receive-branches', -1, 'Failed to list branches.');
-  }
-});
+ipcMain.on(
+  'get-commit-changed-files',
+  async function (event, requestId: number, commit: string, directory: string) {
+    try {
+      const result = await gitMainService.getCommitChangedFiles(
+        commit,
+        directory,
+      );
+      event.sender.send('receive-commit-changed-files', 0, result, requestId);
+    } catch (err: any) {
+      log.error(`Failed to get changed files for ${commit}: ${err.message}`);
+      event.sender.send(
+        'receive-commit-changed-files',
+        -1,
+        'Failed to load the files changed by this commit.',
+        requestId,
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'get-commit-file-diff',
+  async function (
+    event,
+    requestId: number,
+    commit: string,
+    filePath: string,
+    directory: string,
+  ) {
+    try {
+      const result = await gitMainService.getCommitFileDiff(
+        commit,
+        filePath,
+        directory,
+      );
+      event.sender.send('receive-commit-file-diff', 0, result, requestId);
+    } catch (err: any) {
+      log.error(`Failed to get ${filePath} diff for ${commit}: ${err.message}`);
+      event.sender.send(
+        'receive-commit-file-diff',
+        -1,
+        'Failed to load the selected file diff.',
+        requestId,
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'list-branches',
+  async function (event, directory: string, remote = false) {
+    try {
+      log.info('Getting branches');
+      const branches = await gitMainService.listBranches(directory, remote);
+      event.sender.send('receive-branches', 0, JSON.stringify(branches));
+    } catch (err: any) {
+      log.error(`Failed to get branches: ${err.message}`);
+      event.sender.send('receive-branches', -1, 'Failed to list branches.');
+    }
+  },
+);
 
 ipcMain.on('list-tags', async function (event, directory: string) {
   try {
@@ -115,50 +230,4 @@ ipcMain.on('list-refs', async function (event, directory: string) {
     log.error(`Failed to get refs: ${err.message}`);
     event.sender.send('receive-refs', -1, 'Failed to list git references.');
   }
-});
-
-let abortController: AbortController;
-let commandProcess: any;
-ipcMain.on(
-  'execute-command',
-  async function (event, command: string, directory: string) {
-    log.info(`Executing command ${command}`);
-    abortController = new AbortController();
-    const shell = await gitMainService.getShell();
-    const options: any = {
-      cwd: directory,
-      shell: shell || true,
-      signal: abortController.signal,
-    };
-
-    commandProcess = spawn(command, [], options);
-
-    commandProcess.stdout.on('data', async (data: any) => {
-      const encoded = await utils.setStoredEncoding(data);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.stderr.on('data', async (data: any) => {
-      const encoded = await utils.setStoredEncoding(data);
-      log.error(`Command error: ${encoded}`);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.on('error', async (err: any) => {
-      const encoded = await utils.setStoredEncoding(Buffer.from(err.message));
-      log.error(`Failed to execute command: ${encoded}`);
-      event.sender.send('command-receive-data', 0, encoded);
-    });
-
-    commandProcess.on('exit', () => {
-      event.sender.send('command-finished');
-    });
-  },
-);
-
-ipcMain.on('stop-command', function (event) {
-  log.info('Command stopped by user');
-  abortController.abort();
-  commandProcess.kill('SIGKILL');
-  event.sender.send('command-stopped');
 });

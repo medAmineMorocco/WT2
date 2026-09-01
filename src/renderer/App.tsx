@@ -1,4 +1,4 @@
-import React, { Suspense, useEffect, useRef, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   MemoryRouter as Router,
   Routes,
@@ -24,7 +24,9 @@ import * as Sentry from '@sentry/electron/renderer';
 import ContentTab from './ContentTab';
 import TabService from './services/tab/TabService';
 import { ItemsProvider, useItemsContext } from './TabsContext';
-import KeyboardShortcuts from './modules/KeyboardShortcuts';
+
+const KeyboardShortcuts = lazy(() => import('./modules/KeyboardShortcuts'));
+const PackInfos = lazy(() => import('./modules/packInfos/PackInfos'));
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
@@ -378,6 +380,13 @@ function Hello() {
       <AntdApp>
         <Tabs
           type="editable-card"
+          tabBarExtraContent={{
+            right: (
+              <Suspense fallback={null}>
+                <PackInfos />
+              </Suspense>
+            ),
+          }}
           onChange={onChange}
           activeKey={activeKey}
           onEdit={onEdit}
@@ -403,16 +412,20 @@ function Hello() {
           }
           destroyInactiveTabPane
         />
-        <KeyboardShortcuts
-          open={openKeyboard}
-          onClose={onCloseKeyboardShortcuts}
-        />
+        {openKeyboard && (
+          <Suspense fallback={null}>
+            <KeyboardShortcuts
+              open={openKeyboard}
+              onClose={onCloseKeyboardShortcuts}
+            />
+          </Suspense>
+        )}
       </AntdApp>
     </ConfigProvider>
   );
 }
 
-const Settings = React.lazy(() => import('./modules/settings/Settings'));
+const Settings = lazy(() => import('./modules/settings/Settings'));
 export default function App() {
   return (
     <Router>

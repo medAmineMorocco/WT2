@@ -1,119 +1,98 @@
 import {
+  Avatar,
   Button,
-  Card,
   Divider,
   Form,
   Input,
   Modal,
+  Popover,
+  Progress,
   Result,
   Segmented,
   Space,
-  Statistic,
+  Tag,
   theme,
-  Tooltip,
   Typography,
 } from 'antd';
 import { Award05Icon } from 'hugeicons-react';
 import {
-  HourglassOutlined,
-  HourglassFilled,
-  UserOutlined,
+  CalendarOutlined,
+  CreditCardOutlined,
+  DownOutlined,
   KeyOutlined,
+  LogoutOutlined,
+  RocketOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
   WarningOutlined,
-  UserSwitchOutlined,
 } from '@ant-design/icons';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import iconImage from './icon.png';
-import FreelancerIllustration from '../../components/illustrations/FreelancerIllustration';
+
+const FreelancerIllustration = lazy(
+  () => import('../../components/illustrations/FreelancerIllustration'),
+);
 
 const { useToken } = theme;
 
 export default function PackInfos() {
   const { token } = useToken();
-
-  const [isExpired, setIsExpired] = useState<boolean>(false);
-
+  const [isExpired, setIsExpired] = useState(false);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
-
   const [startTrialDate, setStartTrialDate] = useState<string | null>(null);
-
   const [packInfos, setPackInfos] = useState<any | null>();
-
-  const [isLoading, setLoading] = useState<boolean>(false);
-
-  const [isSubscriptionModalClosable, setIsSubscriptionModalClosable] =
-    useState<boolean>(false);
-
-  const [isValid, setValid] = useState<boolean>(false);
-
+  const [isLoading, setLoading] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [isValid, setValid] = useState(false);
   const [errorReason, setErrorReason] = useState<string | null>();
-
-  const handleSwitchUser = () => {
-    setIsSubscriptionModalClosable(true);
-  };
+  const [profileOpen, setProfileOpen] = useState(false);
 
   useEffect(() => {
     window.electron.ipcRenderer.send('check-trial-expiration');
-    const onReceiveExpirationInfos = (infos: any) => {
-      setPackInfos(infos);
-      if (infos && infos.pack === 'Free Trial') {
-        const {
-          isExpiredReceived,
-          daysRemainingReceived,
-          startTrialDateReceived,
-        } = infos;
-        setIsExpired(isExpiredReceived);
-        setValid(!isExpiredReceived);
-        setStartTrialDate(startTrialDateReceived);
-        setIsSubscriptionModalClosable(false);
-        if (!isExpiredReceived) {
-          setDaysRemaining(daysRemainingReceived);
+
+    const removeExpirationListener = window.electron.ipcRenderer.on(
+      'is-expired',
+      (infos: any) => {
+        setPackInfos(infos);
+        if (infos?.pack === 'Free Trial') {
+          setIsExpired(infos.isExpiredReceived);
+          setValid(!infos.isExpiredReceived);
+          setStartTrialDate(infos.startTrialDateReceived);
+          setShowSubscriptionModal(false);
+          setDaysRemaining(
+            infos.isExpiredReceived ? null : infos.daysRemainingReceived,
+          );
+        } else if (infos) {
+          setValid(true);
         }
-      } else if (infos && infos.pack !== 'Free Trial') {
-        setValid(true);
-      }
-    };
+      },
+    );
 
-    const onReceiveSubscriptionInfos = (
-      isValidReceived: boolean,
-      hasTrial: boolean,
-      _infos: any,
-      errorReasonReceived: string,
-    ) => {
-      setLoading(false);
-      setValid(isValidReceived);
-      setErrorReason(errorReasonReceived);
-      setPackInfos(_infos);
-      if (!errorReasonReceived) {
-        setIsSubscriptionModalClosable(false);
-      }
-      if (hasTrial) {
-        window.electron.ipcRenderer.send('check-trial-expiration');
-      }
-    };
+    const removeSubscriptionListener = window.electron.ipcRenderer.on(
+      'is-subscribed',
+      (valid: boolean, hasTrial: boolean, infos: any, reason: string) => {
+        setLoading(false);
+        setValid(valid);
+        setErrorReason(reason);
+        setPackInfos(infos);
+        if (!reason) setShowSubscriptionModal(false);
+        if (hasTrial) {
+          window.electron.ipcRenderer.send('check-trial-expiration');
+        }
+      },
+    );
 
-    const onSwitchUser = () => {
-      handleSwitchUser();
-    };
-
-    window.electron.ipcRenderer.on('is-expired', onReceiveExpirationInfos);
-    window.electron.ipcRenderer.on('is-subscribed', onReceiveSubscriptionInfos);
-    window.electron.ipcRenderer.on('switch-user', onSwitchUser);
+    const removeSwitchUserListener = window.electron.ipcRenderer.on(
+      'switch-user',
+      () => setShowSubscriptionModal(true),
+    );
 
     return () => {
-      window.electron.ipcRenderer.removeAllListeners('is-expired');
-      window.electron.ipcRenderer.removeAllListeners('is-subscribed');
-      window.electron.ipcRenderer.removeAllListeners('switch-user');
+      removeExpirationListener();
+      removeSubscriptionListener();
+      removeSwitchUserListener();
     };
   }, []);
-
-  const onGoPro = () => {
-    setIsSubscriptionModalClosable(true);
-  };
-
-  const onCloseSubscriptionModal = () => {
-    setIsSubscriptionModalClosable(false);
-  };
 
   const onFinish = (values: any) => {
     setLoading(true);
@@ -126,105 +105,141 @@ export default function PackInfos() {
     );
   };
 
-  const content = useMemo(() => {
-    if (
-      isValid &&
-      packInfos &&
-      packInfos.pack !== 'Free Trial' &&
-      !isSubscriptionModalClosable
-    ) {
-      return (
-        <div style={{ textAlign: 'center' }}>
-          <Space direction="vertical">
-            <Space>
-              <Tooltip
-                title="Switch User"
-                placement="top"
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <UserSwitchOutlined onClick={handleSwitchUser} />
-              </Tooltip>
-              <Tooltip
-                title={packInfos.email}
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <small>
-                  {packInfos.email && packInfos.email.split('@')[0]}
-                </small>
-              </Tooltip>
-            </Space>
-            <Space>
-              <Award05Icon size={24} color="#FAAD14" />
-              <strong>{packInfos.pack}</strong>
-            </Space>
-          </Space>
+  const email = packInfos?.email || 'Not signed in';
+  const userName = packInfos?.email?.split('@')[0] || 'Profile';
+  const packName = packInfos?.pack || 'WorktreeWise';
+  const version = window.localStorage.getItem('VERSION') || '';
+  const trialProgress = Math.max(
+    0,
+    Math.min(100, ((daysRemaining || 0) / 14) * 100),
+  );
+
+  const profileContent = (
+    <div className="profile-popover-content">
+      <div className="profile-popover-header">
+        <Avatar size={42} icon={<UserOutlined />} />
+        <div>
+          <Typography.Text strong>{userName}</Typography.Text>
+          <Typography.Text type="secondary" ellipsis>
+            {email}
+          </Typography.Text>
         </div>
-      );
-    }
-    if (!isValid || isSubscriptionModalClosable) {
-      return (
+      </div>
+      <Divider />
+      <div className="profile-info-row">
+        <span>
+          <Award05Icon size={18} color={token.colorWarning} /> Plan
+        </span>
+        <Tag color={packInfos?.pack === 'Free Trial' ? 'blue' : 'gold'}>
+          {packName}
+        </Tag>
+      </div>
+      {packInfos?.pack === 'Free Trial' && !isExpired && (
+        <div className="profile-trial-block">
+          <div>
+            <span>
+              <CalendarOutlined /> Trial remaining
+            </span>
+            <strong>{daysRemaining || 0} days</strong>
+          </div>
+          <Progress percent={trialProgress} showInfo={false} size="small" />
+          {startTrialDate && (
+            <Typography.Text type="secondary">
+              Started on {startTrialDate}
+            </Typography.Text>
+          )}
+        </div>
+      )}
+      <div className="profile-info-row">
+        <span>
+          <SafetyCertificateOutlined /> Version
+        </span>
+        <Typography.Text code>{version || '—'}</Typography.Text>
+      </div>
+      <Divider />
+      {packInfos?.pack === 'Free Trial' && (
+        <Button
+          type="primary"
+          block
+          icon={<RocketOutlined />}
+          onClick={() => {
+            setProfileOpen(false);
+            setShowSubscriptionModal(true);
+          }}
+        >
+          Upgrade WorktreeWise
+        </Button>
+      )}
+      <Button
+        type="text"
+        block
+        icon={<LogoutOutlined />}
+        onClick={() => {
+          setProfileOpen(false);
+          setShowSubscriptionModal(true);
+        }}
+      >
+        Switch account
+      </Button>
+    </div>
+  );
+
+  return (
+    <>
+      <Popover
+        content={profileContent}
+        placement="bottomRight"
+        trigger="click"
+        open={profileOpen}
+        onOpenChange={setProfileOpen}
+        arrow={false}
+        overlayClassName="profile-popover"
+      >
+        <Button type="text" className="profile-tab-button">
+          <Avatar size={25} icon={<UserOutlined />} />
+          <span className="profile-tab-name">{userName}</span>
+          <DownOutlined />
+        </Button>
+      </Popover>
+
+      {(!isValid || showSubscriptionModal) && (
         <Modal
           className="trial-expired-modal"
           open
-          onCancel={onCloseSubscriptionModal}
-          closeIcon={isSubscriptionModalClosable}
+          onCancel={() => setShowSubscriptionModal(false)}
+          closeIcon={showSubscriptionModal}
           footer={null}
           centered
           width="50%"
         >
-          <div style={{ position: 'relative' }}>
-            <div
-              style={{
-                display: 'flex',
-                gap: '8px',
-                alignItems: 'center',
-                marginBottom: '24px',
-              }}
-            >
-              <img
-                alt="worktreewise-icon"
-                src={iconImage}
-                width={86}
-                height={86}
-              />
-              <div
-                style={{ fontFamily: 'ExpletusSans-Regular', fontSize: '2rem' }}
-              >
-                WorktreeWise
-              </div>
+          <div className="subscription-modal-content">
+            <div className="subscription-modal-brand">
+              <img alt="WorktreeWise" src={iconImage} width={72} height={72} />
+              <Typography.Title level={2}>WorktreeWise</Typography.Title>
             </div>
-
-            <Form
-              onFinish={onFinish}
-              name="login"
-              initialValues={{ remember: true }}
-              disabled={isLoading}
-              style={{ width: '100%' }}
-            >
+            <Form onFinish={onFinish} name="login" disabled={isLoading}>
               <Form.Item name="trialOrSubscription" initialValue="subscription">
                 <Segmented
-                  disabled={isLoading}
                   block
                   options={[
                     {
-                      label: <div style={{ padding: 2 }}>Subscription</div>,
+                      label: (
+                        <Space size={6}>
+                          <CreditCardOutlined />
+                          <span>Subscription</span>
+                        </Space>
+                      ),
                       value: 'subscription',
                     },
                     {
-                      label: <div style={{ padding: 2 }}>Free Trial</div>,
+                      label: (
+                        <Space size={6}>
+                          <RocketOutlined />
+                          <span>Free Trial</span>
+                        </Space>
+                      ),
                       value: 'trial',
-                      disabled:
-                        (packInfos &&
-                          packInfos.pack === 'Free Trial' &&
-                          isExpired) ||
-                        (packInfos &&
-                          packInfos.pack === 'Free Trial' &&
-                          !isExpired &&
-                          daysRemaining &&
-                          daysRemaining >= 0) ||
-                        false,
+                      disabled: packInfos?.pack === 'Free Trial',
                     },
                   ]}
                 />
@@ -232,7 +247,7 @@ export default function PackInfos() {
               <Form.Item
                 name="email"
                 rules={[
-                  { required: true, message: 'Please input your Email !' },
+                  { required: true, message: 'Please input your email.' },
                   { type: 'email' },
                 ]}
               >
@@ -241,31 +256,18 @@ export default function PackInfos() {
               <Form.Item
                 name="licence"
                 rules={[
-                  {
-                    required: true,
-                    message: 'Please input your Licence Key !',
-                  },
+                  { required: true, message: 'Please input your licence key.' },
                 ]}
               >
                 <Input prefix={<KeyOutlined />} placeholder="Licence Key" />
               </Form.Item>
-
-              <Form.Item>
-                <Button
-                  block
-                  type="primary"
-                  htmlType="submit"
-                  loading={isLoading}
-                >
-                  Verify
-                </Button>
-              </Form.Item>
+              <Button block type="primary" htmlType="submit" loading={isLoading}>
+                Verify
+              </Button>
             </Form>
-
             <Divider />
-
             <Typography.Text>
-              Don’t have a subscription ?{' '}
+              Don’t have a subscription?{' '}
               <Typography.Link
                 href={window.localStorage.getItem('PAYMENT_PAGE_URL') || ''}
                 target="_blank"
@@ -273,97 +275,34 @@ export default function PackInfos() {
                 Buy a license
               </Typography.Link>
             </Typography.Text>
-
-            <div style={{ position: 'absolute' }}>
-              {errorReason ? (
-                <Space align="start">
-                  <WarningOutlined style={{ color: token.colorErrorText }} />
-                  <Typography.Text type="danger">{errorReason}</Typography.Text>
-                </Space>
-              ) : (
-                <span />
-              )}
-            </div>
+            {errorReason && (
+              <Space align="start" className="subscription-error">
+                <WarningOutlined style={{ color: token.colorErrorText }} />
+                <Typography.Text type="danger">{errorReason}</Typography.Text>
+              </Space>
+            )}
           </div>
         </Modal>
-      );
-    }
-    if (packInfos && packInfos.pack === 'Free Trial' && isExpired) {
-      return (
-        <Modal
-          className="trial-expired-modal"
-          open
-          closeIcon={null}
-          footer={null}
-          centered
-          width="60%"
-        >
+      )}
+
+      {isValid && packInfos?.pack === 'Free Trial' && isExpired && (
+        <Modal open closeIcon={null} footer={null} centered width="60%">
           <Result
-            icon={<FreelancerIllustration width="50%" />}
+            icon={
+              <Suspense fallback={null}>
+                <FreelancerIllustration width="50%" />
+              </Suspense>
+            }
             title="Your trial has expired. We hope you enjoyed your trial."
-            subTitle="We invite you to upgrade to a paid plan for continued access to our premium features and services."
+            subTitle="Upgrade to a paid plan for continued access to premium features and services."
             extra={
-              <Button
-                size="large"
-                type="primary"
-                onClick={() => setIsSubscriptionModalClosable(true)}
-              >
+              <Button type="primary" onClick={() => setShowSubscriptionModal(true)}>
                 Go Pro
               </Button>
             }
           />
         </Modal>
-      );
-    }
-    return (
-      <Card
-        actions={[
-          <Space direction="vertical">
-            <Space>
-              <UserOutlined />
-              <Tooltip
-                title={packInfos.email}
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <small>
-                  {packInfos.email && packInfos.email.split('@')[0]}
-                </small>
-              </Tooltip>
-            </Space>
-            <Space>
-              <Award05Icon size={24} color="#FAAD14" />
-              <Button onClick={onGoPro} type="link" style={{ padding: '0' }}>
-                Go Pro
-              </Button>
-            </Space>
-          </Space>,
-        ]}
-        title="Free Trial"
-        bordered
-        type="inner"
-      >
-        <Statistic
-          title={null}
-          prefix={
-            daysRemaining === 1 ? <HourglassOutlined /> : <HourglassFilled />
-          }
-          value={daysRemaining || ''}
-          suffix="Days"
-        />
-        <small>Started on {startTrialDate}</small>
-      </Card>
-    );
-  }, [
-    packInfos,
-    isSubscriptionModalClosable,
-    isExpired,
-    daysRemaining,
-    startTrialDate,
-    isLoading,
-    errorReason,
-    token.colorErrorText,
-  ]);
-
-  return <div>{content}</div>;
+      )}
+    </>
+  );
 }
