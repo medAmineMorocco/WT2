@@ -139,13 +139,15 @@ const createWindow = async () => {
   const minWidth = Math.min(800, width);
   const minHeight = Math.min(600, height);
 
+  const iconFile = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+
   mainWindow = new BrowserWindow({
     show: false,
     width,
     height,
     minWidth,
     minHeight,
-    icon: getAssetPath('icon.png'),
+    icon: getAssetPath(iconFile),
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -158,9 +160,6 @@ const createWindow = async () => {
   mainWindow.on('ready-to-show', () => {
     if (!mainWindow) {
       throw new Error('"mainWindow" is not defined');
-    }
-    if (process.platform === 'win32') {
-      app.setAppUserModelId(app.name);
     }
     mainWindow.maximize();
 
@@ -279,6 +278,9 @@ app.on('second-instance', (event, argv) => {
 app
   .whenReady()
   .then(async () => {
+    if (process.platform === 'win32') {
+      app.setAppUserModelId(app.name);
+    }
     ensureConfig();
     await createWindow();
 

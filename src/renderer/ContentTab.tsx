@@ -83,10 +83,23 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   useEffect(() => {
     if (!isFirstRender) return undefined;
     const interval = setInterval(() => {
-      setPercent((prev) => (prev >= 100 ? 100 : prev + 25));
-    }, 50);
-    return () => clearInterval(interval);
-  }, [isFirstRender]);
+      setPercent((prev) => {
+        if (prev >= 100) {
+          return 100;
+        }
+        return prev + 20;
+      });
+    }, 120);
+
+    const splashTimer = setTimeout(() => {
+      setIsFirstRender(false);
+    }, 850);
+
+    return () => {
+      clearInterval(interval);
+      clearTimeout(splashTimer);
+    };
+  }, [isFirstRender, setIsFirstRender]);
 
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
@@ -95,13 +108,9 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
       timer = setTimeout(() => {
         changeIconOfActiveTab(<FolderOutlined />);
         setLoading(false);
-        setIsFirstRender(false);
       }, 20);
     } else {
       changeIconOfActiveTab(<FolderOutlined />);
-      timer = setTimeout(() => {
-        setIsFirstRender(false);
-      }, 20);
     }
     return () => {
       if (timer) clearTimeout(timer);

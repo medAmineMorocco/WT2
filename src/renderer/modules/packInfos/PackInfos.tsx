@@ -44,6 +44,7 @@ export default function PackInfos() {
   const [isLoading, setLoading] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isValid, setValid] = useState(false);
+  const [isCheckingSubscription, setIsCheckingSubscription] = useState(true);
   const [errorReason, setErrorReason] = useState<string | null>();
   const [profileOpen, setProfileOpen] = useState(false);
 
@@ -53,6 +54,7 @@ export default function PackInfos() {
     const removeExpirationListener = window.electron.ipcRenderer.on(
       'is-expired',
       (infos: any) => {
+        setIsCheckingSubscription(false);
         setPackInfos(infos);
         if (infos?.pack === 'Free Trial') {
           setIsExpired(infos.isExpiredReceived);
@@ -71,6 +73,7 @@ export default function PackInfos() {
     const removeSubscriptionListener = window.electron.ipcRenderer.on(
       'is-subscribed',
       (valid: boolean, hasTrial: boolean, infos: any, reason: string) => {
+        setIsCheckingSubscription(false);
         setLoading(false);
         setValid(valid);
         setErrorReason(reason);
@@ -202,7 +205,7 @@ export default function PackInfos() {
         </Button>
       </Popover>
 
-      {(!isValid || showSubscriptionModal) && (
+      {!isCheckingSubscription && (!isValid || showSubscriptionModal) && (
         <Modal
           className="trial-expired-modal"
           open
