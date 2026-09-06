@@ -1,4 +1,4 @@
-name: Debug Build WorktreeWise
+name: Build WorktreeWise on Linux
 
 on:
   workflow_dispatch:
@@ -11,26 +11,27 @@ permissions:
 jobs:
   build-linux:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       - name: Package Linux application
-        run: npm run package-debug:linux
+        run: npm run package:linux
 
       - name: Upload to GoFile
         run: |
-          for file in release/build/*.exe release/build/*.dmg release/build/*.deb release/build/*.rpm; do
+          for file in release/build/*.deb release/build/*.rpm; do
             [ -e "$file" ] || continue
             echo "Uploading $file..."
             curl -F "file=@$file" https://store1.gofile.io/uploadFile
           done
-

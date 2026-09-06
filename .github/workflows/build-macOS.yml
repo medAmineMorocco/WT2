@@ -1,0 +1,93 @@
+name: Build WorktreeWise on Linux
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  issues: write
+
+jobs:
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          npm ci
+          # The lockfile is generated on Windows and omits this macOS-only
+          # optional dependency of dmg-builder.
+          npm install --no-save --package-lock=false dmg-license@1.0.11
+
+      - name: Import Apple Developer ID certificate
+        env:
+          MAC_CERTIFICATE: ${{ secrets.MAC_CERTIFICATE }}
+          MAC_CERTIFICATE_PASSWORD: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+        run: |
+          echo "$MAC_CERTIFICATE" | base64 --decode > certificate.p12
+
+          security create-keychain -p actions build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p actions build.keychain
+
+          security import certificate.p12 \
+            -k build.keychain \
+            -P "$MAC_CERTIFICATE_PASSWORD" \
+            -T /usr/bin/codesign
+
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s \
+            -k actions \
+            build.keychain
+
+          security list-keychains -d user -s build.keychain
+
+      - name: Show available code signing identities
+        run: security find-identity -v -p codesigning
+
+      - name: Configure notarytool
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          xcrun notarytool store-credentials wtwise \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_APP_SPECIFIC_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID"
+
+      #      - name: Test notarytool
+      #        run: |
+      #          xcrun notarytool history --keychain-profile wtwise
+
+
+      - name: Package macOS application
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: npm run package:macos
+
+      - name: Upload to GoFile
+        run: |
+          for file in release/build/*.dmg; do
+            [ -e "$file" ] || continue
+            echo "Uploading $file..."
+            curl -F "file=@$file" https://store1.gofile.io/uploadFile
+          done
