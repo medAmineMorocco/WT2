@@ -30,6 +30,8 @@ const PackInfos = lazy(() => import('./modules/packInfos/PackInfos'));
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
+  environment:
+    process.env.NODE_ENV === 'production' ? 'production' : 'development',
 });
 
 const { defaultAlgorithm, darkAlgorithm } = theme;

@@ -30,6 +30,7 @@ import gitMainService from './services/git/gitMainService';
 
 Sentry.init({
   dsn: 'https://16dc0811aeb94357a43fc5a2d7af0e0c@app.glitchtip.com/10452',
+  environment: app.isPackaged ? 'production' : 'development',
 });
 
 const http = require('http');
