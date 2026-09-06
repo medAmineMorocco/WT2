@@ -136,10 +136,15 @@ const createWindow = async () => {
 
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
 
+  const minWidth = Math.min(800, width);
+  const minHeight = Math.min(600, height);
+
   mainWindow = new BrowserWindow({
     show: false,
     width,
     height,
+    minWidth,
+    minHeight,
     icon: getAssetPath('icon.png'),
     webPreferences: {
       preload: app.isPackaged
@@ -193,27 +198,9 @@ const createWindow = async () => {
       });
   });
 
-  mainWindow.on('resize', () => {
-    if (mainWindow) {
-      const currentWidth = mainWindow.getBounds().width;
-
-      if (currentWidth < width / 2) {
-        mainWindow.setSize(width / 2, height);
-      }
-    }
-  });
-
-  mainWindow.on('maximize', () => {
-    log.info('mainWindow was maximized');
-    // resolve bug on linux when click on native maximize btn
-    mainWindow?.maximize();
-  });
-
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
-
-  mainWindow.setMinimumSize(800, 800);
 
   const menuBuilder = new MenuBuilder(mainWindow);
   menuBuilder.buildMenu();
