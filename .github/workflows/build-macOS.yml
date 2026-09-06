@@ -1,4 +1,4 @@
-name: Build WorktreeWise on Linux
+name: Build WorktreeWise on macOS
 
 on:
   workflow_dispatch:
