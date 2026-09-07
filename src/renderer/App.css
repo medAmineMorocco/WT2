@@ -3087,6 +3087,8 @@ html[data-color-scheme='dark'] .sparse-checkout-percent {
   border: 1px solid var(--ant-color-warning-border, #ffe58f);
   border-radius: 7px;
   background: var(--ant-color-warning-bg, #fffbe6);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .ai-agent-install-title {
@@ -3102,13 +3104,39 @@ html[data-color-scheme='dark'] .sparse-checkout-percent {
   font-size: 11px;
 }
 
-.ai-agent-install-command {
-  display: block;
+.ai-agent-install-command-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   width: 100%;
+  box-sizing: border-box;
+}
+
+.ai-agent-install-command {
+  flex: 1;
+  min-width: 0;
   overflow: hidden;
   font-size: 11px;
+  cursor: pointer;
+}
+
+.ai-agent-install-command code {
+  display: block;
+  margin: 0;
+  overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.ai-agent-install-copy-btn {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+
+.ai-agent-install-copy-btn .ant-typography-copy {
+  margin-inline-start: 0;
 }
 
 .ai-agent-install-suggestion .ant-btn-link {
@@ -3116,3 +3144,4 @@ html[data-color-scheme='dark'] .sparse-checkout-percent {
   padding: 0;
   font-size: 11px;
 }
+

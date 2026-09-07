@@ -425,13 +425,28 @@ export default function AiAgentSettings({
                           {installation.requirement}
                         </Typography.Text>
                       )}
-                      <Typography.Text
-                        code
-                        copyable={{ text: installation.command }}
-                        className="ai-agent-install-command"
-                      >
-                        {installation.command}
-                      </Typography.Text>
+                      <div className="ai-agent-install-command-row">
+                        <Tooltip title={installation.command} placement="topLeft" mouseEnterDelay={0}
+                                 mouseLeaveDelay={0}>
+                          <Typography.Text
+                            code
+                            className="ai-agent-install-command"
+                            onClick={() => {
+                              navigator.clipboard.writeText(installation.command);
+                              message.success('Copied to clipboard');
+                            }}
+                          >
+                            {installation.command}
+                          </Typography.Text>
+                        </Tooltip>
+                        <Typography.Text
+                          copyable={{
+                            text: installation.command,
+                            tooltips: ['Copy command', 'Copied!'],
+                          }}
+                          className="ai-agent-install-copy-btn"
+                        />
+                      </div>
                       <Button
                         type="link"
                         size="small"
