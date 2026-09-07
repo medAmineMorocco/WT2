@@ -26,7 +26,10 @@ import {
 import {
   AiAgentConfig,
   AiAgentId,
+  Platform,
   aiAgentsDefault,
+  detectPlatform,
+  getInstallationGuide,
 } from '../../../shared/aiAgents';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 
@@ -41,45 +44,6 @@ type DetectionResult = {
   executablePath: string | null;
   version: string | null;
   command: string | null;
-};
-
-const installationGuides: Record<
-  AiAgentId,
-  { command: string; url: string; requirement?: string }
-> = {
-  claude: {
-    command: 'npm install -g @anthropic-ai/claude-code',
-    url: 'https://code.claude.com/docs/en/quickstart',
-    requirement: 'Requires Node.js 18 or later',
-  },
-  codex: {
-    command: 'npm install -g @openai/codex',
-    url: 'https://help.openai.com/en/articles/11096431',
-  },
-  cursor: {
-    command: "irm 'https://cursor.com/install?win32=true' | iex",
-    url: 'https://docs.cursor.com/en/cli/installation',
-    requirement: 'Run in PowerShell',
-  },
-  antigravity: {
-    command: 'irm https://antigravity.google/cli/install.ps1 | iex',
-    url: 'https://antigravity.google/docs/cli/install/',
-    requirement: 'Run in PowerShell',
-  },
-  qwen: {
-    command: 'npm install -g @qwen-code/qwen-code@latest',
-    url: 'https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/',
-    requirement: 'Requires Node.js 22 or later',
-  },
-  kimi: {
-    command: 'npm install -g @moonshot-ai/kimi-code',
-    url: 'https://www.kimi.com/code/docs/en/kimi-code-cli/guides/getting-started.html',
-    requirement: 'Requires Node.js 22.19 or later',
-  },
-  opencode: {
-    command: 'npm install -g opencode-ai',
-    url: 'https://opencode.ai/docs/',
-  },
 };
 
 function readConfiguredAgents(): AiAgentConfig[] {
@@ -131,6 +95,7 @@ export default function AiAgentSettings({
   isDarkMode?: boolean;
 }) {
   const [agents, setAgents] = useState<AiAgentConfig[]>(readConfiguredAgents);
+  const [platform, setPlatform] = useState<Platform>(detectPlatform);
   const [testingId, setTestingId] = useState<string | null>(null);
   const [results, setResults] = useState<Record<string, TestResult>>({});
   const [detectingAll, setDetectingAll] = useState(true);
@@ -141,6 +106,24 @@ export default function AiAgentSettings({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AiAgentConfig | null>(null);
   const [form] = Form.useForm();
+
+  useEffect(() => {
+    if (window.electron?.platform) {
+      const p = window.electron.platform;
+      if (p === 'win32' || p === 'darwin' || p === 'linux') {
+        setPlatform(p);
+      }
+    } else if (window.electron?.ipcRenderer) {
+      window.electron.ipcRenderer
+        .invoke('get-platform')
+        .then((p: any) => {
+          if (p === 'win32' || p === 'darwin' || p === 'linux') {
+            setPlatform(p);
+          }
+        })
+        .catch(() => {});
+    }
+  }, []);
 
   useEffect(() => {
     const removeTestResult = window.electron.ipcRenderer.on(
@@ -306,7 +289,7 @@ export default function AiAgentSettings({
           const isDetected = det?.found === true || results[agent.id]?.ok === true;
           const isTesting = testingId === agent.id;
           const testRes = results[agent.id];
-          const installation = installationGuides[agent.id];
+          const installation = getInstallationGuide(agent.id, platform);
 
           return (
             <Card

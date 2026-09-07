@@ -500,6 +500,10 @@ ipcMain.on('get-os-separator', function (event) {
   event.sender.send('os-separator-found', separator);
 });
 
+ipcMain.handle('get-platform', () => {
+  return process.platform;
+});
+
 ipcMain.on('check-repo-exists', function (event, repoPath) {
   console.log('repoPath', repoPath);
   const exists = fs.existsSync(path.normalize(repoPath));

@@ -27,6 +27,7 @@ const electronHandler = {
       ipcRenderer.removeAllListeners(channel);
     },
   },
+  platform: process.platform,
 };
 
 contextBridge.exposeInMainWorld('electron', electronHandler);
