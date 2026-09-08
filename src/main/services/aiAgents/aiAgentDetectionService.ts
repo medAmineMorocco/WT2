@@ -182,11 +182,13 @@ function getSearchDirectories(): string[] {
     dirs.add(path.join(home, '.npm-global', 'bin'));
     dirs.add(path.join(home, '.gemini', 'bin'));
 
-    // Look in NVM directories if present
+    // Look in NVM directories if present (sort latest versions first)
     const nvmDir = path.join(home, '.nvm', 'versions', 'node');
     try {
       if (fs.existsSync(nvmDir)) {
-        const versions = fs.readdirSync(nvmDir);
+        const versions = fs
+          .readdirSync(nvmDir)
+          .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
         for (const v of versions) {
           dirs.add(path.join(nvmDir, v, 'bin'));
         }
@@ -194,6 +196,21 @@ function getSearchDirectories(): string[] {
     } catch {
       // Ignore NVM scan errors
     }
+
+    // Look in fnm, volta, asdf if present
+    const fnmDirs = [
+      path.join(home, '.local', 'share', 'fnm', 'current', 'bin'),
+      path.join(home, '.fnm', 'current', 'bin'),
+    ];
+    for (const d of fnmDirs) {
+      if (fs.existsSync(d)) dirs.add(d);
+    }
+
+    const voltaBin = path.join(home, '.volta', 'bin');
+    if (fs.existsSync(voltaBin)) dirs.add(voltaBin);
+
+    const asdfShims = path.join(home, '.asdf', 'shims');
+    if (fs.existsSync(asdfShims)) dirs.add(asdfShims);
   }
 
   return Array.from(dirs).filter((dir) => {
@@ -205,7 +222,7 @@ function getSearchDirectories(): string[] {
   });
 }
 
-function getCleanEnv(): NodeJS.ProcessEnv {
+export function getCleanEnv(): NodeJS.ProcessEnv {
   const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
   delete cleanEnv.NODE_OPTIONS;
   delete cleanEnv.ELECTRON_RUN_AS_NODE;
@@ -214,6 +231,67 @@ function getCleanEnv(): NodeJS.ProcessEnv {
   delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
   delete cleanEnv.TS_NODE_PROJECT;
   return cleanEnv;
+}
+
+export function getAugmentedEnv(): NodeJS.ProcessEnv {
+  const cleanEnv = getCleanEnv();
+  const searchDirs = getSearchDirectories();
+  const sep = process.platform === 'win32' ? ';' : ':';
+  const currentPath = cleanEnv.PATH || cleanEnv.Path || '';
+  const currentEntries = new Set(
+    currentPath
+      .split(sep)
+      .map((p) => p.trim())
+      .filter(Boolean),
+  );
+
+  // Prepend discovered toolchain directories (e.g. NVM, Volta, fnm, ~/.local/bin)
+  // so GUI-launched apps on Linux/macOS resolve modern node and agent executables
+  const toPrepend = searchDirs.filter((dir) => !currentEntries.has(dir));
+  if (toPrepend.length > 0) {
+    const combined = [...toPrepend, currentPath].filter(Boolean).join(sep);
+    cleanEnv.PATH = combined;
+    if (process.platform === 'win32') {
+      cleanEnv.Path = combined;
+    }
+  }
+
+  return cleanEnv;
+}
+
+export function parseCleanVersion(
+  rawStdout: string,
+  rawStderr: string,
+  exitCode: number | null,
+): string | null {
+  if (exitCode !== 0 && exitCode !== null) return null;
+
+  // Use the first non-empty line from stdout
+  const line = (rawStdout.trim().split('\n')[0] || '').trim();
+  if (!line || line.length > 60) return null;
+
+  const lower = line.toLowerCase();
+  const containsErrorPattern =
+    lower.includes('error') ||
+    lower.includes('not found') ||
+    lower.includes('cannot find') ||
+    lower.includes('is not recognized') ||
+    lower.includes('syntaxerror') ||
+    lower.includes('typeerror') ||
+    lower.includes('referenceerror') ||
+    lower.includes('file://') ||
+    lower.includes('node_modules') ||
+    lower.includes('exception') ||
+    lower.includes('traceback');
+
+  if (containsErrorPattern) return null;
+
+  // Must resemble a version string (e.g. "0.23.0", "v1.2.3", "codex-cli 0.153.4", "2.1.263 (Claude Code)")
+  if (/\d+\.\d+/.test(line) || /^v?\d+/.test(line)) {
+    return line;
+  }
+
+  return null;
 }
 
 function verifyExecutable(executablePath: string): Promise<{ ok: boolean; version: string | null }> {
@@ -226,8 +304,10 @@ function verifyExecutable(executablePath: string): Promise<{ ok: boolean; versio
       const child = spawn(cmdToRun, ['--version'], {
         shell: isWindows,
         windowsHide: true,
-        timeout: 4000,
-        env: getCleanEnv(),
+        timeout: 10000,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        cwd: os.homedir(),
+        env: getAugmentedEnv(),
       });
 
       let output = '';
@@ -250,20 +330,12 @@ function verifyExecutable(executablePath: string): Promise<{ ok: boolean; versio
 
       child.on('error', () => finish(false, null));
 
-      child.on('close', (code: number) => {
-        const cleanOutput = (output.trim() || stderrOutput.trim()).split('\n')[0]?.trim() || '';
-        const lower = cleanOutput.toLowerCase();
-        const isError =
-          lower.includes('is not recognized') ||
-          lower.includes('not found') ||
-          lower.includes('cannot find') ||
-          lower.includes('error:');
-
-        if (code === 0 && !isError && cleanOutput.length > 0) {
-          finish(true, cleanOutput);
-        } else if (!isError && cleanOutput.length > 0 && (code === 0 || code === 1)) {
-          finish(true, cleanOutput);
+      child.on('close', (code: number | null) => {
+        const detectedVersion = parseCleanVersion(output, stderrOutput, code);
+        if ((code === 0 || code === null) && detectedVersion) {
+          finish(true, detectedVersion);
         } else if (fs.existsSync(executablePath)) {
+          // Binary exists on disk, but --version failed or exited non-zero
           finish(true, 'Installed');
         } else {
           finish(false, null);
@@ -362,4 +434,7 @@ export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionRe
 export default {
   detectAiAgent,
   detectAllAiAgents,
+  getCleanEnv,
+  getAugmentedEnv,
+  parseCleanVersion,
 };

@@ -359,7 +359,9 @@ export default function AiAgentSettings({
                         >
                           {det?.version &&
                           !det.version.includes('Error') &&
-                          !det.version.includes('Cannot find')
+                          !det.version.includes('Cannot find') &&
+                          !det.version.includes('file://') &&
+                          !det.version.includes('node_modules')
                             ? `Detected (${det.version})`
                             : 'Detected'}
                         </span>
@@ -408,28 +410,34 @@ export default function AiAgentSettings({
                           {installation.requirement}
                         </Typography.Text>
                       )}
-                      <div className="ai-agent-install-command-row">
-                        <Tooltip title={installation.command} placement="topLeft" mouseEnterDelay={0}
-                                 mouseLeaveDelay={0}>
-                          <Typography.Text
-                            code
-                            className="ai-agent-install-command"
-                            onClick={() => {
-                              navigator.clipboard.writeText(installation.command);
-                              message.success('Copied to clipboard');
-                            }}
+                      {installation.command && installation.command.startsWith('npm') && (
+                        <div className="ai-agent-install-command-row">
+                          <Tooltip
+                            title={installation.command}
+                            placement="topLeft"
+                            mouseEnterDelay={0}
+                            mouseLeaveDelay={0}
                           >
-                            {installation.command}
-                          </Typography.Text>
-                        </Tooltip>
-                        <Typography.Text
-                          copyable={{
-                            text: installation.command,
-                            tooltips: ['Copy command', 'Copied!'],
-                          }}
-                          className="ai-agent-install-copy-btn"
-                        />
-                      </div>
+                            <Typography.Text
+                              code
+                              className="ai-agent-install-command"
+                              onClick={() => {
+                                navigator.clipboard.writeText(installation.command!);
+                                message.success('Copied to clipboard');
+                              }}
+                            >
+                              {installation.command}
+                            </Typography.Text>
+                          </Tooltip>
+                          <Typography.Text
+                            copyable={{
+                              text: installation.command,
+                              tooltips: ['Copy command', 'Copied!'],
+                            }}
+                            className="ai-agent-install-copy-btn"
+                          />
+                        </div>
+                      )}
                       <Button
                         type="link"
                         size="small"
@@ -473,9 +481,48 @@ export default function AiAgentSettings({
 
                   {testRes && (
                     <div style={{ marginTop: 8 }}>
-                      <Tag color={testRes.ok ? 'green' : 'red'} style={{ fontSize: 10, maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {testRes.ok ? 'Verified OK' : 'Test Failed'}
-                      </Tag>
+                      <Tooltip
+                        title={testRes.output || (testRes.ok ? 'Verified OK' : 'Test Failed')}
+                        placement="bottomLeft"
+                      >
+                        <Tag
+                          color={testRes.ok ? 'green' : 'red'}
+                          style={{
+                            fontSize: 10,
+                            maxWidth: '100%',
+                            cursor: 'pointer',
+                          }}
+                        >
+                          {testRes.ok ? 'Verified OK' : 'Test Failed'}
+                        </Tag>
+                      </Tooltip>
+                      {!testRes.ok && testRes.output && (
+                        <Typography.Paragraph
+                          type="danger"
+                          ellipsis={{ rows: 2, expandable: true, symbol: 'more' }}
+                          style={{
+                            fontSize: 11,
+                            marginTop: 4,
+                            marginBottom: 0,
+                            whiteSpace: 'pre-wrap',
+                            wordBreak: 'break-word',
+                          }}
+                        >
+                          {testRes.output}
+                        </Typography.Paragraph>
+                      )}
+                      {!testRes.ok && installation?.requirement && (
+                        <Typography.Text
+                          type="warning"
+                          style={{
+                            fontSize: 11,
+                            display: 'block',
+                            marginTop: 4,
+                          }}
+                        >
+                          Requirement: {installation.requirement}
+                        </Typography.Text>
+                      )}
                     </div>
                   )}
                 </div>

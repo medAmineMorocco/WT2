@@ -1,5 +1,7 @@
 import { ipcMain, WebContents } from 'electron';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
 import {
   AiAgentConfig,
   AiAgentId,
@@ -379,42 +381,80 @@ ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
       throw new Error('Enter an executable command first.');
     const cmd = agent.command.trim();
     const isWindows = process.platform === 'win32';
-    const cmdToRun =
+    let cmdToRun =
       isWindows && cmd.includes(' ') && !cmd.startsWith('"') ? `"${cmd}"` : cmd;
-    const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
-    delete cleanEnv.NODE_OPTIONS;
-    delete cleanEnv.ELECTRON_RUN_AS_NODE;
-    delete cleanEnv.ELECTRON_NO_ASAR;
-    delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
-    delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
-    delete cleanEnv.TS_NODE_PROJECT;
+
+    // Resolve bare command names on non-Windows using augmented search paths
+    if (!isWindows && !cmdToRun.includes(path.sep)) {
+      const searchDirs = aiAgentDetectionService.getSearchDirectories();
+      for (const dir of searchDirs) {
+        const fullPath = path.join(dir, cmdToRun);
+        if (fs.existsSync(fullPath)) {
+          cmdToRun = fullPath;
+          break;
+        }
+      }
+    }
+
+    const cleanEnv = aiAgentDetectionService.getAugmentedEnv();
 
     const child = require('child_process').spawn(cmdToRun, ['--version'], {
       shell: isWindows,
       windowsHide: true,
-      timeout: 5000,
+      timeout: 15000,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      cwd: os.homedir(),
       env: cleanEnv,
     });
     let output = '';
+    let stderrOutput = '';
     let settled = false;
     const sendResult = (code: number, message: string) => {
       if (settled) return;
       settled = true;
       event.sender.send('ai-agent-tested', agent.id, code, message);
     };
-    child.stdout.on('data', (chunk: Buffer) => {
+    child.stdout?.on('data', (chunk: Buffer) => {
       output += chunk.toString();
     });
-    child.stderr.on('data', (chunk: Buffer) => {
-      output += chunk.toString();
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderrOutput += chunk.toString();
     });
     child.on('error', (error: Error) => {
       sendResult(-1, error.message);
     });
-    child.on('close', (code: number) => {
+    child.on('close', (code: number | null, signal: string | null) => {
+      const trimmedOut = output.trim();
+      const trimmedErr = stderrOutput.trim();
+      const combined = [trimmedOut, trimmedErr].filter(Boolean).join('\n');
+
+      const firstLine = (trimmedOut.split('\n')[0] || '').trim();
+      const looksLikeVersion = /\d+\.\d+/.test(firstLine);
+
+      if (code === 0 || (looksLikeVersion && !trimmedErr.toLowerCase().includes('error'))) {
+        sendResult(0, firstLine || combined || 'Verified OK');
+        return;
+      }
+
+      if (child.killed || signal === 'SIGTERM') {
+        sendResult(
+          -1,
+          'Command timed out after 15s. The agent took too long to respond.',
+        );
+        return;
+      }
+
+      if (code === null) {
+        sendResult(
+          -1,
+          signal ? `Terminated by signal ${signal}` : 'Process terminated unexpectedly',
+        );
+        return;
+      }
+
       sendResult(
-        code === 0 ? 0 : -1,
-        output.trim() || `Exited with code ${code}`,
+        -1,
+        combined || `Exited with code ${code}`,
       );
     });
   } catch (error: any) {

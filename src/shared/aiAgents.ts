@@ -101,7 +101,7 @@ export const aiAgentsDefault: AiAgentConfig[] = [
 export type Platform = 'win32' | 'darwin' | 'linux';
 
 export interface InstallationGuide {
-  command: string;
+  command?: string;
   url: string;
   requirement?: string;
 }
@@ -132,8 +132,6 @@ export function getInstallationGuide(
   agentId: AiAgentId,
   platform: Platform = detectPlatform(),
 ): InstallationGuide {
-  const isWindows = platform === 'win32';
-
   const guides: Record<AiAgentId, InstallationGuide> = {
     claude: {
       command: 'npm install -g @anthropic-ai/claude-code',
@@ -145,18 +143,10 @@ export function getInstallationGuide(
       url: 'https://help.openai.com/en/articles/11096431',
     },
     cursor: {
-      command: isWindows
-        ? "irm 'https://cursor.com/install?win32=true' | iex"
-        : 'curl https://cursor.com/install -fsS | bash',
       url: 'https://docs.cursor.com/en/cli/installation',
-      requirement: isWindows ? 'Run in PowerShell' : 'Run in Terminal',
     },
     antigravity: {
-      command: isWindows
-        ? 'irm https://antigravity.google/cli/install.ps1 | iex'
-        : 'curl -fsSL https://antigravity.google/cli/install.sh | bash',
       url: 'https://antigravity.google/docs/cli/install/',
-      requirement: isWindows ? 'Run in PowerShell' : 'Run in Terminal',
     },
     qwen: {
       command: 'npm install -g @qwen-code/qwen-code@latest',

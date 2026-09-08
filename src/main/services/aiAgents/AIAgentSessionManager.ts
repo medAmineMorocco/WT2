@@ -5,6 +5,7 @@ import {
 } from '../../../shared/aiAgents';
 import log from '../../utils/logger';
 import graftSmartContextService from './GraftSmartContextService';
+import { getAugmentedEnv } from './aiAgentDetectionService';
 
 const pty = require('node-pty');
 
@@ -132,19 +133,13 @@ export class AIAgentSessionManager {
     let session = agentMap.get(agentConfig.id);
     if (!session || !session.ptyProcess) {
       const cleanEnv: NodeJS.ProcessEnv = {
-        ...process.env,
+        ...getAugmentedEnv(),
         COLORFGBG: isDarkMode ? '15;0' : '0;15',
         TERM_THEME: isDarkMode ? 'dark' : 'light',
         TERM: 'xterm-256color',
         COLORTERM: 'truecolor',
         FORCE_COLOR: '1',
       };
-      delete cleanEnv.NODE_OPTIONS;
-      delete cleanEnv.ELECTRON_RUN_AS_NODE;
-      delete cleanEnv.ELECTRON_NO_ASAR;
-      delete cleanEnv.TS_NODE_TRANSPILE_ONLY;
-      delete cleanEnv.TS_NODE_COMPILER_OPTIONS;
-      delete cleanEnv.TS_NODE_PROJECT;
 
       const rawCommand = agentConfig.command.trim();
       const rawArgs = agentConfig.args.trim()
