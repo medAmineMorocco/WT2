@@ -636,11 +636,7 @@ async function configureSparseCheckout(
 ) {
   if (sparseFolders.length === 0) return;
   const gitCommand = await gitMainService.gitCommand();
-  await runGit(gitCommand, worktreePath, [
-    'sparse-checkout',
-    'init',
-    '--cone',
-  ]);
+  await runGit(gitCommand, worktreePath, ['sparse-checkout', 'init', '--cone']);
   await runGit(gitCommand, worktreePath, [
     'sparse-checkout',
     'set',
@@ -656,47 +652,47 @@ async function add(
   sparseFolders: string[] = [],
 ) {
   try {
-      const gitCommand = await gitMainService.gitCommand();
-      assertWorktreeNotExists(dir, name);
-      assertWorktreePathIsAvailable(name, worktreePath);
-      const parentDir = path.dirname(worktreePath);
-      assertWriteAccess(parentDir);
-      let command: string;
-      if (createWorktreeMode === 'existing-branch') {
-        assertBranchExists(dir, name);
-        command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
-      } else if (createWorktreeMode === 'existing-remote-branch') {
-        const localBranchName = name.replace(/^[^/]+\//, '');
-        assertBranchNotExists(dir, localBranchName);
-        command = `"${gitCommand}" worktree add --track -b ${localBranchName} ${worktreePath} ${name}`;
-      } else if (createWorktreeMode === 'existing-tag') {
-        assertTagExists(dir, name);
-        const branchNameForTag = name.replaceAll('.', '-');
-        const branchExist = await branchExists(branchNameForTag, dir);
-        if (!branchExist) {
-          try {
-            execSync(`"${gitCommand}" branch ${branchNameForTag} ${name}`, {
-              cwd: dir,
-            });
-          } catch (e) {
-            reject(e);
-          }
+    const gitCommand = await gitMainService.gitCommand();
+    assertWorktreeNotExists(dir, name);
+    assertWorktreePathIsAvailable(name, worktreePath);
+    const parentDir = path.dirname(worktreePath);
+    assertWriteAccess(parentDir);
+    let command: string;
+    if (createWorktreeMode === 'existing-branch') {
+      assertBranchExists(dir, name);
+      command = `"${gitCommand}" worktree add ${worktreePath} ${name}`;
+    } else if (createWorktreeMode === 'existing-remote-branch') {
+      const localBranchName = name.replace(/^[^/]+\//, '');
+      assertBranchNotExists(dir, localBranchName);
+      command = `"${gitCommand}" worktree add --track -b ${localBranchName} ${worktreePath} ${name}`;
+    } else if (createWorktreeMode === 'existing-tag') {
+      assertTagExists(dir, name);
+      const branchNameForTag = name.replaceAll('.', '-');
+      const branchExist = await branchExists(branchNameForTag, dir);
+      if (!branchExist) {
+        try {
+          execSync(`"${gitCommand}" branch ${branchNameForTag} ${name}`, {
+            cwd: dir,
+          });
+        } catch (e) {
+          reject(e);
         }
-        command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
-      } else {
-        assertBranchNotExists(dir, name);
-        command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
       }
-      execSync(command, {
-        cwd: dir,
-      });
-      if (sparseFolders.length > 0) {
-        await configureSparseCheckout(worktreePath, sparseFolders);
-      }
-      return 'created';
-    } catch (e) {
-      throw e;
+      command = `"${gitCommand}" worktree add ${worktreePath} ${branchNameForTag}`;
+    } else {
+      assertBranchNotExists(dir, name);
+      command = `"${gitCommand}" worktree add -b ${name} ${worktreePath}`;
     }
+    execSync(command, {
+      cwd: dir,
+    });
+    if (sparseFolders.length > 0) {
+      await configureSparseCheckout(worktreePath, sparseFolders);
+    }
+    return 'created';
+  } catch (e) {
+    throw e;
+  }
 }
 
 function addFromCommit(
@@ -958,6 +954,87 @@ async function repairMovedWorktrees(dir: string, movedWorktreePaths: string[]) {
   return runGit(gitCommand, dir, ['worktree', 'repair', ...paths]);
 }
 
+async function rebasePrimaryOntoWorktree(
+  directory: string,
+  targetWorktreePath: string,
+) {
+  const worktrees = (await findAll(directory)) as Array<{
+    isPrimary: boolean;
+    path: string;
+    name: string;
+    directoryExists?: boolean;
+    prunable?: boolean;
+  }>;
+  const normalizedTargetPath = path.resolve(targetWorktreePath);
+  const source = worktrees.find((worktree) => worktree.isPrimary);
+  const target = worktrees.find(
+    (worktree) => path.resolve(worktree.path) === normalizedTargetPath,
+  );
+
+  if (!source || !target || target.isPrimary) {
+    throw new BusinessError(
+      'Choose a valid non-primary worktree to rebase onto.',
+    );
+  }
+  if (
+    source.directoryExists === false ||
+    target.directoryExists === false ||
+    target.prunable
+  ) {
+    throw new BusinessError('Both worktrees must be available and healthy.');
+  }
+  if (!source.name || !target.name || target.name === 'DETACHED HEAD') {
+    throw new BusinessError(
+      'Both worktrees must be attached to local branches.',
+    );
+  }
+
+  const gitExecutable = await gitMainService.gitCommand();
+  const currentBranch = (
+    await runGit(gitExecutable, source.path, ['branch', '--show-current'])
+  ).trim();
+  if (!currentBranch || currentBranch !== source.name) {
+    throw new BusinessError(
+      `The primary worktree must be checked out on ${source.name}.`,
+    );
+  }
+
+  const status = await runGit(gitExecutable, source.path, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ]);
+  if (status.trim()) {
+    throw new BusinessError(
+      `Commit, stash, or discard changes in ${source.name} before rebasing.`,
+    );
+  }
+
+  await runGit(gitExecutable, directory, [
+    'show-ref',
+    '--verify',
+    `refs/heads/${target.name}`,
+  ]);
+
+  try {
+    const output = await runGit(gitExecutable, source.path, [
+      'rebase',
+      target.name,
+    ]);
+    return {
+      sourceBranch: source.name,
+      targetBranch: target.name,
+      output: output.trim(),
+    };
+  } catch (error: any) {
+    await optionalGit(gitExecutable, source.path, ['rebase', '--abort']);
+    const detail = error?.message?.trim();
+    throw new BusinessError(
+      `Rebase failed and was aborted.${detail ? ` ${detail}` : ''}`,
+    );
+  }
+}
+
 async function changeLock(
   toLock: boolean,
   worktreePath: string,
@@ -1035,6 +1112,7 @@ export default {
   prune,
   previewPrune,
   repairMovedWorktrees,
+  rebasePrimaryOntoWorktree,
   changeLock,
   getWorktreesFolder,
   getWorktreesSeparator,

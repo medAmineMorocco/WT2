@@ -7,6 +7,7 @@ import environmentIsolationService, {
 } from '../../services/environment/environmentIsolationService';
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
+import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
 
 ipcMain.handle(
   'get-sparse-checkout-tree',
@@ -416,6 +417,32 @@ ipcMain.on(
 
 ipcMain.handle('preview-prune-worktrees', async (_event, directory: string) =>
   worktreeMainService.previewPrune(directory),
+);
+
+ipcMain.handle(
+  'rebase-primary-onto-worktree',
+  async (
+    _event,
+    directory: string,
+    targetWorktreePath: string,
+  ): Promise<WorktreeRebaseResult> => {
+    try {
+      const result = await worktreeMainService.rebasePrimaryOntoWorktree(
+        directory,
+        targetWorktreePath,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to rebase primary worktree: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : 'The rebase failed. The original branch was restored.',
+      };
+    }
+  },
 );
 
 ipcMain.on(

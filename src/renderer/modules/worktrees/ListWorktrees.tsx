@@ -52,6 +52,7 @@ import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import type { TerminalAgentActivity } from '../terminal/TerminalInteractive';
 import { useItemsContext } from '../../TabsContext';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
+import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -135,6 +136,9 @@ export default function ListWorktrees({
   const [selectedPrunePaths, setSelectedPrunePaths] = useState<string[]>([]);
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
+  const [rebaseLoadingPath, setRebaseLoadingPath] = useState<string | null>(
+    null,
+  );
 
   const { isWorkflowPlaying } = useItemsContext();
 
@@ -511,6 +515,13 @@ export default function ListWorktrees({
     const isLocked = worktree.isLocked;
     const isPrimary = worktree.isPrimary;
     const isHealthy = worktree.directoryExists !== false && !worktree.prunable;
+    const primaryWorktree = worktrees.find((item: any) => item.isPrimary);
+    const canRebasePrimary =
+      Boolean(primaryWorktree?.name && primaryWorktree?.path) &&
+      !isPrimary &&
+      isHealthy &&
+      Boolean(worktree.name) &&
+      worktree.name !== 'DETACHED HEAD';
 
     const editorItems = enabledEditors.map((editor: any) => ({
       key: `editor:${editor.name || editor.key}`,
@@ -536,6 +547,25 @@ export default function ListWorktrees({
         label: 'Work with AI Agent',
         icon: <RobotOutlined />,
         disabled: !isHealthy,
+      },
+      {
+        type: 'divider',
+      },
+      {
+        key: 'rebase-primary-onto-worktree',
+        label: primaryWorktree?.name
+          ? `Rebase ${primaryWorktree.name} onto ${worktree.name}`
+          : 'Rebase primary branch onto this branch',
+        icon:
+          rebaseLoadingPath === worktree.path ? (
+            <LoadingOutlined />
+          ) : (
+            <SyncOutlined />
+          ),
+        disabled: !canRebasePrimary || Boolean(rebaseLoadingPath),
+      },
+      {
+        type: 'divider',
       },
       {
         key: 'open-in',
@@ -648,6 +678,60 @@ export default function ListWorktrees({
         setRepositoryInTerminal(worktree.path);
         setTerminalInitialMode('agent');
         setOpenTerminalModal(true);
+        return;
+      }
+      if (key === 'rebase-primary-onto-worktree') {
+        const primaryWorktree = worktrees.find((item: any) => item.isPrimary);
+        if (!primaryWorktree) return;
+        modal.confirm({
+          title: `Rebase ${primaryWorktree.name} onto ${worktree.name}?`,
+          icon: <ExclamationCircleFilled />,
+          content: (
+            <div>
+              This rewrites commits on <strong>{primaryWorktree.name}</strong>{' '}
+              so they follow <strong>{worktree.name}</strong>. The primary
+              worktree must be clean. If conflicts occur, WorktreeWise will
+              abort the rebase and restore the branch.
+            </div>
+          ),
+          okText: 'Rebase',
+          cancelText: 'Cancel',
+          centered: true,
+          async onOk() {
+            setRebaseLoadingPath(worktree.path);
+            try {
+              const result = (await window.electron.ipcRenderer.invoke(
+                'rebase-primary-onto-worktree',
+                tabRepoPath,
+                worktree.path,
+              )) as WorktreeRebaseResult;
+              if (!result.ok) {
+                api.error({
+                  message: 'Unable to Rebase Branch',
+                  description: result.error,
+                  placement: 'bottomLeft',
+                });
+                return;
+              }
+              api.success({
+                message: 'Rebase Completed',
+                description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
+                placement: 'bottomLeft',
+                duration: 2,
+              });
+              window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
+              window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+            } catch (error: any) {
+              api.error({
+                message: 'Unable to Rebase Branch',
+                description: error?.message || 'The rebase failed.',
+                placement: 'bottomLeft',
+              });
+            } finally {
+              setRebaseLoadingPath(null);
+            }
+          },
+        });
         return;
       }
       if (key.startsWith('editor:')) {
