@@ -43,6 +43,7 @@ import {
   RobotOutlined,
   SisternodeOutlined,
   WarningOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -61,6 +62,7 @@ const RenameWorktree = lazy(() => import('./RenameWorktree'));
 const LockWorktree = lazy(() => import('./LockWorktree'));
 const MoveWorktree = lazy(() => import('./MoveWorktree'));
 const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
+const WorktreeGitConfig = lazy(() => import('./WorktreeGitConfig'));
 
 const { useToken } = theme;
 
@@ -139,6 +141,7 @@ export default function ListWorktrees({
   const [rebaseLoadingPath, setRebaseLoadingPath] = useState<string | null>(
     null,
   );
+  const [configWorktree, setConfigWorktree] = useState<any | null>(null);
 
   const { isWorkflowPlaying } = useItemsContext();
 
@@ -565,6 +568,12 @@ export default function ListWorktrees({
         disabled: !canRebasePrimary || Boolean(rebaseLoadingPath),
       },
       {
+        key: 'configure-worktree-config',
+        label: 'Worktree Git Config',
+        icon: <SettingOutlined />,
+        disabled: !isHealthy,
+      },
+      {
         type: 'divider',
       },
       {
@@ -651,6 +660,26 @@ export default function ListWorktrees({
     setOpenTerminalModal(false);
   };
 
+  const closeWorktreeGitConfig = useCallback(() => setConfigWorktree(null), []);
+
+  const handleWorktreeGitConfigSaved = useCallback(
+    (enabled: boolean) => {
+      const worktreeName = configWorktree?.name || 'this worktree';
+      setConfigWorktree(null);
+      api.success({
+        message: enabled
+          ? 'Worktree Config Saved'
+          : 'Per-Worktree Config Disabled',
+        description: enabled
+          ? `Git settings now apply only to ${worktreeName}.`
+          : 'This repository now uses its shared Git configuration.',
+        placement: 'bottomLeft',
+        duration: 3,
+      });
+    },
+    [api, configWorktree],
+  );
+
   const handleWorktreeMenuClick =
     (worktree: any) =>
     ({ key }: { key: string }) => {
@@ -732,6 +761,10 @@ export default function ListWorktrees({
             }
           },
         });
+        return;
+      }
+      if (key === 'configure-worktree-config') {
+        setConfigWorktree(worktree);
         return;
       }
       if (key.startsWith('editor:')) {
@@ -1238,6 +1271,17 @@ export default function ListWorktrees({
               onFinish={onFinishChangePatternWorktree}
               handleCancel={handleCancelChangePatternWorktree}
               loading={loadingChangePatternWorktree}
+            />
+          </Suspense>
+        )}
+        {configWorktree && (
+          <Suspense fallback={<Spin size="large" />}>
+            <WorktreeGitConfig
+              open={Boolean(configWorktree)}
+              worktreeName={configWorktree.name}
+              worktreePath={configWorktree.path}
+              onClose={closeWorktreeGitConfig}
+              onSaved={handleWorktreeGitConfigSaved}
             />
           </Suspense>
         )}

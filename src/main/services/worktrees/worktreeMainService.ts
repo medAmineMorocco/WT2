@@ -3,6 +3,8 @@ import * as os from 'os';
 import { existsSync, lstatSync } from 'node:fs';
 import fs from 'node:fs/promises';
 import gitMainService from '../git/gitMainService';
+import BusinessError from '../../exceptions/BusinessError';
+import { WorktreeConfigEntry } from '../../../shared/worktreeConfig';
 import {
   WorktreeDashboardDiskUsage,
   WorktreeDashboardItem,
@@ -1035,6 +1037,191 @@ async function rebasePrimaryOntoWorktree(
   }
 }
 
+async function assertWorktreeConfigPath(worktreePath: string) {
+  if (!existsSync(worktreePath) || !lstatSync(worktreePath).isDirectory()) {
+    throw new BusinessError('The selected worktree directory is unavailable.');
+  }
+
+  const gitExecutable = await gitMainService.gitCommand();
+  try {
+    await runGit(gitExecutable, worktreePath, ['rev-parse', '--git-dir']);
+  } catch (error: any) {
+    throw new BusinessError(
+      error?.message || 'The selected directory is not a Git worktree.',
+    );
+  }
+  return gitExecutable;
+}
+
+async function setWorktreeConfigEnabled(
+  worktreePath: string,
+  enabled: boolean,
+) {
+  const gitExecutable = await assertWorktreeConfigPath(worktreePath);
+  await runGit(gitExecutable, worktreePath, [
+    'config',
+    'extensions.worktreeConfig',
+    String(enabled),
+  ]);
+
+  const storedValue = (
+    await runGit(gitExecutable, worktreePath, [
+      'config',
+      '--bool',
+      '--get',
+      'extensions.worktreeConfig',
+    ])
+  ).trim();
+  if (storedValue !== String(enabled)) {
+    throw new BusinessError(
+      `Git did not ${enabled ? 'enable' : 'disable'} per-worktree configuration.`,
+    );
+  }
+}
+
+function parseNullTerminatedConfig(output: string): WorktreeConfigEntry[] {
+  return output
+    .split('\0')
+    .filter(Boolean)
+    .map((record) => {
+      const separator = record.indexOf('\n');
+      return {
+        key: separator === -1 ? record : record.slice(0, separator),
+        value: separator === -1 ? '' : record.slice(separator + 1),
+      };
+    });
+}
+
+async function getWorktreeConfig(worktreePath: string) {
+  const gitExecutable = await assertWorktreeConfigPath(worktreePath);
+  const enabled =
+    (
+      await optionalGit(gitExecutable, worktreePath, [
+        'config',
+        '--bool',
+        '--get',
+        'extensions.worktreeConfig',
+      ])
+    ).trim() === 'true';
+  if (!enabled) return { enabled: false, entries: [] };
+
+  const configPathOutput = await runGit(gitExecutable, worktreePath, [
+    'rev-parse',
+    '--git-path',
+    'config.worktree',
+  ]);
+  const configPath = path.resolve(worktreePath, configPathOutput.trim());
+  if (!existsSync(configPath)) {
+    return { enabled: true, entries: [] };
+  }
+
+  const output = await runGit(gitExecutable, worktreePath, [
+    'config',
+    '--worktree',
+    '--null',
+    '--list',
+  ]);
+  return { enabled: true, entries: parseNullTerminatedConfig(output) };
+}
+
+function validateWorktreeConfig(entries: WorktreeConfigEntry[]) {
+  if (entries.length > 200) {
+    throw new BusinessError('A worktree can contain at most 200 settings.');
+  }
+  for (const entry of entries) {
+    if (
+      !entry ||
+      typeof entry.key !== 'string' ||
+      typeof entry.value !== 'string'
+    ) {
+      throw new BusinessError('Each Git setting must have a key and a value.');
+    }
+    const key = entry.key.trim();
+    if (!/^[^\s=]+\.[^\s=]+$/.test(key)) {
+      throw new BusinessError(
+        `Invalid Git configuration key: ${key || '(empty)'}.`,
+      );
+    }
+    if (key.toLowerCase() === 'extensions.worktreeconfig') {
+      throw new BusinessError(
+        'extensions.worktreeConfig is managed by WorktreeWise.',
+      );
+    }
+    if (entry.value.includes('\0')) {
+      throw new BusinessError(
+        `The value for ${key} contains an invalid character.`,
+      );
+    }
+    if (key.length > 500 || entry.value.length > 65536) {
+      throw new BusinessError(`The value for ${key} is too large.`);
+    }
+  }
+}
+
+async function replaceWorktreeConfig(
+  worktreePath: string,
+  enabled: boolean,
+  entries: WorktreeConfigEntry[],
+) {
+  if (!enabled) {
+    await setWorktreeConfigEnabled(worktreePath, false);
+    return { enabled: false, entries: [] };
+  }
+
+  validateWorktreeConfig(entries);
+  await setWorktreeConfigEnabled(worktreePath, true);
+  const previousConfig = await getWorktreeConfig(worktreePath);
+  const previousEntries = previousConfig.entries;
+  const gitExecutable = await gitMainService.gitCommand();
+  const normalizedEntries = entries.map((entry) => ({
+    key: entry.key.trim(),
+    value: entry.value,
+  }));
+  const keysToClear = [
+    ...new Set(
+      [...previousEntries, ...normalizedEntries].map((entry) => entry.key),
+    ),
+  ];
+
+  const clearEntries = async () => {
+    for (const key of keysToClear) {
+      await optionalGit(gitExecutable, worktreePath, [
+        'config',
+        '--worktree',
+        '--unset-all',
+        key,
+      ]);
+    }
+  };
+
+  try {
+    await clearEntries();
+    for (const entry of normalizedEntries) {
+      await runGit(gitExecutable, worktreePath, [
+        'config',
+        '--worktree',
+        '--add',
+        entry.key,
+        entry.value,
+      ]);
+    }
+  } catch (error) {
+    await clearEntries();
+    for (const entry of previousEntries) {
+      await runGit(gitExecutable, worktreePath, [
+        'config',
+        '--worktree',
+        '--add',
+        entry.key,
+        entry.value,
+      ]);
+    }
+    throw error;
+  }
+
+  return getWorktreeConfig(worktreePath);
+}
+
 async function changeLock(
   toLock: boolean,
   worktreePath: string,
@@ -1113,6 +1300,9 @@ export default {
   previewPrune,
   repairMovedWorktrees,
   rebasePrimaryOntoWorktree,
+  setWorktreeConfigEnabled,
+  getWorktreeConfig,
+  replaceWorktreeConfig,
   changeLock,
   getWorktreesFolder,
   getWorktreesSeparator,

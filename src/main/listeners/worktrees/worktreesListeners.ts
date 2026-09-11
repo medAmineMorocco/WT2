@@ -8,6 +8,11 @@ import environmentIsolationService, {
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
+import {
+  GetWorktreeConfigResult,
+  SaveWorktreeConfigResult,
+  WorktreeConfigEntry,
+} from '../../../shared/worktreeConfig';
 
 ipcMain.handle(
   'get-sparse-checkout-tree',
@@ -440,6 +445,58 @@ ipcMain.handle(
           error instanceof BusinessError
             ? error.message
             : 'The rebase failed. The original branch was restored.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'get-worktree-config',
+  async (_event, worktreePath: string): Promise<GetWorktreeConfigResult> => {
+    try {
+      const entries = await worktreeMainService.getWorktreeConfig(worktreePath);
+      return { ok: true, ...entries };
+    } catch (error: any) {
+      log.error(`Failed to load per-worktree Git config: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : error?.message ||
+              'Git could not load the per-worktree configuration.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'save-worktree-config',
+  async (
+    _event,
+    worktreePath: string,
+    enabled: boolean,
+    entries: WorktreeConfigEntry[],
+  ): Promise<SaveWorktreeConfigResult> => {
+    try {
+      if (!Array.isArray(entries)) {
+        throw new BusinessError('Git configuration must be a list of values.');
+      }
+      const savedEntries = await worktreeMainService.replaceWorktreeConfig(
+        worktreePath,
+        Boolean(enabled),
+        entries,
+      );
+      return { ok: true, ...savedEntries };
+    } catch (error: any) {
+      log.error(`Failed to save per-worktree Git config: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : error?.message ||
+              'Git could not save the per-worktree configuration.',
       };
     }
   },
