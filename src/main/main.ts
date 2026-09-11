@@ -152,7 +152,49 @@ const createWindow = async () => {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
         : path.join(__dirname, '../../.erb/dll/preload.js'),
+      webviewTag: true,
     },
+  });
+
+  const isAllowedEmbeddedBrowserUrl = (value: string) => {
+    try {
+      const parsed = new URL(value);
+      return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  mainWindow.webContents.on(
+    'will-attach-webview',
+    (event, webPreferences, params) => {
+      delete webPreferences.preload;
+      webPreferences.nodeIntegration = false;
+      webPreferences.contextIsolation = true;
+      webPreferences.sandbox = true;
+      webPreferences.webSecurity = true;
+
+      if (!isAllowedEmbeddedBrowserUrl(params.src)) {
+        event.preventDefault();
+      }
+    },
+  );
+
+  mainWindow.webContents.on('did-attach-webview', (_event, guestContents) => {
+    guestContents.setWindowOpenHandler(({ url }) => {
+      if (isAllowedEmbeddedBrowserUrl(url)) {
+        shell.openExternal(url);
+      }
+      return { action: 'deny' };
+    });
+
+    const preventUnsafeNavigation = (event: Electron.Event, url: string) => {
+      if (!isAllowedEmbeddedBrowserUrl(url)) {
+        event.preventDefault();
+      }
+    };
+    guestContents.on('will-navigate', preventUnsafeNavigation);
+    guestContents.on('will-redirect', preventUnsafeNavigation);
   });
 
   mainWindow.loadURL(resolveHtmlPath('index.html'));

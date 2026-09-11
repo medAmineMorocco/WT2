@@ -1,15 +1,22 @@
 import iconv from 'iconv-lite';
 import { BrowserWindow } from 'electron';
 
+function getStorageWindow() {
+  return (
+    BrowserWindow.getFocusedWindow() ||
+    BrowserWindow.getAllWindows().find((window) => !window.isDestroyed())
+  );
+}
+
 function getStorageItem(key: string) {
-  return BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
+  return getStorageWindow()?.webContents.executeJavaScript(
     `localStorage.getItem("${key}");`,
     true,
   );
 }
 
 function setStorageItem(key: string, value: string) {
-  return BrowserWindow.getFocusedWindow()?.webContents.executeJavaScript(
+  return getStorageWindow()?.webContents.executeJavaScript(
     `localStorage.setItem("${key}", ${JSON.stringify(value)});`,
     true,
   );

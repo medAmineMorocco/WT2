@@ -10,6 +10,9 @@ import {
   CloseOutlined,
   CompressOutlined,
   ExpandOutlined,
+  LayoutOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import {
@@ -34,6 +37,8 @@ import {
   aiAgentsDefault,
 } from '../../../shared/aiAgents';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
+import WorktreeFileExplorer from './WorktreeFileExplorer';
+import EmbeddedBrowser from './EmbeddedBrowser';
 import './TerminalInteractive.css';
 
 type WorktreeOption = {
@@ -48,6 +53,7 @@ type TerminalDescriptor = WorktreeOption & {
 };
 
 type AiAgent = AiAgentConfig;
+type FourSectionName = 'files' | 'terminal' | 'agent' | 'browser';
 
 export type TerminalAgentActivity = {
   terminalId: string;
@@ -119,6 +125,9 @@ function TerminalPane({
   isFocusedMode,
   canFocus,
   onToggleFocusedMode,
+  embeddedAgent = false,
+  embeddedAgentCollapsed = false,
+  onToggleEmbeddedAgent,
 }: {
   terminal: TerminalDescriptor;
   isDarkMode: boolean;
@@ -130,6 +139,9 @@ function TerminalPane({
   isFocusedMode: boolean;
   canFocus: boolean;
   onToggleFocusedMode: (id: string) => void;
+  embeddedAgent?: boolean;
+  embeddedAgentCollapsed?: boolean;
+  onToggleEmbeddedAgent?: () => void;
 }) {
   const hostRef = useRef<HTMLDivElement>(null);
   const xtermRef = useRef<XTerm | null>(null);
@@ -139,12 +151,18 @@ function TerminalPane({
   const [selectedAgentId, setSelectedAgentId] = useState<AiAgentId>(
     terminal.agent?.id || 'claude',
   );
-  const [configuredAgents, setConfiguredAgents] = useState<AiAgent[]>(
-    aiAgentsDefault,
-  );
+  const [configuredAgents, setConfiguredAgents] =
+    useState<AiAgent[]>(aiAgentsDefault);
   const [mode, setMode] = useState<'terminal' | 'agent'>(
-    terminal.mode || 'terminal',
+    embeddedAgent ? 'agent' : terminal.mode || 'terminal',
   );
+  const [viewMode, setViewMode] = useState<'terminal' | 'agent' | 'browser'>(
+    embeddedAgent ? 'agent' : terminal.mode || 'terminal',
+  );
+  const [isFourSectionView, setIsFourSectionView] = useState(false);
+  const [collapsedSections, setCollapsedSections] = useState<
+    Set<FourSectionName>
+  >(new Set());
   const [smartContextEnabled, setSmartContextEnabled] = useState(false);
   const smartContextEnabledRef = useRef(false);
   smartContextEnabledRef.current = smartContextEnabled;
@@ -618,6 +636,7 @@ function TerminalPane({
 
   const handleModeChange = (nextMode: 'terminal' | 'agent') => {
     setMode(nextMode);
+    setViewMode(nextMode);
     if (xtermRef.current) {
       xtermRef.current.reset();
       if (nextMode === 'agent') {
@@ -673,12 +692,104 @@ function TerminalPane({
       .catch(() => message.error('Failed to copy selection'));
   };
 
+  const toggleCollapsedSection = (section: FourSectionName) => {
+    setCollapsedSections((current) => {
+      const next = new Set(current);
+      if (next.has(section)) next.delete(section);
+      else next.add(section);
+      return next;
+    });
+  };
+
+  if (embeddedAgent) {
+    return (
+      <section
+        className={`terminal-four-section-cell terminal-four-section-agent${
+          embeddedAgentCollapsed ? ' is-collapsed' : ''
+        }`}
+        aria-label={`${terminal.name} AI agent`}
+        onMouseDown={() => onActivate(terminal.id)}
+      >
+        <header className="terminal-four-section-header">
+          <Typography.Text strong>AI Agent</Typography.Text>
+          <div className="terminal-four-section-agent-controls">
+            <Select
+              size="small"
+              value={selectedAgentId}
+              aria-label="AI agent for this worktree section"
+              disabled={enabledAgents.length === 0}
+              placeholder="Select AI Agent"
+              className="terminal-agent-select"
+              options={enabledAgents.map((agent) => ({
+                value: agent.id,
+                label: (
+                  <span className="terminal-agent-option">
+                    <span className="terminal-agent-option-icon">
+                      {getAiAgentIcon(agent.id, 18)}
+                    </span>
+                    <span>{agent.label}</span>
+                  </span>
+                ),
+              }))}
+              onChange={handleAgentSelectChange}
+            />
+            <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">
+              <Checkbox
+                checked={smartContextEnabled}
+                aria-label="Enable smart context for this AI agent"
+                onChange={(event) =>
+                  handleSmartContextChange(event.target.checked)
+                }
+              >
+                Smart context
+              </Checkbox>
+            </Tooltip>
+            <Tooltip
+              title={
+                embeddedAgentCollapsed
+                  ? 'Restore AI Agent'
+                  : 'Collapse AI Agent'
+              }
+            >
+              <Button
+                type="text"
+                size="small"
+                icon={
+                  embeddedAgentCollapsed ? (
+                    <MenuUnfoldOutlined />
+                  ) : (
+                    <MenuFoldOutlined />
+                  )
+                }
+                aria-label={
+                  embeddedAgentCollapsed
+                    ? 'Restore AI Agent section'
+                    : 'Collapse AI Agent section'
+                }
+                onClick={onToggleEmbeddedAgent}
+              />
+            </Tooltip>
+          </div>
+        </header>
+        <div
+          className="terminal-xterm-host terminal-four-section-content"
+          ref={hostRef}
+          role="presentation"
+          onMouseDown={() => xtermRef.current?.focus()}
+          onContextMenu={handleTerminalContextMenu}
+        />
+      </section>
+    );
+  }
+
   return (
     <section
       className={`terminal-pane${isDarkMode ? ' is-dark' : ''}${
         isActive ? ' is-active' : ''
       }${isFocusedMode ? ' is-focused-mode' : ''}${
         mode === 'agent' ? ' is-agent-mode' : ''
+      }${isFourSectionView ? ' is-four-section-view' : ''}${
+        collapsedSections.has('files') ? ' is-four-section-files-collapsed' : ''
       }`}
       aria-label={`${terminal.name} terminal`}
       onMouseDown={() => onActivate(terminal.id)}
@@ -693,7 +804,7 @@ function TerminalPane({
           </Typography.Text>
         </div>
         <Space className="terminal-pane-actions" size={6}>
-          {mode === 'agent' && (
+          {viewMode === 'agent' && (
             <Select
               size="small"
               value={selectedAgentId}
@@ -715,7 +826,7 @@ function TerminalPane({
               onChange={handleAgentSelectChange}
             />
           )}
-          {mode === 'agent' && (
+          {viewMode === 'agent' && (
             <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">
               <Checkbox
                 checked={smartContextEnabled}
@@ -728,21 +839,50 @@ function TerminalPane({
               </Checkbox>
             </Tooltip>
           )}
-          <Radio.Group
-            size="small"
-            optionType="button"
-            buttonStyle="solid"
-            value={mode}
-            aria-label="Switch between terminal and AI agent"
-            options={[
-              { label: 'Terminal', value: 'terminal' },
-              { label: 'AI Agent', value: 'agent' },
-            ]}
-            onChange={(event) => {
-              const nextMode = event.target.value as 'terminal' | 'agent';
-              handleModeChange(nextMode);
-            }}
-          />
+          {!isFourSectionView && (
+            <Radio.Group
+              size="small"
+              optionType="button"
+              buttonStyle="solid"
+              value={viewMode}
+              aria-label="Switch between terminal, AI agent, and browser"
+              options={[
+                { label: 'Terminal', value: 'terminal' },
+                { label: 'AI Agent', value: 'agent' },
+                { label: 'Browser', value: 'browser' },
+              ]}
+              onChange={(event) => {
+                const nextView = event.target.value as typeof viewMode;
+                if (nextView === 'browser') setViewMode('browser');
+                else handleModeChange(nextView);
+              }}
+            />
+          )}
+          <Tooltip
+            title={
+              isFourSectionView
+                ? 'Return to single view'
+                : 'Show Files, Terminal, AI Agent, and Browser together'
+            }
+          >
+            <Button
+              type={isFourSectionView ? 'primary' : 'text'}
+              size="small"
+              aria-label={
+                isFourSectionView
+                  ? 'Return to single worktree view'
+                  : 'Show four-section worktree view'
+              }
+              icon={<LayoutOutlined />}
+              onClick={() => {
+                if (!isFourSectionView && mode !== 'terminal') {
+                  handleModeChange('terminal');
+                }
+                setCollapsedSections(new Set());
+                setIsFourSectionView((current) => !current);
+              }}
+            />
+          </Tooltip>
           <Button
             type="text"
             size="small"
@@ -769,16 +909,170 @@ function TerminalPane({
           flex: '1 1 auto',
           minHeight: 0,
           display: 'flex',
-          flexDirection: 'column',
+          flexDirection: mode === 'agent' ? 'row' : 'column',
         }}
       >
-        <div
-          className="terminal-xterm-host"
-          ref={hostRef}
-          role="presentation"
-          onMouseDown={() => xtermRef.current?.focus()}
-          onContextMenu={handleTerminalContextMenu}
-        />
+        <WorktreeFileExplorer
+          worktreePath={terminal.path}
+          active={isActive}
+          isDarkMode={isDarkMode}
+          headerAction={
+            isFourSectionView ? (
+              <Tooltip
+                title={
+                  collapsedSections.has('files')
+                    ? 'Restore Files'
+                    : 'Collapse Files'
+                }
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  icon={
+                    collapsedSections.has('files') ? (
+                      <MenuUnfoldOutlined />
+                    ) : (
+                      <MenuFoldOutlined />
+                    )
+                  }
+                  aria-label={
+                    collapsedSections.has('files')
+                      ? 'Restore Files section'
+                      : 'Collapse Files section'
+                  }
+                  onClick={() => toggleCollapsedSection('files')}
+                />
+              </Tooltip>
+            ) : null
+          }
+        >
+          <div
+            className={`terminal-runtime-stage${
+              isFourSectionView ? ' is-four-section' : ''
+            }`}
+            style={
+              isFourSectionView
+                ? {
+                    gridTemplateColumns: (
+                      ['terminal', 'agent', 'browser'] as FourSectionName[]
+                    )
+                      .map((section) =>
+                        collapsedSections.has(section)
+                          ? '42px'
+                          : 'minmax(0, 1fr)',
+                      )
+                      .join(' '),
+                  }
+                : undefined
+            }
+          >
+            <section
+              className={`terminal-four-section-cell terminal-four-section-terminal${
+                collapsedSections.has('terminal') ? ' is-collapsed' : ''
+              }`}
+            >
+              {isFourSectionView && (
+                <header className="terminal-four-section-header">
+                  <Typography.Text strong>Terminal</Typography.Text>
+                  <Tooltip
+                    title={
+                      collapsedSections.has('terminal')
+                        ? 'Restore Terminal'
+                        : 'Collapse Terminal'
+                    }
+                  >
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={
+                        collapsedSections.has('terminal') ? (
+                          <MenuUnfoldOutlined />
+                        ) : (
+                          <MenuFoldOutlined />
+                        )
+                      }
+                      aria-label={
+                        collapsedSections.has('terminal')
+                          ? 'Restore Terminal section'
+                          : 'Collapse Terminal section'
+                      }
+                      onClick={() => toggleCollapsedSection('terminal')}
+                    />
+                  </Tooltip>
+                </header>
+              )}
+              <div
+                className="terminal-xterm-host terminal-four-section-content"
+                ref={hostRef}
+                role="presentation"
+                onMouseDown={() => xtermRef.current?.focus()}
+                onContextMenu={handleTerminalContextMenu}
+              />
+            </section>
+            {isFourSectionView && (
+              <TerminalPane
+                terminal={{
+                  ...terminal,
+                  id: `${terminal.id}:four-section-agent`,
+                  mode: 'agent',
+                }}
+                isDarkMode={isDarkMode}
+                isActive={isActive}
+                onClose={() => undefined}
+                onActivate={() => onActivate(terminal.id)}
+                registerFocus={registerFocus}
+                onAgentActivity={onAgentActivity}
+                isFocusedMode={false}
+                canFocus={false}
+                onToggleFocusedMode={() => undefined}
+                embeddedAgent
+                embeddedAgentCollapsed={collapsedSections.has('agent')}
+                onToggleEmbeddedAgent={() => toggleCollapsedSection('agent')}
+              />
+            )}
+            {(viewMode === 'browser' || isFourSectionView) && (
+              <section
+                className={`terminal-four-section-cell terminal-four-section-browser${
+                  collapsedSections.has('browser') ? ' is-collapsed' : ''
+                }`}
+              >
+                {isFourSectionView && (
+                  <header className="terminal-four-section-header">
+                    <Typography.Text strong>Browser</Typography.Text>
+                    <Tooltip
+                      title={
+                        collapsedSections.has('browser')
+                          ? 'Restore Browser'
+                          : 'Collapse Browser'
+                      }
+                    >
+                      <Button
+                        type="text"
+                        size="small"
+                        icon={
+                          collapsedSections.has('browser') ? (
+                            <MenuUnfoldOutlined />
+                          ) : (
+                            <MenuFoldOutlined />
+                          )
+                        }
+                        aria-label={
+                          collapsedSections.has('browser')
+                            ? 'Restore Browser section'
+                            : 'Collapse Browser section'
+                        }
+                        onClick={() => toggleCollapsedSection('browser')}
+                      />
+                    </Tooltip>
+                  </header>
+                )}
+                <div className="terminal-four-section-content">
+                  <EmbeddedBrowser worktreePath={terminal.path} />
+                </div>
+              </section>
+            )}
+          </div>
+        </WorktreeFileExplorer>
       </div>
     </section>
   );

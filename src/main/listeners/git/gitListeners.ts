@@ -7,6 +7,16 @@ ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
   gitMainService.getWorkingTreeStatus(directory),
 );
 
+ipcMain.handle('get-worktree-files', async (_event, directory: string) =>
+  gitMainService.getWorktreeFiles(directory),
+);
+
+ipcMain.handle(
+  'get-worktree-file-preview',
+  async (_event, directory: string, filePath: string) =>
+    gitMainService.getWorktreeFilePreview(directory, filePath),
+);
+
 ipcMain.handle(
   'run-working-tree-action',
   async (

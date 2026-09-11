@@ -1,4 +1,6 @@
 import { execSync, spawn } from 'child_process';
+import fs from 'fs';
+import path from 'path';
 import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import BusinessError from '../../exceptions/BusinessError';
@@ -10,6 +12,10 @@ import {
   WorkingTreeAction,
   WorkingTreeStatus,
 } from '../../../shared/workingTree';
+import {
+  WorktreeFilePreview,
+  WorktreeFilesSnapshot,
+} from '../../../shared/worktreeFiles';
 
 const zlib = require('zlib');
 
@@ -408,6 +414,182 @@ async function getWorkingTreeStatus(
   return { branch: branchOutput.toString('utf8').trim(), files };
 }
 
+async function getWorktreeFiles(
+  directory: string,
+): Promise<WorktreeFilesSnapshot> {
+  const [fileOutput, status] = await Promise.all([
+    runGit(directory, [
+      'ls-files',
+      '-z',
+      '--cached',
+      '--others',
+      '--exclude-standard',
+    ]),
+    getWorkingTreeStatus(directory),
+  ]);
+  const changes = new Map<string, 'added' | 'modified' | 'deleted'>();
+  status.files.forEach((file) => {
+    const statusCode = file.untracked
+      ? '?'
+      : file.worktreeStatus !== ' '
+        ? file.worktreeStatus
+        : file.indexStatus;
+    const change =
+      statusCode === '?' || statusCode === 'A'
+        ? 'added'
+        : statusCode === 'D'
+          ? 'deleted'
+          : 'modified';
+    changes.set(file.path.replace(/\\/g, '/'), change);
+  });
+
+  const paths = fileOutput.toString('utf8').split('\0').filter(Boolean);
+  const knownPaths = new Set(paths);
+  changes.forEach((_change, filePath) => {
+    if (!knownPaths.has(filePath)) paths.push(filePath);
+  });
+  paths.sort((left, right) =>
+    left.localeCompare(right, undefined, { sensitivity: 'base' }),
+  );
+
+  return {
+    branch: status.branch,
+    changedCount: changes.size,
+    files: paths.map((filePath) => ({
+      path: filePath,
+      change: changes.get(filePath),
+    })),
+  };
+}
+
+const MAX_FILE_PREVIEW_LENGTH = 300_000;
+
+function truncatePreview(content: string) {
+  return {
+    content: content.slice(0, MAX_FILE_PREVIEW_LENGTH),
+    truncated: content.length > MAX_FILE_PREVIEW_LENGTH,
+  };
+}
+
+function resolveWorktreeFile(directory: string, filePath: string) {
+  if (!filePath || path.isAbsolute(filePath)) {
+    throw new BusinessError('Choose a file inside the current worktree.');
+  }
+  const worktreeRoot = path.resolve(directory);
+  const resolvedFile = path.resolve(worktreeRoot, filePath);
+  const relativePath = path.relative(worktreeRoot, resolvedFile);
+  if (
+    !relativePath ||
+    relativePath === '..' ||
+    relativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relativePath)
+  ) {
+    throw new BusinessError('Choose a file inside the current worktree.');
+  }
+  return { worktreeRoot, resolvedFile };
+}
+
+async function resolveExistingFileInsideWorktree(
+  worktreeRoot: string,
+  resolvedFile: string,
+) {
+  const [realRoot, realFile] = await Promise.all([
+    fs.promises.realpath(worktreeRoot),
+    fs.promises.realpath(resolvedFile),
+  ]);
+  const realRelativePath = path.relative(realRoot, realFile);
+  if (
+    realRelativePath === '..' ||
+    realRelativePath.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(realRelativePath)
+  ) {
+    throw new BusinessError('The selected file resolves outside the worktree.');
+  }
+  const stats = await fs.promises.stat(realFile);
+  if (!stats.isFile())
+    throw new BusinessError('The selected path is not a file.');
+  return { realFile, size: stats.size };
+}
+
+async function getWorktreeFilePreview(
+  directory: string,
+  filePath: string,
+): Promise<WorktreeFilePreview> {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  const { worktreeRoot, resolvedFile } = resolveWorktreeFile(
+    directory,
+    normalizedPath,
+  );
+  const status = await getWorkingTreeStatus(worktreeRoot);
+  const changedFile = status.files.find(
+    (file) => file.path.replace(/\\/g, '/') === normalizedPath,
+  );
+
+  if (changedFile) {
+    let output: Buffer;
+    if (changedFile.untracked) {
+      await resolveExistingFileInsideWorktree(worktreeRoot, resolvedFile);
+      output = await runGitWithAllowedCodes(
+        worktreeRoot,
+        ['diff', '--no-index', '--no-color', '--', '/dev/null', normalizedPath],
+        [0, 1],
+      );
+    } else {
+      try {
+        output = await runGit(worktreeRoot, [
+          'diff',
+          '--no-ext-diff',
+          '--no-color',
+          'HEAD',
+          '--',
+          normalizedPath,
+        ]);
+      } catch {
+        const [staged, unstaged] = await Promise.all([
+          runGit(worktreeRoot, [
+            'diff',
+            '--cached',
+            '--no-color',
+            '--',
+            normalizedPath,
+          ]),
+          runGit(worktreeRoot, ['diff', '--no-color', '--', normalizedPath]),
+        ]);
+        output = Buffer.concat([staged, unstaged]);
+      }
+    }
+    const preview = truncatePreview(output.toString('utf8'));
+    return { path: normalizedPath, kind: 'diff', ...preview };
+  }
+
+  const { realFile, size } = await resolveExistingFileInsideWorktree(
+    worktreeRoot,
+    resolvedFile,
+  );
+  const handle = await fs.promises.open(realFile, 'r');
+  const buffer = Buffer.alloc(Math.min(size, MAX_FILE_PREVIEW_LENGTH + 1));
+  try {
+    await handle.read(buffer, 0, buffer.length, 0);
+  } finally {
+    await handle.close();
+  }
+  if (buffer.subarray(0, 8_000).includes(0)) {
+    return {
+      path: normalizedPath,
+      kind: 'binary',
+      content: 'Binary files cannot be previewed.',
+      truncated: false,
+    };
+  }
+  const preview = truncatePreview(buffer.toString('utf8'));
+  return {
+    path: normalizedPath,
+    kind: 'content',
+    content: preview.content,
+    truncated: size > MAX_FILE_PREVIEW_LENGTH || preview.truncated,
+  };
+}
+
 async function runWorkingTreeAction(
   directory: string,
   action: WorkingTreeAction,
@@ -778,6 +960,8 @@ export default {
   getCommitChangedFiles,
   getCommitFileDiff,
   getWorkingTreeStatus,
+  getWorktreeFiles,
+  getWorktreeFilePreview,
   runWorkingTreeAction,
   commitWorkingTree,
   getWorkingTreeFileDiff,
