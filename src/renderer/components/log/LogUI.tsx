@@ -17,6 +17,7 @@ import {
   PlusOutlined,
 } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
+import type { ResetMode } from '../../../shared/gitResetRevert';
 
 const formatDate = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -61,20 +62,6 @@ function highlightMatch(text: string, query?: string) {
   return <>{parts}</>;
 }
 
-const items: MenuProps['items'] = [
-  {
-    label: 'Copy commit sha',
-    key: '1',
-  },
-  {
-    label: 'Create worktree here',
-    key: '2',
-  },
-  {
-    label: 'Cherry-pick',
-    key: 'cherry-pick',
-  },
-];
 export interface ParsedCommit {
   hash: string;
   parents: string[];
@@ -113,6 +100,9 @@ export default function LogUI({
   loadingMore = false,
   onLoadMore,
   onCherryPick,
+  selectedWorktree,
+  onResetCommit,
+  onRevertCommit,
 }: {
   commits: string[];
   searchQuery?: string;
@@ -132,6 +122,9 @@ export default function LogUI({
   loadingMore?: boolean;
   onLoadMore?: () => void;
   onCherryPick?: (commit: ParsedCommit) => void;
+  selectedWorktree?: string | null;
+  onResetCommit?: (commit: ParsedCommit, mode: ResetMode) => void;
+  onRevertCommit?: (commit: ParsedCommit) => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -193,6 +186,56 @@ export default function LogUI({
     };
   }, [api, tabRepoPath]);
 
+  const menuItems: MenuProps['items'] = useMemo(() => {
+    const baseItems: MenuProps['items'] = [
+      {
+        label: 'Copy commit sha',
+        key: '1',
+      },
+      {
+        label: 'Create worktree here',
+        key: '2',
+      },
+      {
+        label: 'Cherry-pick',
+        key: 'cherry-pick',
+      },
+    ];
+
+    if (selectedWorktree) {
+      baseItems.push(
+        {
+          type: 'divider',
+        },
+        {
+          label: `Reset ${selectedWorktree} to this commit`,
+          key: 'reset-group',
+          children: [
+            {
+              label: 'Soft - keep all changes',
+              key: 'reset-commit-soft',
+            },
+            {
+              label: 'Mixed - keep working copy but reset index',
+              key: 'reset-commit-mixed',
+            },
+            {
+              label: 'Hard - discard all changes',
+              key: 'reset-commit-hard',
+              danger: true,
+            },
+          ],
+        },
+        {
+          label: 'Revert commit',
+          key: 'revert-commit',
+        },
+      );
+    }
+
+    return baseItems;
+  }, [selectedWorktree]);
+
   const onClick = (commit: ParsedCommit) => {
     return (event: any) => {
       if (event.key === '1') {
@@ -222,6 +265,18 @@ export default function LogUI({
       }
       if (event.key === 'cherry-pick') {
         onCherryPick?.(commit);
+      }
+      if (event.key === 'reset-commit-soft') {
+        onResetCommit?.(commit, 'soft');
+      }
+      if (event.key === 'reset-commit-mixed') {
+        onResetCommit?.(commit, 'mixed');
+      }
+      if (event.key === 'reset-commit-hard') {
+        onResetCommit?.(commit, 'hard');
+      }
+      if (event.key === 'revert-commit') {
+        onRevertCommit?.(commit);
       }
     };
   };
@@ -823,7 +878,7 @@ export default function LogUI({
         return (
           <Dropdown
             key={item.hash || idx}
-            menu={{ items, onClick: onClick(item) }}
+            menu={{ items: menuItems, onClick: onClick(item) }}
             trigger={['contextMenu']}
             overlayClassName="commit-dropdown"
             placement="bottom"

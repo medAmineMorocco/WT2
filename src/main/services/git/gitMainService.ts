@@ -16,6 +16,11 @@ import {
   WorktreeFilePreview,
   WorktreeFilesSnapshot,
 } from '../../../shared/worktreeFiles';
+import {
+  ResetMode,
+  ResetCommitResult,
+  RevertCommitResult,
+} from '../../../shared/gitResetRevert';
 
 const zlib = require('zlib');
 
@@ -396,6 +401,88 @@ async function cherryPickCommit(
     }
     throw new Error(
       `${error?.message || 'Cherry-pick failed.'} The operation was aborted; the destination worktree was restored.`,
+    );
+  }
+}
+
+async function resetCommit(
+  directory: string,
+  commit: string,
+  mode: ResetMode = 'mixed',
+): Promise<ResetCommitResult> {
+  if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
+    throw new Error('The selected commit hash is invalid.');
+  }
+  if (!['soft', 'mixed', 'hard'].includes(mode)) {
+    throw new Error('Invalid reset mode. Must be soft, mixed, or hard.');
+  }
+
+  const [branchOutput] = await Promise.all([
+    runGit(directory, ['branch', '--show-current']),
+    runGit(directory, ['rev-parse', '--verify', `${commit}^{commit}`]),
+  ]);
+
+  const targetBranch = branchOutput.toString('utf8').trim();
+  if (!targetBranch) {
+    throw new Error(
+      'The selected worktree is in detached HEAD state. Check out a branch first.',
+    );
+  }
+
+  const output = await runGit(directory, ['reset', `--${mode}`, commit]);
+  logCache.delete(directory);
+
+  return {
+    commit,
+    mode,
+    targetBranch,
+    output: output.toString('utf8').trim(),
+  };
+}
+
+async function revertCommit(
+  directory: string,
+  commit: string,
+): Promise<RevertCommitResult> {
+  if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
+    throw new Error('The selected commit hash is invalid.');
+  }
+
+  const [statusOutput, branchOutput] = await Promise.all([
+    runGit(directory, ['status', '--porcelain=v1', '--untracked-files=all']),
+    runGit(directory, ['branch', '--show-current']),
+    runGit(directory, ['rev-parse', '--verify', `${commit}^{commit}`]),
+  ]);
+
+  if (statusOutput.toString('utf8').trim()) {
+    throw new Error(
+      'The worktree has uncommitted changes. Commit or stash them before reverting.',
+    );
+  }
+
+  const targetBranch = branchOutput.toString('utf8').trim();
+  if (!targetBranch) {
+    throw new Error(
+      'The selected worktree is in detached HEAD state. Check out a branch first.',
+    );
+  }
+
+  try {
+    const output = await runGit(directory, ['revert', '--no-edit', commit]);
+    logCache.delete(directory);
+    return {
+      commit,
+      targetBranch,
+      output: output.toString('utf8').trim(),
+    };
+  } catch (error: any) {
+    try {
+      await runGit(directory, ['revert', '--abort']);
+    } catch {
+      // Preserve original error
+    }
+    throw new Error(
+      `${error?.message || 'Revert failed.'} The operation was aborted; the worktree was restored.`,
     );
   }
 }
@@ -1015,4 +1102,6 @@ export default {
   discardWorkingTreeLine,
   discardWorkingTreeFile,
   cherryPickCommit,
+  resetCommit,
+  revertCommit,
 };

@@ -13,6 +13,18 @@ ipcMain.handle(
     gitMainService.cherryPickCommit(destinationPath, commit),
 );
 
+ipcMain.handle(
+  'reset-commit',
+  async (_event, directory: string, commit: string, mode: any) =>
+    gitMainService.resetCommit(directory, commit, mode),
+);
+
+ipcMain.handle(
+  'revert-commit',
+  async (_event, directory: string, commit: string) =>
+    gitMainService.revertCommit(directory, commit),
+);
+
 ipcMain.handle('get-worktree-files', async (_event, directory: string) =>
   gitMainService.getWorktreeFiles(directory),
 );

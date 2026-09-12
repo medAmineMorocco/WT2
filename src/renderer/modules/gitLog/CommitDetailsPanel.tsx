@@ -1,16 +1,20 @@
 import {
   CloseOutlined,
+  DownOutlined,
   FileAddOutlined,
   FileTextOutlined,
   MinusOutlined,
   PlusOutlined,
+  RollbackOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
-import { Button, Empty, Spin, Tag, Typography } from 'antd';
+import { Button, Dropdown, Empty, Spin, Tag, Tooltip, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
 import {
   CommitChangedFile,
   CommitChangedFilesResult,
 } from '../../../shared/gitCommit';
+import type { ResetMode } from '../../../shared/gitResetRevert';
 
 function statusDetails(status: string) {
   if (status.startsWith('A')) {
@@ -28,12 +32,18 @@ export default function CommitDetailsPanel({
   selectedFile,
   onFileSelect,
   onClose,
+  selectedWorktree,
+  onReset,
+  onRevert,
 }: {
   commit: string;
   repositoryPath: string;
   selectedFile: CommitChangedFile | null;
   onFileSelect: (file: CommitChangedFile) => void;
   onClose: () => void;
+  selectedWorktree?: string | null;
+  onReset?: (mode: ResetMode) => void;
+  onRevert?: () => void;
 }) {
   const [result, setResult] = useState<CommitChangedFilesResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,6 +101,72 @@ export default function CommitDetailsPanel({
           )}
         </div>
         <Button type="text" icon={<CloseOutlined />} onClick={onClose} />
+      </div>
+      <div
+        className="commit-details-actions"
+        style={{
+          padding: '8px 16px',
+          borderBottom: '1px solid rgba(0, 0, 0, 0.08)',
+          display: 'flex',
+          gap: '8px',
+        }}
+      >
+        <Tooltip
+          title={
+            selectedWorktree
+              ? `Reset ${selectedWorktree} to this commit`
+              : 'Select a worktree in Git Log toolbar to enable Reset'
+          }
+        >
+          <Dropdown
+            disabled={!selectedWorktree}
+            menu={{
+              items: [
+                {
+                  key: 'soft',
+                  label: 'Soft - keep all changes',
+                  onClick: () => onReset?.('soft'),
+                },
+                {
+                  key: 'mixed',
+                  label: 'Mixed - keep working copy but reset index',
+                  onClick: () => onReset?.('mixed'),
+                },
+                {
+                  key: 'hard',
+                  label: 'Hard - discard all changes',
+                  danger: true,
+                  onClick: () => onReset?.('hard'),
+                },
+              ],
+            }}
+          >
+            <Button
+              size="small"
+              icon={<RollbackOutlined />}
+              disabled={!selectedWorktree}
+            >
+              Reset {selectedWorktree || 'branch'}{' '}
+              <DownOutlined style={{ fontSize: 9, marginLeft: 2 }} />
+            </Button>
+          </Dropdown>
+        </Tooltip>
+        <Tooltip
+          title={
+            selectedWorktree
+              ? 'Revert this commit on the current branch'
+              : 'Select a worktree in Git Log toolbar to enable Revert'
+          }
+        >
+          <Button
+            size="small"
+            icon={<UndoOutlined />}
+            disabled={!selectedWorktree}
+            onClick={onRevert}
+          >
+            Revert
+          </Button>
+        </Tooltip>
       </div>
       <div className="commit-files-list">
         {loading && (

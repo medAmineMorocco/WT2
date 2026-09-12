@@ -38,6 +38,7 @@ import LogUI from '../../components/log/LogUI';
 import type { ParsedCommit } from '../../components/log/LogUI';
 import { CommitChangedFile } from '../../../shared/gitCommit';
 import { WorkingTreeStatus } from '../../../shared/workingTree';
+import type { ResetMode } from '../../../shared/gitResetRevert';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
@@ -46,6 +47,8 @@ const CommitFileDiffPane = lazy(() => import('./CommitFileDiffPane'));
 const WorkingTreePanel = lazy(() => import('./WorkingTreePanel'));
 const WorkingTreeFileDiffPane = lazy(() => import('./WorkingTreeFileDiffPane'));
 const CherryPickCommit = lazy(() => import('./CherryPickCommit'));
+const ResetCommitModal = lazy(() => import('./ResetCommitModal'));
+const RevertCommitModal = lazy(() => import('./RevertCommitModal'));
 
 const LIMIT = 40;
 
@@ -74,6 +77,19 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     useState<CommitChangedFile | null>(null);
   const [cherryPickSource, setCherryPickSource] = useState<ParsedCommit | null>(
     null,
+  );
+  const [resetTargetCommit, setResetTargetCommit] =
+    useState<ParsedCommit | null>(null);
+  const [resetMode, setResetMode] = useState<ResetMode>('mixed');
+  const [revertTargetCommit, setRevertTargetCommit] =
+    useState<ParsedCommit | null>(null);
+
+  const handleOpenReset = useCallback(
+    (commit: ParsedCommit, mode: ResetMode = 'mixed') => {
+      setResetMode(mode);
+      setResetTargetCommit(commit);
+    },
+    [],
   );
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -274,6 +290,11 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     }
     return worktrees.find((item) => item.isPrimary)?.path || tabRepoPath;
   }, [selectedWorktree, tabRepoPath, worktrees]);
+
+  const selectedWorktreeInfo = useMemo(() => {
+    if (!selectedWorktree) return null;
+    return worktrees.find((item) => item.value === selectedWorktree) || null;
+  }, [selectedWorktree, worktrees]);
 
   const workingTreeCounts = useMemo(
     () =>
@@ -816,6 +837,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                       setSelectedCommitFile(null);
                     }}
                     onCherryPick={setCherryPickSource}
+                    selectedWorktree={selectedWorktree}
+                    onResetCommit={handleOpenReset}
+                    onRevertCommit={setRevertTargetCommit}
                   />
                 )}
             </div>
@@ -823,12 +847,54 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               <Suspense fallback={<Spin size="large" />}>
                 <CommitDetailsPanel
                   commit={selectedCommit}
-                  repositoryPath={tabRepoPath}
+                  repositoryPath={selectedRepositoryPath}
                   selectedFile={selectedCommitFile}
                   onFileSelect={setSelectedCommitFile}
                   onClose={() => {
                     setSelectedCommit(null);
                     setSelectedCommitFile(null);
+                  }}
+                  selectedWorktree={selectedWorktree}
+                  onReset={(mode = 'mixed') => {
+                    const matched = commitList.find(
+                      (c) => c.hash === selectedCommit,
+                    );
+                    handleOpenReset(
+                      {
+                        hash: selectedCommit,
+                        subject: matched?.subject || '',
+                        parents: [],
+                        refs: '',
+                        author: '',
+                        date: '',
+                        lane: 0,
+                        passingLanes: [],
+                        forks: [],
+                        merges: [],
+                        hasTop: false,
+                        hasBottom: false,
+                      },
+                      mode,
+                    );
+                  }}
+                  onRevert={() => {
+                    const matched = commitList.find(
+                      (c) => c.hash === selectedCommit,
+                    );
+                    setRevertTargetCommit({
+                      hash: selectedCommit,
+                      subject: matched?.subject || '',
+                      parents: [],
+                      refs: '',
+                      author: '',
+                      date: '',
+                      lane: 0,
+                      passingLanes: [],
+                      forks: [],
+                      merges: [],
+                      hasTop: false,
+                      hasBottom: false,
+                    });
                   }}
                 />
               </Suspense>
@@ -880,6 +946,45 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           }}
         />
       </Suspense>
+      {resetTargetCommit && (
+        <Suspense fallback={null}>
+          <ResetCommitModal
+            commit={resetTargetCommit}
+            worktree={selectedWorktreeInfo}
+            initialMode={resetMode}
+            onClose={() => setResetTargetCommit(null)}
+            onCompleted={(result) => {
+              setResetTargetCommit(null);
+              notification.success({
+                message: 'Branch Reset Complete',
+                description: `Reset ${result.targetBranch} to ${result.commit.slice(0, 8)} (${result.mode}).`,
+                placement: 'bottomLeft',
+              });
+              setWorkingTreeRefresh((value) => value + 1);
+              reloadGitLog(false);
+            }}
+          />
+        </Suspense>
+      )}
+      {revertTargetCommit && (
+        <Suspense fallback={null}>
+          <RevertCommitModal
+            commit={revertTargetCommit}
+            worktree={selectedWorktreeInfo}
+            onClose={() => setRevertTargetCommit(null)}
+            onCompleted={(result) => {
+              setRevertTargetCommit(null);
+              notification.success({
+                message: 'Commit Reverted',
+                description: `Reverted ${result.commit.slice(0, 8)} on ${result.targetBranch}.`,
+                placement: 'bottomLeft',
+              });
+              setWorkingTreeRefresh((value) => value + 1);
+              reloadGitLog(false);
+            }}
+          />
+        </Suspense>
+      )}
     </>
   );
 }
