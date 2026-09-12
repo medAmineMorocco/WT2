@@ -7,6 +7,12 @@ ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
   gitMainService.getWorkingTreeStatus(directory),
 );
 
+ipcMain.handle(
+  'cherry-pick-commit',
+  async (_event, destinationPath: string, commit: string) =>
+    gitMainService.cherryPickCommit(destinationPath, commit),
+);
+
 ipcMain.handle('get-worktree-files', async (_event, directory: string) =>
   gitMainService.getWorktreeFiles(directory),
 );

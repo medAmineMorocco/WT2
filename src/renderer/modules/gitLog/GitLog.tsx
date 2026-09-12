@@ -31,6 +31,7 @@ import {
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
+import type { ParsedCommit } from '../../components/log/LogUI';
 import { CommitChangedFile } from '../../../shared/gitCommit';
 import { WorkingTreeStatus } from '../../../shared/workingTree';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
@@ -40,6 +41,7 @@ const CommitDetailsPanel = lazy(() => import('./CommitDetailsPanel'));
 const CommitFileDiffPane = lazy(() => import('./CommitFileDiffPane'));
 const WorkingTreePanel = lazy(() => import('./WorkingTreePanel'));
 const WorkingTreeFileDiffPane = lazy(() => import('./WorkingTreeFileDiffPane'));
+const CherryPickCommit = lazy(() => import('./CherryPickCommit'));
 
 const LIMIT = 40;
 
@@ -66,6 +68,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [openGitDiff, setOpenGitDiff] = useState(false);
   const [selectedCommitFile, setSelectedCommitFile] =
     useState<CommitChangedFile | null>(null);
+  const [cherryPickSource, setCherryPickSource] = useState<ParsedCommit | null>(
+    null,
+  );
 
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
@@ -189,15 +194,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             isPrimary: item.isPrimary,
           };
         });
-        const primaryWorktree = nextWorktrees.find(
-          (item: any) => item.isPrimary,
-        );
         const currentSelection = selectedWorktreeValueRef.current;
         const nextSelection = worktreesInitializedRef.current
           ? nextWorktrees.some((item: any) => item.value === currentSelection)
             ? currentSelection
             : null
-          : primaryWorktree?.value || null;
+          : null;
         worktreesInitializedRef.current = true;
         selectedWorktreeValueRef.current = nextSelection;
         setWorktrees(nextWorktrees);
@@ -649,6 +651,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                       setSelectedCommit(hash);
                       setSelectedCommitFile(null);
                     }}
+                    onCherryPick={setCherryPickSource}
                   />
                 )}
             </div>
@@ -696,6 +699,23 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           />
         </Suspense>
       )}
+      <Suspense fallback={null}>
+        <CherryPickCommit
+          commit={cherryPickSource}
+          worktrees={worktrees}
+          onClose={() => setCherryPickSource(null)}
+          onCompleted={(result) => {
+            setCherryPickSource(null);
+            notification.success({
+              message: 'Commit cherry-picked',
+              description: `${result.commit.slice(0, 8)} was cherry-picked onto ${result.targetBranch}.`,
+              placement: 'bottomLeft',
+            });
+            setWorkingTreeRefresh((value) => value + 1);
+            reloadGitLog(false);
+          }}
+        />
+      </Suspense>
     </>
   );
 }

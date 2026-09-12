@@ -35,8 +35,12 @@ const items: MenuProps['items'] = [
     label: 'Create worktree here',
     key: '2',
   },
+  {
+    label: 'Cherry-pick',
+    key: 'cherry-pick',
+  },
 ];
-interface ParsedCommit {
+export interface ParsedCommit {
   hash: string;
   parents: string[];
   subject: string;
@@ -72,6 +76,7 @@ export default function LogUI({
   hasMore = false,
   loadingMore = false,
   onLoadMore,
+  onCherryPick,
 }: {
   commits: string[];
   isAuthorEnabled: boolean;
@@ -89,6 +94,7 @@ export default function LogUI({
   hasMore?: boolean;
   loadingMore?: boolean;
   onLoadMore?: () => void;
+  onCherryPick?: (commit: ParsedCommit) => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -150,10 +156,10 @@ export default function LogUI({
     };
   }, [api, tabRepoPath]);
 
-  const onClick = (hash: string) => {
+  const onClick = (commit: ParsedCommit) => {
     return (event: any) => {
       if (event.key === '1') {
-        navigator.clipboard.writeText(hash);
+        navigator.clipboard.writeText(commit.hash);
       }
       if (event.key === '2') {
         const activeTabValue = TabService.getTab(activeTab);
@@ -171,11 +177,14 @@ export default function LogUI({
         });
         window.electron.ipcRenderer.send(
           'create-worktree-from-commit',
-          hash,
+          commit.hash,
           worktreesPath,
           tabRepoPath,
           storedWorktreePrefix,
         );
+      }
+      if (event.key === 'cherry-pick') {
+        onCherryPick?.(commit);
       }
     };
   };
@@ -372,8 +381,8 @@ export default function LogUI({
 
         const isStash = Boolean(
           refs.includes('stash') ||
-            refs.includes('refs/stash') ||
-            /^WIP on /i.test(subject),
+          refs.includes('refs/stash') ||
+          /^WIP on /i.test(subject),
         );
 
         // Keep only first parent (the base commit on the branch) for single-node stash
@@ -699,11 +708,7 @@ export default function LogUI({
   }, [onLoadMore, hasMore, loadingMore]);
 
   return (
-    <div
-      ref={containerRef}
-      className="log-container"
-      onScroll={handleScroll}
-    >
+    <div ref={containerRef} className="log-container" onScroll={handleScroll}>
       {contextHolder}
       <div
         className="git-log-list-header"
@@ -771,7 +776,7 @@ export default function LogUI({
         return (
           <Dropdown
             key={item.hash || idx}
-            menu={{ items, onClick: onClick(item.hash) }}
+            menu={{ items, onClick: onClick(item) }}
             trigger={['contextMenu']}
             overlayClassName="commit-dropdown"
             placement="bottom"

@@ -355,6 +355,51 @@ async function runGitWithAllowedCodes(
   });
 }
 
+async function cherryPickCommit(
+  directory: string,
+  commit: string,
+): Promise<{ commit: string; targetBranch: string; output: string }> {
+  if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
+    throw new Error('The selected commit hash is invalid.');
+  }
+
+  const [statusOutput, branchOutput] = await Promise.all([
+    runGit(directory, ['status', '--porcelain=v1', '--untracked-files=all']),
+    runGit(directory, ['branch', '--show-current']),
+    runGit(directory, ['rev-parse', '--verify', `${commit}^{commit}`]),
+  ]);
+  if (statusOutput.toString('utf8').trim()) {
+    throw new Error(
+      'The destination worktree has uncommitted changes. Commit or stash them before cherry-picking.',
+    );
+  }
+
+  const targetBranch = branchOutput.toString('utf8').trim();
+  if (!targetBranch) {
+    throw new Error(
+      'The destination worktree is in detached HEAD state. Check out a branch first.',
+    );
+  }
+
+  try {
+    const output = await runGit(directory, ['cherry-pick', commit]);
+    return {
+      commit,
+      targetBranch,
+      output: output.toString('utf8').trim(),
+    };
+  } catch (error: any) {
+    try {
+      await runGit(directory, ['cherry-pick', '--abort']);
+    } catch {
+      // Preserve the original Git error when no cherry-pick was started.
+    }
+    throw new Error(
+      `${error?.message || 'Cherry-pick failed.'} The operation was aborted; the destination worktree was restored.`,
+    );
+  }
+}
+
 async function runGitWithInput(
   directory: string,
   args: string[],
@@ -969,4 +1014,5 @@ export default {
   applyWorkingTreeLine,
   discardWorkingTreeLine,
   discardWorkingTreeFile,
+  cherryPickCommit,
 };
