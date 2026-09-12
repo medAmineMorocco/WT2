@@ -1,6 +1,12 @@
 import React, { forwardRef, lazy, Suspense, useState } from 'react';
-import { Layout, Radio, Spin } from 'antd';
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons';
+import { Button, Layout, Spin } from 'antd';
+import {
+  ApartmentOutlined,
+  BarChartOutlined,
+  ClockCircleOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+} from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import ListWorktrees from './ListWorktrees';
 import { useItemsContext } from '../../TabsContext';
@@ -9,10 +15,10 @@ const AddWorktree = lazy(() => import('./AddWorktree'));
 
 const { Sider } = Layout;
 
-const optionsWithDisabled = [
-  { label: 'Git Log', value: 'GIT_LOG' },
-  { label: 'Overview', value: 'OVERVIEW' },
-  { label: 'Workflow', value: 'WORKFLOW' },
+const modeOptions = [
+  { label: 'Git Log', value: 'GIT_LOG', icon: <ClockCircleOutlined /> },
+  { label: 'Overview', value: 'OVERVIEW', icon: <BarChartOutlined /> },
+  { label: 'Workflow', value: 'WORKFLOW', icon: <ApartmentOutlined /> },
 ];
 
 const Worktrees = forwardRef<
@@ -85,24 +91,23 @@ const Worktrees = forwardRef<
             </Suspense>
           )}
           <div
-            style={{
-              position: 'absolute',
-              bottom: '46px',
-              width: '100%',
-              padding: '16px',
-            }}
+            className="worktree-mode-navigation"
+            aria-label="Repository views"
           >
-            <div style={{ display: 'flex', justifyContent: 'center' }}>
-              <Radio.Group
-                className="worktree-mode-selector"
-                options={optionsWithDisabled}
-                onChange={onChangeMode}
-                value={mode}
-                optionType="button"
-                buttonStyle="solid"
-                size="small"
-              />
-            </div>
+            {modeOptions.map((option) => (
+              <Button
+                key={option.value}
+                type={mode === option.value ? 'primary' : 'text'}
+                icon={option.icon}
+                className="worktree-mode-button"
+                aria-pressed={mode === option.value}
+                onClick={() =>
+                  onChangeMode({ target: { value: option.value } })
+                }
+              >
+                {option.label}
+              </Button>
+            ))}
           </div>
         </>
       )}

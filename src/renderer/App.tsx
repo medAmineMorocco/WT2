@@ -13,12 +13,14 @@ import {
   Tabs,
   Tooltip,
   Space,
+  Button,
 } from 'antd';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
   FolderOutlined,
   PlusOutlined,
   ApartmentOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import * as Sentry from '@sentry/electron/renderer';
 import ContentTab from './ContentTab';
@@ -209,7 +211,6 @@ function Hello() {
   };
 
   useEffect(() => {
-
     const tabs = TabService.getTabs();
     let newItems = [];
 
@@ -284,10 +285,7 @@ function Hello() {
     setActiveKey(TabService.getActiveTab());
     // do not touch
 
-    const onRepoFromOutside = (
-      dirPath: string,
-      dirName: string,
-    ) => {
+    const onRepoFromOutside = (dirPath: string, dirName: string) => {
       const allOpenedRepos = TabService.getTabsWithDetails();
       const foundRepo = allOpenedRepos.find(
         (openedRepo) => openedRepo.selectedRepoPath === dirPath,
@@ -299,7 +297,12 @@ function Hello() {
         add();
         const key = TabService.getActiveTab();
         setTimeout(() => {
-          window.electron.ipcRenderer.send('choose-dir-from-outside', dirPath, dirName, key);
+          window.electron.ipcRenderer.send(
+            'choose-dir-from-outside',
+            dirPath,
+            dirName,
+            key,
+          );
         }, 500);
       }
     };
@@ -384,9 +387,20 @@ function Hello() {
           type="editable-card"
           tabBarExtraContent={{
             right: (
-              <Suspense fallback={null}>
-                <PackInfos />
-              </Suspense>
+              <Space size={0} className="account-toolbar">
+                <Tooltip title="Settings" placement="bottom">
+                  <Button
+                    type="text"
+                    className="settings-tab-button"
+                    icon={<SettingOutlined />}
+                    aria-label="Open settings"
+                    onClick={openSettingsPage}
+                  />
+                </Tooltip>
+                <Suspense fallback={null}>
+                  <PackInfos />
+                </Suspense>
+              </Space>
             ),
           }}
           onChange={onChange}
