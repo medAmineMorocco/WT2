@@ -7,7 +7,13 @@ import environmentIsolationService, {
 } from '../../services/environment/environmentIsolationService';
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
-import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
+import {
+  WorktreeRebaseAbortResult,
+  WorktreeRebaseActionResult,
+  WorktreeRebaseConflictResult,
+  WorktreeRebaseResolution,
+  WorktreeRebaseResult,
+} from '../../../shared/worktreeRebase';
 import {
   GetWorktreeConfigResult,
   SaveWorktreeConfigResult,
@@ -445,6 +451,103 @@ ipcMain.handle(
           error instanceof BusinessError
             ? error.message
             : 'The rebase failed. The original branch was restored.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'rebase-worktree-onto-worktree',
+  async (
+    _event,
+    directory: string,
+    sourceWorktreePath: string,
+    targetWorktreePath: string,
+  ): Promise<WorktreeRebaseResult> => {
+    try {
+      const result = await worktreeMainService.rebaseWorktreeOntoWorktree(
+        directory,
+        sourceWorktreePath,
+        targetWorktreePath,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to rebase worktree: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : 'The rebase failed. The source branch was restored.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'resolve-rebase-conflict',
+  async (
+    _event,
+    worktreePath: string,
+    filePath: string,
+    resolution: WorktreeRebaseResolution,
+  ): Promise<WorktreeRebaseConflictResult> => {
+    try {
+      if (!['source', 'target', 'staged'].includes(resolution)) {
+        throw new BusinessError('Choose a valid conflict resolution.');
+      }
+      const conflictedFiles = await worktreeMainService.resolveRebaseConflict(
+        worktreePath,
+        filePath,
+        resolution,
+      );
+      return { ok: true, conflictedFiles };
+    } catch (error: any) {
+      log.error(`Failed to resolve rebase conflict: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The file was not resolved.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'continue-worktree-rebase',
+  async (
+    _event,
+    worktreePath: string,
+    sourceBranch: string,
+    targetBranch: string,
+  ): Promise<WorktreeRebaseActionResult> => {
+    try {
+      const result = await worktreeMainService.continueWorktreeRebase(
+        worktreePath,
+        sourceBranch,
+        targetBranch,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to continue rebase: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The rebase could not continue.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'abort-worktree-rebase',
+  async (_event, worktreePath: string): Promise<WorktreeRebaseAbortResult> => {
+    try {
+      await worktreeMainService.abortWorktreeRebase(worktreePath);
+      return { ok: true };
+    } catch (error: any) {
+      log.error(`Failed to abort rebase: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The rebase was not aborted.',
       };
     }
   },

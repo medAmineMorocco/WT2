@@ -63,6 +63,7 @@ const LockWorktree = lazy(() => import('./LockWorktree'));
 const MoveWorktree = lazy(() => import('./MoveWorktree'));
 const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 const WorktreeGitConfig = lazy(() => import('./WorktreeGitConfig'));
+const RebaseWorktree = lazy(() => import('./RebaseWorktree'));
 
 const { useToken } = theme;
 
@@ -138,7 +139,7 @@ export default function ListWorktrees({
   const [selectedPrunePaths, setSelectedPrunePaths] = useState<string[]>([]);
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
-  const [rebaseLoadingPath, setRebaseLoadingPath] = useState<string | null>(
+  const [rebaseSourceWorktree, setRebaseSourceWorktree] = useState<any | null>(
     null,
   );
   const [configWorktree, setConfigWorktree] = useState<any | null>(null);
@@ -518,13 +519,13 @@ export default function ListWorktrees({
     const isLocked = worktree.isLocked;
     const isPrimary = worktree.isPrimary;
     const isHealthy = worktree.directoryExists !== false && !worktree.prunable;
-    const primaryWorktree = worktrees.find((item: any) => item.isPrimary);
-    const canRebasePrimary =
-      Boolean(primaryWorktree?.name && primaryWorktree?.path) &&
-      !isPrimary &&
-      isHealthy &&
-      Boolean(worktree.name) &&
-      worktree.name !== 'DETACHED HEAD';
+    const rebaseCandidates = worktrees.filter(
+      (item: any) =>
+        item.directoryExists !== false &&
+        !item.prunable &&
+        Boolean(item.name) &&
+        item.name !== 'DETACHED HEAD',
+    );
 
     const editorItems = enabledEditors.map((editor: any) => ({
       key: `editor:${editor.name || editor.key}`,
@@ -555,17 +556,13 @@ export default function ListWorktrees({
         type: 'divider',
       },
       {
-        key: 'rebase-primary-onto-worktree',
-        label: primaryWorktree?.name
-          ? `Rebase ${primaryWorktree.name} onto ${worktree.name}`
-          : 'Rebase primary branch onto this branch',
-        icon:
-          rebaseLoadingPath === worktree.path ? (
-            <LoadingOutlined />
-          ) : (
-            <SyncOutlined />
-          ),
-        disabled: !canRebasePrimary || Boolean(rebaseLoadingPath),
+        key: 'rebase-worktree',
+        label: 'Rebase…',
+        icon: <SyncOutlined />,
+        disabled:
+          !isHealthy ||
+          worktree.name === 'DETACHED HEAD' ||
+          rebaseCandidates.length < 2,
       },
       {
         key: 'configure-worktree-config',
@@ -709,58 +706,8 @@ export default function ListWorktrees({
         setOpenTerminalModal(true);
         return;
       }
-      if (key === 'rebase-primary-onto-worktree') {
-        const primaryWorktree = worktrees.find((item: any) => item.isPrimary);
-        if (!primaryWorktree) return;
-        modal.confirm({
-          title: `Rebase ${primaryWorktree.name} onto ${worktree.name}?`,
-          icon: <ExclamationCircleFilled />,
-          content: (
-            <div>
-              This rewrites commits on <strong>{primaryWorktree.name}</strong>{' '}
-              so they follow <strong>{worktree.name}</strong>. The primary
-              worktree must be clean. If conflicts occur, WorktreeWise will
-              abort the rebase and restore the branch.
-            </div>
-          ),
-          okText: 'Rebase',
-          cancelText: 'Cancel',
-          centered: true,
-          async onOk() {
-            setRebaseLoadingPath(worktree.path);
-            try {
-              const result = (await window.electron.ipcRenderer.invoke(
-                'rebase-primary-onto-worktree',
-                tabRepoPath,
-                worktree.path,
-              )) as WorktreeRebaseResult;
-              if (!result.ok) {
-                api.error({
-                  message: 'Unable to Rebase Branch',
-                  description: result.error,
-                  placement: 'bottomLeft',
-                });
-                return;
-              }
-              api.success({
-                message: 'Rebase Completed',
-                description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
-                placement: 'bottomLeft',
-                duration: 2,
-              });
-              window.electron.ipcRenderer.send('show-git-log', tabRepoPath);
-              window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
-            } catch (error: any) {
-              api.error({
-                message: 'Unable to Rebase Branch',
-                description: error?.message || 'The rebase failed.',
-                placement: 'bottomLeft',
-              });
-            } finally {
-              setRebaseLoadingPath(null);
-            }
-          },
-        });
+      if (key === 'rebase-worktree') {
+        setRebaseSourceWorktree(worktree);
         return;
       }
       if (key === 'configure-worktree-config') {
@@ -1282,6 +1229,34 @@ export default function ListWorktrees({
               worktreePath={configWorktree.path}
               onClose={closeWorktreeGitConfig}
               onSaved={handleWorktreeGitConfigSaved}
+            />
+          </Suspense>
+        )}
+        {rebaseSourceWorktree && (
+          <Suspense fallback={<Spin size="large" />}>
+            <RebaseWorktree
+              open={Boolean(rebaseSourceWorktree)}
+              repositoryPath={tabRepoPath}
+              worktrees={worktrees}
+              initialSourcePath={rebaseSourceWorktree.path}
+              onClose={() => setRebaseSourceWorktree(null)}
+              onCompleted={(
+                result: Extract<WorktreeRebaseResult, { ok: true }>,
+              ) => {
+                setRebaseSourceWorktree(null);
+                api.success({
+                  message: 'Rebase Completed',
+                  description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
+                  placement: 'bottomLeft',
+                  duration: 3,
+                });
+                window.electron.ipcRenderer.send(
+                  'show-git-log',
+                  tabRepoPath,
+                  null,
+                );
+                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+              }}
             />
           </Suspense>
         )}

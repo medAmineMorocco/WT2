@@ -23,12 +23,18 @@ import {
 
 const { exec, execSync, spawn } = require('child_process');
 
-function runGit(gitExecutable: string, cwd: string, args: string[]) {
+function runGit(
+  gitExecutable: string,
+  cwd: string,
+  args: string[],
+  env?: NodeJS.ProcessEnv,
+) {
   return new Promise<string>((resolve, reject) => {
     const child = spawn(gitExecutable, args, {
       cwd,
       shell: false,
       windowsHide: true,
+      env,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -40,6 +46,42 @@ function runGit(gitExecutable: string, cwd: string, args: string[]) {
       else reject(new Error(Buffer.concat(stderr).toString('utf8').trim()));
     });
   });
+}
+
+async function getRebaseConflictFiles(
+  gitExecutable: string,
+  worktreePath: string,
+) {
+  const output = await runGit(gitExecutable, worktreePath, [
+    'diff',
+    '--name-only',
+    '--diff-filter=U',
+    '-z',
+  ]);
+  return output.split('\0').filter(Boolean);
+}
+
+async function assertRebaseInProgress(
+  gitExecutable: string,
+  worktreePath: string,
+) {
+  const paths = await Promise.all(
+    ['rebase-merge', 'rebase-apply'].map(async (name) =>
+      path.resolve(
+        worktreePath,
+        (
+          await runGit(gitExecutable, worktreePath, [
+            'rev-parse',
+            '--git-path',
+            name,
+          ])
+        ).trim(),
+      ),
+    ),
+  );
+  if (!paths.some((rebasePath) => existsSync(rebasePath))) {
+    throw new BusinessError('There is no rebase in progress in this worktree.');
+  }
 }
 
 async function optionalGit(gitExecutable: string, cwd: string, args: string[]) {
@@ -956,8 +998,9 @@ async function repairMovedWorktrees(dir: string, movedWorktreePaths: string[]) {
   return runGit(gitCommand, dir, ['worktree', 'repair', ...paths]);
 }
 
-async function rebasePrimaryOntoWorktree(
+async function rebaseWorktreeOntoWorktree(
   directory: string,
+  sourceWorktreePath: string,
   targetWorktreePath: string,
 ) {
   const worktrees = (await findAll(directory)) as Array<{
@@ -967,25 +1010,32 @@ async function rebasePrimaryOntoWorktree(
     directoryExists?: boolean;
     prunable?: boolean;
   }>;
+  const normalizedSourcePath = path.resolve(sourceWorktreePath);
   const normalizedTargetPath = path.resolve(targetWorktreePath);
-  const source = worktrees.find((worktree) => worktree.isPrimary);
+  const source = worktrees.find(
+    (worktree) => path.resolve(worktree.path) === normalizedSourcePath,
+  );
   const target = worktrees.find(
     (worktree) => path.resolve(worktree.path) === normalizedTargetPath,
   );
 
-  if (!source || !target || target.isPrimary) {
-    throw new BusinessError(
-      'Choose a valid non-primary worktree to rebase onto.',
-    );
+  if (!source || !target || normalizedSourcePath === normalizedTargetPath) {
+    throw new BusinessError('Choose two different valid worktrees.');
   }
   if (
     source.directoryExists === false ||
     target.directoryExists === false ||
+    source.prunable ||
     target.prunable
   ) {
     throw new BusinessError('Both worktrees must be available and healthy.');
   }
-  if (!source.name || !target.name || target.name === 'DETACHED HEAD') {
+  if (
+    !source.name ||
+    !target.name ||
+    source.name === 'DETACHED HEAD' ||
+    target.name === 'DETACHED HEAD'
+  ) {
     throw new BusinessError(
       'Both worktrees must be attached to local branches.',
     );
@@ -997,7 +1047,7 @@ async function rebasePrimaryOntoWorktree(
   ).trim();
   if (!currentBranch || currentBranch !== source.name) {
     throw new BusinessError(
-      `The primary worktree must be checked out on ${source.name}.`,
+      `The source worktree must be checked out on ${source.name}.`,
     );
   }
 
@@ -1024,17 +1074,140 @@ async function rebasePrimaryOntoWorktree(
       target.name,
     ]);
     return {
+      status: 'completed' as const,
       sourceBranch: source.name,
       targetBranch: target.name,
       output: output.trim(),
     };
   } catch (error: any) {
+    const conflictedFiles = await getRebaseConflictFiles(
+      gitExecutable,
+      source.path,
+    );
+    if (conflictedFiles.length > 0) {
+      return {
+        status: 'conflicts' as const,
+        sourceBranch: source.name,
+        targetBranch: target.name,
+        sourceWorktreePath: source.path,
+        conflictedFiles,
+      };
+    }
     await optionalGit(gitExecutable, source.path, ['rebase', '--abort']);
     const detail = error?.message?.trim();
     throw new BusinessError(
       `Rebase failed and was aborted.${detail ? ` ${detail}` : ''}`,
     );
   }
+}
+
+async function resolveRebaseConflict(
+  worktreePath: string,
+  filePath: string,
+  resolution: 'source' | 'target' | 'staged',
+) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertRebaseInProgress(gitExecutable, worktreePath);
+  const conflictedFiles = await getRebaseConflictFiles(
+    gitExecutable,
+    worktreePath,
+  );
+  if (!conflictedFiles.includes(filePath)) {
+    throw new BusinessError('The selected file is no longer conflicted.');
+  }
+
+  if (resolution === 'source') {
+    await runGit(gitExecutable, worktreePath, [
+      'checkout',
+      '--theirs',
+      '--',
+      filePath,
+    ]);
+  } else if (resolution === 'target') {
+    await runGit(gitExecutable, worktreePath, [
+      'checkout',
+      '--ours',
+      '--',
+      filePath,
+    ]);
+  }
+  await runGit(gitExecutable, worktreePath, ['add', '--', filePath]);
+  return getRebaseConflictFiles(gitExecutable, worktreePath);
+}
+
+async function continueWorktreeRebase(
+  worktreePath: string,
+  sourceBranch: string,
+  targetBranch: string,
+) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertRebaseInProgress(gitExecutable, worktreePath);
+  const remainingConflicts = await getRebaseConflictFiles(
+    gitExecutable,
+    worktreePath,
+  );
+  if (remainingConflicts.length > 0) {
+    throw new BusinessError('Resolve every conflicted file before continuing.');
+  }
+
+  try {
+    const output = await runGit(
+      gitExecutable,
+      worktreePath,
+      ['rebase', '--continue'],
+      {
+        ...process.env,
+        GIT_EDITOR: 'true',
+        GIT_SEQUENCE_EDITOR: 'true',
+      },
+    );
+    return {
+      status: 'completed' as const,
+      sourceBranch,
+      targetBranch,
+      output: output.trim(),
+    };
+  } catch (error: any) {
+    const conflictedFiles = await getRebaseConflictFiles(
+      gitExecutable,
+      worktreePath,
+    );
+    if (conflictedFiles.length > 0) {
+      return {
+        status: 'conflicts' as const,
+        sourceBranch,
+        targetBranch,
+        sourceWorktreePath: worktreePath,
+        conflictedFiles,
+      };
+    }
+    throw new BusinessError(
+      error?.message || 'Git could not continue the rebase.',
+    );
+  }
+}
+
+async function abortWorktreeRebase(worktreePath: string) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertRebaseInProgress(gitExecutable, worktreePath);
+  await runGit(gitExecutable, worktreePath, ['rebase', '--abort']);
+}
+
+async function rebasePrimaryOntoWorktree(
+  directory: string,
+  targetWorktreePath: string,
+) {
+  const worktrees = (await findAll(directory)) as Array<{
+    isPrimary: boolean;
+    path: string;
+  }>;
+  const primary = worktrees.find((worktree) => worktree.isPrimary);
+  if (!primary) throw new BusinessError('The primary worktree was not found.');
+  return rebaseWorktreeOntoWorktree(
+    directory,
+    primary.path,
+    targetWorktreePath,
+  );
 }
 
 async function assertWorktreeConfigPath(worktreePath: string) {
@@ -1300,6 +1473,10 @@ export default {
   previewPrune,
   repairMovedWorktrees,
   rebasePrimaryOntoWorktree,
+  rebaseWorktreeOntoWorktree,
+  resolveRebaseConflict,
+  continueWorktreeRebase,
+  abortWorktreeRebase,
   setWorktreeConfigEnabled,
   getWorktreeConfig,
   replaceWorktreeConfig,

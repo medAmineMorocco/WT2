@@ -33,17 +33,13 @@ import TabService from '../../services/tab/TabService';
 import LogUI from '../../components/log/LogUI';
 import { CommitChangedFile } from '../../../shared/gitCommit';
 import { WorkingTreeStatus } from '../../../shared/workingTree';
-import type {
-  SelectedWorkingTreeFile,
-} from './WorkingTreeFileDiffPane';
+import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
 const CommitDetailsPanel = lazy(() => import('./CommitDetailsPanel'));
 const CommitFileDiffPane = lazy(() => import('./CommitFileDiffPane'));
 const WorkingTreePanel = lazy(() => import('./WorkingTreePanel'));
-const WorkingTreeFileDiffPane = lazy(
-  () => import('./WorkingTreeFileDiffPane'),
-);
+const WorkingTreeFileDiffPane = lazy(() => import('./WorkingTreeFileDiffPane'));
 
 const LIMIT = 40;
 
@@ -78,6 +74,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const selectAuthorRef = useRef(null);
 
   const [selectedWorktree, setSelectedWorktree] = useState<string | null>(null);
+  const selectedWorktreeValueRef = useRef<string | null>(null);
+  const worktreesInitializedRef = useRef(false);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
 
   const [isAuthorEnabled, setIsAuthorEnabled] = useState(true);
@@ -194,15 +192,23 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         const primaryWorktree = nextWorktrees.find(
           (item: any) => item.isPrimary,
         );
+        const currentSelection = selectedWorktreeValueRef.current;
+        const nextSelection = worktreesInitializedRef.current
+          ? nextWorktrees.some((item: any) => item.value === currentSelection)
+            ? currentSelection
+            : null
+          : primaryWorktree?.value || null;
+        worktreesInitializedRef.current = true;
+        selectedWorktreeValueRef.current = nextSelection;
         setWorktrees(nextWorktrees);
-        setSelectedWorktree(primaryWorktree?.value || null);
+        setSelectedWorktree(nextSelection);
         skipRef.current = 0;
         setHasMore(true);
         hasMoreRef.current = true;
         window.electron.ipcRenderer.send(
           'show-git-log',
           tabRepoPath,
-          primaryWorktree?.value,
+          nextSelection,
         );
       } else {
         notification.error({
@@ -335,6 +341,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   }, []);
 
   const handleChange = (worktree: string | null, author: string | null) => {
+    selectedWorktreeValueRef.current = worktree;
     setSelectedWorktree(worktree);
     setSelectedCommit(null);
     setSelectedCommitFile(null);
@@ -483,10 +490,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           <Space wrap>
             <Select
               ref={selectWorktreeRef}
-              value={selectedWorktree}
-              placeholder="Worktree"
+              value={selectedWorktree || undefined}
+              placeholder="All refs"
               options={worktrees}
-              onChange={(val: string) => handleChange(val, selectedAuthor)}
+              onChange={(val?: string) =>
+                handleChange(val || null, selectedAuthor)
+              }
+              allowClear
               style={{ width: 220 }}
             />
             <Select
