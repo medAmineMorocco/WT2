@@ -3,12 +3,28 @@
   outline: none !important;
 }
 
-[data-color-scheme='dark'] {
-  color-scheme: dark;
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
 }
 
-[data-color-scheme='light'] {
+[data-color-scheme='dark'],
+[data-color-scheme='dark'] body,
+[data-color-scheme='dark'] #root,
+[data-color-scheme='dark'] .ant-app {
+  color-scheme: dark;
+  background-color: #000000 !important;
+}
+
+[data-color-scheme='light'],
+[data-color-scheme='light'] body,
+[data-color-scheme='light'] #root,
+[data-color-scheme='light'] .ant-app {
   color-scheme: light;
+  background-color: #ffffff;
 }
 
 body {
@@ -121,10 +137,34 @@ body {
 .repositories-tabs > .ant-tabs-nav,
 .repositories-tabs-dark > .ant-tabs-nav {
   margin-bottom: 0;
+  margin-top: 0;
 }
 
-.repositories-tabs-dark > .ant-tabs-nav > .ant-tabs-nav-wrap {
-  background-color: black;
+.repositories-tabs-dark {
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+.repositories-tabs-dark > .ant-tabs-nav,
+.repositories-tabs-dark > .ant-tabs-nav > .ant-tabs-nav-wrap,
+.repositories-tabs-dark .ant-tabs-extra-content {
+  background-color: #000000 !important;
+  border-top: none !important;
+  box-shadow: none !important;
+}
+
+.repositories-tabs-dark > .ant-tabs-nav::before {
+  border-top: none !important;
+  border-bottom: none !important;
+  display: none !important;
+}
+
+.repositories-tabs-dark > .ant-tabs-nav .ant-tabs-tab {
+  border-top-color: transparent !important;
+}
+
+.repositories-tabs-dark > .ant-tabs-nav .ant-tabs-tab-active {
+  border-top-color: #1677ff !important;
 }
 
 .workflows-table.ant-table-wrapper .ant-table-pagination.ant-pagination {

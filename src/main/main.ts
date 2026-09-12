@@ -9,7 +9,15 @@
  * `./src/main.js` using webpack. This gives us some performance wins.
  */
 import path from 'path';
-import { app, BrowserWindow, shell, ipcMain, dialog, screen } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  shell,
+  ipcMain,
+  dialog,
+  screen,
+  nativeTheme,
+} from 'electron';
 import fs from 'fs';
 import os from 'os';
 import { spawn } from 'child_process';
@@ -55,6 +63,7 @@ class AppUpdater {
 }
 
 let mainWindow: BrowserWindow | null = null;
+let menuBuilder: MenuBuilder | null = null;
 let pendingOpenProject: { path: string; name: string } | null = null;
 
 process.on('uncaughtException', (error: any) => {
@@ -121,10 +130,42 @@ function ensureConfig() {
   }
 }
 
+function getStoredTheme(): boolean {
+  try {
+    const configPath = path.join(app.getPath('userData'), 'worktreewise.json');
+    if (fs.existsSync(configPath)) {
+      const data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+      if (typeof data.isDarkMode === 'boolean') {
+        return data.isDarkMode;
+      }
+    }
+  } catch (err) {
+    log.error('Failed to read theme from config', err);
+  }
+  return false;
+}
+
+function saveStoredTheme(isDarkMode: boolean) {
+  try {
+    const configPath = path.join(app.getPath('userData'), 'worktreewise.json');
+    let data: any = {};
+    if (fs.existsSync(configPath)) {
+      data = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    }
+    data.isDarkMode = isDarkMode;
+    fs.writeFileSync(configPath, JSON.stringify(data, null, 2));
+  } catch (err) {
+    log.error('Failed to save theme to config', err);
+  }
+}
+
 const createWindow = async () => {
   if (isDebug) {
     await installExtensions();
   }
+
+  const isDarkMode = getStoredTheme();
+  nativeTheme.themeSource = isDarkMode ? 'dark' : 'light';
 
   const RESOURCES_PATH = app.isPackaged
     ? path.join(process.resourcesPath, 'assets')
@@ -148,6 +189,7 @@ const createWindow = async () => {
     minWidth,
     minHeight,
     icon: getAssetPath(iconFile),
+    backgroundColor: isDarkMode ? '#000000' : '#ffffff',
     webPreferences: {
       preload: app.isPackaged
         ? path.join(__dirname, 'preload.js')
@@ -243,7 +285,7 @@ const createWindow = async () => {
     mainWindow = null;
   });
 
-  const menuBuilder = new MenuBuilder(mainWindow);
+  menuBuilder = new MenuBuilder(mainWindow);
   menuBuilder.buildMenu();
 
   // Open urls in the user's browser
@@ -534,6 +576,14 @@ ipcMain.on('open-dialog-import-workflows', async function (event) {
 });
 
 ipcMain.on('change-theme', function (event, isDarkMode, activeTab) {
+  nativeTheme.themeSource = isDarkMode ? 'dark' : 'light';
+  saveStoredTheme(Boolean(isDarkMode));
+  if (mainWindow) {
+    mainWindow.setBackgroundColor(isDarkMode ? '#000000' : '#ffffff');
+  }
+  if (menuBuilder) {
+    menuBuilder.buildMenu();
+  }
   event.sender.send(`theme-changed-${activeTab}`, isDarkMode);
 });
 
