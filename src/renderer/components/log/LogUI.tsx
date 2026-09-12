@@ -1,5 +1,6 @@
 import {
   Dropdown,
+  Empty,
   FloatButton,
   MenuProps,
   notification,
@@ -25,6 +26,40 @@ const formatDate = new Intl.DateTimeFormat('en-US', {
   minute: '2-digit',
   hour12: false,
 });
+
+function highlightMatch(text: string, query?: string) {
+  if (!query || !query.trim() || !text) return text;
+  const q = query.trim();
+  const lowerText = text.toLowerCase();
+  const lowerQ = q.toLowerCase();
+  const idx = lowerText.indexOf(lowerQ);
+  if (idx === -1) return text;
+
+  const parts: React.ReactNode[] = [];
+  let remaining = text;
+  let lowerRemaining = lowerText;
+  let matchIdx = lowerRemaining.indexOf(lowerQ);
+  let key = 0;
+
+  while (matchIdx !== -1) {
+    if (matchIdx > 0) {
+      parts.push(remaining.slice(0, matchIdx));
+    }
+    parts.push(
+      <mark key={key++} className="search-highlight">
+        {remaining.slice(matchIdx, matchIdx + q.length)}
+      </mark>,
+    );
+    remaining = remaining.slice(matchIdx + q.length);
+    lowerRemaining = lowerRemaining.slice(matchIdx + q.length);
+    matchIdx = lowerRemaining.indexOf(lowerQ);
+  }
+  if (remaining.length > 0) {
+    parts.push(remaining);
+  }
+
+  return <>{parts}</>;
+}
 
 const items: MenuProps['items'] = [
   {
@@ -61,6 +96,7 @@ export interface ParsedCommit {
 
 export default function LogUI({
   commits,
+  searchQuery,
   isAuthorEnabled,
   isCommitDateEnabled,
   isHashEnabled,
@@ -79,6 +115,7 @@ export default function LogUI({
   onCherryPick,
 }: {
   commits: string[];
+  searchQuery?: string;
   isAuthorEnabled: boolean;
   isCommitDateEnabled: boolean;
   isHashEnabled: boolean;
@@ -707,6 +744,16 @@ export default function LogUI({
     return () => observer.disconnect();
   }, [onLoadMore, hasMore, loadingMore]);
 
+  useEffect(() => {
+    if (!selectedCommit || !containerRef.current) return;
+    const targetRow = containerRef.current.querySelector(
+      `[data-commit-hash="${selectedCommit}"]`,
+    );
+    if (targetRow) {
+      targetRow.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    }
+  }, [selectedCommit]);
+
   return (
     <div ref={containerRef} className="log-container" onScroll={handleScroll}>
       {contextHolder}
@@ -785,6 +832,7 @@ export default function LogUI({
             <div
               role="button"
               tabIndex={0}
+              data-commit-hash={item.hash}
               className={`commit-row ${selectedCommit === item.hash ? 'selected' : ''}`}
               style={{ gridTemplateColumns: rowTemplate }}
               onClick={(event) => {
@@ -806,7 +854,7 @@ export default function LogUI({
                   {renderGraph(item, 39)}
                 </span>
                 <span className="commit-msg" title={item.subject}>
-                  {item.subject}
+                  {highlightMatch(item.subject, searchQuery)}
                 </span>
                 {isRefsEnabled && item.refs && (
                   <span className="commit-refs">{renderRefs(item.refs)}</span>
@@ -833,13 +881,24 @@ export default function LogUI({
               )}
               {!shouldHide && isHashEnabled && (
                 <span className="commit-column commit-column-hash">
-                  {item.hash.slice(0, 8)}
+                  {highlightMatch(item.hash.slice(0, 8), searchQuery)}
                 </span>
               )}
             </div>
           </Dropdown>
         );
       })}
+      {parsedCommits.length === 0 && workingTreeCount === 0 && (
+        <Empty
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          description={
+            searchQuery
+              ? `No commits found matching "${searchQuery}"`
+              : 'No commits found'
+          }
+          style={{ margin: '48px 0' }}
+        />
+      )}
       {loadingMore && (
         <div className="git-log-loading-more-row">
           <Spin size="small" />

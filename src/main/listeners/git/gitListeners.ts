@@ -88,8 +88,8 @@ ipcMain.on(
   async function (
     event,
     directory: string,
-    branch: string,
-    author: string,
+    branch?: string | null,
+    author?: string | null,
     skip = 0,
     limit = 40,
   ) {

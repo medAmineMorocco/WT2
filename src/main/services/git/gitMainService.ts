@@ -153,8 +153,8 @@ function decorateStashLines(
 
 function showLogAsync(
   directory: string,
-  branch: string | null,
-  author: string | null,
+  branch?: string | null,
+  author?: string | null,
   skip = 0,
   limit = 40,
 ): Promise<{ buffer: Buffer; hasMore: boolean }> {
@@ -162,8 +162,8 @@ function showLogAsync(
   return new Promise(async (resolve, reject) => {
     // Cache only the default Git Log
     const shouldUseCache =
-      branch === undefined &&
-      author === undefined &&
+      (branch === undefined || branch === null) &&
+      (author === undefined || author === null) &&
       skip === 0 &&
       limit === 40;
 

@@ -7,6 +7,7 @@ import {
   Spin,
   Tooltip,
   Button,
+  Input,
 } from 'antd';
 import React, {
   lazy,
@@ -27,6 +28,9 @@ import {
   DiffOutlined,
   InboxOutlined,
   ExportOutlined,
+  SearchOutlined,
+  UpOutlined,
+  DownOutlined,
 } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
@@ -82,6 +86,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const selectedWorktreeValueRef = useRef<string | null>(null);
   const worktreesInitializedRef = useRef(false);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
 
   const [isAuthorEnabled, setIsAuthorEnabled] = useState(true);
   const [isCommitDateEnabled, setIsCommitDateEnabled] = useState(true);
@@ -342,6 +348,81 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const commitList = useMemo(() => {
+    const list: { hash: string; subject: string }[] = [];
+    const regex =
+      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})/;
+    commits.forEach((line) => {
+      if (!line || !line.trim()) return;
+      if (/^(?:[*|/\\ ]*)?(?:index|untracked files) on [^:]+:\s/i.test(line)) {
+        return;
+      }
+      const match = line.match(regex);
+      if (match) {
+        list.push({ subject: match[1] || '', hash: match[5] || '' });
+      }
+    });
+    return list;
+  }, [commits]);
+
+  const matchingCommits = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return commitList.filter(
+      (c) =>
+        c.hash.toLowerCase().includes(q) ||
+        c.subject.toLowerCase().includes(q),
+    );
+  }, [commitList, searchQuery]);
+
+  const selectMatch = useCallback(
+    (index: number, matches = matchingCommits) => {
+      if (matches.length === 0) return;
+      const validIndex = Math.max(0, Math.min(index, matches.length - 1));
+      setCurrentMatchIndex(validIndex);
+      const target = matches[validIndex];
+      if (target) {
+        setSelectedCommit(target.hash);
+        setWorkingTreeSelected(false);
+        setSelectedWorkingTreeFile(null);
+        setSelectedCommitFile(null);
+      }
+    },
+    [matchingCommits],
+  );
+
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    const q = value.trim().toLowerCase();
+    if (!q) {
+      setCurrentMatchIndex(0);
+      return;
+    }
+    const newMatches = commitList.filter(
+      (c) =>
+        c.hash.toLowerCase().includes(q) ||
+        c.subject.toLowerCase().includes(q),
+    );
+    if (newMatches.length > 0) {
+      selectMatch(0, newMatches);
+    } else {
+      setCurrentMatchIndex(0);
+    }
+  };
+
+  const handleNextMatch = () => {
+    if (matchingCommits.length === 0) return;
+    const nextIdx = (currentMatchIndex + 1) % matchingCommits.length;
+    selectMatch(nextIdx);
+  };
+
+  const handlePrevMatch = () => {
+    if (matchingCommits.length === 0) return;
+    const prevIdx =
+      (currentMatchIndex - 1 + matchingCommits.length) % matchingCommits.length;
+    selectMatch(prevIdx);
+  };
+
   const handleChange = (worktree: string | null, author: string | null) => {
     selectedWorktreeValueRef.current = worktree;
     setSelectedWorktree(worktree);
@@ -444,6 +525,28 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     );
   }, [tabRepoPath, selectedWorktree, selectedAuthor]);
 
+  useEffect(() => {
+    const q = searchQuery.trim();
+    if (!q) return;
+    if (
+      matchingCommits.length === 0 &&
+      hasMore &&
+      !loadingMore &&
+      !loading &&
+      commits.length < 500
+    ) {
+      handleLoadMore();
+    }
+  }, [
+    searchQuery,
+    matchingCommits.length,
+    hasMore,
+    loadingMore,
+    loading,
+    commits.length,
+    handleLoadMore,
+  ]);
+
   const columnsMenu = (
     <div className="git-log-columns-menu">
       <Checkbox
@@ -510,6 +613,66 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               showSearch
               allowClear
               style={{ width: 220 }}
+            />
+            <Input
+              placeholder="Search Commit"
+              prefix={<SearchOutlined style={{ opacity: 0.65 }} />}
+              value={searchQuery}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  if (e.shiftKey) {
+                    handlePrevMatch();
+                  } else {
+                    handleNextMatch();
+                  }
+                }
+              }}
+              suffix={
+                searchQuery.trim() ? (
+                  <Space size={2} style={{ marginLeft: 4, alignItems: 'center' }}>
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        color:
+                          matchingCommits.length > 0
+                            ? 'var(--ant-color-text-secondary, #6b7280)'
+                            : '#ef4444',
+                        userSelect: 'none',
+                        marginRight: 2,
+                        minWidth: 28,
+                        textAlign: 'right',
+                      }}
+                    >
+                      {matchingCommits.length > 0
+                        ? `${currentMatchIndex + 1}/${matchingCommits.length}`
+                        : '0/0'}
+                    </span>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<UpOutlined style={{ fontSize: 10 }} />}
+                      disabled={matchingCommits.length === 0}
+                      onClick={handlePrevMatch}
+                      title="Previous match (Shift+Enter)"
+                      style={{ width: 20, height: 20, padding: 0 }}
+                    />
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<DownOutlined style={{ fontSize: 10 }} />}
+                      disabled={matchingCommits.length === 0}
+                      onClick={handleNextMatch}
+                      title="Next match (Enter)"
+                      style={{ width: 20, height: 20, padding: 0 }}
+                    />
+                  </Space>
+                ) : null
+              }
+              allowClear
+              className="git-log-search-input"
+              style={{ width: searchQuery.trim() ? 300 : 220 }}
             />
             {!shouldHide && (
               <Popover
@@ -624,6 +787,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 !(selectedCommit && selectedCommitFile) && (
                   <LogUI
                     commits={commits}
+                    searchQuery={searchQuery}
                     isAuthorEnabled={isAuthorEnabled}
                     isCommitDateEnabled={isCommitDateEnabled}
                     isHashEnabled={isHashEnabled}

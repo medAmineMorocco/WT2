@@ -1008,6 +1008,23 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   background: color-mix(in srgb, currentColor 16%, transparent);
 }
 
+.git-log-search-input {
+  width: 220px;
+}
+
+.search-highlight {
+  background: rgba(250, 204, 21, 0.38);
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+  font-weight: 600;
+}
+
+html[data-color-scheme='dark'] .search-highlight {
+  background: rgba(250, 204, 21, 0.28);
+  color: inherit;
+}
+
 .log-container {
   position: relative;
   height: 100%;
