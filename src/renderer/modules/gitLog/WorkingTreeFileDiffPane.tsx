@@ -40,6 +40,7 @@ export default function WorkingTreeFileDiffPane({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
+
   const diffElement = useRef<HTMLDivElement>(null);
   const silentRefresh = useRef(false);
   const { isDarkMode } = useItemsContext();
@@ -67,6 +68,7 @@ export default function WorkingTreeFileDiffPane({
           selection.file.path,
           selection.staged,
           selection.file.untracked,
+          true, // fullContext by default
         );
         if (!cancelled) {
           if (contents.trim()) setPatch(contents);
@@ -98,6 +100,7 @@ export default function WorkingTreeFileDiffPane({
           selection.file.path,
           selection.staged,
           selection.file.untracked,
+          true, // fullContext by default
         );
         if (!cancelled) {
           if (!contents.trim()) onClose();
@@ -117,6 +120,8 @@ export default function WorkingTreeFileDiffPane({
       window.clearInterval(interval);
     };
   }, [onClose, repositoryPath, selection]);
+
+
 
   const linePatches = useCallback((contents: string) => {
     const lines = contents.split(/\r?\n/);
@@ -394,3 +399,5 @@ export default function WorkingTreeFileDiffPane({
     </section>
   );
 }
+
+

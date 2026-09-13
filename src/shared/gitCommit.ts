@@ -11,3 +11,15 @@ export interface CommitChangedFilesResult {
   additions: number;
   deletions: number;
 }
+
+export interface FileContentResult {
+  exists: boolean;
+  reason?: 'added' | 'deleted' | 'untracked' | 'error';
+  content?: string;
+  isBinary?: boolean;
+  truncated?: boolean;
+  lineCount?: number;
+  error?: string;
+}
+
+

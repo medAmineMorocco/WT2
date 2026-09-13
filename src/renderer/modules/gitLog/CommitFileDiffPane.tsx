@@ -35,6 +35,7 @@ export default function CommitFileDiffPane({
   const [patch, setPatch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
   const request = useRef(0);
   const diffElement = useRef<HTMLDivElement>(null);
   const { isDarkMode } = useItemsContext();
@@ -132,10 +133,13 @@ export default function CommitFileDiffPane({
       commit,
       file.path,
       repositoryPath,
+      true, // fullContext by default
     );
   }, [commit, file.path, repositoryPath]);
 
-  useEffect(() => drawDiff(patch), [drawDiff, patch]);
+  useEffect(() => {
+    drawDiff(patch);
+  }, [drawDiff, patch]);
 
   return (
     <section className="git-log-file-diff-pane">
@@ -162,3 +166,5 @@ export default function CommitFileDiffPane({
     </section>
   );
 }
+
+

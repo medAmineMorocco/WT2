@@ -64,12 +64,50 @@ ipcMain.handle(
     filePath: string,
     staged: boolean,
     untracked: boolean,
+    fullContext?: boolean,
   ) =>
     gitMainService.getWorkingTreeFileDiff(
       directory,
       filePath,
       staged,
       untracked,
+      fullContext,
+    ),
+);
+
+ipcMain.handle(
+  'get-working-tree-file-content',
+  async (
+    _event,
+    directory: string,
+    filePath: string,
+    version: 'before' | 'after',
+    staged: boolean,
+    untracked: boolean,
+  ) =>
+    gitMainService.getWorkingTreeFileContent(
+      directory,
+      filePath,
+      version,
+      staged,
+      untracked,
+    ),
+);
+
+ipcMain.handle(
+  'get-commit-file-content',
+  async (
+    _event,
+    directory: string,
+    commit: string,
+    filePath: string,
+    version: 'before' | 'after',
+  ) =>
+    gitMainService.getCommitFileContent(
+      directory,
+      commit,
+      filePath,
+      version,
     ),
 );
 
@@ -182,12 +220,14 @@ ipcMain.on(
     commit: string,
     filePath: string,
     directory: string,
+    fullContext?: boolean,
   ) {
     try {
       const result = await gitMainService.getCommitFileDiff(
         commit,
         filePath,
         directory,
+        fullContext,
       );
       event.sender.send('receive-commit-file-diff', 0, result, requestId);
     } catch (err: any) {

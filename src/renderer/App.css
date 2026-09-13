@@ -2059,6 +2059,8 @@ html[data-color-scheme='dark'] .git-log-file-diff-header {
   margin-bottom: 0;
 }
 
+
+
 @media (max-width: 900px) {
   .commit-details-panel {
     flex-basis: 300px;

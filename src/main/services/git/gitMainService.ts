@@ -7,6 +7,7 @@ import BusinessError from '../../exceptions/BusinessError';
 import {
   CommitChangedFile,
   CommitChangedFilesResult,
+  FileContentResult,
 } from '../../../shared/gitCommit';
 import {
   WorkingTreeAction,
@@ -764,16 +765,18 @@ async function getWorkingTreeFileDiff(
   filePath: string,
   staged: boolean,
   untracked: boolean,
+  fullContext = true,
 ) {
   let output: Buffer;
+  const contextArg = fullContext ? '-U999999' : '-U3';
   if (untracked) {
     output = await runGitWithAllowedCodes(
       directory,
-      ['diff', '--no-index', '--no-color', '--', '/dev/null', filePath],
+      ['diff', '--no-index', '--no-color', contextArg, '--', '/dev/null', filePath],
       [0, 1],
     );
   } else {
-    const args = ['diff', '--no-ext-diff', '--no-color', '-U3'];
+    const args = ['diff', '--no-ext-diff', '--no-color', contextArg];
     if (staged) args.push('--cached');
     args.push('--', filePath);
     output = await runGit(directory, args);
@@ -883,6 +886,7 @@ async function getCommitFileDiff(
   commit: string,
   filePath: string,
   directory: string,
+  fullContext = true,
 ): Promise<Buffer> {
   const patch = await runGit(directory, [
     'show',
@@ -892,7 +896,7 @@ async function getCommitFileDiff(
     '--no-renames',
     '--no-color',
     '--diff-algorithm=histogram',
-    '-U3',
+    fullContext ? '-U999999' : '-U3',
     commit,
     '--',
     filePath,
@@ -903,6 +907,122 @@ async function getCommitFileDiff(
       else resolve(compressed);
     });
   });
+}
+
+const MAX_FILE_DISPLAY_SIZE = 1024 * 1024; // 1 MB
+
+function formatFileBuffer(buffer: Buffer): FileContentResult {
+  if (buffer.subarray(0, 8000).includes(0)) {
+    return { exists: true, isBinary: true };
+  }
+  const truncated = buffer.length > MAX_FILE_DISPLAY_SIZE;
+  const content = buffer.subarray(0, MAX_FILE_DISPLAY_SIZE).toString('utf8');
+  const lineCount = content.split(/\r?\n/).length;
+  return {
+    exists: true,
+    content,
+    isBinary: false,
+    truncated,
+    lineCount,
+  };
+}
+
+async function getCommitFileContent(
+  directory: string,
+  commit: string,
+  filePath: string,
+  version: 'before' | 'after',
+): Promise<FileContentResult> {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  try {
+    if (version === 'after') {
+      const output = await runGit(directory, ['show', `${commit}:${normalizedPath}`]);
+      return formatFileBuffer(output);
+    }
+    // For 'before', check if commit has parents
+    try {
+      await runGit(directory, ['rev-parse', '--verify', '--quiet', `${commit}^`]);
+    } catch {
+      return { exists: false, reason: 'added' };
+    }
+    const output = await runGit(directory, ['show', `${commit}^:${normalizedPath}`]);
+    return formatFileBuffer(output);
+  } catch (error: any) {
+    const message = error?.message || String(error);
+    if (
+      message.includes('does not exist') ||
+      message.includes('fatal: path') ||
+      message.includes('exists on disk, but not in')
+    ) {
+      return { exists: false, reason: version === 'before' ? 'added' : 'deleted' };
+    }
+    return { exists: false, reason: 'error', error: message };
+  }
+}
+
+async function getWorkingTreeFileContent(
+  directory: string,
+  filePath: string,
+  version: 'before' | 'after',
+  staged: boolean,
+  untracked: boolean,
+): Promise<FileContentResult> {
+  const normalizedPath = filePath.replace(/\\/g, '/');
+  try {
+    if (untracked) {
+      if (version === 'before') {
+        return { exists: false, reason: 'untracked' };
+      }
+      const fullPath = path.resolve(directory, normalizedPath);
+      if (!fs.existsSync(fullPath)) {
+        return { exists: false, reason: 'deleted' };
+      }
+      const buffer = await fs.promises.readFile(fullPath);
+      return formatFileBuffer(buffer);
+    }
+
+    if (staged) {
+      if (version === 'before') {
+        try {
+          const output = await runGit(directory, ['show', `HEAD:${normalizedPath}`]);
+          return formatFileBuffer(output);
+        } catch {
+          return { exists: false, reason: 'added' };
+        }
+      }
+      try {
+        const output = await runGit(directory, ['show', `:${normalizedPath}`]);
+        return formatFileBuffer(output);
+      } catch {
+        return { exists: false, reason: 'deleted' };
+      }
+    } else {
+      // Unstaged
+      if (version === 'before') {
+        try {
+          const output = await runGit(directory, ['show', `:${normalizedPath}`]);
+          return formatFileBuffer(output);
+        } catch {
+          try {
+            const output = await runGit(directory, ['show', `HEAD:${normalizedPath}`]);
+            return formatFileBuffer(output);
+          } catch {
+            return { exists: false, reason: 'added' };
+          }
+        }
+      } else {
+        const fullPath = path.resolve(directory, normalizedPath);
+        if (!fs.existsSync(fullPath)) {
+          return { exists: false, reason: 'deleted' };
+        }
+        const buffer = await fs.promises.readFile(fullPath);
+        return formatFileBuffer(buffer);
+      }
+    }
+  } catch (error: any) {
+    const message = error?.message || String(error);
+    return { exists: false, reason: 'error', error: message };
+  }
 }
 
 function executeCommand(command: string, directory: string) {
@@ -1104,4 +1224,6 @@ export default {
   cherryPickCommit,
   resetCommit,
   revertCommit,
+  getCommitFileContent,
+  getWorkingTreeFileContent,
 };
