@@ -7,6 +7,7 @@ import {
   PlusOutlined,
   RollbackOutlined,
   UndoOutlined,
+  BranchesOutlined,
 } from '@ant-design/icons';
 import { Button, Dropdown, Empty, Spin, Tag, Tooltip, Typography } from 'antd';
 import React, { useEffect, useRef, useState } from 'react';
@@ -35,6 +36,7 @@ export default function CommitDetailsPanel({
   selectedWorktree,
   onReset,
   onRevert,
+  onMerge,
 }: {
   commit: string;
   repositoryPath: string;
@@ -44,6 +46,7 @@ export default function CommitDetailsPanel({
   selectedWorktree?: string | null;
   onReset?: (mode: ResetMode) => void;
   onRevert?: () => void;
+  onMerge?: () => void;
 }) {
   const [result, setResult] = useState<CommitChangedFilesResult | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,6 +168,22 @@ export default function CommitDetailsPanel({
             onClick={onRevert}
           >
             Revert
+          </Button>
+        </Tooltip>
+        <Tooltip
+          title={
+            selectedWorktree
+              ? `Merge this commit into ${selectedWorktree}`
+              : 'Select a worktree in Git Log toolbar to enable Merge'
+          }
+        >
+          <Button
+            size="small"
+            icon={<BranchesOutlined />}
+            disabled={!selectedWorktree}
+            onClick={onMerge}
+          >
+            Merge
           </Button>
         </Tooltip>
       </div>

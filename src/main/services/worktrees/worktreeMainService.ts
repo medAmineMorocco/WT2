@@ -9,6 +9,7 @@ import {
   WorktreeDashboardDiskUsage,
   WorktreeDashboardItem,
 } from '../../../shared/worktreeDashboard';
+import { WorktreeMergeOptions } from '../../../shared/worktreeMerge';
 import {
   assertBranchExists,
   assertBranchIsNotInUseInOtherWorktrees,
@@ -81,6 +82,36 @@ async function assertRebaseInProgress(
   );
   if (!paths.some((rebasePath) => existsSync(rebasePath))) {
     throw new BusinessError('There is no rebase in progress in this worktree.');
+  }
+}
+
+async function getMergeConflictFiles(
+  gitExecutable: string,
+  worktreePath: string,
+) {
+  const output = await runGit(gitExecutable, worktreePath, [
+    'diff',
+    '--name-only',
+    '--diff-filter=U',
+    '-z',
+  ]);
+  return output.split('\0').filter(Boolean);
+}
+
+async function assertMergeInProgress(
+  gitExecutable: string,
+  worktreePath: string,
+) {
+  const mergeHeadRelative = (
+    await runGit(gitExecutable, worktreePath, [
+      'rev-parse',
+      '--git-path',
+      'MERGE_HEAD',
+    ])
+  ).trim();
+  const mergeHeadPath = path.resolve(worktreePath, mergeHeadRelative);
+  if (!existsSync(mergeHeadPath)) {
+    throw new BusinessError('There is no merge in progress in this worktree.');
   }
 }
 
@@ -1210,6 +1241,254 @@ async function rebasePrimaryOntoWorktree(
   );
 }
 
+async function mergeWorktreeIntoWorktree(
+  directory: string,
+  targetWorktreePath: string,
+  sourceWorktreePath: string,
+  options?: WorktreeMergeOptions,
+) {
+  const worktrees = (await findAll(directory)) as Array<{
+    isPrimary: boolean;
+    path: string;
+    name: string;
+    directoryExists?: boolean;
+    prunable?: boolean;
+  }>;
+  const normalizedTargetPath = path.resolve(targetWorktreePath);
+  const normalizedSourcePath = path.resolve(sourceWorktreePath);
+  const target = worktrees.find(
+    (worktree) => path.resolve(worktree.path) === normalizedTargetPath,
+  );
+  const source = worktrees.find(
+    (worktree) => path.resolve(worktree.path) === normalizedSourcePath,
+  );
+
+  if (!target) {
+    throw new BusinessError('The target worktree was not found.');
+  }
+  if (normalizedSourcePath === normalizedTargetPath) {
+    throw new BusinessError('Choose two different valid worktrees.');
+  }
+
+  let sourceBranch = source?.name;
+  if (!sourceBranch) {
+    sourceBranch = sourceWorktreePath.trim();
+  }
+
+  if (target.directoryExists === false || target.prunable) {
+    throw new BusinessError(
+      'The target worktree must be available and healthy.',
+    );
+  }
+  if (!target.name || target.name === 'DETACHED HEAD') {
+    throw new BusinessError(
+      'The target worktree must be attached to a local branch.',
+    );
+  }
+  if (!sourceBranch || sourceBranch === 'DETACHED HEAD') {
+    throw new BusinessError('The source must be attached to a valid branch.');
+  }
+
+  const gitExecutable = await gitMainService.gitCommand();
+  const currentBranch = (
+    await runGit(gitExecutable, target.path, ['branch', '--show-current'])
+  ).trim();
+  if (!currentBranch || currentBranch !== target.name) {
+    throw new BusinessError(
+      `The target worktree must be checked out on ${target.name}.`,
+    );
+  }
+
+  const status = await runGit(gitExecutable, target.path, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ]);
+  if (status.trim()) {
+    throw new BusinessError(
+      `Commit, stash, or discard changes in ${target.name} before merging.`,
+    );
+  }
+
+  try {
+    await runGit(gitExecutable, directory, [
+      'rev-parse',
+      '--verify',
+      sourceBranch,
+    ]);
+  } catch {
+    throw new BusinessError(
+      `Branch or ref "${sourceBranch}" could not be found.`,
+    );
+  }
+
+  const gitArgs = ['merge'];
+  if (options?.strategy === 'no-ff') {
+    gitArgs.push('--no-ff');
+  } else if (options?.strategy === 'ff-only') {
+    gitArgs.push('--ff-only');
+  } else if (options?.strategy === 'squash') {
+    gitArgs.push('--squash');
+  }
+
+  if (
+    options?.message &&
+    options.message.trim() &&
+    options.strategy !== 'squash'
+  ) {
+    gitArgs.push('-m', options.message.trim());
+  }
+
+  gitArgs.push(sourceBranch);
+
+  try {
+    const output = await runGit(gitExecutable, target.path, gitArgs, {
+      ...process.env,
+      GIT_EDITOR: 'true',
+    });
+    return {
+      status: 'completed' as const,
+      sourceBranch,
+      targetBranch: target.name,
+      output: output.trim(),
+    };
+  } catch (error: any) {
+    const conflictedFiles = await getMergeConflictFiles(
+      gitExecutable,
+      target.path,
+    );
+    if (conflictedFiles.length > 0) {
+      return {
+        status: 'conflicts' as const,
+        sourceBranch,
+        targetBranch: target.name,
+        targetWorktreePath: target.path,
+        conflictedFiles,
+      };
+    }
+    await optionalGit(gitExecutable, target.path, ['merge', '--abort']);
+    const detail = error?.message?.trim();
+    throw new BusinessError(
+      `Merge failed and was aborted.${detail ? ` ${detail}` : ''}`,
+    );
+  }
+}
+
+async function resolveMergeConflict(
+  worktreePath: string,
+  filePath: string,
+  resolution: 'source' | 'target' | 'staged',
+) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertMergeInProgress(gitExecutable, worktreePath);
+  const conflictedFiles = await getMergeConflictFiles(
+    gitExecutable,
+    worktreePath,
+  );
+  if (!conflictedFiles.includes(filePath)) {
+    throw new BusinessError('The selected file is no longer conflicted.');
+  }
+
+  if (resolution === 'source') {
+    await runGit(gitExecutable, worktreePath, [
+      'checkout',
+      '--theirs',
+      '--',
+      filePath,
+    ]);
+  } else if (resolution === 'target') {
+    await runGit(gitExecutable, worktreePath, [
+      'checkout',
+      '--ours',
+      '--',
+      filePath,
+    ]);
+  }
+  await runGit(gitExecutable, worktreePath, ['add', '--', filePath]);
+  return getMergeConflictFiles(gitExecutable, worktreePath);
+}
+
+async function continueWorktreeMerge(
+  worktreePath: string,
+  sourceBranch: string,
+  targetBranch: string,
+  customMessage?: string,
+) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertMergeInProgress(gitExecutable, worktreePath);
+  const remainingConflicts = await getMergeConflictFiles(
+    gitExecutable,
+    worktreePath,
+  );
+  if (remainingConflicts.length > 0) {
+    throw new BusinessError(
+      'Resolve every conflicted file before completing the merge.',
+    );
+  }
+
+  const commitArgs = ['commit'];
+  if (customMessage && customMessage.trim()) {
+    commitArgs.push('-m', customMessage.trim());
+  } else {
+    commitArgs.push('--no-edit');
+  }
+
+  try {
+    const output = await runGit(gitExecutable, worktreePath, commitArgs, {
+      ...process.env,
+      GIT_EDITOR: 'true',
+    });
+    return {
+      status: 'completed' as const,
+      sourceBranch,
+      targetBranch,
+      output: output.trim(),
+    };
+  } catch (error: any) {
+    const conflictedFiles = await getMergeConflictFiles(
+      gitExecutable,
+      worktreePath,
+    );
+    if (conflictedFiles.length > 0) {
+      return {
+        status: 'conflicts' as const,
+        sourceBranch,
+        targetBranch,
+        targetWorktreePath: worktreePath,
+        conflictedFiles,
+      };
+    }
+    throw new BusinessError(
+      error?.message || 'Git could not complete the merge.',
+    );
+  }
+}
+
+async function abortWorktreeMerge(worktreePath: string) {
+  const gitExecutable = await gitMainService.gitCommand();
+  await assertMergeInProgress(gitExecutable, worktreePath);
+  await runGit(gitExecutable, worktreePath, ['merge', '--abort']);
+}
+
+async function mergePrimaryIntoWorktree(
+  directory: string,
+  targetWorktreePath: string,
+  options?: WorktreeMergeOptions,
+) {
+  const worktrees = (await findAll(directory)) as Array<{
+    isPrimary: boolean;
+    path: string;
+  }>;
+  const primary = worktrees.find((worktree) => worktree.isPrimary);
+  if (!primary) throw new BusinessError('The primary worktree was not found.');
+  return mergeWorktreeIntoWorktree(
+    directory,
+    targetWorktreePath,
+    primary.path,
+    options,
+  );
+}
+
 async function assertWorktreeConfigPath(worktreePath: string) {
   if (!existsSync(worktreePath) || !lstatSync(worktreePath).isDirectory()) {
     throw new BusinessError('The selected worktree directory is unavailable.');
@@ -1477,6 +1756,11 @@ export default {
   resolveRebaseConflict,
   continueWorktreeRebase,
   abortWorktreeRebase,
+  mergePrimaryIntoWorktree,
+  mergeWorktreeIntoWorktree,
+  resolveMergeConflict,
+  continueWorktreeMerge,
+  abortWorktreeMerge,
   setWorktreeConfigEnabled,
   getWorktreeConfig,
   replaceWorktreeConfig,

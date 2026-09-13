@@ -103,6 +103,7 @@ export default function LogUI({
   selectedWorktree,
   onResetCommit,
   onRevertCommit,
+  onMergeCommit,
 }: {
   commits: string[];
   searchQuery?: string;
@@ -125,6 +126,7 @@ export default function LogUI({
   selectedWorktree?: string | null;
   onResetCommit?: (commit: ParsedCommit, mode: ResetMode) => void;
   onRevertCommit?: (commit: ParsedCommit) => void;
+  onMergeCommit?: (commit: ParsedCommit) => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -208,6 +210,10 @@ export default function LogUI({
           type: 'divider',
         },
         {
+          label: `Merge into ${selectedWorktree}`,
+          key: 'merge-commit',
+        },
+        {
           label: `Reset ${selectedWorktree} to this commit`,
           key: 'reset-group',
           children: [
@@ -265,6 +271,9 @@ export default function LogUI({
       }
       if (event.key === 'cherry-pick') {
         onCherryPick?.(commit);
+      }
+      if (event.key === 'merge-commit') {
+        onMergeCommit?.(commit);
       }
       if (event.key === 'reset-commit-soft') {
         onResetCommit?.(commit, 'soft');

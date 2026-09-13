@@ -15,6 +15,14 @@ import {
   WorktreeRebaseResult,
 } from '../../../shared/worktreeRebase';
 import {
+  WorktreeMergeAbortResult,
+  WorktreeMergeActionResult,
+  WorktreeMergeConflictResult,
+  WorktreeMergeOptions,
+  WorktreeMergeResolution,
+  WorktreeMergeResult,
+} from '../../../shared/worktreeMerge';
+import {
   GetWorktreeConfigResult,
   SaveWorktreeConfigResult,
   WorktreeConfigEntry,
@@ -548,6 +556,107 @@ ipcMain.handle(
       return {
         ok: false,
         error: error?.message || 'The rebase was not aborted.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'merge-worktree-into-worktree',
+  async (
+    _event,
+    directory: string,
+    targetWorktreePath: string,
+    sourceWorktreePath: string,
+    options?: WorktreeMergeOptions,
+  ): Promise<WorktreeMergeResult> => {
+    try {
+      const result = await worktreeMainService.mergeWorktreeIntoWorktree(
+        directory,
+        targetWorktreePath,
+        sourceWorktreePath,
+        options,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to merge worktree: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : 'The merge failed. The target branch was restored.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'resolve-merge-conflict',
+  async (
+    _event,
+    worktreePath: string,
+    filePath: string,
+    resolution: WorktreeMergeResolution,
+  ): Promise<WorktreeMergeConflictResult> => {
+    try {
+      if (!['source', 'target', 'staged'].includes(resolution)) {
+        throw new BusinessError('Choose a valid conflict resolution.');
+      }
+      const conflictedFiles = await worktreeMainService.resolveMergeConflict(
+        worktreePath,
+        filePath,
+        resolution,
+      );
+      return { ok: true, conflictedFiles };
+    } catch (error: any) {
+      log.error(`Failed to resolve merge conflict: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The file was not resolved.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'continue-worktree-merge',
+  async (
+    _event,
+    worktreePath: string,
+    sourceBranch: string,
+    targetBranch: string,
+    customMessage?: string,
+  ): Promise<WorktreeMergeActionResult> => {
+    try {
+      const result = await worktreeMainService.continueWorktreeMerge(
+        worktreePath,
+        sourceBranch,
+        targetBranch,
+        customMessage,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to continue merge: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The merge could not continue.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'abort-worktree-merge',
+  async (_event, worktreePath: string): Promise<WorktreeMergeAbortResult> => {
+    try {
+      await worktreeMainService.abortWorktreeMerge(worktreePath);
+      return { ok: true };
+    } catch (error: any) {
+      log.error(`Failed to abort merge: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The merge was not aborted.',
       };
     }
   },

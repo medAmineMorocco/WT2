@@ -44,6 +44,7 @@ import {
   SisternodeOutlined,
   WarningOutlined,
   SettingOutlined,
+  BranchesOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -54,6 +55,7 @@ import type { TerminalAgentActivity } from '../terminal/TerminalInteractive';
 import { useItemsContext } from '../../TabsContext';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
+import { WorktreeMergeResult } from '../../../shared/worktreeMerge';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -64,6 +66,7 @@ const MoveWorktree = lazy(() => import('./MoveWorktree'));
 const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 const WorktreeGitConfig = lazy(() => import('./WorktreeGitConfig'));
 const RebaseWorktree = lazy(() => import('./RebaseWorktree'));
+const MergeWorktree = lazy(() => import('./MergeWorktree'));
 
 const { useToken } = theme;
 
@@ -140,6 +143,9 @@ export default function ListWorktrees({
 
   const [refreshLoading, setRefreshLoading] = useState<boolean>(false);
   const [rebaseSourceWorktree, setRebaseSourceWorktree] = useState<any | null>(
+    null,
+  );
+  const [mergeTargetWorktree, setMergeTargetWorktree] = useState<any | null>(
     null,
   );
   const [configWorktree, setConfigWorktree] = useState<any | null>(null);
@@ -565,6 +571,15 @@ export default function ListWorktrees({
           rebaseCandidates.length < 2,
       },
       {
+        key: 'merge-worktree',
+        label: 'Merge…',
+        icon: <BranchesOutlined />,
+        disabled:
+          !isHealthy ||
+          worktree.name === 'DETACHED HEAD' ||
+          rebaseCandidates.length < 2,
+      },
+      {
         key: 'configure-worktree-config',
         label: 'Worktree Git Config',
         icon: <SettingOutlined />,
@@ -708,6 +723,10 @@ export default function ListWorktrees({
       }
       if (key === 'rebase-worktree') {
         setRebaseSourceWorktree(worktree);
+        return;
+      }
+      if (key === 'merge-worktree') {
+        setMergeTargetWorktree(worktree);
         return;
       }
       if (key === 'configure-worktree-config') {
@@ -1247,6 +1266,34 @@ export default function ListWorktrees({
                 api.success({
                   message: 'Rebase Completed',
                   description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
+                  placement: 'bottomLeft',
+                  duration: 3,
+                });
+                window.electron.ipcRenderer.send(
+                  'show-git-log',
+                  tabRepoPath,
+                  null,
+                );
+                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+              }}
+            />
+          </Suspense>
+        )}
+        {mergeTargetWorktree && (
+          <Suspense fallback={<Spin size="large" />}>
+            <MergeWorktree
+              open={Boolean(mergeTargetWorktree)}
+              repositoryPath={tabRepoPath}
+              worktrees={worktrees}
+              initialTargetPath={mergeTargetWorktree.path}
+              onClose={() => setMergeTargetWorktree(null)}
+              onCompleted={(
+                result: Extract<WorktreeMergeResult, { ok: true }>,
+              ) => {
+                setMergeTargetWorktree(null);
+                api.success({
+                  message: 'Merge Completed',
+                  description: `${result.sourceBranch} was merged into ${result.targetBranch}.`,
                   placement: 'bottomLeft',
                   duration: 3,
                 });

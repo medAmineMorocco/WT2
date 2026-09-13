@@ -49,6 +49,7 @@ const WorkingTreeFileDiffPane = lazy(() => import('./WorkingTreeFileDiffPane'));
 const CherryPickCommit = lazy(() => import('./CherryPickCommit'));
 const ResetCommitModal = lazy(() => import('./ResetCommitModal'));
 const RevertCommitModal = lazy(() => import('./RevertCommitModal'));
+const MergeCommitModal = lazy(() => import('./MergeCommitModal'));
 
 const LIMIT = 40;
 
@@ -82,6 +83,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     useState<ParsedCommit | null>(null);
   const [resetMode, setResetMode] = useState<ResetMode>('mixed');
   const [revertTargetCommit, setRevertTargetCommit] =
+    useState<ParsedCommit | null>(null);
+  const [mergeCommitTarget, setMergeCommitTarget] =
     useState<ParsedCommit | null>(null);
 
   const handleOpenReset = useCallback(
@@ -840,6 +843,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     selectedWorktree={selectedWorktree}
                     onResetCommit={handleOpenReset}
                     onRevertCommit={setRevertTargetCommit}
+                    onMergeCommit={setMergeCommitTarget}
                   />
                 )}
             </div>
@@ -882,6 +886,25 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                       (c) => c.hash === selectedCommit,
                     );
                     setRevertTargetCommit({
+                      hash: selectedCommit,
+                      subject: matched?.subject || '',
+                      parents: [],
+                      refs: '',
+                      author: '',
+                      date: '',
+                      lane: 0,
+                      passingLanes: [],
+                      forks: [],
+                      merges: [],
+                      hasTop: false,
+                      hasBottom: false,
+                    });
+                  }}
+                  onMerge={() => {
+                    const matched = commitList.find(
+                      (c) => c.hash === selectedCommit,
+                    );
+                    setMergeCommitTarget({
                       hash: selectedCommit,
                       subject: matched?.subject || '',
                       parents: [],
@@ -977,6 +1000,25 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               notification.success({
                 message: 'Commit Reverted',
                 description: `Reverted ${result.commit.slice(0, 8)} on ${result.targetBranch}.`,
+                placement: 'bottomLeft',
+              });
+              setWorkingTreeRefresh((value) => value + 1);
+              reloadGitLog(false);
+            }}
+          />
+        </Suspense>
+      )}
+      {mergeCommitTarget && (
+        <Suspense fallback={null}>
+          <MergeCommitModal
+            commit={mergeCommitTarget}
+            worktree={selectedWorktreeInfo}
+            onClose={() => setMergeCommitTarget(null)}
+            onCompleted={(result) => {
+              setMergeCommitTarget(null);
+              notification.success({
+                message: 'Merge Completed',
+                description: `${result.sourceBranch.slice(0, 8)} was merged into ${result.targetBranch}.`,
                 placement: 'bottomLeft',
               });
               setWorkingTreeRefresh((value) => value + 1);
