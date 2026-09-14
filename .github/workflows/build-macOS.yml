@@ -10,7 +10,15 @@ permissions:
 
 jobs:
   build-macos:
-    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -25,7 +33,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
@@ -76,13 +84,19 @@ jobs:
       #        run: |
       #          xcrun notarytool history --keychain-profile wtwise
 
-
       - name: Package macOS application
         env:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run package:macos
+        run: npm run package:target -- macos ${{ matrix.arch }}
+
+      - name: Upload GitHub Actions installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorktreeWise-macos-${{ matrix.arch }}
+          path: release/build/*.dmg
+          if-no-files-found: error
 
       - name: Upload to GoFile
         run: |

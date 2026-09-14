@@ -6,16 +6,19 @@ import webpackPaths from '../configs/webpack.paths';
 // node-pty ships N-API prebuilds for the supported desktop platforms. Forcing
 // electron-rebuild to compile it discards those prebuilds and unnecessarily
 // requires a local C++ toolchain.
-const dependenciesWithBundledPrebuilds = new Set(['node-pty']);
+const targetPlatform = process.env.npm_config_platform || process.platform;
+const targetArch = process.env.npm_config_arch || process.arch;
+const nodePtyPrebuildPath = `${webpackPaths.appNodeModulesPath}/node-pty/prebuilds/${targetPlatform}-${targetArch}`;
 const dependenciesToRebuild = Object.keys(dependencies || {}).filter(
-  (dependency) => !dependenciesWithBundledPrebuilds.has(dependency),
+  (dependency) =>
+    dependency !== 'node-pty' || !fs.existsSync(nodePtyPrebuildPath),
 );
 
 if (
   dependenciesToRebuild.length > 0 &&
   fs.existsSync(webpackPaths.appNodeModulesPath)
 ) {
-  const electronRebuildCmd = `../../node_modules/.bin/electron-rebuild --force --types prod,dev,optional --module-dir . --only ${dependenciesToRebuild.join(
+  const electronRebuildCmd = `../../node_modules/.bin/electron-rebuild --force --types prod,dev,optional --module-dir . --arch ${targetArch} --only ${dependenciesToRebuild.join(
     ',',
   )}`;
   const cmd =

@@ -10,7 +10,17 @@ permissions:
 
 jobs:
   build-windows:
-    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: windows-2022
+          - arch: ia32
+            runner: windows-2022
+          - arch: arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -25,13 +35,20 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: '3.11'
 
       - name: Install dependencies
         run: npm ci
 
       - name: Package Windows application
-        run: npm run package:win
+        run: npm run package:target -- win ${{ matrix.arch }}
+
+      - name: Upload GitHub Actions installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorktreeWise-windows-${{ matrix.arch }}
+          path: release/build/*.exe
+          if-no-files-found: error
 
       - name: Upload to GoFile
         shell: bash

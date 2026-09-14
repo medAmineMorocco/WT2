@@ -48,6 +48,7 @@
     "package:linux": "ts-node ./.erb/scripts/clean.js dist && npm run build && npm run rebuild:native && electron-builder build --linux --publish never && npm run build:dll",
     "package:macos": "ts-node ./.erb/scripts/clean.js dist && npm run build && npm run rebuild:native && electron-builder build --macos --publish never && npm run build:dll",
     "package:win": "ts-node ./.erb/scripts/clean.js dist && npm run build && npm run rebuild:native && electron-builder build --win --publish never && npm run build:dll",
+    "package:target": "ts-node ./.erb/scripts/package-target.js",
     "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
     "prestart": "cross-env NODE_ENV=development TS_NODE_TRANSPILE_ONLY=true NODE_OPTIONS=\"-r ts-node/register --no-warnings\" webpack --config ./.erb/configs/webpack.config.main.dev.ts",
     "start": "ts-node ./.erb/scripts/check-port-in-use.js && npm run prestart && npm run start:renderer",
@@ -167,6 +168,7 @@
   "build": {
     "productName": "WorktreeWise",
     "appId": "com.worktreewise.desktop",
+    "artifactName": "${productName}-${version}-${os}-${arch}.${ext}",
     "asar": true,
     "asarUnpack": "**\\*.{node,dll,exe}",
     "files": [

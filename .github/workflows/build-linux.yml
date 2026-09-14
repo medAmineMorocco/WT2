@@ -10,7 +10,15 @@ permissions:
 
 jobs:
   build-linux:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x64
+            runner: ubuntu-24.04
+          - arch: arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
 
     steps:
       - name: Checkout repository
@@ -25,8 +33,25 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install native ARM64 Linux packaging tools
+        if: matrix.arch == 'arm64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes ruby ruby-dev rpm
+          sudo gem install fpm --no-document
+          echo "USE_SYSTEM_FPM=true" >> "$GITHUB_ENV"
+
       - name: Package Linux application
-        run: npm run package:linux
+        run: npm run package:target -- linux ${{ matrix.arch }}
+
+      - name: Upload GitHub Actions installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: WorktreeWise-linux-${{ matrix.arch }}
+          path: |
+            release/build/*.deb
+            release/build/*.rpm
+          if-no-files-found: error
 
       - name: Upload to GoFile
         run: |
