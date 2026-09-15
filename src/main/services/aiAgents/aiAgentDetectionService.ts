@@ -347,7 +347,61 @@ function verifyExecutable(executablePath: string): Promise<{ ok: boolean; versio
   });
 }
 
-export async function detectAiAgent(agentId: AiAgentId): Promise<DetectionResult> {
+interface CacheEntry {
+  result: DetectionResult;
+  expiresAt: number;
+}
+
+const detectionCache = new Map<string, CacheEntry>();
+const CACHE_TTL_MS = 60 * 1000;
+
+export function clearDetectionCache(agentId?: AiAgentId): void {
+  if (agentId) {
+    for (const key of detectionCache.keys()) {
+      if (key.startsWith(`${agentId}::`)) {
+        detectionCache.delete(key);
+      }
+    }
+  } else {
+    detectionCache.clear();
+  }
+}
+
+export async function detectAiAgent(
+  agentId: AiAgentId,
+  customCommand?: string,
+): Promise<DetectionResult> {
+  const normalizedCmd = customCommand?.trim() || '';
+  const cacheKey = `${agentId}::${normalizedCmd || 'default'}`;
+
+  const cached = detectionCache.get(cacheKey);
+  if (cached && cached.expiresAt > Date.now()) {
+    return cached.result;
+  }
+
+  // 1. If a custom command was provided, check it first
+  if (normalizedCmd) {
+    try {
+      const verification = await verifyExecutable(normalizedCmd);
+      if (verification.ok) {
+        const result: DetectionResult = {
+          agentId,
+          found: true,
+          executablePath: normalizedCmd,
+          command: normalizedCmd,
+          version: verification.version,
+        };
+        detectionCache.set(cacheKey, {
+          result,
+          expiresAt: Date.now() + CACHE_TTL_MS,
+        });
+        return result;
+      }
+    } catch {
+      // Continue to default search if custom command verification failed
+    }
+  }
+
   const binaryNames = AGENT_BINARIES[agentId] || [agentId];
   const searchDirs = getSearchDirectories();
 
@@ -360,13 +414,18 @@ export async function detectAiAgent(agentId: AiAgentId): Promise<DetectionResult
           if (stats.isFile()) {
             const verification = await verifyExecutable(candidatePath);
             if (verification.ok) {
-              return {
+              const result: DetectionResult = {
                 agentId,
                 found: true,
                 executablePath: candidatePath,
                 command: candidatePath,
                 version: verification.version,
               };
+              detectionCache.set(cacheKey, {
+                result,
+                expiresAt: Date.now() + CACHE_TTL_MS,
+              });
+              return result;
             }
           }
         }
@@ -380,23 +439,33 @@ export async function detectAiAgent(agentId: AiAgentId): Promise<DetectionResult
   for (const bin of binaryNames) {
     const verification = await verifyExecutable(bin);
     if (verification.ok) {
-      return {
+      const result: DetectionResult = {
         agentId,
         found: true,
         executablePath: bin,
         command: bin,
         version: verification.version,
       };
+      detectionCache.set(cacheKey, {
+        result,
+        expiresAt: Date.now() + CACHE_TTL_MS,
+      });
+      return result;
     }
   }
 
-  return {
+  const notFoundResult: DetectionResult = {
     agentId,
     found: false,
     executablePath: null,
     command: null,
     version: null,
   };
+  detectionCache.set(cacheKey, {
+    result: notFoundResult,
+    expiresAt: Date.now() + CACHE_TTL_MS,
+  });
+  return notFoundResult;
 }
 
 export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionResult>> {

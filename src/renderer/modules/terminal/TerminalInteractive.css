@@ -231,6 +231,53 @@
   cursor: not-allowed;
 }
 
+.terminal-agent-version-tag {
+  margin: 0 !important;
+  font-size: 11px !important;
+  line-height: 18px !important;
+  padding: 0 6px !important;
+  border-radius: 4px !important;
+  font-weight: 500;
+  font-family:
+    ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono',
+    monospace;
+  background: rgba(128, 128, 128, 0.14) !important;
+  color: var(--terminal-text-muted) !important;
+  border: 1px solid rgba(128, 128, 128, 0.22) !important;
+  user-select: none;
+}
+
+.terminal-agent-model-select {
+  width: 148px;
+  max-width: 100%;
+}
+
+.terminal-agent-model-select .ant-select-selection-item {
+  font-size: 12px;
+}
+
+.terminal-agent-model-option {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.terminal-agent-model-option > .ant-typography {
+  max-width: 320px;
+  margin: 0;
+  font-size: 11px;
+}
+
+.terminal-agent-effort-select {
+  width: 120px;
+  max-width: 100%;
+}
+
+.terminal-agent-effort-select .ant-select-selection-item {
+  font-size: 12px;
+}
+
 /* AI Agent Composer Area */
 .terminal-agent-composer {
   order: 3;
@@ -554,6 +601,9 @@
   .terminal-four-section-header
   > .ant-typography,
 .terminal-four-section-agent.is-collapsed .terminal-agent-select,
+.terminal-four-section-agent.is-collapsed .terminal-agent-version-tag,
+.terminal-four-section-agent.is-collapsed .terminal-agent-model-select,
+.terminal-four-section-agent.is-collapsed .terminal-agent-effort-select,
 .terminal-four-section-agent.is-collapsed .ant-checkbox-wrapper {
   display: none;
 }
@@ -592,7 +642,15 @@
 }
 
 .terminal-four-section-agent-controls .terminal-agent-select {
-  width: 150px;
+  width: 140px;
+}
+
+.terminal-four-section-agent-controls .terminal-agent-model-select {
+  width: 120px;
+}
+
+.terminal-four-section-agent-controls .terminal-agent-effort-select {
+  width: 105px;
 }
 
 .terminal-four-section-content {

@@ -25,6 +25,7 @@ import {
   Segmented,
   Select,
   Space,
+  Tag,
   Tooltip,
   Typography,
 } from 'antd';
@@ -34,7 +35,13 @@ import '@xterm/xterm/css/xterm.css';
 import {
   AiAgentConfig,
   AiAgentId,
+  AiAgentModel,
   aiAgentsDefault,
+  formatVersionBadge,
+  getAgentModels,
+  normalizeAgentModel,
+  getReasoningEffortOptions,
+  normalizeReasoningEffort,
 } from '../../../shared/aiAgents';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 import WorktreeFileExplorer from './WorktreeFileExplorer';
@@ -180,6 +187,141 @@ function TerminalPane({
   modeRef.current = mode;
   const selectedAgentIdRef = useRef(selectedAgentId);
   selectedAgentIdRef.current = selectedAgentId;
+
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
+    try {
+      const initialAgentId = terminal.agent?.id || 'claude';
+      return normalizeAgentModel(
+        initialAgentId,
+        window.localStorage.getItem(`aiAgent_model_${initialAgentId}`) || '',
+      );
+    } catch {
+      return '';
+    }
+  });
+  const [agentVersions, setAgentVersions] = useState<
+    Record<string, string | null>
+  >({});
+  const [dynamicModels, setDynamicModels] = useState<
+    Partial<Record<AiAgentId, AiAgentModel[]>>
+  >({});
+
+  const availableModels = useMemo(() => {
+    return dynamicModels[selectedAgentId] || getAgentModels(selectedAgentId);
+  }, [dynamicModels, selectedAgentId]);
+  const reasoningEffortOptions = useMemo(
+    () => getReasoningEffortOptions(selectedAgentId),
+    [selectedAgentId],
+  );
+
+  useEffect(() => {
+    let active = true;
+    const loadDynamicModels = async () => {
+      try {
+        const fetched: AiAgentModel[] =
+          await window.electron.ipcRenderer.invoke(
+            'ai-agents:get-models',
+            selectedAgentId,
+            activeAgent?.command,
+          );
+        if (active && Array.isArray(fetched) && fetched.length > 0) {
+          setDynamicModels((prev) => ({
+            ...prev,
+            [selectedAgentId]: fetched,
+          }));
+        }
+      } catch {
+        // Fall back gracefully to base models
+      }
+    };
+    loadDynamicModels();
+    return () => {
+      active = false;
+    };
+  }, [activeAgent?.command, selectedAgentId]);
+
+  useEffect(() => {
+    try {
+      const saved = normalizeAgentModel(
+        selectedAgentId,
+        window.localStorage.getItem(`aiAgent_model_${selectedAgentId}`) || '',
+      );
+      window.localStorage.setItem(`aiAgent_model_${selectedAgentId}`, saved);
+      setSelectedModel(saved);
+    } catch {
+      setSelectedModel('');
+    }
+  }, [selectedAgentId]);
+
+  useEffect(() => {
+    let active = true;
+    const fetchVersion = async () => {
+      if (agentVersions[selectedAgentId] !== undefined) return;
+      try {
+        const det = await window.electron.ipcRenderer.invoke(
+          'ai-agents:detect-one',
+          selectedAgentId,
+          activeAgent?.command,
+        );
+        if (active && det) {
+          setAgentVersions((prev) => ({
+            ...prev,
+            [selectedAgentId]: det.found ? det.version : null,
+          }));
+        }
+      } catch {
+        if (active) {
+          setAgentVersions((prev) => ({ ...prev, [selectedAgentId]: null }));
+        }
+      }
+    };
+    fetchVersion();
+    return () => {
+      active = false;
+    };
+  }, [activeAgent?.command, agentVersions, selectedAgentId]);
+
+  const currentRawVersion = agentVersions[selectedAgentId];
+  const formattedVersion = useMemo(
+    () => formatVersionBadge(currentRawVersion),
+    [currentRawVersion],
+  );
+
+  const selectedModelRef = useRef(selectedModel);
+  selectedModelRef.current = selectedModel;
+
+  const [selectedReasoningEffort, setSelectedReasoningEffort] =
+    useState<string>(() => {
+      try {
+        const agentId = terminal.agent?.id || 'claude';
+        return normalizeReasoningEffort(
+          agentId,
+          window.localStorage.getItem(
+            `aiAgent_effort_${agentId}`,
+          ) || '',
+          window.localStorage.getItem(`aiAgent_model_${agentId}`) || '',
+        );
+      } catch {
+        return '';
+      }
+    });
+
+  const selectedReasoningEffortRef = useRef(selectedReasoningEffort);
+  selectedReasoningEffortRef.current = selectedReasoningEffort;
+
+  useEffect(() => {
+    try {
+      const savedEffort = normalizeReasoningEffort(
+        selectedAgentId,
+        window.localStorage.getItem(`aiAgent_effort_${selectedAgentId}`) || '',
+        selectedModelRef.current,
+      );
+      selectedReasoningEffortRef.current = savedEffort;
+      setSelectedReasoningEffort(savedEffort);
+    } catch {
+      setSelectedReasoningEffort('');
+    }
+  }, [selectedAgentId]);
 
   useEffect(() => {
     if (xtermRef.current) {
@@ -543,8 +685,20 @@ function TerminalPane({
     fitAddon.fit();
 
     if (mode === 'agent') {
+      const initModel = normalizeAgentModel(
+        selectedAgentId,
+        window.localStorage.getItem(`aiAgent_model_${selectedAgentId}`) || '',
+      );
+      const initEffort =
+        window.localStorage.getItem(`aiAgent_effort_${selectedAgentId}`) || '';
+      const modelDef = getAgentModels(selectedAgentId).find(
+        (m) => m.id === initModel,
+      );
+      const modelDesc =
+        modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
+      const effortDesc = initEffort ? ` (effort: ${initEffort})` : '';
       xterm.writeln(
-        `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+        `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}${modelDesc}${effortDesc}... (initializing interactive session)\x1b[0m\r\n`,
       );
       window.electron.ipcRenderer.send(
         'terminal-switch-mode',
@@ -555,6 +709,8 @@ function TerminalPane({
         xterm.cols,
         xterm.rows,
         initialDarkModeRef.current,
+        initModel,
+        initEffort,
       );
     } else {
       window.electron.ipcRenderer.send(
@@ -613,13 +769,38 @@ function TerminalPane({
   }, [activeAgent, mode, onAgentActivity, terminal.id, terminal.path]);
 
   const handleAgentSelectChange = (newAgentId: AiAgentId) => {
+    selectedAgentIdRef.current = newAgentId;
     setSelectedAgentId(newAgentId);
+    let targetModel = '';
+    let targetEffort = '';
+    try {
+      targetModel = normalizeAgentModel(
+        newAgentId,
+        window.localStorage.getItem(`aiAgent_model_${newAgentId}`) || '',
+      );
+      targetEffort = normalizeReasoningEffort(
+        newAgentId,
+        window.localStorage.getItem(`aiAgent_effort_${newAgentId}`) || '',
+        targetModel,
+      );
+      selectedModelRef.current = targetModel;
+      selectedReasoningEffortRef.current = targetEffort;
+      setSelectedModel(targetModel);
+      setSelectedReasoningEffort(targetEffort);
+    } catch {}
     const targetAgent =
       configuredAgents.find((item) => item.id === newAgentId) || activeAgent;
+    const modelDef = getAgentModels(newAgentId).find(
+      (m) => m.id === targetModel,
+    );
+    const modelDesc =
+      modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
+    const effortDesc = targetEffort ? ` (effort: ${targetEffort})` : '';
+
     if (xtermRef.current) {
       xtermRef.current.reset();
       xtermRef.current.writeln(
-        `\x1b[90m➜ Starting ${targetAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+        `\x1b[90m➜ Starting ${targetAgent?.label || 'AI agent'}${modelDesc}${effortDesc}... (initializing interactive session)\x1b[0m\r\n`,
       );
       window.electron.ipcRenderer.send(
         'terminal-switch-ai-agent',
@@ -629,6 +810,90 @@ function TerminalPane({
         xtermRef.current.cols,
         xtermRef.current.rows,
         isDarkMode,
+        targetModel,
+        targetEffort,
+      );
+      xtermRef.current.focus();
+    }
+  };
+
+  const handleModelSelectChange = (newModel: string) => {
+    const effectiveEffort = normalizeReasoningEffort(
+      selectedAgentId,
+      selectedReasoningEffortRef.current,
+      newModel,
+    );
+    selectedModelRef.current = newModel;
+    setSelectedModel(newModel);
+    selectedReasoningEffortRef.current = effectiveEffort;
+    setSelectedReasoningEffort(effectiveEffort);
+    try {
+      window.localStorage.setItem(`aiAgent_model_${selectedAgentId}`, newModel);
+      window.localStorage.setItem(
+        `aiAgent_effort_${selectedAgentId}`,
+        effectiveEffort,
+      );
+    } catch {}
+
+    const modelDef = availableModels.find((m) => m.id === newModel);
+    const modelDesc =
+      modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
+    const effortDesc = effectiveEffort
+      ? ` (effort: ${effectiveEffort})`
+      : '';
+
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      xtermRef.current.writeln(
+        `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}${modelDesc}${effortDesc}... (initializing interactive session)\x1b[0m\r\n`,
+      );
+      window.electron.ipcRenderer.send(
+        'terminal-switch-ai-agent-model',
+        terminal.id,
+        selectedAgentId,
+        newModel,
+        terminal.path,
+        xtermRef.current.cols,
+        xtermRef.current.rows,
+        isDarkMode,
+        effectiveEffort,
+      );
+      xtermRef.current.focus();
+    }
+  };
+
+  const handleReasoningEffortChange = (newEffort: string) => {
+    selectedReasoningEffortRef.current = newEffort;
+    setSelectedReasoningEffort(newEffort);
+    try {
+      window.localStorage.setItem(
+        `aiAgent_effort_${selectedAgentId}`,
+        newEffort,
+      );
+    } catch {}
+
+    const modelDef = availableModels.find(
+      (m) => m.id === selectedModelRef.current,
+    );
+    const modelDesc =
+      modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
+    const effortDesc = newEffort ? ` (effort: ${newEffort})` : '';
+
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      xtermRef.current.writeln(
+        `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}${modelDesc}${effortDesc}... (initializing interactive session)\x1b[0m\r\n`,
+      );
+      window.electron.ipcRenderer.send(
+        'terminal-switch-ai-agent-model',
+        terminal.id,
+        selectedAgentId,
+        selectedModelRef.current,
+        terminal.path,
+        xtermRef.current.cols,
+        xtermRef.current.rows,
+        isDarkMode,
+        newEffort,
       );
       xtermRef.current.focus();
     }
@@ -640,8 +905,16 @@ function TerminalPane({
     if (xtermRef.current) {
       xtermRef.current.reset();
       if (nextMode === 'agent') {
+        const modelDef = availableModels.find(
+          (m) => m.id === selectedModelRef.current,
+        );
+        const modelDesc =
+          modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
+        const effortDesc = selectedReasoningEffortRef.current
+          ? ` (effort: ${selectedReasoningEffortRef.current})`
+          : '';
         xtermRef.current.writeln(
-          `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}... (initializing interactive session)\x1b[0m\r\n`,
+          `\x1b[90m➜ Starting ${activeAgent?.label || 'AI agent'}${modelDesc}${effortDesc}... (initializing interactive session)\x1b[0m\r\n`,
         );
       }
       window.electron.ipcRenderer.send(
@@ -653,6 +926,8 @@ function TerminalPane({
         xtermRef.current.cols,
         xtermRef.current.rows,
         isDarkMode,
+        selectedModelRef.current,
+        selectedReasoningEffortRef.current,
       );
       xtermRef.current.focus();
     }
@@ -733,6 +1008,63 @@ function TerminalPane({
               }))}
               onChange={handleAgentSelectChange}
             />
+            {formattedVersion && (
+              <Tooltip
+                title={`${activeAgent?.label || 'Agent'} CLI version: ${currentRawVersion}`}
+              >
+                <Tag className="terminal-agent-version-tag" bordered={false}>
+                  {formattedVersion}
+                </Tag>
+              </Tooltip>
+            )}
+            <Select
+              size="small"
+              value={selectedModel}
+              aria-label="Select model for this AI agent"
+              disabled={enabledAgents.length === 0}
+              placeholder="Model"
+              className="terminal-agent-model-select"
+              showSearch
+              filterOption={(input, option) =>
+                ((option?.label as string) || '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase()) ||
+                ((option?.value as string) || '')
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={availableModels.map((m) => ({
+                value: m.id,
+                label: m.label,
+                description: m.description,
+              }))}
+              optionRender={(option) => (
+                <div className="terminal-agent-model-option">
+                  <span>{option.label}</span>
+                  {option.data.description && (
+                    <Typography.Text type="secondary" ellipsis>
+                      {option.data.description}
+                    </Typography.Text>
+                  )}
+                </div>
+              )}
+              onChange={handleModelSelectChange}
+            />
+            {reasoningEffortOptions.length > 0 && (
+              <Select
+                size="small"
+                value={selectedReasoningEffort}
+                aria-label="Select reasoning effort for this AI agent"
+                disabled={enabledAgents.length === 0}
+                placeholder="Effort"
+                className="terminal-agent-effort-select"
+                options={reasoningEffortOptions.map((e) => ({
+                  value: e.id,
+                  label: e.label,
+                }))}
+                onChange={handleReasoningEffortChange}
+              />
+            )}
             <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">
               <Checkbox
                 checked={smartContextEnabled}
@@ -805,26 +1137,85 @@ function TerminalPane({
         </div>
         <Space className="terminal-pane-actions" size={6}>
           {viewMode === 'agent' && (
-            <Select
-              size="small"
-              value={selectedAgentId}
-              aria-label="AI agent for this terminal"
-              disabled={enabledAgents.length === 0}
-              placeholder="Select AI Agent"
-              className="terminal-agent-select"
-              options={enabledAgents.map((agent) => ({
-                value: agent.id,
-                label: (
-                  <span className="terminal-agent-option">
-                    <span className="terminal-agent-option-icon">
-                      {getAiAgentIcon(agent.id, 18)}
+            <>
+              <Select
+                size="small"
+                value={selectedAgentId}
+                aria-label="AI agent for this terminal"
+                disabled={enabledAgents.length === 0}
+                placeholder="Select AI Agent"
+                className="terminal-agent-select"
+                options={enabledAgents.map((agent) => ({
+                  value: agent.id,
+                  label: (
+                    <span className="terminal-agent-option">
+                      <span className="terminal-agent-option-icon">
+                        {getAiAgentIcon(agent.id, 18)}
+                      </span>
+                      <span>{agent.label}</span>
                     </span>
-                    <span>{agent.label}</span>
-                  </span>
-                ),
-              }))}
-              onChange={handleAgentSelectChange}
-            />
+                  ),
+                }))}
+                onChange={handleAgentSelectChange}
+              />
+              {formattedVersion && (
+                <Tooltip
+                  title={`${activeAgent?.label || 'Agent'} CLI version: ${currentRawVersion}`}
+                >
+                  <Tag className="terminal-agent-version-tag" bordered={false}>
+                    {formattedVersion}
+                  </Tag>
+                </Tooltip>
+              )}
+              <Select
+                size="small"
+                value={selectedModel}
+                aria-label="Select model for this AI agent"
+                disabled={enabledAgents.length === 0}
+                placeholder="Model"
+                className="terminal-agent-model-select"
+                showSearch
+                filterOption={(input, option) =>
+                  ((option?.label as string) || '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase()) ||
+                  ((option?.value as string) || '')
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={availableModels.map((m) => ({
+                  value: m.id,
+                  label: m.label,
+                  description: m.description,
+                }))}
+                optionRender={(option) => (
+                  <div className="terminal-agent-model-option">
+                    <span>{option.label}</span>
+                    {option.data.description && (
+                      <Typography.Text type="secondary" ellipsis>
+                        {option.data.description}
+                      </Typography.Text>
+                    )}
+                  </div>
+                )}
+                onChange={handleModelSelectChange}
+              />
+              {reasoningEffortOptions.length > 0 && (
+                <Select
+                  size="small"
+                  value={selectedReasoningEffort}
+                  aria-label="Select reasoning effort for this AI agent"
+                  disabled={enabledAgents.length === 0}
+                  placeholder="Effort"
+                  className="terminal-agent-effort-select"
+                  options={reasoningEffortOptions.map((e) => ({
+                    value: e.id,
+                    label: e.label,
+                  }))}
+                  onChange={handleReasoningEffortChange}
+                />
+              )}
+            </>
           )}
           {viewMode === 'agent' && (
             <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">

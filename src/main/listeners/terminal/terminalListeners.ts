@@ -11,6 +11,7 @@ import log from '../../utils/logger';
 import utils from '../../utils/utils';
 import aiAgentDetectionService from '../../services/aiAgents/aiAgentDetectionService';
 import aiAgentSessionManager from '../../services/aiAgents/AIAgentSessionManager';
+import modelsDevService from '../../services/aiAgents/modelsDevService';
 import shellDetectionService from '../../services/shells/shellDetectionService';
 
 const pty = require('node-pty');
@@ -245,6 +246,8 @@ ipcMain.on(
     cols = 80,
     rows = 24,
     isDarkMode = false,
+    model?: string,
+    reasoningEffort?: string,
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
@@ -283,6 +286,8 @@ ipcMain.on(
           rows,
           isDarkMode,
           event.sender,
+          model,
+          reasoningEffort,
         );
       } catch (error: any) {
         log.error(
@@ -316,6 +321,8 @@ ipcMain.on(
     cols = 80,
     rows = 24,
     isDarkMode = false,
+    model?: string,
+    reasoningEffort?: string,
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
@@ -341,6 +348,8 @@ ipcMain.on(
         rows,
         isDarkMode,
         event.sender,
+        model,
+        reasoningEffort,
       );
     } catch (error: any) {
       log.error(`Failed to switch agent on ${sessionId}: ${error.message}`);
@@ -348,6 +357,57 @@ ipcMain.on(
         'terminal-ai-agent-error',
         sessionId,
         error.message || 'Unable to switch agent.',
+      );
+    }
+  },
+);
+
+ipcMain.on(
+  'terminal-switch-ai-agent-model',
+  async (
+    event,
+    sessionId: string,
+    agentId: string,
+    model: string,
+    worktreePath?: string,
+    cols = 80,
+    rows = 24,
+    isDarkMode = false,
+    reasoningEffort?: string,
+  ) => {
+    const session = ownedSession(sessionId, event.sender.id);
+    const targetPath = worktreePath || session?.directory || '';
+    try {
+      const agents = await configuredAiAgents();
+      const agent = agents.find((candidate) => candidate.id === agentId);
+      if (!agent?.enabled) {
+        throw new Error(
+          'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
+        );
+      }
+      if (!agent.command.trim()) {
+        throw new Error(
+          'Configure an executable command for this AI agent in Settings > AI Agents.',
+        );
+      }
+
+      aiAgentSessionManager.switchActiveAgent(
+        sessionId,
+        targetPath,
+        agent,
+        cols,
+        rows,
+        isDarkMode,
+        event.sender,
+        model,
+        reasoningEffort,
+      );
+    } catch (error: any) {
+      log.error(`Failed to switch agent model on ${sessionId}: ${error.message}`);
+      event.sender.send(
+        'terminal-ai-agent-error',
+        sessionId,
+        error.message || 'Unable to switch agent model.',
       );
     }
   },
@@ -483,9 +543,19 @@ ipcMain.handle('ai-agents:detect-all', async () => {
   return aiAgentDetectionService.detectAllAiAgents();
 });
 
-ipcMain.handle('ai-agents:detect-one', async (_event, agentId: AiAgentId) => {
-  return aiAgentDetectionService.detectAiAgent(agentId);
-});
+ipcMain.handle(
+  'ai-agents:detect-one',
+  async (_event, agentId: AiAgentId, customCommand?: string) => {
+    return aiAgentDetectionService.detectAiAgent(agentId, customCommand);
+  },
+);
+
+ipcMain.handle(
+  'ai-agents:get-models',
+  async (_event, agentId: AiAgentId, customCommand?: string) => {
+    return modelsDevService.getModelsForAgent(agentId, customCommand);
+  },
+);
 
 ipcMain.handle('shells:detect-all', async () => {
   return shellDetectionService.detectAllShells();

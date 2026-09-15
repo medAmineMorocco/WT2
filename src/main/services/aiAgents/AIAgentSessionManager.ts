@@ -2,6 +2,9 @@ import { WebContents } from 'electron';
 import {
   AiAgentConfig,
   AiAgentId,
+  getReasoningEffortFlag,
+  normalizeReasoningEffort,
+  normalizeAgentModel,
 } from '../../../shared/aiAgents';
 import log from '../../utils/logger';
 import graftSmartContextService from './GraftSmartContextService';
@@ -23,6 +26,8 @@ export interface AgentPtySession {
   inputChain: Promise<void>;
   smartContextEnabled: boolean;
   lastUsedAt: number;
+  currentModel?: string;
+  currentReasoningEffort?: string;
 }
 
 const MAX_CACHED_AGENT_SESSIONS_PER_WORKTREE = 2;
@@ -30,10 +35,7 @@ const MAX_AGENT_OUTPUT_BUFFER_CHARS = 30000;
 
 export class AIAgentSessionManager {
   // Map of normalized worktreePath -> (Map of agentId -> AgentPtySession)
-  private worktreeSessions = new Map<
-    string,
-    Map<AiAgentId, AgentPtySession>
-  >();
+  private worktreeSessions = new Map<string, Map<AiAgentId, AgentPtySession>>();
 
   // Map of terminal pane sessionId -> { worktreePath, activeAgentId, mode: 'terminal' | 'agent', sender }
   private activeTerminalBindings = new Map<
@@ -98,8 +100,7 @@ export class AIAgentSessionManager {
     while (agentMap.size >= MAX_CACHED_AGENT_SESSIONS_PER_WORKTREE) {
       const candidate = [...agentMap.values()]
         .filter(
-          (session) =>
-            !this.isSessionBound(worktreePath, session.agentId),
+          (session) => !this.isSessionBound(worktreePath, session.agentId),
         )
         .sort((left, right) => left.lastUsedAt - right.lastUsedAt)[0];
       if (!candidate) return;
@@ -107,7 +108,9 @@ export class AIAgentSessionManager {
       try {
         candidate.ptyProcess?.kill();
       } catch (error) {
-        log.warn(`Unable to release inactive agent ${candidate.agentId}: ${error}`);
+        log.warn(
+          `Unable to release inactive agent ${candidate.agentId}: ${error}`,
+        );
       }
     }
   }
@@ -120,6 +123,8 @@ export class AIAgentSessionManager {
     rows = 24,
     isDarkMode = false,
     sender: WebContents,
+    model?: string,
+    reasoningEffort?: string,
   ): AgentPtySession {
     const norm = this.normalizePath(worktreePath);
     let agentMap = this.worktreeSessions.get(norm);
@@ -131,6 +136,30 @@ export class AIAgentSessionManager {
     this.evictInactiveSessions(agentMap, worktreePath, agentConfig.id);
 
     let session = agentMap.get(agentConfig.id);
+    const normalizedModel = normalizeAgentModel(agentConfig.id, model || '');
+    const normalizedEffort = normalizeReasoningEffort(
+      agentConfig.id,
+      reasoningEffort || '',
+      normalizedModel,
+    );
+
+    // If a session exists but model or reasoning effort changed, terminate and recreate
+    const modelChanged =
+      !!session && (session.currentModel ?? '') !== normalizedModel;
+    const effortChanged =
+      !!session && (session.currentReasoningEffort ?? '') !== normalizedEffort;
+
+    if (session && session.ptyProcess && (modelChanged || effortChanged)) {
+      log.info(
+        `[AIAgentSessionManager] Configuration changed for ${agentConfig.id} (model: "${session.currentModel || 'default'}" -> "${normalizedModel || 'default'}", effort: "${session.currentReasoningEffort || 'default'}" -> "${normalizedEffort || 'default'}"), restarting session`,
+      );
+      try {
+        session.ptyProcess.kill();
+      } catch {}
+      agentMap.delete(agentConfig.id);
+      session = undefined;
+    }
+
     if (!session || !session.ptyProcess) {
       const cleanEnv: NodeJS.ProcessEnv = {
         ...getAugmentedEnv(),
@@ -142,9 +171,60 @@ export class AIAgentSessionManager {
       };
 
       const rawCommand = agentConfig.command.trim();
-      const rawArgs = agentConfig.args.trim()
+      let rawArgs = agentConfig.args.trim()
         ? agentConfig.args.trim().split(/\s+/).filter(Boolean)
         : [];
+
+      if (normalizedModel) {
+        const modelFlagIndex = rawArgs.findIndex(
+          (arg) => arg === '--model' || arg.startsWith('--model='),
+        );
+        if (modelFlagIndex !== -1) {
+          if (rawArgs[modelFlagIndex].startsWith('--model=')) {
+            rawArgs[modelFlagIndex] = `--model=${normalizedModel}`;
+          } else if (rawArgs[modelFlagIndex + 1]) {
+            rawArgs[modelFlagIndex + 1] = normalizedModel;
+          } else {
+            rawArgs.push(normalizedModel);
+          }
+        } else {
+          rawArgs.push('--model', normalizedModel);
+        }
+      }
+
+      if (normalizedEffort) {
+        const effortFlag = getReasoningEffortFlag(
+          agentConfig.id,
+          normalizedEffort,
+        );
+        if (effortFlag) {
+          const effortFlagIndex = rawArgs.findIndex(
+            (arg, index) =>
+              (effortFlag.flag === '-c'
+                ? arg === '-c' &&
+                  rawArgs[index + 1]?.startsWith('model_reasoning_effort=')
+                : arg === effortFlag.flag) ||
+              arg.startsWith(`${effortFlag.flag}=`) ||
+              arg === '--effort' ||
+              arg.startsWith('--effort=') ||
+              arg === '--reasoning-effort' ||
+              arg.startsWith('--reasoning-effort='),
+          );
+          if (effortFlagIndex !== -1) {
+            if (rawArgs[effortFlagIndex].includes('=')) {
+              rawArgs[effortFlagIndex] =
+                `${effortFlag.flag}=${effortFlag.value}`;
+            } else if (rawArgs[effortFlagIndex + 1]) {
+              rawArgs[effortFlagIndex] = effortFlag.flag;
+              rawArgs[effortFlagIndex + 1] = effortFlag.value;
+            } else {
+              rawArgs.push(effortFlag.value);
+            }
+          } else {
+            rawArgs.push(effortFlag.flag, effortFlag.value);
+          }
+        }
+      }
 
       log.info(
         `[AIAgentSessionManager] Spawning interactive PTY for ${agentConfig.id}: "${rawCommand}" with args [${rawArgs.join(', ')}] in ${worktreePath}`,
@@ -210,51 +290,64 @@ export class AIAgentSessionManager {
         inputChain: Promise.resolve(),
         smartContextEnabled: false,
         lastUsedAt: Date.now(),
+        currentModel: normalizedModel,
+        currentReasoningEffort: normalizedEffort,
       };
 
       agentMap.set(agentConfig.id, session);
+      const spawnedSession = session;
 
       ptyProcess.onData((data: string) => {
-        if (!session) return;
-        session.lastUsedAt = Date.now();
-        session.outputBuffer = (session.outputBuffer + data).slice(
-          -MAX_AGENT_OUTPUT_BUFFER_CHARS,
-        );
+        spawnedSession.lastUsedAt = Date.now();
+        spawnedSession.outputBuffer = (
+          spawnedSession.outputBuffer + data
+        ).slice(-MAX_AGENT_OUTPUT_BUFFER_CHARS);
 
-        const binding = this.activeTerminalBindings.get(session.activeSessionId);
+        const binding = this.activeTerminalBindings.get(
+          spawnedSession.activeSessionId,
+        );
         if (
           binding &&
           binding.mode === 'agent' &&
-          binding.activeAgentId === session.agentId &&
-          !session.sender.isDestroyed()
+          binding.activeAgentId === spawnedSession.agentId &&
+          !spawnedSession.sender.isDestroyed()
         ) {
-          session.sender.send('terminal-data', session.activeSessionId, data);
+          spawnedSession.sender.send(
+            'terminal-data',
+            spawnedSession.activeSessionId,
+            data,
+          );
         }
       });
 
       ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
         log.info(
-          `Agent PTY ${session?.agentId} exited with code ${exitCode}`,
+          `Agent PTY ${spawnedSession.agentId} exited with code ${exitCode}`,
         );
-        if (session) {
-          const binding = this.activeTerminalBindings.get(session.activeSessionId);
-          if (
-            binding &&
-            binding.mode === 'agent' &&
-            binding.activeAgentId === session.agentId &&
-            !session.sender.isDestroyed()
-          ) {
-            session.sender.send(
-              'terminal-data',
-              session.activeSessionId,
-              `\r\n\x1b[90m[Process exited with code ${exitCode}]\x1b[0m\r\n`,
-            );
-          }
-          agentMap?.delete(session.agentId);
-          if (agentMap?.size === 0) {
-            this.worktreeSessions.delete(norm);
-            graftSmartContextService.release(session.worktreePath);
-          }
+        const isCurrentSession =
+          agentMap?.get(spawnedSession.agentId) === spawnedSession;
+        const binding = this.activeTerminalBindings.get(
+          spawnedSession.activeSessionId,
+        );
+        if (
+          isCurrentSession &&
+          binding &&
+          binding.mode === 'agent' &&
+          binding.activeAgentId === spawnedSession.agentId &&
+          !spawnedSession.sender.isDestroyed()
+        ) {
+          spawnedSession.sender.send(
+            'terminal-data',
+            spawnedSession.activeSessionId,
+            `\r\n\x1b[90m[Process exited with code ${exitCode}]\x1b[0m\r\n`,
+          );
+        }
+        if (isCurrentSession) {
+          agentMap.delete(spawnedSession.agentId);
+        }
+        if (agentMap?.size === 0) {
+          this.worktreeSessions.delete(norm);
+          graftSmartContextService.release(spawnedSession.worktreePath);
         }
       });
     } else {
@@ -283,6 +376,8 @@ export class AIAgentSessionManager {
     rows = 24,
     isDarkMode = false,
     sender: WebContents,
+    model?: string,
+    reasoningEffort?: string,
   ): AgentPtySession {
     const session = this.getOrCreateAgentPtySession(
       sessionId,
@@ -292,13 +387,19 @@ export class AIAgentSessionManager {
       rows,
       isDarkMode,
       sender,
+      model,
+      reasoningEffort,
     );
 
     this.setBinding(sessionId, worktreePath, agentConfig.id, 'agent', sender);
 
     // Replay existing output buffer to xterm
     if (session.outputBuffer && !sender.isDestroyed()) {
-      sender.send('terminal-ai-agent-rehydrate', sessionId, session.outputBuffer);
+      sender.send(
+        'terminal-ai-agent-rehydrate',
+        sessionId,
+        session.outputBuffer,
+      );
     }
 
     return session;
@@ -465,7 +566,11 @@ export class AIAgentSessionManager {
     return false;
   }
 
-  stopAgent(sessionId: string, worktreePath?: string, agentId?: AiAgentId): void {
+  stopAgent(
+    sessionId: string,
+    worktreePath?: string,
+    agentId?: AiAgentId,
+  ): void {
     const binding = this.activeTerminalBindings.get(sessionId);
     const targetPath = worktreePath || binding?.worktreePath || '';
     const targetAgentId = agentId || binding?.activeAgentId;
@@ -487,7 +592,8 @@ export class AIAgentSessionManager {
     const binding = this.activeTerminalBindings.get(sessionId);
     this.activeTerminalBindings.delete(sessionId);
     if (!binding || binding.mode !== 'agent') return;
-    if (this.isSessionBound(binding.worktreePath, binding.activeAgentId)) return;
+    if (this.isSessionBound(binding.worktreePath, binding.activeAgentId))
+      return;
     const norm = this.normalizePath(binding.worktreePath);
     const agentMap = this.worktreeSessions.get(norm);
     const session = agentMap?.get(binding.activeAgentId);
