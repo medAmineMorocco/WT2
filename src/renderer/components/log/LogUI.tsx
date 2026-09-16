@@ -68,6 +68,7 @@ export interface ParsedCommit {
   subject: string;
   refs: string;
   author: string;
+  authorEmail?: string;
   date: string;
   lane: number;
   passingLanes: number[];
@@ -451,11 +452,12 @@ export default function LogUI({
       subject: string;
       refs: string;
       author: string;
+      authorEmail: string;
       date: string;
     }[] = [];
 
     const regex =
-      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/;
+      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)>(?: \{([^}]*)\})? \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/;
 
     commits.forEach((line) => {
       if (!line || !line.trim()) return;
@@ -471,6 +473,7 @@ export default function LogUI({
           subject = '',
           refs = '',
           author = '',
+          authorEmail = '',
           date = '',
           hash = '',
           parentsStr = '',
@@ -491,7 +494,16 @@ export default function LogUI({
           parents = parents.slice(0, 1);
         }
 
-        rawList.push({ hash, parents, subject, refs, author, date, isStash });
+        rawList.push({
+          hash,
+          parents,
+          subject,
+          refs,
+          author,
+          authorEmail,
+          date,
+          isStash,
+        });
       }
     });
 
@@ -571,6 +583,7 @@ export default function LogUI({
         subject: c.subject,
         refs: c.refs,
         author: c.author,
+        authorEmail: c.authorEmail,
         date: c.date,
         lane,
         passingLanes,
@@ -925,12 +938,19 @@ export default function LogUI({
                 )}
               </div>
               {!shouldHide && isAuthorEnabled && (
-                <span
-                  className="commit-column commit-column-author"
-                  title={item.author}
+                <Tooltip
+                  mouseEnterDelay={0.15}
+                  title={
+                    <div className="commit-author-tooltip">
+                      <strong>{item.author}</strong>
+                      <span>{item.authorEmail || 'Email unavailable'}</span>
+                    </div>
+                  }
                 >
-                  {item.author}
-                </span>
+                  <span className="commit-column commit-column-author">
+                    {item.author}
+                  </span>
+                </Tooltip>
               )}
               {!shouldHide && isCommitDateEnabled && (
                 <Tooltip

@@ -375,7 +375,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const commitList = useMemo(() => {
     const list: { hash: string; subject: string }[] = [];
     const regex =
-      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})/;
+      /^(?:[*|/\\ ]*)?(.*?)(?: \(([^)]+)\))? <([^>]+)>(?: \{([^}]*)\})? \[([^\]]+)\]\s+([a-f0-9]{7,40})/;
     commits.forEach((line) => {
       if (!line || !line.trim()) return;
       if (/^(?:[*|/\\ ]*)?(?:index|untracked files) on [^:]+:\s/i.test(line)) {
@@ -383,7 +383,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       }
       const match = line.match(regex);
       if (match) {
-        list.push({ subject: match[1] || '', hash: match[5] || '' });
+        list.push({ subject: match[1] || '', hash: match[6] || '' });
       }
     });
     return list;
