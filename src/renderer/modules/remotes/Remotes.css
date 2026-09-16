@@ -1,0 +1,287 @@
+.remotes-container {
+  padding: 0 4px 8px 4px;
+  font-size: 12px;
+}
+
+.remotes-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  user-select: none;
+}
+
+.remotes-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.remotes-cloud-icon {
+  font-size: 14px;
+  color: #3b82f6;
+}
+
+.remotes-title-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: inherit;
+}
+
+.remotes-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-left: 2px;
+}
+
+.remotes-action-btn {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  color: inherit;
+  opacity: 0.75;
+}
+
+.remotes-action-btn:hover {
+  opacity: 1;
+}
+
+.remotes-empty {
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  opacity: 0.7;
+}
+
+.remotes-empty-text {
+  font-size: 12px;
+}
+
+.remotes-tree {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.remote-node {
+  border-radius: 4px;
+  transition: background-color 0.15s ease;
+}
+
+.remote-node.hidden-remote {
+  opacity: 0.5;
+}
+
+.remote-node-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  height: 28px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remote-node-row:hover {
+  background-color: rgba(125, 125, 125, 0.1);
+}
+
+.remote-caret {
+  font-size: 10px;
+  width: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+}
+
+.remote-eye-btn {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  font-size: 13px;
+  padding: 0 2px;
+}
+
+.remote-provider-wrap {
+  display: inline-flex;
+  align-items: center;
+  font-size: 13px;
+}
+
+.remote-provider-icon.github {
+  color: inherit;
+}
+
+.remote-provider-icon.gitlab {
+  color: #fc6d26;
+}
+
+.remote-name {
+  flex: 1;
+  font-size: 12px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remote-kebab-btn {
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.remote-node-row:hover .remote-kebab-btn {
+  opacity: 1;
+}
+
+.remote-node-children {
+  margin-top: 2px;
+  margin-bottom: 4px;
+}
+
+.remote-branches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.remote-branch-folder-item,
+.remote-branch-leaf-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 2px 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 12px;
+}
+
+.remote-branch-folder-item:hover,
+.remote-branch-leaf-item:hover {
+  background-color: rgba(125, 125, 125, 0.08);
+}
+
+.remote-folder-caret {
+  font-size: 9px;
+  width: 10px;
+  opacity: 0.6;
+}
+
+.remote-folder-icon {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.remote-branch-icon {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-left: 10px;
+}
+
+.remote-folder-title,
+.remote-branch-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.remote-no-branches {
+  padding: 4px 16px;
+  font-size: 11px;
+  opacity: 0.6;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Modal Styling Matching Screenshot 2 */
+.add-remote-modal .ant-modal-content {
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.add-remote-modal-title {
+  font-size: 16px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.add-remote-tabs .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.add-remote-tab-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  padding: 2px 6px;
+}
+
+.add-remote-tab-label .tab-icon {
+  font-size: 16px;
+}
+
+.add-remote-form {
+  margin-top: 10px;
+}
+
+.add-remote-actions {
+  margin-top: 20px;
+}
+
+.add-remote-submit-btn {
+  background-color: #238636 !important;
+  border-color: #238636 !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  height: 38px;
+  font-size: 14px;
+  border-radius: 6px;
+}
+
+.add-remote-submit-btn:hover,
+.add-remote-submit-btn:focus {
+  background-color: #2ea043 !important;
+  border-color: #2ea043 !important;
+}
+
+/* Dark theme accents */
+html[data-color-scheme='dark'] .add-remote-modal .ant-modal-content {
+  background-color: #1e2229;
+}
+
+html[data-color-scheme='dark'] .add-remote-form input {
+  background-color: #16191f;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+html[data-color-scheme='dark'] .remote-node-row:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+html[data-color-scheme='dark'] .remote-branch-folder-item:hover,
+html[data-color-scheme='dark'] .remote-branch-leaf-item:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+}

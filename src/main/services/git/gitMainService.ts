@@ -22,6 +22,7 @@ import {
   ResetCommitResult,
   RevertCommitResult,
 } from '../../../shared/gitResetRevert';
+import { GitRemote } from '../../../shared/gitRemote';
 
 const zlib = require('zlib');
 
@@ -1226,6 +1227,155 @@ async function listAuthors(directory: string) {
   });
 }
 
+async function getRemotes(directory: string): Promise<GitRemote[]> {
+  if (!directory) return [];
+  try {
+    const rawOutput = await runGit(directory, ['remote', '-v']);
+    const lines = rawOutput
+      .toString('utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+
+    const remotesMap = new Map<
+      string,
+      { name: string; fetchUrl: string; pushUrl: string; branches: string[] }
+    >();
+
+    for (const line of lines) {
+      const match = line.match(/^([^\s]+)\s+([^\s]+)\s+\((fetch|push)\)$/);
+      if (match) {
+        const [, name, url, type] = match;
+        let remote = remotesMap.get(name);
+        if (!remote) {
+          remote = { name, fetchUrl: '', pushUrl: '', branches: [] };
+          remotesMap.set(name, remote);
+        }
+        if (type === 'fetch') remote.fetchUrl = url;
+        else if (type === 'push') remote.pushUrl = url;
+      }
+    }
+
+    // Now query remote branches
+    try {
+      const rawBranches = await runGit(directory, [
+        'branch',
+        '-r',
+        '--format=%(refname:short)',
+      ]);
+      const branchLines = rawBranches
+        .toString('utf8')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+
+      for (const branchLine of branchLines) {
+        if (branchLine.includes('->') || branchLine.endsWith('/HEAD')) {
+          continue;
+        }
+        for (const [name, remote] of remotesMap.entries()) {
+          const prefix = `${name}/`;
+          if (branchLine.startsWith(prefix)) {
+            const branchName = branchLine.slice(prefix.length);
+            if (branchName && branchName !== 'HEAD' && !remote.branches.includes(branchName)) {
+              remote.branches.push(branchName);
+            }
+          }
+        }
+      }
+    } catch {
+      // Branch query error shouldn't block remote listing
+    }
+
+    return Array.from(remotesMap.values());
+  } catch (error) {
+    log.error(`Failed to get remotes: ${error}`);
+    return [];
+  }
+}
+
+async function addRemote(
+  directory: string,
+  name: string,
+  pullUrl: string,
+  pushUrl?: string,
+): Promise<void> {
+  const trimmedName = name.trim();
+  const trimmedPullUrl = pullUrl.trim();
+  if (!trimmedName) throw new Error('Remote name is required.');
+  if (!trimmedPullUrl) throw new Error('Pull URL is required.');
+  if (!/^[a-zA-Z0-9._-]+$/.test(trimmedName)) {
+    throw new Error('Remote name contains invalid characters.');
+  }
+
+  await runGit(directory, ['remote', 'add', trimmedName, trimmedPullUrl]);
+
+  if (pushUrl && pushUrl.trim() && pushUrl.trim() !== trimmedPullUrl) {
+    await runGit(directory, [
+      'remote',
+      'set-url',
+      '--push',
+      trimmedName,
+      pushUrl.trim(),
+    ]);
+  }
+
+  // Attempt background fetch without blocking failure
+  runGit(directory, ['fetch', trimmedName]).catch((err) => {
+    log.warn(`Background fetch for remote ${trimmedName} failed: ${err.message}`);
+  });
+}
+
+async function editRemote(
+  directory: string,
+  oldName: string,
+  newName: string,
+  pullUrl: string,
+  pushUrl?: string,
+): Promise<void> {
+  const trimmedOldName = oldName.trim();
+  const trimmedNewName = newName.trim();
+  const trimmedPullUrl = pullUrl.trim();
+  if (!trimmedOldName) throw new Error('Existing remote name is required.');
+  if (!trimmedNewName) throw new Error('New remote name is required.');
+  if (!trimmedPullUrl) throw new Error('Pull URL is required.');
+
+  let currentName = trimmedOldName;
+  if (trimmedOldName !== trimmedNewName) {
+    await runGit(directory, ['remote', 'rename', trimmedOldName, trimmedNewName]);
+    currentName = trimmedNewName;
+  }
+
+  await runGit(directory, ['remote', 'set-url', currentName, trimmedPullUrl]);
+
+  if (pushUrl && pushUrl.trim()) {
+    await runGit(directory, [
+      'remote',
+      'set-url',
+      '--push',
+      currentName,
+      pushUrl.trim(),
+    ]);
+  }
+}
+
+async function removeRemote(directory: string, name: string): Promise<void> {
+  const trimmedName = name.trim();
+  if (!trimmedName) throw new Error('Remote name is required.');
+  await runGit(directory, ['remote', 'remove', trimmedName]);
+}
+
+async function fetchRemote(directory: string, name?: string): Promise<string> {
+  const args = ['fetch'];
+  if (name && name.trim()) {
+    args.push(name.trim());
+  } else {
+    args.push('--all');
+  }
+  const output = await runGit(directory, args);
+  return output.toString('utf8').trim();
+}
+
 export default {
   showLogAsync,
   showDiff,
@@ -1254,4 +1404,9 @@ export default {
   revertCommit,
   getCommitFileContent,
   getWorkingTreeFileContent,
+  getRemotes,
+  addRemote,
+  editRemote,
+  removeRemote,
+  fetchRemote,
 };

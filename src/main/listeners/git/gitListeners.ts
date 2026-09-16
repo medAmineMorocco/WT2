@@ -299,3 +299,40 @@ ipcMain.on('list-refs', async function (event, directory: string) {
     event.sender.send('receive-refs', -1, 'Failed to list git references.');
   }
 });
+
+ipcMain.handle('get-remotes', async (_event, directory: string) =>
+  gitMainService.getRemotes(directory),
+);
+
+ipcMain.handle(
+  'add-remote',
+  async (
+    _event,
+    directory: string,
+    name: string,
+    pullUrl: string,
+    pushUrl?: string,
+  ) => gitMainService.addRemote(directory, name, pullUrl, pushUrl),
+);
+
+ipcMain.handle(
+  'edit-remote',
+  async (
+    _event,
+    directory: string,
+    oldName: string,
+    newName: string,
+    pullUrl: string,
+    pushUrl?: string,
+  ) => gitMainService.editRemote(directory, oldName, newName, pullUrl, pushUrl),
+);
+
+ipcMain.handle('remove-remote', async (_event, directory: string, name: string) =>
+  gitMainService.removeRemote(directory, name),
+);
+
+ipcMain.handle(
+  'fetch-remote',
+  async (_event, directory: string, name?: string) =>
+    gitMainService.fetchRemote(directory, name),
+);

@@ -67,6 +67,7 @@ const ChangePatternWorktree = lazy(() => import('./ChangePatternWorktree'));
 const WorktreeGitConfig = lazy(() => import('./WorktreeGitConfig'));
 const RebaseWorktree = lazy(() => import('./RebaseWorktree'));
 const MergeWorktree = lazy(() => import('./MergeWorktree'));
+const RemotesList = lazy(() => import('../remotes/RemotesList'));
 
 const { useToken } = theme;
 
@@ -880,8 +881,16 @@ export default function ListWorktrees({
   });
 
   return (
-    <Collapse ghost defaultActiveKey={['1']}>
-      <Collapse.Panel
+    <div
+      style={{
+        height: 'calc(100vh - 225px)',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+      }}
+      className="worktrees-sidebar-scrollable"
+    >
+      <Collapse ghost defaultActiveKey={['1']}>
+        <Collapse.Panel
         extra={
           <Space style={{ marginRight: '6px' }}>
             {!refreshLoading ? (
@@ -1307,7 +1316,18 @@ export default function ListWorktrees({
             />
           </Suspense>
         )}
-      </Collapse.Panel>
-    </Collapse>
+        </Collapse.Panel>
+      </Collapse>
+      <div
+        style={{
+          height: 1,
+          backgroundColor: 'var(--ant-color-border-secondary, rgba(125,125,125,0.15))',
+          margin: '4px 0',
+        }}
+      />
+      <Suspense fallback={<Spin size="small" style={{ padding: 12 }} />}>
+        <RemotesList repositoryPath={tabRepoPath} isDarkMode={isDarkMode} />
+      </Suspense>
+    </div>
   );
 }
