@@ -715,6 +715,26 @@ html[data-color-scheme='dark'] .repository-start-card-description {
   border: 0 !important;
 }
 
+.worktrees-header-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.worktrees-title-text {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: inherit;
+}
+
+.worktrees-count-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3b82f6;
+  margin-left: 2px;
+}
+
 .prune-worktree-list {
   display: flex;
   max-height: 320px;

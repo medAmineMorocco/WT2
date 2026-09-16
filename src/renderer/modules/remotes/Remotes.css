@@ -1,6 +1,10 @@
 .remotes-container {
-  padding: 0 4px 8px 4px;
+  padding: 0 0 8px 0;
   font-size: 12px;
+}
+
+.remotes-body {
+  padding: 0 4px;
 }
 
 .remotes-header {

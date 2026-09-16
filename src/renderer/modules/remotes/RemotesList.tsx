@@ -4,14 +4,12 @@ import {
   Button,
   Tooltip,
   Dropdown,
-  Modal,
   Spin,
-  Badge,
+  Collapse,
   App as AntdApp,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
-  CloudOutlined,
   PlusOutlined,
   SyncOutlined,
   MoreOutlined,
@@ -312,42 +310,68 @@ export default function RemotesList({
 
   return (
     <div className={`remotes-container ${isDarkMode ? 'dark' : 'light'}`}>
-      <div className="remotes-header">
-        <Space className="remotes-header-title">
-          <CloudOutlined className="remotes-cloud-icon" />
-          <strong className="remotes-title-text">REMOTE</strong>
-          {totalBranchesCount > 0 && (
-            <span className="remotes-count-badge">{totalBranchesCount}</span>
-          )}
-        </Space>
-        <Space size={4}>
-          <Tooltip title="Refresh Remotes" mouseEnterDelay={0}>
-            <Button
-              type="text"
-              size="small"
-              icon={loading ? <LoadingOutlined /> : <SyncOutlined />}
-              onClick={loadRemotes}
-              disabled={loading}
-              className="remotes-action-btn"
-            />
-          </Tooltip>
-          <Tooltip title="Add Remote" mouseEnterDelay={0}>
-            <Button
-              type="text"
-              size="small"
-              icon={<PlusOutlined />}
-              onClick={() => setAddModalOpen(true)}
-              className="remotes-action-btn"
-            />
-          </Tooltip>
-        </Space>
-      </div>
-
-      <div className="remotes-body">
-        {loading && remotes.length === 0 ? (
-          <div className="remotes-loading">
-            <Spin size="small" />
-          </div>
+      <Collapse ghost defaultActiveKey={['remotes']}>
+        <Collapse.Panel
+          key="remotes"
+          className="worktrees-panel-header"
+          header={
+            <Space size={6} className="remotes-header-title">
+              <strong className="remotes-title-text">REMOTE</strong>
+              {totalBranchesCount > 0 && (
+                <span className="remotes-count-badge">{totalBranchesCount}</span>
+              )}
+            </Space>
+          }
+          extra={
+            <Space style={{ marginRight: '6px' }} onClick={(e) => e.stopPropagation()}>
+              {!loading ? (
+                <Tooltip
+                  title={
+                    <Space>
+                      <span>Refresh Remotes</span>
+                    </Space>
+                  }
+                  mouseEnterDelay={0}
+                  mouseLeaveDelay={0}
+                >
+                  <SyncOutlined
+                    className="icon-action"
+                    style={{ cursor: 'pointer' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      loadRemotes();
+                    }}
+                  />
+                </Tooltip>
+              ) : (
+                <LoadingOutlined />
+              )}
+              <Tooltip
+                title={
+                  <Space>
+                    <span>Add Remote</span>
+                  </Space>
+                }
+                mouseEnterDelay={0}
+                mouseLeaveDelay={0}
+              >
+                <PlusOutlined
+                  className="icon-action"
+                  style={{ cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAddModalOpen(true);
+                  }}
+                />
+              </Tooltip>
+            </Space>
+          }
+        >
+          <div className="remotes-body">
+            {loading && remotes.length === 0 ? (
+              <div className="remotes-loading">
+                <Spin size="small" />
+              </div>
         ) : remotes.length === 0 ? (
           <div className="remotes-empty">
             <span className="remotes-empty-text">No remotes configured</span>
@@ -455,6 +479,8 @@ export default function RemotesList({
           </div>
         )}
       </div>
+        </Collapse.Panel>
+      </Collapse>
 
       <AddRemoteModal
         open={addModalOpen}

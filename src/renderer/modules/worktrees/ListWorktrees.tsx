@@ -967,7 +967,14 @@ export default function ListWorktrees({
             </Tooltip>
           </Space>
         }
-        header={<strong>Worktrees</strong>}
+        header={
+          <Space size={6} className="worktrees-header-title">
+            <strong className="worktrees-title-text">WORKTREES</strong>
+            {worktrees.length > 0 && (
+              <span className="worktrees-count-badge">{worktrees.length}</span>
+            )}
+          </Space>
+        }
         className="worktrees-panel-header"
         key="1"
       >
