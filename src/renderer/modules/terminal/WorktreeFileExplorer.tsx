@@ -6,13 +6,22 @@ import {
   FileOutlined,
   FolderOpenOutlined,
   FolderOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   ReloadOutlined,
   SearchOutlined,
   UpOutlined,
 } from '@ant-design/icons';
-import { Button, Empty, Input, Spin, Tooltip, Typography } from 'antd';
+import { Button, Empty, Input, Segmented, Spin, Tooltip, Typography } from 'antd';
+import {
+  Diff2HtmlUI,
+  Diff2HtmlUIConfig,
+} from 'diff2html/lib/ui/js/diff2html-ui';
+import { ColorSchemeType } from 'diff2html/lib/types';
+import { style } from 'dynamic-import';
 import hljs from 'highlight.js/lib/common';
 import 'highlight.js/styles/github.min.css';
+import 'diff2html/bundles/css/diff2html.min.css';
 import React, {
   useCallback,
   useEffect,
@@ -285,7 +294,22 @@ export default function WorktreeFileExplorer({
   const [previewError, setPreviewError] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [activeMatch, setActiveMatch] = useState(0);
+  const [filesCollapsed, setFilesCollapsed] = useState(false);
+  const [diffLayout, setDiffLayout] = useState<'line-by-line' | 'side-by-side'>(
+    () => {
+      try {
+        return window.localStorage.getItem('worktreeFileDiffLayout') ===
+          'side-by-side'
+          ? 'side-by-side'
+          : 'line-by-line';
+      } catch {
+        return 'line-by-line';
+      }
+    },
+  );
+  const [diffMatchCount, setDiffMatchCount] = useState(0);
   const previewContentRef = useRef<HTMLPreElement>(null);
+  const diffContentRef = useRef<HTMLDivElement>(null);
 
   const load = useCallback(
     async (showSpinner = false) => {
@@ -321,6 +345,14 @@ export default function WorktreeFileExplorer({
     },
     [worktreePath],
   );
+
+  useEffect(() => {
+    let serverPort = Number(window.localStorage.getItem('server-port'));
+    if (!serverPort) serverPort = 3201;
+    const darkStyle = `http://localhost:${serverPort}/styles/github-dark.min.css`;
+    if (isDarkMode) style.import([darkStyle]);
+    else style.unload([darkStyle]);
+  }, [isDarkMode]);
 
   useEffect(() => {
     load(true);
@@ -397,17 +429,89 @@ export default function WorktreeFileExplorer({
     activeElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
   }, [activeMatch, highlightedPreview]);
 
+  useEffect(() => {
+    if (preview?.kind !== 'diff' || !diffContentRef.current) {
+      setDiffMatchCount(0);
+      return;
+    }
+    const config: Diff2HtmlUIConfig = {
+      drawFileList: false,
+      fileListToggle: false,
+      outputFormat: diffLayout,
+      synchronisedScroll: true,
+      highlight: true,
+      colorScheme: isDarkMode
+        ? ColorSchemeType.DARK
+        : ColorSchemeType.LIGHT,
+    };
+    const ui = new Diff2HtmlUI(diffContentRef.current, preview.content, config);
+    ui.draw();
+    ui.highlightCode();
+    if (diffLayout === 'side-by-side') ui.synchronisedScroll();
+
+    const needle = searchQuery.trim().toLocaleLowerCase();
+    if (!needle) {
+      setDiffMatchCount(0);
+      return;
+    }
+    const walker = document.createTreeWalker(
+      diffContentRef.current,
+      NodeFilter.SHOW_TEXT,
+    );
+    const nodes: Text[] = [];
+    while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+    let matchIndex = 0;
+    nodes.forEach((textNode) => {
+      if (matchIndex >= 5_000) return;
+      const text = textNode.data;
+      const lowerText = text.toLocaleLowerCase();
+      let position = 0;
+      let start = lowerText.indexOf(needle);
+      if (start < 0) return;
+      const fragment = document.createDocumentFragment();
+      while (start >= 0 && matchIndex < 5_000) {
+        if (start > position) fragment.append(text.slice(position, start));
+        const mark = document.createElement('mark');
+        mark.dataset.fileSearchMatch = String(matchIndex++);
+        mark.textContent = text.slice(start, start + needle.length);
+        fragment.append(mark);
+        position = start + needle.length;
+        start = lowerText.indexOf(needle, position);
+      }
+      if (position < text.length) fragment.append(text.slice(position));
+      textNode.replaceWith(fragment);
+    });
+    setDiffMatchCount(matchIndex);
+  }, [diffLayout, isDarkMode, preview, searchQuery]);
+
+  useEffect(() => {
+    if (preview?.kind !== 'diff') return;
+    const marks = diffContentRef.current?.querySelectorAll(
+      '[data-file-search-match]',
+    );
+    marks?.forEach((mark) => mark.classList.remove('is-active'));
+    const activeElement = diffContentRef.current?.querySelector(
+      `[data-file-search-match="${activeMatch}"]`,
+    );
+    activeElement?.classList.add('is-active');
+    activeElement?.scrollIntoView({ block: 'center', inline: 'nearest' });
+  }, [activeMatch, diffMatchCount, preview?.kind]);
+
+  const currentMatchCount =
+    preview?.kind === 'diff'
+      ? diffMatchCount
+      : highlightedPreview.matchCount;
+
   const moveMatch = (direction: 1 | -1) => {
-    if (!highlightedPreview.matchCount) return;
+    if (!currentMatchCount) return;
     setActiveMatch(
       (current) =>
-        (current + direction + highlightedPreview.matchCount) %
-        highlightedPreview.matchCount,
+        (current + direction + currentMatchCount) % currentMatchCount,
     );
   };
 
   return (
-    <div className={`worktree-file-layout${isDarkMode ? ' is-dark' : ''}`}>
+    <div className={`worktree-file-layout${isDarkMode ? ' is-dark' : ''}${filesCollapsed ? ' is-files-collapsed' : ''}`}>
       <aside className="worktree-file-explorer" aria-label="Worktree files">
         <header className="worktree-file-explorer-header">
           <div>
@@ -432,6 +536,17 @@ export default function WorktreeFileExplorer({
               onClick={() => load(true)}
             />
             {headerAction}
+            <Tooltip title={filesCollapsed ? 'Expand files' : 'Collapse files'}>
+              <Button
+                type="text"
+                size="small"
+                icon={
+                  filesCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                }
+                aria-label={filesCollapsed ? 'Expand files' : 'Collapse files'}
+                onClick={() => setFilesCollapsed((current) => !current)}
+              />
+            </Tooltip>
           </div>
         </header>
         <div className="worktree-file-tree" data-testid="worktree-file-tree">
@@ -490,6 +605,27 @@ export default function WorktreeFileExplorer({
                 )}
               </div>
               <div className="worktree-file-preview-actions">
+                {preview?.kind === 'diff' && (
+                  <Segmented
+                    size="small"
+                    value={diffLayout}
+                    aria-label="Diff layout"
+                    options={[
+                      { value: 'line-by-line', label: 'Inline' },
+                      { value: 'side-by-side', label: 'Split' },
+                    ]}
+                    onChange={(value) => {
+                      const next = value as 'line-by-line' | 'side-by-side';
+                      setDiffLayout(next);
+                      try {
+                        window.localStorage.setItem(
+                          'worktreeFileDiffLayout',
+                          next,
+                        );
+                      } catch {}
+                    }}
+                  />
+                )}
                 <Button
                   type="text"
                   size="small"
@@ -524,7 +660,7 @@ export default function WorktreeFileExplorer({
               />
               <span className="worktree-file-find-count">
                 {searchQuery.trim()
-                  ? `${highlightedPreview.matchCount ? activeMatch + 1 : 0} of ${highlightedPreview.matchCount}`
+                  ? `${currentMatchCount ? activeMatch + 1 : 0} of ${currentMatchCount}`
                   : '0 of 0'}
               </span>
               <Button
@@ -532,7 +668,7 @@ export default function WorktreeFileExplorer({
                 size="small"
                 icon={<UpOutlined />}
                 aria-label="Previous match"
-                disabled={!highlightedPreview.matchCount}
+                disabled={!currentMatchCount}
                 onClick={() => moveMatch(-1)}
               />
               <Button
@@ -540,7 +676,7 @@ export default function WorktreeFileExplorer({
                 size="small"
                 icon={<DownOutlined />}
                 aria-label="Next match"
-                disabled={!highlightedPreview.matchCount}
+                disabled={!currentMatchCount}
                 onClick={() => moveMatch(1)}
               />
             </div>
@@ -554,7 +690,14 @@ export default function WorktreeFileExplorer({
               </div>
             ) : preview ? (
               <>
-                <pre
+                {preview.kind === 'diff' ? (
+                  <div
+                    ref={diffContentRef}
+                    className="worktree-file-preview-content worktree-file-diff-content"
+                    aria-label={`Diff for ${preview.path}`}
+                  />
+                ) : (
+                  <pre
                   ref={previewContentRef}
                   className={`worktree-file-preview-content is-${preview.kind}`}
                   aria-label={`${preview.kind === 'diff' ? 'Diff' : 'Content'} for ${preview.path}`}
@@ -567,7 +710,8 @@ export default function WorktreeFileExplorer({
                       __html: highlightedPreview.html,
                     }}
                   />
-                </pre>
+                  </pre>
+                )}
                 {preview.truncated && (
                   <div className="worktree-file-preview-truncated">
                     Preview truncated because this file is large.

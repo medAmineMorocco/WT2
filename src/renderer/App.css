@@ -1279,7 +1279,20 @@ html[data-color-scheme='dark'] .commit-column {
 
 .commit-column-author {
   color: #1e293b;
+  cursor: help;
   font-weight: 600;
+}
+
+.commit-author-tooltip {
+  display: flex;
+  max-width: 320px;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.commit-author-tooltip span {
+  opacity: 0.78;
+  overflow-wrap: anywhere;
 }
 
 html[data-color-scheme='dark'] .commit-column-author {
@@ -1998,6 +2011,113 @@ html[data-color-scheme='dark'] .commit-file-binary {
   min-height: 0;
   overflow: auto;
 }
+
+/* Diff line numbers: keep attached to code rows on vertical scroll, stick left on horizontal scroll */
+.d2h-wrapper .d2h-diff-table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.d2h-wrapper .d2h-code-linenumber {
+  position: sticky !important;
+  left: 0 !important;
+  display: table-cell !important;
+  width: 7.5em !important;
+  min-width: 7.5em !important;
+  max-width: 7.5em !important;
+  z-index: 2 !important;
+  box-sizing: border-box !important;
+  background-color: var(--d2h-bg-color, #fff);
+}
+
+.d2h-wrapper .d2h-code-side-linenumber {
+  position: sticky !important;
+  left: 0 !important;
+  display: table-cell !important;
+  width: 4em !important;
+  min-width: 4em !important;
+  max-width: 4em !important;
+  z-index: 2 !important;
+  box-sizing: border-box !important;
+  background-color: var(--d2h-bg-color, #fff);
+}
+
+.d2h-wrapper .d2h-code-line {
+  padding: 0 0.5em !important;
+  width: auto !important;
+}
+
+.d2h-wrapper .d2h-code-side-line {
+  padding: 0 0.5em !important;
+  width: auto !important;
+}
+
+/* Ensure opaque background on sticky line numbers across themes */
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-linenumber,
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-side-linenumber,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-linenumber,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-side-linenumber,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-linenumber,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-side-linenumber {
+  background-color: var(--d2h-dark-bg-color, #0d1117);
+}
+
+.d2h-wrapper .d2h-code-linenumber.d2h-ins,
+.d2h-wrapper .d2h-code-side-linenumber.d2h-ins {
+  background-color: var(--d2h-ins-bg-color, #dfd) !important;
+}
+
+.d2h-wrapper .d2h-code-linenumber.d2h-del,
+.d2h-wrapper .d2h-code-side-linenumber.d2h-del {
+  background-color: var(--d2h-del-bg-color, #fee8e9) !important;
+}
+
+.d2h-wrapper .d2h-code-linenumber.d2h-info,
+.d2h-wrapper .d2h-code-side-linenumber.d2h-info {
+  background-color: var(--d2h-info-bg-color, #f8fafd) !important;
+}
+
+.d2h-wrapper .d2h-code-linenumber.d2h-emptyplaceholder,
+.d2h-wrapper .d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
+  background-color: var(--d2h-empty-placeholder-bg-color, #f1f1f1) !important;
+}
+
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-linenumber.d2h-ins,
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-side-linenumber.d2h-ins,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-linenumber.d2h-ins,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-side-linenumber.d2h-ins,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-linenumber.d2h-ins,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-side-linenumber.d2h-ins {
+  background-color: var(--d2h-dark-ins-bg-color, rgba(46, 160, 67, 0.15)) !important;
+}
+
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-linenumber.d2h-del,
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-side-linenumber.d2h-del,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-linenumber.d2h-del,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-side-linenumber.d2h-del,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-linenumber.d2h-del,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-side-linenumber.d2h-del {
+  background-color: var(--d2h-dark-del-bg-color, rgba(248, 81, 73, 0.1)) !important;
+}
+
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-linenumber.d2h-info,
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-side-linenumber.d2h-info,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-linenumber.d2h-info,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-side-linenumber.d2h-info,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-linenumber.d2h-info,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-side-linenumber.d2h-info {
+  background-color: var(--d2h-dark-info-bg-color, rgba(56, 139, 253, 0.1)) !important;
+}
+
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-linenumber.d2h-emptyplaceholder,
+html[data-color-scheme='dark'] .d2h-wrapper .d2h-code-side-linenumber.d2h-code-side-emptyplaceholder,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-linenumber.d2h-emptyplaceholder,
+.d2h-wrapper.d2h-dark-color-scheme .d2h-code-side-linenumber.d2h-code-side-emptyplaceholder,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-linenumber.d2h-emptyplaceholder,
+.worktree-file-layout.is-dark .d2h-wrapper .d2h-code-side-linenumber.d2h-code-side-emptyplaceholder {
+  background-color: var(--d2h-dark-empty-placeholder-bg-color, hsla(215, 8%, 47%, 0.1)) !important;
+}
+
 
 .git-log-file-diff-pane {
   display: flex;

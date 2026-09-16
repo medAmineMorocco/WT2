@@ -116,12 +116,20 @@ function decorateStashLines(
     })
     .map((line) => {
       const match = line.match(
-        /^(.*?)(?: \(([^)]+)\))? <([^>]+)> \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/,
+        /^(.*?)(?: \(([^)]+)\))? <([^>]+)>(?: \{([^}]*)\})? \[([^\]]+)\]\s+([a-f0-9]{7,40})(?:\s+parents:\[(.*?)\])?$/,
       );
       if (!match) return line;
 
-      const [, subject, existingRefs, author, date, hash, parentsStr = ''] =
-        match;
+      const [
+        ,
+        subject,
+        existingRefs,
+        author,
+        authorEmail = '',
+        date,
+        hash,
+        parentsStr = '',
+      ] = match;
       const stashRef = stashHashMap.get(hash);
       const isStash =
         Boolean(stashRef) ||
@@ -152,7 +160,8 @@ function decorateStashLines(
         }
       }
 
-      return `${subject} (${refsGroup}) <${author}> [${date}] ${hash}${parentSegment}`;
+      const emailSegment = authorEmail ? ` {${authorEmail}}` : '';
+      return `${subject} (${refsGroup}) <${author}>${emailSegment} [${date}] ${hash}${parentSegment}`;
     })
     .join('\n');
 }
@@ -196,7 +205,7 @@ function showLogAsync(
         : '--glob=refs/stash';
 
     const branchOrAll = branch || '--all';
-    const gitFormat = '%s %d <%an> [%ci] %h parents:[%p]';
+    const gitFormat = '%s %d <%an> {%ae} [%ci] %h parents:[%p]';
     const command = `"${gitCmd}" log --skip=${skip} -n ${limit} ${branchOrAll} ${stashArgs} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
 
     const git = spawn(command, {
@@ -664,7 +673,15 @@ async function getWorktreeFilePreview(
       await resolveExistingFileInsideWorktree(worktreeRoot, resolvedFile);
       output = await runGitWithAllowedCodes(
         worktreeRoot,
-        ['diff', '--no-index', '--no-color', '--', '/dev/null', normalizedPath],
+        [
+          'diff',
+          '--no-index',
+          '--no-color',
+          '--unified=999999',
+          '--',
+          '/dev/null',
+          normalizedPath,
+        ],
         [0, 1],
       );
     } else {
@@ -673,6 +690,7 @@ async function getWorktreeFilePreview(
           'diff',
           '--no-ext-diff',
           '--no-color',
+          '--unified=999999',
           'HEAD',
           '--',
           normalizedPath,
@@ -683,10 +701,17 @@ async function getWorktreeFilePreview(
             'diff',
             '--cached',
             '--no-color',
+            '--unified=999999',
             '--',
             normalizedPath,
           ]),
-          runGit(worktreeRoot, ['diff', '--no-color', '--', normalizedPath]),
+          runGit(worktreeRoot, [
+            'diff',
+            '--no-color',
+            '--unified=999999',
+            '--',
+            normalizedPath,
+          ]),
         ]);
         output = Buffer.concat([staged, unstaged]);
       }
