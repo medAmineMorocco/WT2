@@ -3,7 +3,7 @@ import { Button, Layout, Spin } from 'antd';
 import {
   ApartmentOutlined,
   BarChartOutlined,
-  ClockCircleOutlined,
+  BranchesOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
@@ -16,7 +16,7 @@ const AddWorktree = lazy(() => import('./AddWorktree'));
 const { Sider } = Layout;
 
 const modeOptions = [
-  { label: 'Git Log', value: 'GIT_LOG', icon: <ClockCircleOutlined /> },
+  { label: 'Git Log', value: 'GIT_LOG', icon: <BranchesOutlined /> },
   { label: 'Overview', value: 'OVERVIEW', icon: <BarChartOutlined /> },
   { label: 'Workflow', value: 'WORKFLOW', icon: <ApartmentOutlined /> },
 ];
