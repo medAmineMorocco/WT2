@@ -1,5 +1,5 @@
 import {
-  notification,
+  App as AntdApp,
   Space,
   Select,
   Checkbox,
@@ -53,7 +53,15 @@ const MergeCommitModal = lazy(() => import('./MergeCommitModal'));
 
 const LIMIT = 40;
 
+const cleanErrorMessage = (error: any): string => {
+  const raw = error?.message || String(error || '');
+  return raw
+    .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+    .trim();
+};
+
 export default function GitLog({ isModal }: { isModal: boolean }) {
+  const { notification } = AntdApp.useApp();
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   const tabRepoPath = useMemo(() => {
@@ -480,6 +488,22 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const runToolbarAction = async (
     action: 'pull' | 'push' | 'stash' | 'pop',
   ) => {
+    if (!selectedWorktree) {
+      notification.warning({
+        message: 'No worktree selected',
+        description: `Please select a worktree before running git ${action}.`,
+        placement: 'bottomLeft',
+      });
+      return;
+    }
+    if (!selectedRepositoryPath) {
+      notification.error({
+        message: `Git ${action} failed`,
+        description: 'Unable to determine the worktree repository path.',
+        placement: 'bottomLeft',
+      });
+      return;
+    }
     setGitActionLoading(action);
     try {
       const result = await window.electron.ipcRenderer.invoke(
@@ -507,9 +531,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         0,
       );
     } catch (error: any) {
+      const errorDetail = cleanErrorMessage(error);
       notification.error({
         message: `Git ${action} failed`,
-        description: error?.message || String(error),
+        description: errorDetail || `Git ${action} failed.`,
         placement: 'bottomLeft',
       });
     } finally {
@@ -708,42 +733,70 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
               </Popover>
             )}
             <span className="git-log-toolbar-divider" />
-            <Button
-              icon={<CloudDownloadOutlined />}
-              loading={gitActionLoading === 'pull'}
-              onClick={() => {
-                runToolbarAction('pull');
-              }}
+            <Tooltip
+              title={!selectedWorktree ? 'Select a worktree to pull' : undefined}
             >
-              Pull
-            </Button>
-            <Button
-              icon={<CloudUploadOutlined />}
-              loading={gitActionLoading === 'push'}
-              onClick={() => {
-                runToolbarAction('push');
-              }}
+              <span>
+                <Button
+                  icon={<CloudDownloadOutlined />}
+                  loading={gitActionLoading === 'pull'}
+                  disabled={!selectedWorktree || Boolean(gitActionLoading)}
+                  onClick={() => {
+                    runToolbarAction('pull');
+                  }}
+                >
+                  Pull
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={!selectedWorktree ? 'Select a worktree to push' : undefined}
             >
-              Push
-            </Button>
-            <Button
-              icon={<InboxOutlined />}
-              loading={gitActionLoading === 'stash'}
-              onClick={() => {
-                runToolbarAction('stash');
-              }}
+              <span>
+                <Button
+                  icon={<CloudUploadOutlined />}
+                  loading={gitActionLoading === 'push'}
+                  disabled={!selectedWorktree || Boolean(gitActionLoading)}
+                  onClick={() => {
+                    runToolbarAction('push');
+                  }}
+                >
+                  Push
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={!selectedWorktree ? 'Select a worktree to stash' : undefined}
             >
-              Stash
-            </Button>
-            <Button
-              icon={<ExportOutlined />}
-              loading={gitActionLoading === 'pop'}
-              onClick={() => {
-                runToolbarAction('pop');
-              }}
+              <span>
+                <Button
+                  icon={<InboxOutlined />}
+                  loading={gitActionLoading === 'stash'}
+                  disabled={!selectedWorktree || Boolean(gitActionLoading)}
+                  onClick={() => {
+                    runToolbarAction('stash');
+                  }}
+                >
+                  Stash
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip
+              title={!selectedWorktree ? 'Select a worktree to pop' : undefined}
             >
-              Pop
-            </Button>
+              <span>
+                <Button
+                  icon={<ExportOutlined />}
+                  loading={gitActionLoading === 'pop'}
+                  disabled={!selectedWorktree || Boolean(gitActionLoading)}
+                  onClick={() => {
+                    runToolbarAction('pop');
+                  }}
+                >
+                  Pop
+                </Button>
+              </span>
+            </Tooltip>
             <Tooltip title="Open Diff (Shift+D)">
               <Button
                 icon={<DiffOutlined />}

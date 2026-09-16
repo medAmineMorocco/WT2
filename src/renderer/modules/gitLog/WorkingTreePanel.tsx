@@ -1,9 +1,9 @@
 import {
+  App as AntdApp,
   Button,
   Checkbox,
   Empty,
   Input,
-  notification,
   Popconfirm,
   Spin,
   Tooltip,
@@ -32,6 +32,13 @@ import {
 
 const { TextArea } = Input;
 
+const cleanErrorMessage = (error: any): string => {
+  const raw = error?.message || String(error || '');
+  return raw
+    .replace(/^Error invoking remote method '[^']+': (?:Error: )?/, '')
+    .trim();
+};
+
 export default function WorkingTreePanel({
   repositoryPath,
   refreshToken,
@@ -49,6 +56,7 @@ export default function WorkingTreePanel({
   selectedFile: { file: WorkingTreeFile; staged: boolean } | null;
   onFileSelect: (selection: { file: WorkingTreeFile; staged: boolean }) => void;
 }) {
+  const { notification } = AntdApp.useApp();
   const [status, setStatus] = useState<WorkingTreeStatus>({
     branch: '',
     files: [],
@@ -163,9 +171,10 @@ export default function WorkingTreePanel({
       );
       await load(false);
     } catch (error: any) {
+      const errorDetail = cleanErrorMessage(error);
       notification.error({
         message: `Git ${action} failed`,
-        description: error?.message || String(error),
+        description: errorDetail || `Git ${action} failed.`,
         placement: 'bottomLeft',
       });
     } finally {

@@ -332,11 +332,11 @@ async function runGit(directory: string, args: string[]): Promise<Buffer> {
       if (code === 0) {
         resolve(Buffer.concat(stdout));
       } else {
+        const stderrStr = Buffer.concat(stderr).toString().trim();
+        const stdoutStr = Buffer.concat(stdout).toString().trim();
+        const combined = [stderrStr, stdoutStr].filter(Boolean).join('\n');
         reject(
-          new Error(
-            Buffer.concat(stderr).toString().trim() ||
-              `Git exited with code ${code}.`,
-          ),
+          new Error(combined || `Git exited with code ${code}.`),
         );
       }
     });
@@ -753,6 +753,9 @@ async function runWorkingTreeAction(
   action: WorkingTreeAction,
   paths: string[] = [],
 ) {
+  if (!directory) {
+    throw new Error('No repository directory specified.');
+  }
   const actionArgs: Record<WorkingTreeAction, string[]> = {
     pull: ['pull'],
     push: ['push'],
