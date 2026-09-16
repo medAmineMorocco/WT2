@@ -22,7 +22,7 @@ import {
   ResetCommitResult,
   RevertCommitResult,
 } from '../../../shared/gitResetRevert';
-import { GitRemote } from '../../../shared/gitRemote';
+import { GitRemote, SetUpstreamParams } from '../../../shared/gitRemote';
 
 const zlib = require('zlib');
 
@@ -1376,6 +1376,49 @@ async function fetchRemote(directory: string, name?: string): Promise<string> {
   return output.toString('utf8').trim();
 }
 
+async function setUpstream(params: SetUpstreamParams): Promise<string> {
+  const { directory, localBranch, remote, remoteBranch, push } = params;
+  if (!directory) throw new Error('Worktree directory is required.');
+  if (!localBranch) throw new Error('Local branch name is required.');
+  if (!remote) throw new Error('Remote name is required.');
+  if (!remoteBranch) throw new Error('Remote branch name is required.');
+
+  if (push) {
+    const refspec = `${localBranch.trim()}:${remoteBranch.trim()}`;
+    const output = await runGit(directory, ['push', '-u', remote.trim(), refspec]);
+    return (
+      output.toString('utf8').trim() ||
+      `Branch '${localBranch}' pushed and set up to track '${remote}/${remoteBranch}'.`
+    );
+  } else {
+    const upstreamRef = `${remote.trim()}/${remoteBranch.trim()}`;
+    const output = await runGit(directory, [
+      'branch',
+      `--set-upstream-to=${upstreamRef}`,
+      localBranch.trim(),
+    ]);
+    return (
+      output.toString('utf8').trim() ||
+      `Branch '${localBranch}' set up to track '${upstreamRef}'.`
+    );
+  }
+}
+
+async function getUpstream(directory: string): Promise<string | null> {
+  if (!directory) return null;
+  try {
+    const output = await runGit(directory, [
+      'rev-parse',
+      '--abbrev-ref',
+      '--symbolic-full-name',
+      '@{upstream}',
+    ]);
+    return output.toString('utf8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 export default {
   showLogAsync,
   showDiff,
@@ -1409,4 +1452,6 @@ export default {
   editRemote,
   removeRemote,
   fetchRemote,
+  setUpstream,
+  getUpstream,
 };

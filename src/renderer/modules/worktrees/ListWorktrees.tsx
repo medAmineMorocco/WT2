@@ -45,6 +45,7 @@ import {
   WarningOutlined,
   SettingOutlined,
   BranchesOutlined,
+  CloudUploadOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -68,6 +69,7 @@ const WorktreeGitConfig = lazy(() => import('./WorktreeGitConfig'));
 const RebaseWorktree = lazy(() => import('./RebaseWorktree'));
 const MergeWorktree = lazy(() => import('./MergeWorktree'));
 const RemotesList = lazy(() => import('../remotes/RemotesList'));
+const SetupUpstreamModal = lazy(() => import('./SetupUpstreamModal'));
 
 const { useToken } = theme;
 
@@ -150,6 +152,7 @@ export default function ListWorktrees({
     null,
   );
   const [configWorktree, setConfigWorktree] = useState<any | null>(null);
+  const [upstreamWorktree, setUpstreamWorktree] = useState<any | null>(null);
 
   const { isWorkflowPlaying } = useItemsContext();
 
@@ -581,6 +584,12 @@ export default function ListWorktrees({
           rebaseCandidates.length < 2,
       },
       {
+        key: 'setup-upstream',
+        label: 'Setup Upstream…',
+        icon: <CloudUploadOutlined />,
+        disabled: !isHealthy || worktree.name === 'DETACHED HEAD',
+      },
+      {
         key: 'configure-worktree-config',
         label: 'Worktree Git Config',
         icon: <SettingOutlined />,
@@ -728,6 +737,10 @@ export default function ListWorktrees({
       }
       if (key === 'merge-worktree') {
         setMergeTargetWorktree(worktree);
+        return;
+      }
+      if (key === 'setup-upstream') {
+        setUpstreamWorktree(worktree);
         return;
       }
       if (key === 'configure-worktree-config') {
@@ -1312,6 +1325,21 @@ export default function ListWorktrees({
                   null,
                 );
                 window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+              }}
+            />
+          </Suspense>
+        )}
+        {upstreamWorktree && (
+          <Suspense fallback={<Spin size="large" />}>
+            <SetupUpstreamModal
+              open={Boolean(upstreamWorktree)}
+              worktree={upstreamWorktree}
+              repositoryPath={tabRepoPath}
+              onClose={() => setUpstreamWorktree(null)}
+              onCompleted={() => {
+                setUpstreamWorktree(null);
+                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+                window.electron.ipcRenderer.send('show-git-log', tabRepoPath, null);
               }}
             />
           </Suspense>

@@ -17,3 +17,12 @@ export interface EditRemoteParams {
   pullUrl: string;
   pushUrl?: string;
 }
+
+export interface SetUpstreamParams {
+  directory: string;
+  localBranch: string;
+  remote: string;
+  remoteBranch: string;
+  push?: boolean;
+}
+

@@ -336,3 +336,22 @@ ipcMain.handle(
   async (_event, directory: string, name?: string) =>
     gitMainService.fetchRemote(directory, name),
 );
+
+ipcMain.handle(
+  'set-upstream',
+  async (
+    _event,
+    params: {
+      directory: string;
+      localBranch: string;
+      remote: string;
+      remoteBranch: string;
+      push?: boolean;
+    },
+  ) => gitMainService.setUpstream(params),
+);
+
+ipcMain.handle('get-upstream', async (_event, directory: string) =>
+  gitMainService.getUpstream(directory),
+);
+
