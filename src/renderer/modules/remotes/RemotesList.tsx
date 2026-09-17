@@ -95,11 +95,16 @@ function getProviderIcon(url: string) {
 export default function RemotesList({
   repositoryPath,
   isDarkMode,
+  activeKey,
+  onChangeActiveKey,
 }: {
   repositoryPath: string;
   isDarkMode: boolean;
+  activeKey?: string[];
+  onChangeActiveKey?: (keys: string[]) => void;
 }) {
   const { notification, modal } = AntdApp.useApp();
+  const [internalActiveKey, setInternalActiveKey] = useState<string[]>(['remotes']);
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
   const [loading, setLoading] = useState(false);
   const [fetchingRemote, setFetchingRemote] = useState<string | null>(null);
@@ -108,6 +113,17 @@ export default function RemotesList({
   const [hiddenRemotes, setHiddenRemotes] = useState<Record<string, boolean>>({});
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [editingRemote, setEditingRemote] = useState<GitRemote | null>(null);
+
+  const currentActiveKey = activeKey !== undefined ? activeKey : internalActiveKey;
+
+  const handleActiveKeyChange = (keys: string | string[]) => {
+    const normalized = Array.isArray(keys) ? keys : keys ? [keys] : [];
+    if (onChangeActiveKey) {
+      onChangeActiveKey(normalized);
+    } else {
+      setInternalActiveKey(normalized);
+    }
+  };
 
   const loadRemotes = useCallback(async () => {
     if (!repositoryPath) return;
@@ -310,7 +326,12 @@ export default function RemotesList({
 
   return (
     <div className={`remotes-container ${isDarkMode ? 'dark' : 'light'}`}>
-      <Collapse ghost defaultActiveKey={['remotes']}>
+      <Collapse
+        ghost
+        activeKey={currentActiveKey}
+        onChange={handleActiveKeyChange}
+        className="sidebar-section-collapse"
+      >
         <Collapse.Panel
           key="remotes"
           className="worktrees-panel-header"
@@ -367,7 +388,7 @@ export default function RemotesList({
             </Space>
           }
         >
-          <div className="remotes-body">
+          <div className="remotes-body remotes-body-scrollable">
             {loading && remotes.length === 0 ? (
               <div className="remotes-loading">
                 <Spin size="small" />

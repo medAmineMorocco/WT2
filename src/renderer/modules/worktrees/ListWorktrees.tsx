@@ -106,6 +106,11 @@ export default function ListWorktrees({
     useState(false);
 
   const [worktrees, setWorktrees] = useState([]);
+  const [worktreesActiveKey, setWorktreesActiveKey] = useState<string[]>(['1']);
+  const [remotesActiveKey, setRemotesActiveKey] = useState<string[]>(['remotes']);
+
+  const isWorktreesExpanded = worktreesActiveKey.includes('1');
+  const isRemotesExpanded = remotesActiveKey.includes('remotes');
 
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
   const [repositoryInTerminal, setRepositoryInTerminal] = useState<
@@ -894,18 +899,33 @@ export default function ListWorktrees({
   });
 
   return (
-    <div
-      style={{
-        height: 'calc(100vh - 225px)',
-        overflowY: 'auto',
-        overflowX: 'hidden',
-      }}
-      className="worktrees-sidebar-scrollable"
-    >
-      <Collapse ghost defaultActiveKey={['1']}>
-        <Collapse.Panel
-        extra={
-          <Space style={{ marginRight: '6px' }}>
+    <div className="worktrees-sidebar-container worktrees-sidebar-scrollable">
+      <div
+        className="worktrees-section-panel"
+        style={{
+          flex:
+            isWorktreesExpanded && isRemotesExpanded
+              ? '60 1 0%'
+              : isWorktreesExpanded
+                ? '1 1 0%'
+                : '0 0 auto',
+        }}
+      >
+        <Collapse
+          ghost
+          activeKey={worktreesActiveKey}
+          onChange={(keys) => {
+            const normalized = Array.isArray(keys) ? keys : keys ? [keys] : [];
+            setWorktreesActiveKey(normalized);
+          }}
+          className="sidebar-section-collapse"
+        >
+          <Collapse.Panel
+            extra={
+              <Space
+                style={{ marginRight: '6px' }}
+                onClick={(e) => e.stopPropagation()}
+              >
             {!refreshLoading ? (
               <Tooltip
                 title={
@@ -1102,7 +1122,8 @@ export default function ListWorktrees({
             </details>
           )}
         </Modal>
-        <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
+        <div className="worktrees-list-scrollable">
+          <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
           {worktrees.map((worktree: any) => (
             <li
               key={worktree.name}
@@ -1208,7 +1229,8 @@ export default function ListWorktrees({
               </Dropdown>
             </li>
           ))}
-        </ul>
+          </ul>
+        </div>
         {openTerminalModal && (
           <Suspense fallback={<Spin size="large" />}>
             <TerminalInteractive
@@ -1351,18 +1373,38 @@ export default function ListWorktrees({
             />
           </Suspense>
         )}
-        </Collapse.Panel>
-      </Collapse>
+          </Collapse.Panel>
+        </Collapse>
+      </div>
       <div
         style={{
           height: 1,
-          backgroundColor: 'var(--ant-color-border-secondary, rgba(125,125,125,0.15))',
+          backgroundColor:
+            'var(--ant-color-border-secondary, rgba(125,125,125,0.15))',
           margin: '4px 0',
+          flexShrink: 0,
         }}
       />
-      <Suspense fallback={<Spin size="small" style={{ padding: 12 }} />}>
-        <RemotesList repositoryPath={tabRepoPath} isDarkMode={isDarkMode} />
-      </Suspense>
+      <div
+        className="remotes-section-panel"
+        style={{
+          flex:
+            isWorktreesExpanded && isRemotesExpanded
+              ? '40 1 0%'
+              : isRemotesExpanded
+                ? '1 1 0%'
+                : '0 0 auto',
+        }}
+      >
+        <Suspense fallback={<Spin size="small" style={{ padding: 12 }} />}>
+          <RemotesList
+            repositoryPath={tabRepoPath}
+            isDarkMode={isDarkMode}
+            activeKey={remotesActiveKey}
+            onChangeActiveKey={setRemotesActiveKey}
+          />
+        </Suspense>
+      </div>
     </div>
   );
 }

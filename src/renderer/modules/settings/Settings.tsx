@@ -111,6 +111,7 @@ export default function Settings() {
 
   return (
     <ConfigProvider
+      form={{ requiredMark: false }}
       theme={{ algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm }}
     >
       <Layout>

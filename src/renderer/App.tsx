@@ -364,6 +364,9 @@ function Hello() {
 
   return (
     <ConfigProvider
+      form={{
+        requiredMark: false,
+      }}
       theme={{
         algorithm: isDarkMode ? darkAlgorithm : defaultAlgorithm,
         token: {

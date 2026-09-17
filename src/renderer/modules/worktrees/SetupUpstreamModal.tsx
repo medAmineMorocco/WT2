@@ -7,8 +7,6 @@ import {
   Checkbox,
   Button,
   Space,
-  Tag,
-  Typography,
   Alert,
   Spin,
   App as AntdApp,
@@ -37,7 +35,6 @@ export default function SetupUpstreamModal({
   const { notification } = AntdApp.useApp();
   const [form] = Form.useForm();
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
-  const [currentUpstream, setCurrentUpstream] = useState<string | null>(null);
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pushMode, setPushMode] = useState(true);
@@ -59,7 +56,6 @@ export default function SetupUpstreamModal({
       .then(([remotesList, upstreamVal]: [GitRemote[], string | null]) => {
         if (!isMounted) return;
         setRemotes(remotesList || []);
-        setCurrentUpstream(upstreamVal || null);
 
         // Pick matching remote or first remote
         let defaultRemote = 'origin';
@@ -175,38 +171,10 @@ export default function SetupUpstreamModal({
         <Form
           form={form}
           layout="vertical"
+          requiredMark={false}
           onFinish={handleSubmit}
           style={{ marginTop: 12 }}
         >
-          <div
-            style={{
-              padding: '10px 14px',
-              borderRadius: 6,
-              background: 'var(--ant-color-fill-quaternary, rgba(125,125,125,0.06))',
-              marginBottom: 16,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: 4,
-              fontSize: 13,
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography.Text type="secondary">Local Branch:</Typography.Text>
-              <Typography.Text strong>
-                <BranchesOutlined style={{ marginRight: 4 }} />
-                {branchName}
-              </Typography.Text>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <Typography.Text type="secondary">Current Upstream:</Typography.Text>
-              {currentUpstream ? (
-                <Tag color="blue">{currentUpstream}</Tag>
-              ) : (
-                <Tag>Not configured</Tag>
-              )}
-            </div>
-          </div>
-
           {remotes.length === 0 ? (
             <Alert
               type="warning"

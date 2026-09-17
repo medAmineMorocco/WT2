@@ -1,10 +1,10 @@
 import assert from 'node:assert';
 import test, { describe } from 'node:test';
-import type {
+import {
   CherryPickResolution,
   CherryPickResult,
 } from '../cherryPick';
-import type {
+import {
   RevertResolution,
   RevertCommitResult,
 } from '../gitResetRevert';
