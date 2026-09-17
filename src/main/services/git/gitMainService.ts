@@ -21,7 +21,12 @@ import {
   ResetMode,
   ResetCommitResult,
   RevertCommitResult,
+  RevertResolution,
 } from '../../../shared/gitResetRevert';
+import {
+  CherryPickResult,
+  CherryPickResolution,
+} from '../../../shared/cherryPick';
 import { GitRemote, SetUpstreamParams } from '../../../shared/gitRemote';
 
 const zlib = require('zlib');
@@ -316,13 +321,18 @@ async function showDiff(
   });
 }
 
-async function runGit(directory: string, args: string[]): Promise<Buffer> {
+async function runGit(
+  directory: string,
+  args: string[],
+  env?: NodeJS.ProcessEnv,
+): Promise<Buffer> {
   const gitCmd = await gitCommand();
   return new Promise((resolve, reject) => {
     const child = spawn(gitCmd, args, {
       cwd: directory,
       shell: false,
       windowsHide: true,
+      env: env || process.env,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -371,12 +381,96 @@ async function runGitWithAllowedCodes(
   });
 }
 
+async function getGitConflictFiles(directory: string): Promise<string[]> {
+  try {
+    const output = await runGit(directory, [
+      'diff',
+      '--name-only',
+      '--diff-filter=U',
+      '-z',
+    ]);
+    return output.toString('utf8').split('\0').filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+async function assertCherryPickInProgress(directory: string): Promise<void> {
+  try {
+    const cherryPickHeadPath = (
+      await runGit(directory, ['rev-parse', '--git-path', 'CHERRY_PICK_HEAD'])
+    )
+      .toString('utf8')
+      .trim();
+    if (fs.existsSync(path.resolve(directory, cherryPickHeadPath))) {
+      return;
+    }
+  } catch {
+    // Continue checking sequencer
+  }
+
+  try {
+    const sequencerPath = (
+      await runGit(directory, ['rev-parse', '--git-path', 'sequencer'])
+    )
+      .toString('utf8')
+      .trim();
+    if (fs.existsSync(path.resolve(directory, sequencerPath))) {
+      return;
+    }
+  } catch {
+    // Fall through
+  }
+
+  const conflicts = await getGitConflictFiles(directory);
+  if (conflicts.length > 0) {
+    return;
+  }
+
+  throw new BusinessError('There is no cherry-pick in progress in this worktree.');
+}
+
+async function assertRevertInProgress(directory: string): Promise<void> {
+  try {
+    const revertHeadPath = (
+      await runGit(directory, ['rev-parse', '--git-path', 'REVERT_HEAD'])
+    )
+      .toString('utf8')
+      .trim();
+    if (fs.existsSync(path.resolve(directory, revertHeadPath))) {
+      return;
+    }
+  } catch {
+    // Continue checking sequencer
+  }
+
+  try {
+    const sequencerPath = (
+      await runGit(directory, ['rev-parse', '--git-path', 'sequencer'])
+    )
+      .toString('utf8')
+      .trim();
+    if (fs.existsSync(path.resolve(directory, sequencerPath))) {
+      return;
+    }
+  } catch {
+    // Fall through
+  }
+
+  const conflicts = await getGitConflictFiles(directory);
+  if (conflicts.length > 0) {
+    return;
+  }
+
+  throw new BusinessError('There is no revert in progress in this worktree.');
+}
+
 async function cherryPickCommit(
   directory: string,
   commit: string,
-): Promise<{ commit: string; targetBranch: string; output: string }> {
+): Promise<CherryPickResult> {
   if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
-    throw new Error('The selected commit hash is invalid.');
+    throw new BusinessError('The selected commit hash is invalid.');
   }
 
   const [statusOutput, branchOutput] = await Promise.all([
@@ -385,35 +479,121 @@ async function cherryPickCommit(
     runGit(directory, ['rev-parse', '--verify', `${commit}^{commit}`]),
   ]);
   if (statusOutput.toString('utf8').trim()) {
-    throw new Error(
+    throw new BusinessError(
       'The destination worktree has uncommitted changes. Commit or stash them before cherry-picking.',
     );
   }
 
   const targetBranch = branchOutput.toString('utf8').trim();
   if (!targetBranch) {
-    throw new Error(
+    throw new BusinessError(
       'The destination worktree is in detached HEAD state. Check out a branch first.',
     );
   }
 
   try {
     const output = await runGit(directory, ['cherry-pick', commit]);
+    logCache.delete(directory);
     return {
+      ok: true,
+      status: 'completed',
       commit,
       targetBranch,
       output: output.toString('utf8').trim(),
     };
   } catch (error: any) {
+    const conflictedFiles = await getGitConflictFiles(directory);
+    if (conflictedFiles.length > 0) {
+      return {
+        ok: true,
+        status: 'conflicts',
+        commit,
+        targetBranch,
+        destinationPath: directory,
+        conflictedFiles,
+      };
+    }
     try {
       await runGit(directory, ['cherry-pick', '--abort']);
     } catch {
       // Preserve the original Git error when no cherry-pick was started.
     }
-    throw new Error(
+    throw new BusinessError(
       `${error?.message || 'Cherry-pick failed.'} The operation was aborted; the destination worktree was restored.`,
     );
   }
+}
+
+async function resolveCherryPickConflict(
+  directory: string,
+  filePath: string,
+  resolution: CherryPickResolution,
+): Promise<string[]> {
+  await assertCherryPickInProgress(directory);
+  const conflictedFiles = await getGitConflictFiles(directory);
+  if (!conflictedFiles.includes(filePath)) {
+    throw new BusinessError('The selected file is no longer conflicted.');
+  }
+
+  if (resolution === 'source') {
+    await runGit(directory, ['checkout', '--theirs', '--', filePath]);
+  } else if (resolution === 'target') {
+    await runGit(directory, ['checkout', '--ours', '--', filePath]);
+  }
+  await runGit(directory, ['add', '--', filePath]);
+  return getGitConflictFiles(directory);
+}
+
+async function continueCherryPick(
+  directory: string,
+  commit: string,
+  targetBranch: string,
+): Promise<CherryPickResult> {
+  await assertCherryPickInProgress(directory);
+  const remainingConflicts = await getGitConflictFiles(directory);
+  if (remainingConflicts.length > 0) {
+    throw new BusinessError('Resolve every conflicted file before continuing.');
+  }
+
+  try {
+    const output = await runGit(
+      directory,
+      ['cherry-pick', '--continue'],
+      {
+        ...process.env,
+        GIT_EDITOR: 'true',
+      },
+    );
+    logCache.delete(directory);
+    return {
+      ok: true,
+      status: 'completed',
+      commit,
+      targetBranch,
+      output: output.toString('utf8').trim(),
+    };
+  } catch (error: any) {
+    const conflictedFiles = await getGitConflictFiles(directory);
+    if (conflictedFiles.length > 0) {
+      return {
+        ok: true,
+        status: 'conflicts',
+        commit,
+        targetBranch,
+        destinationPath: directory,
+        conflictedFiles,
+      };
+    }
+    throw new BusinessError(
+      error?.message || 'Git could not continue the cherry-pick.',
+    );
+  }
+}
+
+async function abortCherryPick(directory: string): Promise<void> {
+  await assertCherryPickInProgress(directory);
+  await runGit(directory, ['cherry-pick', '--abort']);
+  logCache.delete(directory);
 }
 
 async function resetCommit(
@@ -456,7 +636,7 @@ async function revertCommit(
   commit: string,
 ): Promise<RevertCommitResult> {
   if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
-    throw new Error('The selected commit hash is invalid.');
+    throw new BusinessError('The selected commit hash is invalid.');
   }
 
   const [statusOutput, branchOutput] = await Promise.all([
@@ -466,14 +646,14 @@ async function revertCommit(
   ]);
 
   if (statusOutput.toString('utf8').trim()) {
-    throw new Error(
+    throw new BusinessError(
       'The worktree has uncommitted changes. Commit or stash them before reverting.',
     );
   }
 
   const targetBranch = branchOutput.toString('utf8').trim();
   if (!targetBranch) {
-    throw new Error(
+    throw new BusinessError(
       'The selected worktree is in detached HEAD state. Check out a branch first.',
     );
   }
@@ -482,20 +662,107 @@ async function revertCommit(
     const output = await runGit(directory, ['revert', '--no-edit', commit]);
     logCache.delete(directory);
     return {
+      ok: true,
+      status: 'completed',
       commit,
       targetBranch,
       output: output.toString('utf8').trim(),
     };
   } catch (error: any) {
+    const conflictedFiles = await getGitConflictFiles(directory);
+    if (conflictedFiles.length > 0) {
+      return {
+        ok: true,
+        status: 'conflicts',
+        commit,
+        targetBranch,
+        worktreePath: directory,
+        conflictedFiles,
+      };
+    }
     try {
       await runGit(directory, ['revert', '--abort']);
     } catch {
       // Preserve original error
     }
-    throw new Error(
+    throw new BusinessError(
       `${error?.message || 'Revert failed.'} The operation was aborted; the worktree was restored.`,
     );
   }
+}
+
+async function resolveRevertConflict(
+  directory: string,
+  filePath: string,
+  resolution: RevertResolution,
+): Promise<string[]> {
+  await assertRevertInProgress(directory);
+  const conflictedFiles = await getGitConflictFiles(directory);
+  if (!conflictedFiles.includes(filePath)) {
+    throw new BusinessError('The selected file is no longer conflicted.');
+  }
+
+  if (resolution === 'source') {
+    // In revert, source means the reverted change (--theirs)
+    await runGit(directory, ['checkout', '--theirs', '--', filePath]);
+  } else if (resolution === 'target') {
+    // In revert, target means keeping current branch version (--ours)
+    await runGit(directory, ['checkout', '--ours', '--', filePath]);
+  }
+  await runGit(directory, ['add', '--', filePath]);
+  return getGitConflictFiles(directory);
+}
+
+async function continueRevert(
+  directory: string,
+  commit: string,
+  targetBranch: string,
+): Promise<RevertCommitResult> {
+  await assertRevertInProgress(directory);
+  const remainingConflicts = await getGitConflictFiles(directory);
+  if (remainingConflicts.length > 0) {
+    throw new BusinessError('Resolve every conflicted file before continuing.');
+  }
+
+  try {
+    const output = await runGit(
+      directory,
+      ['revert', '--continue'],
+      {
+        ...process.env,
+        GIT_EDITOR: 'true',
+      },
+    );
+    logCache.delete(directory);
+    return {
+      ok: true,
+      status: 'completed',
+      commit,
+      targetBranch,
+      output: output.toString('utf8').trim(),
+    };
+  } catch (error: any) {
+    const conflictedFiles = await getGitConflictFiles(directory);
+    if (conflictedFiles.length > 0) {
+      return {
+        ok: true,
+        status: 'conflicts',
+        commit,
+        targetBranch,
+        worktreePath: directory,
+        conflictedFiles,
+      };
+    }
+    throw new BusinessError(
+      error?.message || 'Git could not continue the revert.',
+    );
+  }
+}
+
+async function abortRevert(directory: string): Promise<void> {
+  await assertRevertInProgress(directory);
+  await runGit(directory, ['revert', '--abort']);
+  logCache.delete(directory);
 }
 
 async function runGitWithInput(
@@ -1443,8 +1710,14 @@ export default {
   discardWorkingTreeLine,
   discardWorkingTreeFile,
   cherryPickCommit,
+  resolveCherryPickConflict,
+  continueCherryPick,
+  abortCherryPick,
   resetCommit,
   revertCommit,
+  resolveRevertConflict,
+  continueRevert,
+  abortRevert,
   getCommitFileContent,
   getWorkingTreeFileContent,
   getRemotes,

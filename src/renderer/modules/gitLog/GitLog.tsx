@@ -38,7 +38,13 @@ import LogUI from '../../components/log/LogUI';
 import type { ParsedCommit } from '../../components/log/LogUI';
 import { CommitChangedFile } from '../../../shared/gitCommit';
 import { WorkingTreeStatus } from '../../../shared/workingTree';
-import type { ResetMode } from '../../../shared/gitResetRevert';
+import type {
+  ResetMode,
+  ResetCommitResult,
+  RevertCommitResult,
+} from '../../../shared/gitResetRevert';
+import type { CherryPickResult } from '../../../shared/cherryPick';
+import type { WorktreeMergeResult } from '../../../shared/worktreeMerge';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
@@ -912,7 +918,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     setSelectedCommitFile(null);
                   }}
                   selectedWorktree={selectedWorktree}
-                  onReset={(mode = 'mixed') => {
+                  onReset={(mode: ResetMode = 'mixed') => {
                     const matched = commitList.find(
                       (c) => c.hash === selectedCommit,
                     );
@@ -1010,7 +1016,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           commit={cherryPickSource}
           worktrees={worktrees}
           onClose={() => setCherryPickSource(null)}
-          onCompleted={(result) => {
+          onCompleted={(
+            result: Extract<CherryPickResult, { ok: true; status: 'completed' }>,
+          ) => {
             setCherryPickSource(null);
             notification.success({
               message: 'Commit cherry-picked',
@@ -1029,7 +1037,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             worktree={selectedWorktreeInfo}
             initialMode={resetMode}
             onClose={() => setResetTargetCommit(null)}
-            onCompleted={(result) => {
+            onCompleted={(result: ResetCommitResult) => {
               setResetTargetCommit(null);
               notification.success({
                 message: 'Branch Reset Complete',
@@ -1048,7 +1056,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             commit={revertTargetCommit}
             worktree={selectedWorktreeInfo}
             onClose={() => setRevertTargetCommit(null)}
-            onCompleted={(result) => {
+            onCompleted={(
+              result: Extract<
+                RevertCommitResult,
+                { ok: true; status: 'completed' }
+              >,
+            ) => {
               setRevertTargetCommit(null);
               notification.success({
                 message: 'Commit Reverted',
@@ -1067,7 +1080,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
             commit={mergeCommitTarget}
             worktree={selectedWorktreeInfo}
             onClose={() => setMergeCommitTarget(null)}
-            onCompleted={(result) => {
+            onCompleted={(
+              result: Extract<
+                WorktreeMergeResult,
+                { ok: true; status: 'completed' }
+              >,
+            ) => {
               setMergeCommitTarget(null);
               notification.success({
                 message: 'Merge Completed',

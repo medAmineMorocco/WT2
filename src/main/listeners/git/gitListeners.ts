@@ -1,7 +1,22 @@
 import { ipcMain } from 'electron';
 import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
+import BusinessError from '../../exceptions/BusinessError';
 import { WorkingTreeAction } from '../../../shared/workingTree';
+import {
+  CherryPickAbortResult,
+  CherryPickActionResult,
+  CherryPickConflictResult,
+  CherryPickResolution,
+  CherryPickResult,
+} from '../../../shared/cherryPick';
+import {
+  RevertAbortResult,
+  RevertActionResult,
+  RevertConflictResult,
+  RevertResolution,
+  RevertCommitResult,
+} from '../../../shared/gitResetRevert';
 
 ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
   gitMainService.getWorkingTreeStatus(directory),
@@ -9,8 +24,92 @@ ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
 
 ipcMain.handle(
   'cherry-pick-commit',
-  async (_event, destinationPath: string, commit: string) =>
-    gitMainService.cherryPickCommit(destinationPath, commit),
+  async (
+    _event,
+    destinationPath: string,
+    commit: string,
+  ): Promise<CherryPickResult> => {
+    try {
+      return await gitMainService.cherryPickCommit(destinationPath, commit);
+    } catch (error: any) {
+      log.error(`Failed to cherry-pick commit: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : error?.message || 'Cherry-pick failed.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'resolve-cherry-pick-conflict',
+  async (
+    _event,
+    destinationPath: string,
+    filePath: string,
+    resolution: CherryPickResolution,
+  ): Promise<CherryPickConflictResult> => {
+    try {
+      if (!['source', 'target', 'staged'].includes(resolution)) {
+        throw new BusinessError('Choose a valid conflict resolution.');
+      }
+      const conflictedFiles = await gitMainService.resolveCherryPickConflict(
+        destinationPath,
+        filePath,
+        resolution,
+      );
+      return { ok: true, conflictedFiles };
+    } catch (error: any) {
+      log.error(`Failed to resolve cherry-pick conflict: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The file was not resolved.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'continue-cherry-pick',
+  async (
+    _event,
+    destinationPath: string,
+    commit: string,
+    targetBranch: string,
+  ): Promise<CherryPickActionResult> => {
+    try {
+      return await gitMainService.continueCherryPick(
+        destinationPath,
+        commit,
+        targetBranch,
+      );
+    } catch (error: any) {
+      log.error(`Failed to continue cherry-pick: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The cherry-pick could not continue.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'abort-cherry-pick',
+  async (_event, destinationPath: string): Promise<CherryPickAbortResult> => {
+    try {
+      await gitMainService.abortCherryPick(destinationPath);
+      return { ok: true };
+    } catch (error: any) {
+      log.error(`Failed to abort cherry-pick: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The cherry-pick was not aborted.',
+      };
+    }
+  },
 );
 
 ipcMain.handle(
@@ -21,8 +120,92 @@ ipcMain.handle(
 
 ipcMain.handle(
   'revert-commit',
-  async (_event, directory: string, commit: string) =>
-    gitMainService.revertCommit(directory, commit),
+  async (
+    _event,
+    directory: string,
+    commit: string,
+  ): Promise<RevertCommitResult> => {
+    try {
+      return await gitMainService.revertCommit(directory, commit);
+    } catch (error: any) {
+      log.error(`Failed to revert commit: ${error.message}`);
+      return {
+        ok: false,
+        error:
+          error instanceof BusinessError
+            ? error.message
+            : error?.message || 'Revert failed.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'resolve-revert-conflict',
+  async (
+    _event,
+    directory: string,
+    filePath: string,
+    resolution: RevertResolution,
+  ): Promise<RevertConflictResult> => {
+    try {
+      if (!['source', 'target', 'staged'].includes(resolution)) {
+        throw new BusinessError('Choose a valid conflict resolution.');
+      }
+      const conflictedFiles = await gitMainService.resolveRevertConflict(
+        directory,
+        filePath,
+        resolution,
+      );
+      return { ok: true, conflictedFiles };
+    } catch (error: any) {
+      log.error(`Failed to resolve revert conflict: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The file was not resolved.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'continue-revert',
+  async (
+    _event,
+    directory: string,
+    commit: string,
+    targetBranch: string,
+  ): Promise<RevertActionResult> => {
+    try {
+      return await gitMainService.continueRevert(
+        directory,
+        commit,
+        targetBranch,
+      );
+    } catch (error: any) {
+      log.error(`Failed to continue revert: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The revert could not continue.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'abort-revert',
+  async (_event, directory: string): Promise<RevertAbortResult> => {
+    try {
+      await gitMainService.abortRevert(directory);
+      return { ok: true };
+    } catch (error: any) {
+      log.error(`Failed to abort revert: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The revert was not aborted.',
+      };
+    }
+  },
 );
 
 ipcMain.handle('get-worktree-files', async (_event, directory: string) =>

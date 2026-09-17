@@ -85,27 +85,27 @@ export default function ResetCommitModal({
           >
             <Space direction="vertical" size="small" style={{ width: '100%' }}>
               <Radio value="soft">
-                <Space orientation="vertical" size={1}>
+                <Space direction="vertical" size={1}>
                   <Typography.Text strong>Soft (--soft)</Typography.Text>
-                  <Typography.Text orientation="left" type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     Moves HEAD to this commit. Preserves all changes in the index (staged for commit).
                   </Typography.Text>
                 </Space>
               </Radio>
 
               <Radio value="mixed">
-                <Space orientation="vertical" size={1}>
+                <Space direction="vertical" size={1}>
                   <Typography.Text strong>Mixed (--mixed) — Default</Typography.Text>
-                  <Typography.Text orientation="left" type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     Moves HEAD and resets index. Preserves working tree changes (unstaged).
                   </Typography.Text>
                 </Space>
               </Radio>
 
               <Radio value="hard">
-                <Space orientation="vertical" size={1}>
+                <Space direction="vertical" size={1}>
                   <Typography.Text strong type="danger">Hard (--hard)</Typography.Text>
-                  <Typography.Text orientation="left" type="secondary" style={{ fontSize: 12 }}>
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     Resets HEAD, index, and working tree. Any uncommitted changes will be discarded.
                   </Typography.Text>
                 </Space>
@@ -132,7 +132,7 @@ export default function ResetCommitModal({
           />
         )}
 
-        <Space orientation="horizontal" style={{ justifyContent: 'flex-end', width: '100%', marginTop: 8 }}>
+        <Space style={{ justifyContent: 'flex-end', width: '100%', marginTop: 8 }}>
           <Button onClick={onClose} disabled={loading}>
             Cancel
           </Button>
