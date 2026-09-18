@@ -600,6 +600,7 @@
 .terminal-four-section-cell.is-collapsed
   .terminal-four-section-header
   > .ant-typography,
+.terminal-four-section-cell.is-collapsed .terminal-four-section-agent-toolbar,
 .terminal-four-section-agent.is-collapsed .terminal-agent-select,
 .terminal-four-section-agent.is-collapsed .terminal-agent-version-tag,
 .terminal-four-section-agent.is-collapsed .terminal-agent-model-select,
@@ -650,6 +651,29 @@
 }
 
 .terminal-four-section-agent-controls .terminal-agent-effort-select {
+  width: 105px;
+}
+
+.terminal-four-section-agent-toolbar {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--terminal-header-border);
+  background: var(--terminal-header-bg);
+}
+
+.terminal-four-section-agent-toolbar .terminal-agent-select {
+  width: 140px;
+}
+
+.terminal-four-section-agent-toolbar .terminal-agent-model-select {
+  width: 120px;
+}
+
+.terminal-four-section-agent-toolbar .terminal-agent-effort-select {
   width: 105px;
 }
 

@@ -71,6 +71,7 @@ process.on('uncaughtException', (error: any) => {
   const msg = error?.message || String(error);
   if (
     msg.includes('Pty seems to have been killed already') ||
+    msg.includes('Cannot resize a pty that has already exited') ||
     msg.includes('AttachConsole failed') ||
     msg.includes('ESRCH')
   ) {

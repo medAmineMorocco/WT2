@@ -276,6 +276,46 @@ export class AIAgentSessionManager {
         throw err;
       }
 
+      let hasExited = false;
+      const rawResize = ptyProcess.resize?.bind(ptyProcess);
+      if (rawResize) {
+        ptyProcess.resize = (c: number, r: number) => {
+          if (hasExited) return;
+          const agent = (ptyProcess as any)._agent;
+          if (agent && agent._exitCode !== undefined) return;
+          try {
+            rawResize(c, r);
+            if (Array.isArray((ptyProcess as any)._deferreds)) {
+              (ptyProcess as any)._deferreds = (ptyProcess as any)._deferreds.map(
+                (d: any) => {
+                  if (d.__safeWrapped) return d;
+                  const origRun = d.run;
+                  return {
+                    __safeWrapped: true,
+                    run: () => {
+                      try {
+                        if (
+                          !hasExited &&
+                          (!agent || agent._exitCode === undefined)
+                        ) {
+                          return origRun();
+                        }
+                      } catch (deferredErr: any) {
+                        log.warn(
+                          `Suppressed deferred pty resize error: ${deferredErr?.message}`,
+                        );
+                      }
+                    },
+                  };
+                },
+              );
+            }
+          } catch (resizeErr: any) {
+            log.warn(`Suppressed pty resize error: ${resizeErr?.message}`);
+          }
+        };
+      }
+
       session = {
         agentId: agentConfig.id,
         config: agentConfig,
@@ -321,6 +361,10 @@ export class AIAgentSessionManager {
       });
 
       ptyProcess.onExit(({ exitCode }: { exitCode: number }) => {
+        hasExited = true;
+        if (Array.isArray((ptyProcess as any)._deferreds)) {
+          (ptyProcess as any)._deferreds = [];
+        }
         log.info(
           `Agent PTY ${spawnedSession.agentId} exited with code ${exitCode}`,
         );
@@ -359,7 +403,10 @@ export class AIAgentSessionManager {
         session.cols = cols;
         session.rows = rows;
         try {
-          session.ptyProcess.resize(Math.max(2, cols), Math.max(1, rows));
+          const agent = (session.ptyProcess as any)?._agent;
+          if (!agent || agent._exitCode === undefined) {
+            session.ptyProcess.resize(Math.max(2, cols), Math.max(1, rows));
+          }
         } catch {}
       }
     }
@@ -559,9 +606,13 @@ export class AIAgentSessionManager {
       try {
         session.cols = cols;
         session.rows = rows;
+        const agent = (session.ptyProcess as any)?._agent;
+        if (agent && agent._exitCode !== undefined) return false;
         session.ptyProcess.resize(Math.max(2, cols), Math.max(1, rows));
         return true;
-      } catch {}
+      } catch (err: any) {
+        log.warn(`Unable to resize agent pty session: ${err?.message}`);
+      }
     }
     return false;
   }

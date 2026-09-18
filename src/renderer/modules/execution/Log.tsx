@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Alert,
+  Button,
   Collapse,
   Modal,
   Segmented,
@@ -94,10 +96,10 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
                   style={{
                     position: 'sticky',
                     top: 0,
-                    marginTop: '8px',
+                    marginTop: '4px',
                     marginBottom: '8px',
-                    borderRadius: 0,
-                    zIndex: 88,
+                    borderRadius: 6,
+                    zIndex: 10,
                   }}
                 />
                 <div>
@@ -224,52 +226,82 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
     setLogMode(value);
   };
 
+  const [headerTarget, setHeaderTarget] = useState<HTMLElement | null>(null);
+
+  useEffect(() => {
+    const el = document.getElementById('console-logs-header-actions');
+    if (el) {
+      setHeaderTarget(el);
+    }
+  }, []);
+
+  const toolbarActions = (
+    <Space size={6} align="center">
+      <Segmented
+        value={logMode}
+        onChange={onChangeLogMode}
+        options={[
+          { value: 'segment', icon: <BarsOutlined title="Tab View" /> },
+          {
+            value: 'sequence',
+            icon: <BorderOutlined title="Sequential View" />,
+          },
+        ]}
+        size="small"
+      />
+      <Tooltip
+        title={
+          <Space>
+            <span>Enter Fullscreen Mode</span>
+            <small style={{ color: 'grey' }}>Shift+F</small>
+          </Space>
+        }
+        placement="bottom"
+      >
+        <Button
+          type="text"
+          size="small"
+          icon={<ExpandOutlined />}
+          onClick={toggleFullScreenMode}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        />
+      </Tooltip>
+    </Space>
+  );
+
   return (
     <>
-      <div style={{ position: 'absolute', top: '8px', right: '8px' }}>
-        <Space>
-          <Segmented
-            value={logMode}
-            onChange={onChangeLogMode}
-            options={[
-              { value: 'segment', icon: <BarsOutlined /> },
-              { value: 'sequence', icon: <BorderOutlined /> },
-            ]}
-            size="small"
-          />
-          <Tooltip
-            title={
-              <Space>
-                <span>Enter Fullscreen Mode</span>
-                <small style={{ color: 'grey' }}>Shift+F</small>
-              </Space>
-            }
-            placement="left"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
+      {headerTarget
+        ? createPortal(toolbarActions, headerTarget)
+        : (
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              marginBottom: 6,
+            }}
           >
-            <ExpandOutlined
-              style={{ cursor: 'pointer' }}
-              onClick={toggleFullScreenMode}
-              className="icon-action"
-            />
-          </Tooltip>
-        </Space>
-      </div>
+            {toolbarActions}
+          </div>
+        )}
       {!isFullScreenMode ? (
         <div
           style={{
             position: 'relative',
-            marginTop: '8px',
-            height: 'calc(41.5vh - 20px)',
-            overflowY: 'auto',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
           }}
         >
           {logMode === 'segment' ? (
             <Tabs
               tabPosition="left"
               style={{
-                height: 'calc(41.5vh - 20px)',
+                height: '100%',
               }}
               defaultActiveKey="0"
               activeKey={activeTabKey}
@@ -278,7 +310,12 @@ export default function Log({ initialLogStates }: { initialLogStates: any[] }) {
               items={data}
             />
           ) : (
-            <Collapse ghost defaultActiveKey="0" items={data} />
+            <div
+              className="log-sequence-scroll"
+              style={{ height: '100%', overflowY: 'auto' }}
+            >
+              <Collapse ghost defaultActiveKey="0" items={data} />
+            </div>
           )}
         </div>
       ) : (

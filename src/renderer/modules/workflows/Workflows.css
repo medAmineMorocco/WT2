@@ -1,0 +1,248 @@
+.workflows-card-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: calc(48.5vh - 20px);
+  margin-top: 1vh;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
+}
+
+[data-color-scheme='dark'] .workflows-card-container {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.workflows-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  flex-shrink: 0;
+}
+
+[data-color-scheme='dark'] .workflows-header-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.workflows-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.workflows-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.workflows-count-tag {
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 1px 8px;
+  margin: 0;
+  background: rgba(24, 144, 255, 0.08);
+  color: #1890ff;
+  border: 1px solid rgba(24, 144, 255, 0.2);
+}
+
+[data-color-scheme='dark'] .workflows-count-tag {
+  background: rgba(24, 144, 255, 0.15);
+  color: #69b1ff;
+  border: 1px solid rgba(24, 144, 255, 0.3);
+}
+
+.workflows-subtitle {
+  font-size: 12px;
+  color: #8c8c8c;
+  line-height: 1.4;
+}
+
+.workflows-action-btn {
+  font-weight: 500;
+  border-radius: 6px;
+}
+
+.workflows-action-btn-primary {
+  font-weight: 500;
+  border-radius: 6px;
+  box-shadow: 0 2px 4px rgba(24, 144, 255, 0.25);
+}
+
+/* =========================================================
+   Table Styling
+   ========================================================= */
+.workflows-table-wrap {
+  flex: 1;
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.workflows-table .ant-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.workflows-table .ant-table-thead > tr > th {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #8c8c8c;
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06) !important;
+  padding: 10px 14px !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-thead > tr > th {
+  background: rgba(255, 255, 255, 0.03) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  color: #999;
+}
+
+.workflows-table .ant-table-tbody > tr > td {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  vertical-align: middle;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-tbody > tr > td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.workflows-table .ant-table-tbody > tr:hover > td {
+  background: rgba(24, 144, 255, 0.03) !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-tbody > tr:hover > td {
+  background: rgba(24, 144, 255, 0.06) !important;
+}
+
+/* Workflow Name Cell */
+.workflow-name-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(24, 144, 255, 0.08);
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+[data-color-scheme='dark'] .workflow-name-avatar {
+  background: rgba(24, 144, 255, 0.15);
+}
+
+.workflow-name-avatar.running {
+  background: rgba(82, 196, 26, 0.12);
+}
+
+/* Mode Segmented */
+.workflow-mode-segmented {
+  background: rgba(0, 0, 0, 0.04);
+  padding: 2px;
+  border-radius: 6px;
+}
+
+[data-color-scheme='dark'] .workflow-mode-segmented {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Action Cell */
+.workflow-action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.workflow-run-btn {
+  font-weight: 500;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.workflow-secondary-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Workflows Table Scrollbar matching Execution Pipeline */
+.workflows-table .ant-table,
+.workflows-table .ant-table-container,
+.workflows-table .ant-table-header,
+.workflows-table .ant-table-body,
+.workflows-table .ant-table-content {
+  scrollbar-width: auto !important;
+  scrollbar-color: auto !important;
+}
+
+.workflows-table .ant-table-body {
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+}
+
+.workflows-table .ant-table-header {
+  overflow-x: hidden !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-track,
+.ant-table-body::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+.ant-table-body::-webkit-scrollbar-thumb {
+  border-radius: 4px !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-button,
+.ant-table-body::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-corner,
+.ant-table-body::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb {
+  background: #ccc !important;
+}
+
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3 !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb {
+  background: #333 !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #444 !important;
+}

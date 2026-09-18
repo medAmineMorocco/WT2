@@ -987,7 +987,34 @@ function TerminalPane({
       >
         <header className="terminal-four-section-header">
           <Typography.Text strong>AI Agent</Typography.Text>
-          <div className="terminal-four-section-agent-controls">
+          <Tooltip
+            title={
+              embeddedAgentCollapsed
+                ? 'Restore AI Agent'
+                : 'Collapse AI Agent'
+            }
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={
+                embeddedAgentCollapsed ? (
+                  <MenuUnfoldOutlined />
+                ) : (
+                  <MenuFoldOutlined />
+                )
+              }
+              aria-label={
+                embeddedAgentCollapsed
+                  ? 'Restore AI Agent section'
+                  : 'Collapse AI Agent section'
+              }
+              onClick={onToggleEmbeddedAgent}
+            />
+          </Tooltip>
+        </header>
+        {!embeddedAgentCollapsed && (
+          <div className="terminal-four-section-agent-toolbar">
             <Select
               size="small"
               value={selectedAgentId}
@@ -1076,33 +1103,8 @@ function TerminalPane({
                 Smart context
               </Checkbox>
             </Tooltip>
-            <Tooltip
-              title={
-                embeddedAgentCollapsed
-                  ? 'Restore AI Agent'
-                  : 'Collapse AI Agent'
-              }
-            >
-              <Button
-                type="text"
-                size="small"
-                icon={
-                  embeddedAgentCollapsed ? (
-                    <MenuUnfoldOutlined />
-                  ) : (
-                    <MenuFoldOutlined />
-                  )
-                }
-                aria-label={
-                  embeddedAgentCollapsed
-                    ? 'Restore AI Agent section'
-                    : 'Collapse AI Agent section'
-                }
-                onClick={onToggleEmbeddedAgent}
-              />
-            </Tooltip>
           </div>
-        </header>
+        )}
         <div
           className="terminal-xterm-host terminal-four-section-content"
           ref={hostRef}
@@ -1307,34 +1309,13 @@ function TerminalPane({
           worktreePath={terminal.path}
           active={isActive}
           isDarkMode={isDarkMode}
-          headerAction={
-            isFourSectionView ? (
-              <Tooltip
-                title={
-                  collapsedSections.has('files')
-                    ? 'Restore Files'
-                    : 'Collapse Files'
-                }
-              >
-                <Button
-                  type="text"
-                  size="small"
-                  icon={
-                    collapsedSections.has('files') ? (
-                      <MenuUnfoldOutlined />
-                    ) : (
-                      <MenuFoldOutlined />
-                    )
-                  }
-                  aria-label={
-                    collapsedSections.has('files')
-                      ? 'Restore Files section'
-                      : 'Collapse Files section'
-                  }
-                  onClick={() => toggleCollapsedSection('files')}
-                />
-              </Tooltip>
-            ) : null
+          collapsed={
+            isFourSectionView ? collapsedSections.has('files') : undefined
+          }
+          onToggleCollapse={
+            isFourSectionView
+              ? () => toggleCollapsedSection('files')
+              : undefined
           }
         >
           <div

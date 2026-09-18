@@ -123,21 +123,55 @@ body {
   margin-top: 0;
 }
 
-*::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+*,
+*::before,
+*::after {
+  scrollbar-color: auto !important;
+  scrollbar-width: auto !important;
 }
 
-::-webkit-scrollbar-thumb {
-  border-radius: 4px;
+::-webkit-scrollbar,
+*::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
+}
+
+::-webkit-scrollbar-track,
+*::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+::-webkit-scrollbar-thumb,
+*::-webkit-scrollbar-thumb {
+  border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-button,
+*::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+::-webkit-scrollbar-corner,
+*::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 
 [data-color-scheme='dark'] ::-webkit-scrollbar-thumb {
-  background: #333;
+  background: #333 !important;
+}
+
+[data-color-scheme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: #444 !important;
 }
 
 [data-color-scheme='light'] ::-webkit-scrollbar-thumb {
-  background: #ccc;
+  background: #ccc !important;
+}
+
+[data-color-scheme='light'] ::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3 !important;
 }
 
 .keyboard-modal > .ant-modal-content > .ant-modal-header {
@@ -527,94 +561,128 @@ html[data-color-scheme='dark'] .repository-start-card-description {
 
 .workflow-terminal-output .xterm-viewport {
   overflow-y: auto !important;
-  scrollbar-width: thin;
 }
 
-[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport,
-.workflow-terminal-output.is-light .xterm-viewport,
-[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder,
-[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap {
-  scrollbar-color: #ccc transparent;
-}
-
-[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport,
-.workflow-terminal-output.is-dark .xterm-viewport,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder,
-[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap {
-  scrollbar-color: #333 transparent;
-}
-
-.workflow-terminal-output .xterm-viewport::-webkit-scrollbar,
+/* Execution Pipeline, Logs Panel & Workflows Table Custom Scrollbars */
+.execution-panel-card ::-webkit-scrollbar,
+.execution-body-scroll::-webkit-scrollbar,
+.log-tabs ::-webkit-scrollbar,
 .log-tabs .ant-tabs-content-holder::-webkit-scrollbar,
-.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar,
+.log-tabs .ant-tabs-tabpane::-webkit-scrollbar,
+.log-sequence-scroll::-webkit-scrollbar,
+.workflows-table .ant-table-body::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar,
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
 }
 
-.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-track,
+.execution-panel-card ::-webkit-scrollbar-track,
+.execution-body-scroll::-webkit-scrollbar-track,
+.log-tabs ::-webkit-scrollbar-track,
 .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-track,
-.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-track {
-  background: transparent;
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-track,
+.log-tabs .ant-tabs-tabpane::-webkit-scrollbar-track,
+.log-sequence-scroll::-webkit-scrollbar-track,
+.workflows-table .ant-table-body::-webkit-scrollbar-track,
+.ant-table-body::-webkit-scrollbar-track,
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 
-.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.execution-panel-card ::-webkit-scrollbar-thumb,
+.execution-body-scroll::-webkit-scrollbar-thumb,
+.log-tabs ::-webkit-scrollbar-thumb,
 .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
-.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
-  border-radius: 4px;
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb,
+.log-tabs .ant-tabs-tabpane::-webkit-scrollbar-thumb,
+.log-sequence-scroll::-webkit-scrollbar-thumb,
+.workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+.ant-table-body::-webkit-scrollbar-thumb,
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb {
+  border-radius: 4px !important;
 }
 
-[data-color-scheme='light']
-  .workflow-terminal-output
-  .xterm-viewport::-webkit-scrollbar-thumb,
-.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb,
-[data-color-scheme='light']
-  .log-tabs
-  .ant-tabs-content-holder::-webkit-scrollbar-thumb,
-[data-color-scheme='light']
-  .log-tabs
-  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
-  background: #ccc;
+.execution-panel-card ::-webkit-scrollbar-button,
+.execution-body-scroll::-webkit-scrollbar-button,
+.log-tabs ::-webkit-scrollbar-button,
+.log-tabs .ant-tabs-content-holder::-webkit-scrollbar-button,
+.log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-button,
+.log-tabs .ant-tabs-tabpane::-webkit-scrollbar-button,
+.log-sequence-scroll::-webkit-scrollbar-button,
+.workflows-table .ant-table-body::-webkit-scrollbar-button,
+.ant-table-body::-webkit-scrollbar-button,
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
-[data-color-scheme='light']
-  .workflow-terminal-output
-  .xterm-viewport::-webkit-scrollbar-thumb:hover,
-.workflow-terminal-output.is-light
-  .xterm-viewport::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='light']
-  .log-tabs
-  .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='light']
-  .log-tabs
-  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
-  background: #b3b3b3;
+.execution-panel-card ::-webkit-scrollbar-corner,
+.execution-body-scroll::-webkit-scrollbar-corner,
+.log-tabs ::-webkit-scrollbar-corner,
+.log-sequence-scroll::-webkit-scrollbar-corner,
+.workflows-table .ant-table-body::-webkit-scrollbar-corner,
+.ant-table-body::-webkit-scrollbar-corner,
+.workflow-terminal-output .xterm-viewport::-webkit-scrollbar-corner {
+  background: transparent !important;
 }
 
-[data-color-scheme='dark']
-  .workflow-terminal-output
-  .xterm-viewport::-webkit-scrollbar-thumb,
-.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb,
-[data-color-scheme='dark']
-  .log-tabs
-  .ant-tabs-content-holder::-webkit-scrollbar-thumb,
-[data-color-scheme='dark']
-  .log-tabs
-  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb {
-  background: #333;
+[data-color-scheme='light'] .execution-panel-card ::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .execution-body-scroll::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs ::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-tabs .ant-tabs-tabpane::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .log-sequence-scroll::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #ccc !important;
 }
 
-[data-color-scheme='dark']
-  .workflow-terminal-output
-  .xterm-viewport::-webkit-scrollbar-thumb:hover,
-.workflow-terminal-output.is-dark
-  .xterm-viewport::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='dark']
-  .log-tabs
-  .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
-[data-color-scheme='dark']
-  .log-tabs
-  .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover {
-  background: #444;
+[data-color-scheme='light'] .execution-panel-card ::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .execution-body-scroll::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs ::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-tabs .ant-tabs-tabpane::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .log-sequence-scroll::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-light .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3 !important;
+}
+
+[data-color-scheme='dark'] .execution-panel-card ::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .execution-body-scroll::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs ::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-tabpane::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .log-sequence-scroll::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb,
+.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb {
+  background: #333 !important;
+}
+
+[data-color-scheme='dark'] .execution-panel-card ::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .execution-body-scroll::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs ::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-content-holder::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-nav-wrap::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-tabs .ant-tabs-tabpane::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .log-sequence-scroll::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .workflow-terminal-output .xterm-viewport::-webkit-scrollbar-thumb:hover,
+.workflow-terminal-output.is-dark .xterm-viewport::-webkit-scrollbar-thumb:hover {
+  background: #444 !important;
 }
 
 /* Xterm 6 custom scrollbar element */
@@ -1075,24 +1143,72 @@ html[data-color-scheme='dark'] .prune-dry-run-output pre {
   }
 }
 
+.workflows-table .ant-table,
+.workflows-table .ant-table-container,
+.workflows-table .ant-table-header,
+.workflows-table .ant-table-body,
+.workflows-table .ant-table-content,
+.ant-table,
+.ant-table *,
+.ant-table-wrapper,
+.ant-table-container,
+.ant-table-body,
+.ant-table-content {
+  scrollbar-width: auto !important;
+  scrollbar-color: auto !important;
+}
+
 .workflows-table .ant-table-body {
   overflow-x: hidden !important;
   overflow-y: auto !important;
-  scrollbar-color: #bfbfbf transparent;
-  scrollbar-width: thin;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar {
-  width: 6px;
+.workflows-table .ant-table-body::-webkit-scrollbar,
+.ant-table-body::-webkit-scrollbar {
+  width: 8px !important;
+  height: 8px !important;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar-track {
-  background: transparent;
+.workflows-table .ant-table-body::-webkit-scrollbar-track,
+.ant-table-body::-webkit-scrollbar-track {
+  background: transparent !important;
 }
 
-.workflows-table .ant-table-body::-webkit-scrollbar-thumb {
-  background: #bfbfbf;
-  border-radius: 6px;
+.workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+.ant-table-body::-webkit-scrollbar-thumb {
+  border-radius: 4px !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-button,
+.ant-table-body::-webkit-scrollbar-button {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.workflows-table .ant-table-body::-webkit-scrollbar-corner,
+.ant-table-body::-webkit-scrollbar-corner {
+  background: transparent !important;
+}
+
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb {
+  background: #ccc !important;
+}
+
+[data-color-scheme='light'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='light'] .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #b3b3b3 !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb {
+  background: #333 !important;
+}
+
+[data-color-scheme='dark'] .workflows-table .ant-table-body::-webkit-scrollbar-thumb:hover,
+[data-color-scheme='dark'] .ant-table-body::-webkit-scrollbar-thumb:hover {
+  background: #444 !important;
 }
 
 .execution-panel-splitter {

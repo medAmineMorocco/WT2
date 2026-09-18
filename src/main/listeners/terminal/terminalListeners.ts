@@ -103,6 +103,46 @@ ipcMain.on(
         },
       });
 
+      let termExited = false;
+      const rawTermResize = terminalProcess.resize?.bind(terminalProcess);
+      if (rawTermResize) {
+        terminalProcess.resize = (c: number, r: number) => {
+          if (termExited) return;
+          const agent = (terminalProcess as any)._agent;
+          if (agent && agent._exitCode !== undefined) return;
+          try {
+            rawTermResize(c, r);
+            if (Array.isArray((terminalProcess as any)._deferreds)) {
+              (terminalProcess as any)._deferreds = (
+                terminalProcess as any
+              )._deferreds.map((d: any) => {
+                if (d.__safeWrapped) return d;
+                const origRun = d.run;
+                return {
+                  __safeWrapped: true,
+                  run: () => {
+                    try {
+                      if (
+                        !termExited &&
+                        (!agent || agent._exitCode === undefined)
+                      ) {
+                        return origRun();
+                      }
+                    } catch (deferredErr: any) {
+                      log.warn(
+                        `Suppressed deferred terminal resize error: ${deferredErr?.message}`,
+                      );
+                    }
+                  },
+                };
+              });
+            }
+          } catch (err: any) {
+            log.warn(`Suppressed terminal resize error: ${err?.message}`);
+          }
+        };
+      }
+
       sessions.set(sessionId, {
         process: terminalProcess,
         ownerId: event.sender.id,
@@ -134,6 +174,10 @@ ipcMain.on(
         }
       });
       terminalProcess.onExit(({ exitCode }: { exitCode: number }) => {
+        termExited = true;
+        if (Array.isArray((terminalProcess as any)._deferreds)) {
+          (terminalProcess as any)._deferreds = [];
+        }
         sessions.delete(sessionId);
         if (!event.sender.isDestroyed()) {
           const binding = aiAgentSessionManager.getBinding(sessionId);
@@ -528,9 +572,17 @@ ipcMain.on(
     if (cols < 2 || rows < 1) return;
     try {
       aiAgentSessionManager.resize(sessionId, cols, rows);
-      ownedSession(sessionId, event.sender.id)?.process.resize(cols, rows);
-    } catch (error) {
-      log.warn(`Unable to resize terminal ${sessionId}: ${error}`);
+      const session = ownedSession(sessionId, event.sender.id);
+      if (session?.process) {
+        const agent = (session.process as any)._agent;
+        if (!agent || agent._exitCode === undefined) {
+          session.process.resize(cols, rows);
+        }
+      }
+    } catch (error: any) {
+      log.warn(
+        `Unable to resize terminal ${sessionId}: ${error?.message || error}`,
+      );
     }
   },
 );

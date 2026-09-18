@@ -511,30 +511,35 @@ export default async function playWorkflow(
   dir: string,
 ) {
   const worktreesRepository = (await worktreeMainService.findAll(dir)) as any;
-  const worktreesRepositoryNames = worktreesRepository.map(
+  const validWorktreesRepository = worktreesRepository.filter(
+    (worktree: any) => !worktree.prunable && worktree.directoryExists !== false,
+  );
+  const validWorktreesRepositoryNames = validWorktreesRepository.map(
     (worktree: any) => worktree.name,
   );
-  if (workflow.worktrees && workflow.worktrees.includes(undefined)) {
+
+  if (!workflow.worktrees || workflow.worktrees.length === 0) {
+    workflow.worktrees = validWorktreesRepository.map((w: any) => ({
+      label: w.name,
+      value: w.name,
+      path: w.path,
+    }));
+  } else {
+    // Filter out undefined or prunable worktrees
+    workflow.worktrees = workflow.worktrees.filter((w: any) => {
+      if (!w) return false;
+      const val = typeof w === 'object' ? w.value || w.name || w.label : w;
+      return validWorktreesRepositoryNames.includes(val);
+    });
+  }
+
+  if (workflow.worktrees.length === 0) {
     event.sender.send(
       'workflow-started-failed-worktree-not-found',
-      `Some selected worktrees have been deleted.Please update your selection.`,
+      `No active, non-prunable worktrees found to run workflow on.`,
     );
     event.sender.send('workflow-stopped');
     return;
-  }
-  const worktreesWorkflow = workflow.worktrees
-    .filter((worktree: any) => worktree.value)
-    .map((worktree: any) => worktree.value);
-  // eslint-disable-next-line no-restricted-syntax
-  for (const worktreesWorkflowElement of worktreesWorkflow) {
-    if (!worktreesRepositoryNames.includes(worktreesWorkflowElement)) {
-      event.sender.send(
-        'workflow-started-failed-worktree-not-found',
-        `Some selected worktrees have been deleted: ${worktreesWorkflowElement}.Please update your selection.`,
-      );
-      event.sender.send('workflow-stopped');
-      return;
-    }
   }
 
   const commands = [workflow.command, ...workflow.commands];

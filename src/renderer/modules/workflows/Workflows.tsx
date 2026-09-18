@@ -8,21 +8,28 @@ import React, {
 } from 'react';
 import {
   App as AntdApp,
-  Badge,
   Button,
-  Flex,
-  Radio,
   Select,
   Space,
   Table,
   theme,
   Tooltip,
   Spin,
+  Segmented,
+  Tag,
+  Typography,
+  Empty,
 } from 'antd';
 import {
   ExclamationCircleFilled,
   PlusOutlined,
   UploadOutlined,
+  ThunderboltOutlined,
+  ApartmentOutlined,
+  BranchesOutlined,
+  BarsOutlined,
+  PartitionOutlined,
+  SyncOutlined,
 } from '@ant-design/icons';
 import { useHotkeys } from 'react-hotkeys-hook';
 import {
@@ -34,6 +41,7 @@ import {
 } from 'hugeicons-react';
 import TabService from '../../services/tab/TabService';
 import { useItemsContext } from '../../TabsContext';
+import './Workflows.css';
 
 const { useToken } = theme;
 
@@ -41,7 +49,7 @@ const EditWorkflow = lazy(() => import('./EditWorkflow'));
 const AddWorkflow = lazy(() => import('./AddWorkflow'));
 const ImportWorkflow = lazy(() => import('./ImportWorkflow'));
 
-const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
+const Workflows = forwardRef<any, {}>((props, ref) => {
   const {
     token: {
       colorBgContainer,
@@ -123,8 +131,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
     const onWorktreesFound = (code: number, result: any) => {
       if (code === 0) {
+        const rawWorktrees = JSON.parse(result);
+        const validWorktrees = rawWorktrees.filter(
+          (item: any) => !item.prunable && item.directoryExists !== false,
+        );
         setWorktrees(
-          JSON.parse(result).map((item: any) => {
+          validWorktrees.map((item: any) => {
             return {
               label: item.name,
               value: item.name,
@@ -284,6 +296,12 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
       }
       if (!record.worktrees || record.worktrees.length === 0) {
         workflow.worktrees = worktrees;
+      } else {
+        workflow.worktrees = record.worktrees.filter((w: any) => {
+          const val =
+            typeof w === 'object' && w !== null ? w.value || w.name || w.label : w;
+          return worktrees.some((opt: any) => opt.value === val);
+        });
       }
       window.electron.ipcRenderer.send('play-workflow', workflow, tabRepoPath);
       setPlayingWorkflow(workflow.name);
@@ -326,254 +344,322 @@ const Workflows = forwardRef<HTMLDivElement, {}>((props, ref) => {
 
   const columns = [
     {
-      title: 'Name',
+      title: 'Workflow',
       dataIndex: 'name',
       key: 'name',
       sorter: (a: any, b: any) => a.name.localeCompare(b.name),
+      render: (name: string, record: any) => {
+        const isRunning = playingWorkflow === record.name;
+        const mainCmd =
+          typeof record?.command === 'object' && record?.command !== null
+            ? record.command.value
+            : typeof record?.command === 'string'
+              ? record.command
+              : '';
+        const totalSteps =
+          (mainCmd ? 1 : 0) +
+          (Array.isArray(record?.commands) ? record.commands.length : 0);
+
+        return (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className={`workflow-name-avatar ${isRunning ? 'running' : ''}`}>
+              {isRunning ? (
+                <SyncOutlined spin style={{ color: '#52c41a', fontSize: 16 }} />
+              ) : (
+                <ThunderboltOutlined style={{ color: colorPrimary, fontSize: 16 }} />
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Typography.Text strong style={{ fontSize: 13 }}>
+                  {name}
+                </Typography.Text>
+                {isRunning && (
+                  <Tag
+                    color="success"
+                    style={{
+                      margin: 0,
+                      fontSize: 10,
+                      lineHeight: '18px',
+                      padding: '0 6px',
+                      borderRadius: 10,
+                    }}
+                  >
+                    Running
+                  </Tag>
+                )}
+              </div>
+              <Typography.Text
+                type="secondary"
+                style={{
+                  fontSize: 11,
+                  fontFamily: 'monospace',
+                  maxWidth: 240,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {mainCmd || (totalSteps > 0 ? `${totalSteps} step(s)` : 'Workflow')}
+              </Typography.Text>
+            </div>
+          </div>
+        );
+      },
     },
     {
       title: 'Running Mode',
       dataIndex: 'mode',
       key: 'mode',
+      width: 220,
       render: (_: any, record: any) => (
-        <Radio.Group
-          defaultValue="sequential"
-          buttonStyle="solid"
+        <Segmented
+          value={record.mode || 'sequential'}
           size="small"
-          onChange={(e) => handleModeChange(e.target.value, record)}
-        >
-          <Radio.Button value="sequential">Sequential</Radio.Button>
-          <Radio.Button value="parallel">Parallel</Radio.Button>
-        </Radio.Group>
-      ),
-    },
-    {
-      title: 'Worktrees',
-      dataIndex: 'worktrees',
-      key: 'worktrees',
-      render: (_: any, record: any) => (
-        <Select
-          mode="multiple"
-          allowClear
-          style={{ width: '100%' }}
-          placeholder="Select worktrees"
-          defaultValue={[]}
-          onChange={(value) => handleWorktreesChange(value, record)}
-          options={worktrees}
-          size="small"
+          options={[
+            {
+              label: 'Sequential',
+              value: 'sequential',
+              icon: <BarsOutlined style={{ fontSize: 11 }} />,
+            },
+            {
+              label: 'Parallel',
+              value: 'parallel',
+              icon: <PartitionOutlined style={{ fontSize: 11 }} />,
+            },
+          ]}
+          onChange={(val) => handleModeChange(val, record)}
+          disabled={Boolean(playingWorkflow)}
+          className="workflow-mode-segmented"
         />
       ),
     },
     {
-      title: 'Action',
+      title: 'Target Worktrees',
+      dataIndex: 'worktrees',
+      key: 'worktrees',
+      render: (_: any, record: any) => {
+        const selectedValues = Array.isArray(record.worktrees)
+          ? record.worktrees
+              .map((w: any) =>
+                typeof w === 'object' && w !== null ? w.value : w,
+              )
+              .filter((val: string) =>
+                worktrees.some((opt: any) => opt.value === val),
+              )
+          : [];
+        return (
+          <Select
+            mode="multiple"
+            allowClear
+            maxTagCount="responsive"
+            style={{ width: '100%' }}
+            placeholder="All Worktrees (Default)"
+            value={selectedValues}
+            onChange={(value) => handleWorktreesChange(value, record)}
+            options={worktrees}
+            size="small"
+            disabled={Boolean(playingWorkflow)}
+          />
+        );
+      },
+    },
+    {
+      title: 'Actions',
       key: 'action',
-      render: (_: any, record: any) => (
-        <div style={{ display: 'flex', justifyContent: 'space-evenly' }}>
-          <Tooltip
-            placement="top"
-            title="Delete Workflow"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <Delete02Icon
-              size={16}
-              onClick={!playingWorkflow ? deleteWorkflow(record) : () => null}
-              style={{
-                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
-                color: !playingWorkflow ? colorError : colorTextDisabled,
-              }}
-              className={!playingWorkflow ? 'icon-action' : ''}
-            />
-          </Tooltip>
-          <Tooltip
-            placement="top"
-            title="Duplicate Workflow"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <Copy01Icon
-              size={16}
-              onClick={
-                !playingWorkflow ? duplicateWorkflow(record) : () => null
-              }
-              style={{
-                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
-                color: !playingWorkflow ? colorPrimary : colorTextDisabled,
-              }}
-              className={!playingWorkflow ? 'icon-action' : ''}
-            />
-          </Tooltip>
-          <Tooltip
-            placement="top"
-            title="Edit Workflow"
-            mouseEnterDelay={0}
-            mouseLeaveDelay={0}
-          >
-            <Edit02Icon
-              size={16}
-              onClick={!playingWorkflow ? showEditDrawer(record) : () => null}
-              style={{
-                cursor: !playingWorkflow ? 'pointer' : 'no-drop',
-                color: !playingWorkflow ? colorPrimary : colorTextDisabled,
-              }}
-              className={!playingWorkflow ? 'icon-action' : ''}
-            />
-          </Tooltip>
-          {playingWorkflow === record.name && (
-            <Tooltip
-              placement="top"
-              title="Stop Workflow"
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
-            >
-              <StopIcon
-                size={16}
+      width: 200,
+      align: 'right' as const,
+      render: (_: any, record: any) => {
+        const isRunning = playingWorkflow === record.name;
+        const isAnyRunning = Boolean(playingWorkflow);
+        return (
+          <div className="workflow-action-cell">
+            {isRunning ? (
+              <Button
+                danger
+                type="primary"
+                size="small"
+                icon={<StopIcon size={14} />}
                 onClick={stopWorkflow(record)}
-                className="icon-action"
-                style={{ cursor: 'pointer', color: colorPrimary }}
-              />
-            </Tooltip>
-          )}
-          {playingWorkflow !== record.name && (
-            <Tooltip
-              placement="top"
-              title="Play Workflow"
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
-            >
-              <PlayIcon
-                size={16}
-                onClick={
-                  !playingWorkflow || record.name === playingWorkflow
-                    ? playWorkflow(record)
-                    : () => null
-                }
-                className={!playingWorkflow ? 'icon-action' : ''}
-                style={{
-                  cursor:
-                    !playingWorkflow || record.name === playingWorkflow
-                      ? 'pointer'
-                      : 'no-drop',
-                  color: !playingWorkflow ? colorPrimary : colorTextDisabled,
-                }}
-              />
-            </Tooltip>
-          )}
-        </div>
-      ),
+                style={{ fontWeight: 500, borderRadius: 6 }}
+              >
+                Stop
+              </Button>
+            ) : (
+              <Button
+                type="primary"
+                size="small"
+                icon={<PlayIcon size={14} />}
+                onClick={playWorkflow(record)}
+                disabled={isAnyRunning}
+                className="workflow-run-btn"
+              >
+                Run
+              </Button>
+            )}
+
+            <div className="workflow-secondary-actions">
+              <Tooltip title="Duplicate workflow" mouseEnterDelay={0.2}>
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  icon={<Copy01Icon size={15} />}
+                  disabled={isAnyRunning}
+                  onClick={duplicateWorkflow(record)}
+                />
+              </Tooltip>
+              <Tooltip title="Edit workflow" mouseEnterDelay={0.2}>
+                <Button
+                  type="text"
+                  shape="circle"
+                  size="small"
+                  icon={<Edit02Icon size={15} />}
+                  disabled={isAnyRunning}
+                  onClick={showEditDrawer(record)}
+                />
+              </Tooltip>
+              <Tooltip title="Delete workflow" mouseEnterDelay={0.2}>
+                <Button
+                  type="text"
+                  danger
+                  shape="circle"
+                  size="small"
+                  icon={<Delete02Icon size={15} />}
+                  disabled={isAnyRunning}
+                  onClick={deleteWorkflow(record)}
+                />
+              </Tooltip>
+            </div>
+          </div>
+        );
+      },
     },
   ];
 
   return (
     <div
+      className="workflows-card-container"
       style={{
-        position: 'relative',
-        padding: 12,
-        height: 'calc(48.5vh - 20px)',
-        marginTop: '1vh',
         background: colorBgContainer,
-        borderRadius: borderRadiusLG,
         color: token.colorTextBase,
       }}
     >
-      <Flex gap="middle" vertical style={{ height: '100%' }}>
-        <div>
-          <Badge
-            count={workflows.length}
-            showZero
-            style={{ right: 0 }}
-            title="total"
-            color="#FAAD14"
+      <div className="workflows-header-row">
+        <div className="workflows-header-left">
+          <div className="workflows-title-wrap">
+            <ApartmentOutlined style={{ fontSize: 18, color: colorPrimary }} />
+            <Typography.Title level={4} style={{ margin: 0, fontWeight: 600 }}>
+              Workflows
+            </Typography.Title>
+            <Tag className="workflows-count-tag">
+              {workflows.length} configured
+            </Tag>
+          </div>
+          <Typography.Text type="secondary" className="workflows-subtitle">
+            Automate builds, tests, and task pipelines across your worktrees.
+          </Typography.Text>
+        </div>
+
+        <Space size={8}>
+          <Tooltip
+            placement="top"
+            title={
+              <Space>
+                <span>Import Workflows</span>
+                <small style={{ color: '#aaa' }}>Shift+I</small>
+              </Space>
+            }
           >
-            <strong>Workflows</strong>
-          </Badge>
-        </div>
-        <div>
-          <Space style={{ float: 'right' }}>
-            <Tooltip
-              placement="top"
-              title={
-                <Space>
-                  <span>Import Workflow</span>
-                  <small style={{ color: 'grey' }}>Shift+I</small>
-                </Space>
-              }
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
+            <Button
+              onClick={importWorkflow}
+              icon={<UploadOutlined />}
+              className="workflows-action-btn"
             >
-              <Button
-                onClick={importWorkflow}
-                type="primary"
-                icon={<UploadOutlined />}
-              >
-                Import
-              </Button>
-            </Tooltip>
-            <Tooltip
-              placement="top"
-              title={
-                <Space>
-                  <span>Add Workflow</span>
-                  <small style={{ color: 'grey' }}>Shift+A</small>
-                </Space>
-              }
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
+              Import
+            </Button>
+          </Tooltip>
+
+          <Tooltip
+            placement="top"
+            title={
+              <Space>
+                <span>New Workflow</span>
+                <small style={{ color: '#aaa' }}>Shift+A</small>
+              </Space>
+            }
+          >
+            <Button
+              ref={ref}
+              onClick={showDrawer}
+              type="primary"
+              icon={<PlusOutlined />}
+              className="workflows-action-btn-primary"
             >
-              <Button
-                ref={ref}
-                onClick={showDrawer}
-                type="primary"
-                icon={<PlusOutlined />}
-              >
-                Add
-              </Button>
-            </Tooltip>
-          </Space>
-          {openAdd && (
-            <Suspense fallback={<Spin size="large" />}>
-              <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
-            </Suspense>
-          )}
-          {openImport && (
-            <Suspense fallback={<Spin size="large" />}>
-              <ImportWorkflow
-                isOpen={openImport}
-                onConfirm={onConfirmImport}
-                onCancel={onCancelImport}
-                workflows={workflowsToImport}
-              />
-            </Suspense>
-          )}
-        </div>
-        {openEdit && (
-          <Suspense fallback={<Spin size="large" />}>
-            <EditWorkflow
-              openEdit={openEdit}
-              onCloseEdit={onCloseEdit}
-              workflow={workflowToEdit}
-            />
-          </Suspense>
-        )}
-        <div
-          style={{
-            flexGrow: 1,
-            flexShrink: 0,
-            height: 'calc(44.5vh - 12px - (22px + 16px + 32px + 16px))',
-          }}
-        >
-          <Table
-            key={uuid}
-            className="workflows-table"
-            columns={columns}
-            dataSource={workflows}
-            pagination={false}
-            scroll={{ y: 'calc(44.5vh -12px - (22px + 16px + 32px + 16px))' }}
-            bordered
-            size="middle"
+              New Workflow
+            </Button>
+          </Tooltip>
+        </Space>
+      </div>
+
+      {openAdd && (
+        <Suspense fallback={<Spin size="large" />}>
+          <AddWorkflow openAdd={openAdd} onCloseAdd={onCloseAdd} />
+        </Suspense>
+      )}
+      {openImport && (
+        <Suspense fallback={<Spin size="large" />}>
+          <ImportWorkflow
+            isOpen={openImport}
+            onConfirm={onConfirmImport}
+            onCancel={onCancelImport}
+            workflows={workflowsToImport}
           />
-        </div>
-      </Flex>
+        </Suspense>
+      )}
+      {openEdit && (
+        <Suspense fallback={<Spin size="large" />}>
+          <EditWorkflow
+            openEdit={openEdit}
+            onCloseEdit={onCloseEdit}
+            workflow={workflowToEdit}
+          />
+        </Suspense>
+      )}
+
+      <div className="workflows-table-wrap">
+        <Table
+          key={uuid}
+          className="workflows-table"
+          columns={columns}
+          dataSource={workflows}
+          pagination={false}
+          scroll={{ y: 'calc(44.5vh - 12px - 90px)' }}
+          size="middle"
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span style={{ color: '#8c8c8c' }}>
+                    No workflows configured for this repository yet.
+                  </span>
+                }
+              >
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<PlusOutlined />}
+                  onClick={showDrawer}
+                  style={{ borderRadius: 6 }}
+                >
+                  Create Workflow
+                </Button>
+              </Empty>
+            ),
+          }}
+        />
+      </div>
     </div>
   );
 });

@@ -1,17 +1,84 @@
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { theme, Space, Spin, Splitter, StepProps } from 'antd';
-import { FileOutlined, BlockOutlined } from '@ant-design/icons';
+import { theme, Spin, Splitter, StepProps, Typography } from 'antd';
+import {
+  FileOutlined,
+  BlockOutlined,
+  ApartmentOutlined,
+  BranchesOutlined,
+  CheckCircleOutlined,
+  SyncOutlined,
+} from '@ant-design/icons';
 import { motion } from 'framer-motion';
 import { useItemsContext } from '../../TabsContext';
+import './Execution.css';
 
 const Log = lazy(() => import('./Log'));
 const Visualization = lazy(() => import('./Visualization'));
-const LogIllustration = lazy(() => import('../../components/LogIllustration'));
-const VisualizationIllustration = lazy(
-  () => import('../../components/VisualizationIllustration'),
-);
 
 const { useToken } = theme;
+
+function ExecutionEmptyState() {
+  return (
+    <div className="execution-empty-container">
+      <div className="execution-pipeline-graphic">
+        <div className="pipeline-node">
+          <ApartmentOutlined />
+          <span>Stage 1</span>
+        </div>
+        <div className="pipeline-connector" />
+        <div className="pipeline-node">
+          <BranchesOutlined />
+          <span>Multi-Worktree</span>
+        </div>
+        <div className="pipeline-connector" />
+        <div className="pipeline-node">
+          <CheckCircleOutlined />
+          <span>Complete</span>
+        </div>
+      </div>
+      <Typography.Text className="execution-empty-title">
+        Execution Pipeline Idle
+      </Typography.Text>
+      <Typography.Text className="execution-empty-subtitle">
+        Trigger a workflow from the table below to monitor real-time command execution across worktrees.
+      </Typography.Text>
+      <div className="execution-pill-row">
+        <span className="execution-badge-pill">⚡ Sequential & Parallel</span>
+        <span className="execution-badge-pill">📁 Per-Worktree Progress</span>
+        <span className="execution-badge-pill">🔄 Live Step Status</span>
+      </div>
+    </div>
+  );
+}
+
+function LogEmptyState() {
+  return (
+    <div className="log-empty-wrapper">
+      <div className="log-terminal-body">
+        <div className="log-terminal-line">
+          <span className="log-prompt">$</span>
+          <span className="log-text-muted">worktreewise workflow --daemon</span>
+        </div>
+        <div className="log-terminal-line">
+          <span className="log-text-success">[ready]</span>
+          <span>Workflow runner daemon initialized (v1.0.0)</span>
+        </div>
+        <div className="log-terminal-line">
+          <span className="log-text-muted">[workspace]</span>
+          <span>Monitoring active worktrees for execution triggers</span>
+        </div>
+        <div className="log-terminal-line">
+          <span className="log-text-muted">[info]</span>
+          <span>Select a workflow below and click Run to stream real-time logs</span>
+        </div>
+        <div className="log-terminal-line" style={{ marginTop: 10 }}>
+          <span className="log-prompt">$</span>
+          <span className="log-cursor" />
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function Execution() {
   const {
@@ -66,35 +133,42 @@ export default function Execution() {
     <Splitter style={{ display: 'flex', gap: '8px' }}>
       <Splitter.Panel
         collapsible
-        className="execution-panel-splitter"
+        className="execution-panel-card"
         style={{
           flex: 1,
-          padding: 12,
           width: 0,
-          height: 'calc(48.5vh - 20px)',
           background: colorBgContainer,
           borderRadius: borderRadiusLG,
           color: token.colorTextBase,
         }}
       >
-        <Space>
-          <BlockOutlined />
-          <strong>Execution</strong>
-        </Space>
-        <div
-          style={{
-            height: '42vh',
-            overflowX: 'auto',
-            overflowY: 'auto',
-            position: 'relative',
-          }}
-        >
+        <div className="execution-panel-header">
+          <div className="execution-header-title">
+            <BlockOutlined style={{ color: token.colorPrimary }} />
+            <span>Execution Pipeline</span>
+          </div>
+          {isWorkflowStarted && (
+            <span
+              className="execution-status-tag"
+              style={{
+                background: 'rgba(82,196,26,0.1)',
+                color: '#52c41a',
+                border: '1px solid rgba(82,196,26,0.2)',
+              }}
+            >
+              <span className="execution-status-dot active" />
+              Running
+            </span>
+          )}
+        </div>
+
+        <div className="execution-body-scroll">
           {isWorkflowStarted !== null ? (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{
-                duration: 1,
+                duration: 0.5,
                 ease: 'easeInOut',
               }}
             >
@@ -106,67 +180,73 @@ export default function Execution() {
               </Suspense>
             </motion.div>
           ) : (
-            <div
+            <ExecutionEmptyState />
+          )}
+        </div>
+      </Splitter.Panel>
+
+      <Splitter.Panel
+        collapsible
+        className="execution-panel-card"
+        style={{
+          flex: 1,
+          width: 0,
+          background: colorBgContainer,
+          borderRadius: borderRadiusLG,
+          color: token.colorTextBase,
+          padding: '10px 14px',
+        }}
+      >
+        <div className="execution-panel-header">
+          <div className="terminal-dots-row">
+            <span className="terminal-dot close" />
+            <span className="terminal-dot minimize" />
+            <span className="terminal-dot maximize" />
+          </div>
+          <div
+            id="console-logs-header-actions"
+            style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+          >
+            {isWorkflowStarted && (
+              <span
+                className="execution-status-tag"
+                style={{
+                  background: 'rgba(24,144,255,0.1)',
+                  color: '#1890ff',
+                  border: '1px solid rgba(24,144,255,0.2)',
+                }}
+              >
+                <SyncOutlined spin style={{ fontSize: 10 }} />
+                Live Stream
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="execution-body-scroll">
+          {isWorkflowStarted !== null ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{
+                duration: 0.5,
+                ease: 'easeInOut',
+              }}
               style={{
                 display: 'flex',
-                justifyContent: 'center',
-                width: '100%',
+                flexDirection: 'column',
+                flex: 1,
                 height: '100%',
               }}
             >
               <Suspense fallback={<Spin size="large" />}>
-                <VisualizationIllustration />
+                <Log initialLogStates={initialLogStates} />
               </Suspense>
-            </div>
+            </motion.div>
+          ) : (
+            <LogEmptyState />
           )}
         </div>
-      </Splitter.Panel>
-      <Splitter.Panel
-        collapsible
-        className="execution-panel-splitter"
-        style={{
-          position: 'relative',
-          flex: 1,
-          padding: 12,
-          width: 0,
-          height: 'calc(48.5vh - 20px)',
-          background: colorBgContainer,
-          borderRadius: borderRadiusLG,
-          color: token.colorTextBase,
-        }}
-      >
-        <Space>
-          <FileOutlined />
-          <strong>Log</strong>
-        </Space>
-
-        {isWorkflowStarted !== null ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 1,
-              ease: 'easeInOut',
-            }}
-          >
-            <Suspense fallback={<Spin size="large" />}>
-              <Log initialLogStates={initialLogStates} />
-            </Suspense>
-          </motion.div>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-            }}
-          >
-            <Suspense fallback={<Spin size="large" />}>
-              <LogIllustration />
-            </Suspense>
-          </div>
-        )}
       </Splitter.Panel>
     </Splitter>
   );

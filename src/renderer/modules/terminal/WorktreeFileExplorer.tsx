@@ -277,12 +277,16 @@ export default function WorktreeFileExplorer({
   isDarkMode,
   children,
   headerAction,
+  collapsed: controlledCollapsed,
+  onToggleCollapse,
 }: {
   worktreePath: string;
   active: boolean;
   isDarkMode: boolean;
   children: React.ReactNode;
   headerAction?: React.ReactNode;
+  collapsed?: boolean;
+  onToggleCollapse?: () => void;
 }) {
   const [snapshot, setSnapshot] = useState<WorktreeFilesSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
@@ -510,8 +514,17 @@ export default function WorktreeFileExplorer({
     );
   };
 
+  const isCollapsed =
+    controlledCollapsed !== undefined ? controlledCollapsed : filesCollapsed;
+  const handleToggleCollapse =
+    onToggleCollapse || (() => setFilesCollapsed((current) => !current));
+
   return (
-    <div className={`worktree-file-layout${isDarkMode ? ' is-dark' : ''}${filesCollapsed ? ' is-files-collapsed' : ''}`}>
+    <div
+      className={`worktree-file-layout${isDarkMode ? ' is-dark' : ''}${
+        isCollapsed ? ' is-files-collapsed' : ''
+      }`}
+    >
       <aside className="worktree-file-explorer" aria-label="Worktree files">
         <header className="worktree-file-explorer-header">
           <div>
@@ -536,15 +549,15 @@ export default function WorktreeFileExplorer({
               onClick={() => load(true)}
             />
             {headerAction}
-            <Tooltip title={filesCollapsed ? 'Expand files' : 'Collapse files'}>
+            <Tooltip title={isCollapsed ? 'Expand files' : 'Collapse files'}>
               <Button
                 type="text"
                 size="small"
                 icon={
-                  filesCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
+                  isCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />
                 }
-                aria-label={filesCollapsed ? 'Expand files' : 'Collapse files'}
-                onClick={() => setFilesCollapsed((current) => !current)}
+                aria-label={isCollapsed ? 'Expand files' : 'Collapse files'}
+                onClick={handleToggleCollapse}
               />
             </Tooltip>
           </div>

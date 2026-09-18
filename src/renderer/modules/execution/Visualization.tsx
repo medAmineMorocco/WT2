@@ -70,36 +70,67 @@ export default function Visualization({
   }, []);
 
   return (
-    <ul style={{ paddingLeft: 0 }}>
-      {worktreesStates.map((item) => (
-        <li
-          key={item.title}
-          style={{
-            display: 'flex',
-            gap: '16px',
-            alignItems: 'center',
-            marginBottom: '24px',
-          }}
-        >
-          <Tag
-            bordered={false}
-            icon={config[item.status].icon}
-            color={item.status === 'wait' ? 'default' : item.status}
+    <div
+      style={{
+        display: 'grid',
+        gridTemplateColumns: 'max-content 1fr',
+        rowGap: '16px',
+        columnGap: '16px',
+        alignItems: 'center',
+        paddingLeft: 12,
+        paddingRight: 8,
+        margin: 0,
+        paddingTop: 6,
+      }}
+    >
+      {(worktreesStates || []).map((item) => (
+        <React.Fragment key={item.title}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              minWidth: 0,
+            }}
           >
-            {item.title}
-          </Tag>
-          <div style={{ flex: 1 }}>
+            <Tag
+              bordered={false}
+              icon={config[item.status]?.icon}
+              color={item.status === 'wait' ? 'default' : item.status}
+              style={{
+                margin: 0,
+                maxWidth: 180,
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+              title={item.title}
+            >
+              <span
+                style={{
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {item.title}
+              </span>
+            </Tag>
+          </div>
+          <div style={{ minWidth: 0, width: '100%' }}>
             <Steps
               className="steps-visualization"
-              status={config[item.status].status}
+              status={config[item.status]?.status}
               size="small"
               labelPlacement="vertical"
               current={item.current}
               items={commands}
             />
           </div>
-        </li>
+        </React.Fragment>
       ))}
-    </ul>
+    </div>
   );
 }
