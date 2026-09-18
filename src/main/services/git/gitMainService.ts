@@ -321,18 +321,44 @@ async function showDiff(
   });
 }
 
+let activeSshPrivateKey: string = '';
+let activeUseLocalAgent: boolean = false;
+let activeUseGitCredentialManager: boolean = true;
+
+function updateGitSshConfig(config: {
+  privateKeyPath?: string;
+  useLocalAgent?: boolean;
+  useGitCredentialManager?: boolean;
+}) {
+  if (config.privateKeyPath !== undefined) activeSshPrivateKey = config.privateKeyPath;
+  if (config.useLocalAgent !== undefined) activeUseLocalAgent = config.useLocalAgent;
+  if (config.useGitCredentialManager !== undefined)
+    activeUseGitCredentialManager = config.useGitCredentialManager;
+}
+
 async function runGit(
   directory: string,
   args: string[],
   env?: NodeJS.ProcessEnv,
 ): Promise<Buffer> {
   const gitCmd = await gitCommand();
+  const mergedEnv: NodeJS.ProcessEnv = {
+    ...(env || process.env),
+  };
+  if (!activeUseLocalAgent && activeSshPrivateKey) {
+    const normalizedPath = activeSshPrivateKey.replace(/\\/g, '/');
+    mergedEnv.GIT_SSH_COMMAND = `ssh -i "${normalizedPath}" -o IdentitiesOnly=yes`;
+  }
+  if (!activeUseGitCredentialManager) {
+    mergedEnv.GIT_TERMINAL_PROMPT = '0';
+  }
+
   return new Promise((resolve, reject) => {
     const child = spawn(gitCmd, args, {
       cwd: directory,
       shell: false,
       windowsHide: true,
-      env: env || process.env,
+      env: mergedEnv,
     });
     const stdout: Buffer[] = [];
     const stderr: Buffer[] = [];
@@ -1727,4 +1753,5 @@ export default {
   fetchRemote,
   setUpstream,
   getUpstream,
+  updateGitSshConfig,
 };

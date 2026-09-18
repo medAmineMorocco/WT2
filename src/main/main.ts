@@ -30,6 +30,7 @@ import './listeners/editors/editorsListeners';
 import './listeners/worktrees/worktreesListeners';
 import './listeners/branches/branchesListeners';
 import './listeners/git/gitListeners';
+import './listeners/ssh/sshListeners';
 import './listeners/terminal/terminalListeners';
 import './listeners/trial/trialListeners';
 import workflowsMainService from './services/workflows/workflowsMainService';

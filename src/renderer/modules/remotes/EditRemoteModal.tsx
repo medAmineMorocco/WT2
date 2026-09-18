@@ -7,7 +7,7 @@ import {
   Space,
   App as AntdApp,
 } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
+import { EditOutlined, SwapOutlined } from '@ant-design/icons';
 import { GitRemote } from '../../../shared/gitRemote';
 import './Remotes.css';
 
@@ -27,6 +27,20 @@ export default function EditRemoteModal({
   const { notification } = AntdApp.useApp();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const pullUrlValue = Form.useWatch('pullUrl', form) || '';
+
+  const isHttps = /^https?:\/\//i.test(pullUrlValue);
+  const isSsh = /^git@/i.test(pullUrlValue);
+
+  const convertToSsh = () => {
+    const converted = pullUrlValue.replace(/^https?:\/\/([^/]+)\/(.+)$/i, 'git@$1:$2');
+    form.setFieldsValue({ pullUrl: converted, pushUrl: converted });
+  };
+
+  const convertToHttps = () => {
+    const converted = pullUrlValue.replace(/^git@([^:]+):(.+)$/i, 'https://$1/$2');
+    form.setFieldsValue({ pullUrl: converted, pushUrl: converted });
+  };
 
   useEffect(() => {
     if (open && remote) {
@@ -116,6 +130,32 @@ export default function EditRemoteModal({
         >
           <Input placeholder="Pull URL" />
         </Form.Item>
+
+        {(isHttps || isSsh) && (
+          <div style={{ marginTop: -14, marginBottom: 14, textAlign: 'right' }}>
+            {isHttps ? (
+              <Button
+                type="link"
+                size="small"
+                icon={<SwapOutlined />}
+                onClick={convertToSsh}
+                style={{ padding: 0, fontSize: 12 }}
+              >
+                Switch to SSH (git@...)
+              </Button>
+            ) : (
+              <Button
+                type="link"
+                size="small"
+                icon={<SwapOutlined />}
+                onClick={convertToHttps}
+                style={{ padding: 0, fontSize: 12 }}
+              >
+                Switch to HTTPS (https://...)
+              </Button>
+            )}
+          </div>
+        )}
 
         <Form.Item label="Push URL" name="pushUrl">
           <Input placeholder="Push URL (optional)" />

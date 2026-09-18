@@ -7,10 +7,11 @@ import {
   NodeIndexOutlined,
   FontSizeOutlined,
   RobotOutlined,
+  LinkOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import React, { lazy, Suspense, useEffect, useState } from 'react';
-import { Tree02Icon } from 'hugeicons-react';
+import { Tree02Icon, SecurityCheckIcon } from 'hugeicons-react';
 
 const EditorSettings = lazy(() => import('./EditorSettings'));
 const CacheSettings = lazy(() => import('./CacheSettings'));
@@ -19,6 +20,8 @@ const ShellSettings = lazy(() => import('./ShellSettings'));
 const EncodingSettings = lazy(() => import('./EncodingSettings'));
 const WorktreeSettings = lazy(() => import('./WorktreeSettings'));
 const AiAgentSettings = lazy(() => import('./AiAgentSettings'));
+const IntegrationsSettings = lazy(() => import('./IntegrationsSettings'));
+const SshSettings = lazy(() => import('./SshSettings'));
 
 const { defaultAlgorithm, darkAlgorithm } = theme;
 
@@ -43,6 +46,16 @@ const itemsMenu: MenuProps['items'] = [
     key: '7',
     label: 'AI Agents',
     icon: <RobotOutlined />,
+  },
+  {
+    key: '8',
+    label: 'Integrations',
+    icon: <LinkOutlined />,
+  },
+  {
+    key: '9',
+    label: 'SSH',
+    icon: <SecurityCheckIcon size={17} />,
   },
   {
     key: '3',
@@ -105,6 +118,12 @@ export default function Settings() {
     }
     if (keyNavigation === '6') {
       return <CacheSettings />;
+    }
+    if (keyNavigation === '8') {
+      return <IntegrationsSettings />;
+    }
+    if (keyNavigation === '9') {
+      return <SshSettings />;
     }
     return <AiAgentSettings />;
   };

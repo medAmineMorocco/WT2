@@ -1,6 +1,16 @@
 import { ipcMain } from 'electron';
 import log from '../../utils/logger';
 import gitMainService from '../../services/git/gitMainService';
+import {
+  verifyIntegration,
+  VerifyIntegrationParams,
+  syncGitCredential,
+  removeGitCredential,
+} from '../../services/git/integrationsService';
+import {
+  SyncGitCredentialParams,
+  RemoveGitCredentialParams,
+} from '../../../shared/integrations';
 import BusinessError from '../../exceptions/BusinessError';
 import { WorkingTreeAction } from '../../../shared/workingTree';
 import {
@@ -536,5 +546,38 @@ ipcMain.handle(
 
 ipcMain.handle('get-upstream', async (_event, directory: string) =>
   gitMainService.getUpstream(directory),
+);
+
+ipcMain.handle(
+  'verify-integration',
+  async (_event, params: VerifyIntegrationParams) =>
+    verifyIntegration(params),
+);
+
+ipcMain.handle(
+  'sync-git-credential',
+  async (_event, params: SyncGitCredentialParams) =>
+    syncGitCredential(params),
+);
+
+ipcMain.handle(
+  'remove-git-credential',
+  async (_event, params: RemoveGitCredentialParams) =>
+    removeGitCredential(params),
+);
+
+ipcMain.handle(
+  'update-git-ssh-config',
+  async (
+    _event,
+    config: {
+      privateKeyPath?: string;
+      useLocalAgent?: boolean;
+      useGitCredentialManager?: boolean;
+    },
+  ) => {
+    gitMainService.updateGitSshConfig(config);
+    return { ok: true };
+  },
 );
 

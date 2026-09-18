@@ -9,6 +9,7 @@ import {
   Space,
   Alert,
   Spin,
+  Tag,
   App as AntdApp,
 } from 'antd';
 import {
@@ -16,8 +17,17 @@ import {
   BranchesOutlined,
   GlobalOutlined,
   InfoCircleOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
 import { GitRemote } from '../../../shared/gitRemote';
+import {
+  loadStoredIntegrations,
+  matchRemoteToIntegration,
+  IntegrationState,
+  IntegrationProviderId,
+} from '../../../shared/integrations';
+import { getProviderIcon } from '../settings/IntegrationsSettings';
 
 export default function SetupUpstreamModal({
   open,
@@ -33,8 +43,12 @@ export default function SetupUpstreamModal({
   onCompleted: () => void;
 }) {
   const { notification } = AntdApp.useApp();
+  const navigate = useNavigate();
   const [form] = Form.useForm();
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
+  const [integrations, setIntegrations] = useState<
+    Record<IntegrationProviderId, IntegrationState>
+  >(() => loadStoredIntegrations());
   const [loadingDetails, setLoadingDetails] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [pushMode, setPushMode] = useState(true);
@@ -46,6 +60,7 @@ export default function SetupUpstreamModal({
   useEffect(() => {
     if (!open || !worktreePath) return;
 
+    setIntegrations(loadStoredIntegrations());
     let isMounted = true;
     setLoadingDetails(true);
 
@@ -98,6 +113,12 @@ export default function SetupUpstreamModal({
   }, [open, worktreePath, repositoryPath, branchName, form, notification]);
 
   const selectedRemote = remotes.find((r) => r.name === selectedRemoteName);
+  const matchedIntegration = selectedRemote
+    ? matchRemoteToIntegration(
+        selectedRemote.fetchUrl || selectedRemote.pushUrl || '',
+        integrations,
+      )
+    : null;
 
   const remoteBranchOptions = (selectedRemote?.branches || []).map((b) => ({
     value: b,
@@ -180,7 +201,27 @@ export default function SetupUpstreamModal({
               type="warning"
               showIcon
               message="No remotes found"
-              description="No remote repositories are currently configured for this project. Please add a remote first in the REMOTE sidebar section."
+              description={
+                <div>
+                  <div>
+                    No remote repositories are currently configured for this project. Please add a remote first in the REMOTE sidebar section.
+                  </div>
+                  {Object.values(integrations).some((i) => i.connected) && (
+                    <div style={{ marginTop: 8 }}>
+                      <span style={{ fontSize: 12 }}>Connected integrations in Settings: </span>
+                      <Space size={4} wrap style={{ marginTop: 4 }}>
+                        {Object.values(integrations)
+                          .filter((i) => i.connected)
+                          .map((i) => (
+                            <Tag key={i.providerId} color="blue">
+                              {i.providerId} (@{i.username || 'connected'})
+                            </Tag>
+                          ))}
+                      </Space>
+                    </div>
+                  )}
+                </div>
+              }
               style={{ marginBottom: 16 }}
             />
           ) : (
@@ -191,17 +232,50 @@ export default function SetupUpstreamModal({
                 rules={[{ required: true, message: 'Please select a remote' }]}
               >
                 <Select
-                  options={remotes.map((r) => ({
-                    value: r.name,
-                    label: (
-                      <Space size={6}>
-                        <GlobalOutlined style={{ opacity: 0.65 }} />
-                        <span>
-                          <strong>{r.name}</strong> ({r.fetchUrl || r.pushUrl})
-                        </span>
-                      </Space>
-                    ),
-                  }))}
+                  options={remotes.map((r) => {
+                    const matched = matchRemoteToIntegration(
+                      r.fetchUrl || r.pushUrl || '',
+                      integrations,
+                    );
+                    return {
+                      value: r.name,
+                      label: (
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            gap: 8,
+                            width: '100%',
+                          }}
+                        >
+                          <Space size={6}>
+                            {matched ? (
+                              getProviderIcon(matched.def.id)
+                            ) : (
+                              <GlobalOutlined style={{ opacity: 0.65 }} />
+                            )}
+                            <span>
+                              <strong>{r.name}</strong> ({r.fetchUrl || r.pushUrl})
+                            </span>
+                          </Space>
+                          {matched?.state.connected && (
+                            <Tag
+                              color="green"
+                              style={{
+                                margin: 0,
+                                fontSize: 11,
+                                lineHeight: '18px',
+                                padding: '0 4px',
+                              }}
+                            >
+                              {matched.def.name} Linked
+                            </Tag>
+                          )}
+                        </div>
+                      ),
+                    };
+                  })}
                   onChange={(val) => {
                     setSelectedRemoteName(val);
                     if (!form.getFieldValue('remoteBranch')) {
@@ -210,6 +284,63 @@ export default function SetupUpstreamModal({
                   }}
                 />
               </Form.Item>
+
+              {matchedIntegration && (
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '8px 12px',
+                    borderRadius: 6,
+                    background: matchedIntegration.state.connected
+                      ? 'rgba(34, 197, 94, 0.08)'
+                      : 'rgba(239, 68, 68, 0.06)',
+                    border: matchedIntegration.state.connected
+                      ? '1px solid rgba(34, 197, 94, 0.3)'
+                      : '1px solid rgba(239, 68, 68, 0.25)',
+                    marginBottom: 16,
+                    fontSize: 12,
+                  }}
+                >
+                  <Space size={8}>
+                    {matchedIntegration.state.connected ? (
+                      <CheckCircleOutlined style={{ color: '#22c55e' }} />
+                    ) : (
+                      <InfoCircleOutlined style={{ color: '#ef4444' }} />
+                    )}
+                    <span>
+                      {matchedIntegration.state.connected ? (
+                        <>
+                          Linked with <strong>{matchedIntegration.def.name}</strong> integration
+                          {matchedIntegration.state.username ? ` (@${matchedIntegration.state.username})` : ''}
+                        </>
+                      ) : (
+                        <>
+                          <strong>{matchedIntegration.def.name}</strong> integration is not connected in Settings.
+                        </>
+                      )}
+                    </span>
+                  </Space>
+                  {matchedIntegration.state.connected ? (
+                    <Tag color="success" style={{ margin: 0 }}>
+                      Authenticated
+                    </Tag>
+                  ) : (
+                    <Button
+                      type="link"
+                      size="small"
+                      style={{ padding: 0, fontSize: 12 }}
+                      onClick={() => {
+                        onClose();
+                        navigate('/settings');
+                      }}
+                    >
+                      Configure in Settings
+                    </Button>
+                  )}
+                </div>
+              )}
 
               <Form.Item
                 label="Remote Branch"
