@@ -51,7 +51,10 @@ import './TerminalInteractive.css';
 type WorktreeOption = {
   name: string;
   path: string;
+  prunable?: boolean;
+  directoryExists?: boolean;
 };
+
 
 type TerminalDescriptor = WorktreeOption & {
   id: string;
@@ -1467,9 +1470,20 @@ export default function TerminalInteractive({
   onAgentActivity?: (activity: TerminalAgentActivity) => void;
   initialMode?: 'terminal' | 'agent';
 }) {
+  const availableWorktrees = useMemo(
+    () =>
+      worktrees.filter(
+        (worktree) => !worktree.prunable && worktree.directoryExists !== false,
+      ),
+    [worktrees],
+  );
+
   const initialWorktree = useMemo(
-    () => worktrees.find((worktree) => worktree.path === initialRepository),
-    [initialRepository, worktrees],
+    () =>
+      availableWorktrees.find(
+        (worktree) => worktree.path === initialRepository,
+      ) || worktrees.find((worktree) => worktree.path === initialRepository),
+    [availableWorktrees, initialRepository, worktrees],
   );
   const [terminals, setTerminals] = useState<TerminalDescriptor[]>(() => [
     {
@@ -1525,7 +1539,7 @@ export default function TerminalInteractive({
   }, [activeTerminalId, isModalOpen, terminals]);
 
   const addTerminal = (worktreePath: string) => {
-    const worktree = worktrees.find((item) => item.path === worktreePath);
+    const worktree = availableWorktrees.find((item) => item.path === worktreePath);
     if (!worktree) return;
     const terminal = { ...worktree, id: sessionId(), mode: initialMode };
     setTerminals((current) => [...current, terminal]);
@@ -1600,7 +1614,7 @@ export default function TerminalInteractive({
             value={null}
             placeholder="New terminal in worktree"
             suffixIcon={<PlusOutlined />}
-            options={worktrees.map((worktree) => ({
+            options={availableWorktrees.map((worktree) => ({
               label: worktree.name,
               value: worktree.path,
             }))}

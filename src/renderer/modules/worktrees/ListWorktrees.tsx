@@ -572,7 +572,7 @@ export default function ListWorktrees({
       },
       {
         key: 'rebase-worktree',
-        label: 'Rebase…',
+        label: 'Rebase',
         icon: <SyncOutlined />,
         disabled:
           !isHealthy ||
@@ -581,7 +581,7 @@ export default function ListWorktrees({
       },
       {
         key: 'merge-worktree',
-        label: 'Merge…',
+        label: 'Merge',
         icon: <BranchesOutlined />,
         disabled:
           !isHealthy ||
