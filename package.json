@@ -174,7 +174,8 @@
     "files": [
       "dist",
       "node_modules",
-      "package.json"
+      "package.json",
+      "!poc{,/**}"
     ],
     "afterSign": ".erb/scripts/notarize.js",
     "mac": {
