@@ -2,6 +2,7 @@ import {
   App as AntdApp,
   Button,
   Checkbox,
+  Dropdown,
   Form,
   Input,
   Modal,
@@ -14,12 +15,16 @@ import {
   Tree,
   Typography,
 } from 'antd';
+import type { MenuProps } from 'antd';
 import {
   BranchesOutlined,
   DatabaseOutlined,
   FolderOpenOutlined,
   FolderOutlined,
   InfoCircleOutlined,
+  CodeOutlined,
+  DownOutlined,
+  RobotOutlined,
   StepBackwardOutlined,
   StepForwardOutlined,
 } from '@ant-design/icons';
@@ -35,6 +40,14 @@ import {
   IsolationStrategy,
   SuggestedCommand,
 } from '../../../shared/environmentIsolation';
+import { aiAgentsDefault, AiAgentId } from '../../../shared/aiAgents';
+import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
+import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
+
+type CreateAndOpenAction =
+  | { type: 'terminal' }
+  | { type: 'editor'; editor: string }
+  | { type: 'agent'; agentId: AiAgentId };
 
 type SparseCheckoutFolder = {
   title: string;
@@ -72,9 +85,9 @@ function getMinimalSparseFolders(paths: string[]) {
   const selected = new Set(paths);
   return paths.filter((folderPath) => {
     const segments = folderPath.split('/');
-    return !segments.slice(0, -1).some((_, index) =>
-      selected.has(segments.slice(0, index + 1).join('/')),
-    );
+    return !segments
+      .slice(0, -1)
+      .some((_, index) => selected.has(segments.slice(0, index + 1).join('/')));
   });
 }
 
@@ -103,6 +116,10 @@ export default function AddWorktree({
   const [pathSeparator, setPathSeparator] = useState<string>('');
 
   const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
+  const [creationProgress, setCreationProgress] = useState(0);
+  const [creationProgressLabel, setCreationProgressLabel] = useState('');
+  const createAndOpenAction = useRef<CreateAndOpenAction | null>(null);
+  const createdWorktree = useRef<{ name: string; path: string } | null>(null);
 
   const [nodeModulesWorktrees, setNodeModulesWorktrees] = useState<
     Array<{ path: string; name: string; isPrimary: boolean }>
@@ -211,6 +228,47 @@ export default function AddWorktree({
       ? window.localStorage.getItem('worktreePrefix')
       : '{repo}__wt__{branch}';
 
+  const createAndOpenItems = useMemo<MenuProps['items']>(() => {
+    const storedEditors = window.localStorage.getItem('editors');
+    const editors = storedEditors ? JSON.parse(storedEditors) : editorsCst;
+    const storedAgents = window.localStorage.getItem('aiAgents');
+    const configuredAgents = storedAgents
+      ? JSON.parse(storedAgents)
+      : aiAgentsDefault;
+
+    return [
+      {
+        key: 'terminal',
+        label: 'Terminal',
+        icon: <CodeOutlined />,
+      },
+      {
+        key: 'editors',
+        label: 'Editor / IDE',
+        icon: <CodeOutlined />,
+        children: editors
+          .filter((editor: any) => editor.enabled)
+          .map((editor: any) => ({
+            key: `editor:${editor.name || editor.key}`,
+            label: editor.name || editor.label,
+            icon: editorIconsMap[editor.icon] || <CodeOutlined />,
+          })),
+      },
+      {
+        key: 'agents',
+        label: 'AI Agent',
+        icon: <RobotOutlined />,
+        children: configuredAgents
+          .filter((agent: any) => agent.enabled)
+          .map((agent: any) => ({
+            key: `agent:${agent.id}`,
+            label: agent.label,
+            icon: getAiAgentIcon(agent.id),
+          })),
+      },
+    ];
+  }, [isModalOpen]);
+
   useEffect(() => {
     const activeTabValue = TabService.getTab(activeTab);
     if (activeTabValue.worktreesPath) {
@@ -225,6 +283,19 @@ export default function AddWorktree({
         `onWorktreeCreated code: ${code} result: ${JSON.stringify(result)}`,
       );
       if (code === 0) {
+        setCreationProgress(100);
+        setCreationProgressLabel('Worktree ready');
+        const action = createAndOpenAction.current;
+        const worktree = createdWorktree.current;
+        if (action && worktree) {
+          window.dispatchEvent(
+            new CustomEvent('worktreewise:open-created-worktree', {
+              detail: { action, worktree },
+            }),
+          );
+        }
+        createAndOpenAction.current = null;
+        createdWorktree.current = null;
         form.setFieldValue('name', null);
         notification.success({
           message: 'Worktree Created',
@@ -236,6 +307,10 @@ export default function AddWorktree({
         window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
         handleCancel();
       } else {
+        setCreationProgress(0);
+        setCreationProgressLabel('');
+        createAndOpenAction.current = null;
+        createdWorktree.current = null;
         setLoadingCreateWorktree(false);
         notification.error({
           message: 'Unable to Create Worktree',
@@ -243,6 +318,13 @@ export default function AddWorktree({
           placement: 'bottomLeft',
         });
       }
+    };
+
+    const onWorktreeCreationProgress = (_key: string, label: string) => {
+      setCreationProgress((current) =>
+        Math.min(90, Math.max(15, current + 20)),
+      );
+      setCreationProgressLabel(label);
     };
 
     const onBranchesFound = (code: number, result: any) => {
@@ -424,6 +506,10 @@ export default function AddWorktree({
     };
 
     window.electron.ipcRenderer.on('worktree-created', onWorktreeCreated);
+    window.electron.ipcRenderer.on(
+      'worktree-creation-progress',
+      onWorktreeCreationProgress,
+    );
     window.electron.ipcRenderer.on('receive-branches', onBranchesFound);
     window.electron.ipcRenderer.on('receive-tags', onTagsFound);
     window.electron.ipcRenderer.on(
@@ -461,6 +547,9 @@ export default function AddWorktree({
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('worktree-created');
+      window.electron.ipcRenderer.removeAllListeners(
+        'worktree-creation-progress',
+      );
       window.electron.ipcRenderer.removeAllListeners('receive-branches');
       window.electron.ipcRenderer.removeAllListeners('receive-tags');
       window.electron.ipcRenderer.removeAllListeners('worktrees-folder-found');
@@ -591,11 +680,7 @@ export default function AddWorktree({
   }, [createWorktreeMode, watchedExistingBranch, watchedExistingTag]);
 
   useEffect(() => {
-    if (
-      !isModalOpen ||
-      checkoutScope !== 'selected' ||
-      !sparseCheckoutRef
-    ) {
+    if (!isModalOpen || checkoutScope !== 'selected' || !sparseCheckoutRef) {
       return undefined;
     }
     let cancelled = false;
@@ -750,6 +835,13 @@ export default function AddWorktree({
       return;
     }
 
+    createdWorktree.current = {
+      name: worktreeName.replaceAll('.', '-'),
+      path: worktreesFolder + pathSeparator + getWorktreeName(),
+    };
+    setCreationProgress(8);
+    setCreationProgressLabel('Preparing worktree');
+
     if (
       !environmentIsolation &&
       !isNotBlank(values.preHook) &&
@@ -770,6 +862,15 @@ export default function AddWorktree({
         selectedCheckoutFolders,
       );
     } else {
+      if (createAndOpenAction.current) {
+        notification.info({
+          message: 'Open after workflow completes',
+          description:
+            'Finish the creation workflow, then use its worktree action to open the selected tool.',
+          placement: 'bottomLeft',
+        });
+        createAndOpenAction.current = null;
+      }
       log.debug('== create-worktree-workflow ==');
       window.electron.ipcRenderer.send(
         'create-worktree-workflow',
@@ -1456,19 +1557,83 @@ export default function AddWorktree({
           )}
         </div>
         <Form.Item style={{ flex: 'none', marginBottom: 0, paddingTop: 10 }}>
-          <Button
-            type="primary"
-            htmlType="submit"
-            style={{ width: '100%' }}
-            loading={loadingCreateWorktree}
-            disabled={
-              isolateEnvironment &&
-              (selectedEnvironmentSourceIds.length === 0 ||
-                loadingEnvironmentPreview)
-            }
-          >
-            Create Worktree
-          </Button>
+          {loadingCreateWorktree && (
+            <div style={{ marginBottom: 10 }} aria-live="polite">
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <Typography.Text>{creationProgressLabel}</Typography.Text>
+                <Typography.Text type="secondary">
+                  {creationProgress}%
+                </Typography.Text>
+              </div>
+              <Progress
+                percent={creationProgress}
+                showInfo={false}
+                status={creationProgress === 100 ? 'success' : 'active'}
+              />
+            </div>
+          )}
+          <div style={{ display: 'flex', width: '100%', gap: 12 }}>
+            <Button
+              type="primary"
+              htmlType="submit"
+              icon={<BranchesOutlined />}
+              size="large"
+              style={{ flex: 1, height: 44, fontWeight: 500 }}
+              loading={loadingCreateWorktree}
+              onClick={() => {
+                createAndOpenAction.current = null;
+              }}
+              disabled={
+                isolateEnvironment &&
+                (selectedEnvironmentSourceIds.length === 0 ||
+                  loadingEnvironmentPreview)
+              }
+            >
+              Create Worktree
+            </Button>
+            <div style={{ flex: 1 }}>
+              <Dropdown
+                trigger={['click']}
+                menu={{
+                  items: createAndOpenItems,
+                  onClick: ({ key }) => {
+                    if (key === 'terminal') {
+                      createAndOpenAction.current = { type: 'terminal' };
+                    } else if (key.startsWith('editor:')) {
+                      createAndOpenAction.current = {
+                        type: 'editor',
+                        editor: key.slice('editor:'.length),
+                      };
+                    } else if (key.startsWith('agent:')) {
+                      createAndOpenAction.current = {
+                        type: 'agent',
+                        agentId: key.slice('agent:'.length) as AiAgentId,
+                      };
+                    } else {
+                      return;
+                    }
+                    form.submit();
+                  },
+                }}
+                placement="topRight"
+              >
+                <Button
+                  size="large"
+                  aria-label="Create worktree and open with"
+                  loading={loadingCreateWorktree}
+                  disabled={
+                    isolateEnvironment &&
+                    (selectedEnvironmentSourceIds.length === 0 ||
+                      loadingEnvironmentPreview)
+                  }
+                  style={{ width: '100%', height: 44, fontWeight: 500 }}
+                >
+                  <span>Create &amp; Open</span>
+                  <DownOutlined style={{ fontSize: 12 }} />
+                </Button>
+              </Dropdown>
+            </div>
+          </div>
         </Form.Item>
       </Form>
     </Modal>

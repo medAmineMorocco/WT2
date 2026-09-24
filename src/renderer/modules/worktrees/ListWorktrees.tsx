@@ -57,6 +57,7 @@ import { useItemsContext } from '../../TabsContext';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
 import { WorktreeMergeResult } from '../../../shared/worktreeMerge';
+import { AiAgentId } from '../../../shared/aiAgents';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -107,7 +108,9 @@ export default function ListWorktrees({
 
   const [worktrees, setWorktrees] = useState([]);
   const [worktreesActiveKey, setWorktreesActiveKey] = useState<string[]>(['1']);
-  const [remotesActiveKey, setRemotesActiveKey] = useState<string[]>(['remotes']);
+  const [remotesActiveKey, setRemotesActiveKey] = useState<string[]>([
+    'remotes',
+  ]);
 
   const isWorktreesExpanded = worktreesActiveKey.includes('1');
   const isRemotesExpanded = remotesActiveKey.includes('remotes');
@@ -119,6 +122,8 @@ export default function ListWorktrees({
   const [terminalInitialMode, setTerminalInitialMode] = useState<
     'terminal' | 'agent'
   >('terminal');
+  const [terminalInitialAgentId, setTerminalInitialAgentId] =
+    useState<AiAgentId>();
 
   const [activeAgentsByWorktree, setActiveAgentsByWorktree] = useState<
     Record<string, Record<string, ActiveAgent>>
@@ -204,6 +209,35 @@ export default function ListWorktrees({
       });
     setEnabledEditors(enabledEditorsReceived);
   }, []);
+
+  useEffect(() => {
+    const openCreatedWorktree = (event: Event) => {
+      const { action, worktree } = (event as CustomEvent).detail || {};
+      if (!action || !worktree?.path) return;
+      if (action.type === 'editor') {
+        window.electron.ipcRenderer.send(
+          'open-editor',
+          action.editor,
+          worktree.path,
+          tabRepoPath,
+        );
+        return;
+      }
+      setRepositoryInTerminal(worktree.path);
+      setTerminalInitialMode(action.type === 'agent' ? 'agent' : 'terminal');
+      setTerminalInitialAgentId(action.agentId);
+      setOpenTerminalModal(true);
+    };
+    window.addEventListener(
+      'worktreewise:open-created-worktree',
+      openCreatedWorktree,
+    );
+    return () =>
+      window.removeEventListener(
+        'worktreewise:open-created-worktree',
+        openCreatedWorktree,
+      );
+  }, [tabRepoPath]);
 
   useEffect(() => {
     window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
@@ -684,6 +718,7 @@ export default function ListWorktrees({
   const closeTerminalModal = () => {
     setRepositoryInTerminal(null);
     setTerminalInitialMode('terminal');
+    setTerminalInitialAgentId(undefined);
     setOpenTerminalModal(false);
   };
 
@@ -926,453 +961,487 @@ export default function ListWorktrees({
                 style={{ marginRight: '6px' }}
                 onClick={(e) => e.stopPropagation()}
               >
-            {!refreshLoading ? (
-              <Tooltip
-                title={
-                  <Space>
-                    <span>Refresh Worktrees</span>
-                    <small style={{ color: 'grey' }}>Shift+R</small>
-                  </Space>
-                }
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <SyncOutlined
-                  className="icon-action"
-                  style={{ cursor: 'pointer' }}
-                  onClick={onClickRefresh}
-                />
-              </Tooltip>
-            ) : (
-              <LoadingOutlined />
-            )}
-            {!pruneLoading && !prunePreviewLoading ? (
-              <Tooltip
-                title={
-                  <Space>
-                    <span>Prune Worktrees</span>
-                    <small style={{ color: 'grey' }}>Shift+P</small>
-                  </Space>
-                }
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <ClearOutlined
-                  className="icon-action"
-                  style={{ cursor: 'pointer' }}
-                  onClick={onClickPrune}
-                />
-              </Tooltip>
-            ) : (
-              <LoadingOutlined />
-            )}
-            <Tooltip
-              title={
-                <Space>
-                  <span>Add New Worktree</span>
-                  <small style={{ color: 'grey' }}>Shift+W</small>
-                </Space>
-              }
-              mouseEnterDelay={0}
-              mouseLeaveDelay={0}
-            >
-              <Button
-                type="primary"
-                size="small"
-                disabled={isWorkflowPlaying}
-                onClick={showModal}
-                ref={ref}
-                icon={<SisternodeOutlined />}
-              />
-            </Tooltip>
-          </Space>
-        }
-        header={
-          <Space size={6} className="worktrees-header-title">
-            <strong className="worktrees-title-text">WORKTREES</strong>
-            {worktrees.length > 0 && (
-              <span className="worktrees-count-badge">{worktrees.length}</span>
-            )}
-          </Space>
-        }
-        className="worktrees-panel-header"
-        key="1"
-      >
-        {contextHolder}
-        <Modal
-          className="prune-review-modal"
-          width={620}
-          title={
-            <div className="prune-review-title">
-              <span className="prune-review-title-icon">
-                <WarningOutlined />
-              </span>
-              <span>
-                <strong>Review Damaged Worktrees</strong>
-                <small>
-                  {prunePreview.worktrees.length}{' '}
-                  {prunePreview.worktrees.length === 1
-                    ? 'worktree requires attention'
-                    : 'worktrees require attention'}
-                </small>
-              </span>
-            </div>
-          }
-          open={pruneModalOpen}
-          onCancel={() => {
-            if (!pruneLoading) setPruneModalOpen(false);
-          }}
-          cancelText="Cancel"
-          okText={'Prune Worktrees'}
-          okButtonProps={{
-            danger: true,
-            disabled: selectedPrunePaths.length === 0,
-            loading: pruneLoading,
-          }}
-          onOk={confirmPrune}
-          centered
-        >
-          {prunePreview.worktrees.length > 0 ? (
-            <>
-              <div className="prune-selection-toolbar">
-                <Checkbox
-                  checked={
-                    selectedPrunePaths.length === prunePreview.worktrees.length
-                  }
-                  indeterminate={
-                    selectedPrunePaths.length > 0 &&
-                    selectedPrunePaths.length < prunePreview.worktrees.length
-                  }
-                  onChange={(event) =>
-                    setSelectedPrunePaths(
-                      event.target.checked
-                        ? prunePreview.worktrees.map((item) => item.path)
-                        : [],
-                    )
-                  }
-                >
-                  Select all
-                </Checkbox>
-                <Typography.Text type="secondary">
-                  {selectedPrunePaths.length} selected
-                </Typography.Text>
-              </div>
-              <div className="prune-worktree-list">
-                {prunePreview.worktrees.map((worktree) => {
-                  const selected = selectedPrunePaths.includes(worktree.path);
-                  return (
-                    <div
-                      className={`prune-worktree-item ${selected ? 'selected' : ''}`}
-                      key={worktree.path}
-                      role="checkbox"
-                      aria-checked={selected}
-                      tabIndex={0}
-                      onClick={() =>
-                        setSelectedPrunePaths((current) =>
-                          selected
-                            ? current.filter((item) => item !== worktree.path)
-                            : [...current, worktree.path],
-                        )
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          setSelectedPrunePaths((current) =>
-                            selected
-                              ? current.filter((item) => item !== worktree.path)
-                              : [...current, worktree.path],
-                          );
-                        }
-                      }}
-                    >
-                      <Checkbox checked={selected} tabIndex={-1} />
-                      <div>
-                        <Typography.Text strong className="prune-worktree-name">
-                          {worktree.name || worktree.resolvedName}
-                        </Typography.Text>
-                        <div className="prune-worktree-detail">
-                          <span>Path</span>
-                          <Typography.Text ellipsis title={worktree.path}>
-                            {worktree.path}
-                          </Typography.Text>
-                        </div>
-                        <div className="prune-worktree-detail reason">
-                          <span>Issue</span>
-                          <Typography.Text>
-                            {worktree.pruneReason ||
-                              'Git marked this worktree as prunable.'}
-                          </Typography.Text>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          ) : (
-            <div className="prune-worktree-empty">
-              <ClearOutlined />
-              <Typography.Text>No damaged worktrees found.</Typography.Text>
-            </div>
-          )}
-          {prunePreview.output && (
-            <details className="prune-dry-run-output">
-              <summary>Git dry-run output</summary>
-              <pre>{prunePreview.output}</pre>
-            </details>
-          )}
-        </Modal>
-        <div className="worktrees-list-scrollable">
-          <ul style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}>
-          {worktrees.map((worktree: any) => (
-            <li
-              key={worktree.name}
-              className={!isDarkMode ? 'worktree-item' : 'worktree-item-dark'}
-              style={{
-                color: token.colorTextBase,
-              }}
-            >
-              <Space
-                className="worktree-container"
-                style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
-              >
-                {/* eslint-disable-next-line no-nested-ternary */}
-                {worktree.isLocked ? (
+                {!refreshLoading ? (
                   <Tooltip
                     title={
-                      worktree.lockReason
-                        ? `Lock reason: ${worktree.lockReason}`
-                        : 'Worktree is locked'
+                      <Space>
+                        <span>Refresh Worktrees</span>
+                        <small style={{ color: 'grey' }}>Shift+R</small>
+                      </Space>
                     }
-                    placement="right"
                     mouseEnterDelay={0}
                     mouseLeaveDelay={0}
                   >
-                    <LockOutlined style={{ color: token.colorWarning }} />
-                  </Tooltip>
-                ) : worktree.prunable ? (
-                  <Tooltip
-                    title="Gitdir file points to non-existent location"
-                    placement="right"
-                    mouseEnterDelay={0}
-                    mouseLeaveDelay={0}
-                  >
-                    <CloseOutlined style={{ color: token.colorError }} />
+                    <SyncOutlined
+                      className="icon-action"
+                      style={{ cursor: 'pointer' }}
+                      onClick={onClickRefresh}
+                    />
                   </Tooltip>
                 ) : (
-                  <Tree02Icon size={18} />
+                  <LoadingOutlined />
                 )}
-                <span
-                  style={{ color: worktree.prunable ? token.colorError : '' }}
-                >
+                {!pruneLoading && !prunePreviewLoading ? (
                   <Tooltip
-                    title={worktree.name}
-                    placement="right"
+                    title={
+                      <Space>
+                        <span>Prune Worktrees</span>
+                        <small style={{ color: 'grey' }}>Shift+P</small>
+                      </Space>
+                    }
                     mouseEnterDelay={0}
                     mouseLeaveDelay={0}
                   >
-                    {worktree.name}
+                    <ClearOutlined
+                      className="icon-action"
+                      style={{ cursor: 'pointer' }}
+                      onClick={onClickPrune}
+                    />
                   </Tooltip>
-                </span>
-                {Object.values(
-                  activeAgentsByWorktree[worktreeActivityKey(worktree.path)] ||
-                    {},
-                ).length > 0 && (
-                  <span
-                    className="worktree-agent-status"
-                    aria-label="Active AI agents"
-                  >
-                    {Object.entries(
-                      activeAgentsByWorktree[
-                        worktreeActivityKey(worktree.path)
-                      ] || {},
-                    ).map(([terminalId, agent]) => (
-                      <Tooltip
-                        title={`${agent.label} is working`}
-                        key={terminalId}
-                      >
-                        <Avatar
-                          size={18}
-                          className="agent-working-icon"
-                          style={{
-                            backgroundColor: 'transparent',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}
-                        >
-                          {getAiAgentIcon(agent.id, 18)}
-                        </Avatar>
-                      </Tooltip>
-                    ))}
-                  </span>
+                ) : (
+                  <LoadingOutlined />
                 )}
-              </Space>
-              <Dropdown
-                menu={{
-                  items: getWorktreeMenuItems(worktree),
-                  onClick: handleWorktreeMenuClick(worktree),
-                }}
-                trigger={['click']}
-                placement="bottomRight"
-              >
                 <Tooltip
-                  title="actions"
-                  placement="right"
+                  title={
+                    <Space>
+                      <span>Add New Worktree</span>
+                      <small style={{ color: 'grey' }}>Shift+W</small>
+                    </Space>
+                  }
                   mouseEnterDelay={0}
                   mouseLeaveDelay={0}
                 >
-                  <MoreOutlined
-                    style={{ cursor: 'pointer', padding: '2px 4px' }}
+                  <Button
+                    type="primary"
+                    size="small"
+                    disabled={isWorkflowPlaying}
+                    onClick={showModal}
+                    ref={ref}
+                    icon={<SisternodeOutlined />}
                   />
                 </Tooltip>
-              </Dropdown>
-            </li>
-          ))}
-          </ul>
-        </div>
-        {openTerminalModal && (
-          <Suspense fallback={<Spin size="large" />}>
-            <TerminalInteractive
-              isModalOpen={openTerminalModal}
-              initialRepository={repositoryInTerminal}
-              worktrees={worktrees}
-              handleCancel={closeTerminalModal}
-              isDarkMode={isDarkMode}
-              onAgentActivity={onTerminalAgentActivity}
-              initialMode={terminalInitialMode}
-            />
-          </Suspense>
-        )}
-        {isModalOpen && (
-          <Suspense fallback={<Spin size="large" />}>
-            <RenameWorktree
-              isModalOpen={isModalOpen}
-              form={form}
-              onFinish={onFinish}
-              handleCancel={handleCancel}
-              loading={loadingRenameWorktree}
-            />
-          </Suspense>
-        )}
-        {isLockModalOpen && (
-          <Suspense fallback={<Spin size="large" />}>
-            <LockWorktree
-              isModalOpen={isLockModalOpen}
-              form={form}
-              onFinish={lockWorktree}
-              handleCancel={() => {
-                setIsLockModalOpen(false);
-                form.setFieldValue('lockReason', '');
+              </Space>
+            }
+            header={
+              <Space size={6} className="worktrees-header-title">
+                <strong className="worktrees-title-text">WORKTREES</strong>
+                {worktrees.length > 0 && (
+                  <span className="worktrees-count-badge">
+                    {worktrees.length}
+                  </span>
+                )}
+              </Space>
+            }
+            className="worktrees-panel-header"
+            key="1"
+          >
+            {contextHolder}
+            <Modal
+              className="prune-review-modal"
+              width={620}
+              title={
+                <div className="prune-review-title">
+                  <span className="prune-review-title-icon">
+                    <WarningOutlined />
+                  </span>
+                  <span>
+                    <strong>Review Damaged Worktrees</strong>
+                    <small>
+                      {prunePreview.worktrees.length}{' '}
+                      {prunePreview.worktrees.length === 1
+                        ? 'worktree requires attention'
+                        : 'worktrees require attention'}
+                    </small>
+                  </span>
+                </div>
+              }
+              open={pruneModalOpen}
+              onCancel={() => {
+                if (!pruneLoading) setPruneModalOpen(false);
               }}
-              loading={loadingLockWorktree}
-            />
-          </Suspense>
-        )}
-        {isMoveModalOpen && (
-          <Suspense fallback={<Spin size="large" />}>
-            <MoveWorktree
-              isModalOpen={isMoveModalOpen}
-              form={form}
-              onFinish={onFinishMoveWorktree}
-              handleCancel={handleCancelMoveWorktree}
-              loading={loadingMoveWorktree}
-            />
-          </Suspense>
-        )}
-        {isChangePatternModalOpen && (
-          <Suspense fallback={<Spin size="large" />}>
-            <ChangePatternWorktree
-              isModalOpen={isChangePatternModalOpen}
-              form={form}
-              onFinish={onFinishChangePatternWorktree}
-              handleCancel={handleCancelChangePatternWorktree}
-              loading={loadingChangePatternWorktree}
-            />
-          </Suspense>
-        )}
-        {configWorktree && (
-          <Suspense fallback={<Spin size="large" />}>
-            <WorktreeGitConfig
-              open={Boolean(configWorktree)}
-              worktreeName={configWorktree.name}
-              worktreePath={configWorktree.path}
-              onClose={closeWorktreeGitConfig}
-              onSaved={handleWorktreeGitConfigSaved}
-            />
-          </Suspense>
-        )}
-        {rebaseSourceWorktree && (
-          <Suspense fallback={<Spin size="large" />}>
-            <RebaseWorktree
-              open={Boolean(rebaseSourceWorktree)}
-              repositoryPath={tabRepoPath}
-              worktrees={worktrees}
-              initialSourcePath={rebaseSourceWorktree.path}
-              onClose={() => setRebaseSourceWorktree(null)}
-              onCompleted={(
-                result: Extract<WorktreeRebaseResult, { ok: true }>,
-              ) => {
-                setRebaseSourceWorktree(null);
-                api.success({
-                  message: 'Rebase Completed',
-                  description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
-                  placement: 'bottomLeft',
-                  duration: 3,
-                });
-                window.electron.ipcRenderer.send(
-                  'show-git-log',
-                  tabRepoPath,
-                  null,
-                );
-                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
+              cancelText="Cancel"
+              okText={'Prune Worktrees'}
+              okButtonProps={{
+                danger: true,
+                disabled: selectedPrunePaths.length === 0,
+                loading: pruneLoading,
               }}
-            />
-          </Suspense>
-        )}
-        {mergeTargetWorktree && (
-          <Suspense fallback={<Spin size="large" />}>
-            <MergeWorktree
-              open={Boolean(mergeTargetWorktree)}
-              repositoryPath={tabRepoPath}
-              worktrees={worktrees}
-              initialTargetPath={mergeTargetWorktree.path}
-              onClose={() => setMergeTargetWorktree(null)}
-              onCompleted={(
-                result: Extract<WorktreeMergeResult, { ok: true }>,
-              ) => {
-                setMergeTargetWorktree(null);
-                api.success({
-                  message: 'Merge Completed',
-                  description: `${result.sourceBranch} was merged into ${result.targetBranch}.`,
-                  placement: 'bottomLeft',
-                  duration: 3,
-                });
-                window.electron.ipcRenderer.send(
-                  'show-git-log',
-                  tabRepoPath,
-                  null,
-                );
-                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
-              }}
-            />
-          </Suspense>
-        )}
-        {upstreamWorktree && (
-          <Suspense fallback={<Spin size="large" />}>
-            <SetupUpstreamModal
-              open={Boolean(upstreamWorktree)}
-              worktree={upstreamWorktree}
-              repositoryPath={tabRepoPath}
-              onClose={() => setUpstreamWorktree(null)}
-              onCompleted={() => {
-                setUpstreamWorktree(null);
-                window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
-                window.electron.ipcRenderer.send('show-git-log', tabRepoPath, null);
-              }}
-            />
-          </Suspense>
-        )}
+              onOk={confirmPrune}
+              centered
+            >
+              {prunePreview.worktrees.length > 0 ? (
+                <>
+                  <div className="prune-selection-toolbar">
+                    <Checkbox
+                      checked={
+                        selectedPrunePaths.length ===
+                        prunePreview.worktrees.length
+                      }
+                      indeterminate={
+                        selectedPrunePaths.length > 0 &&
+                        selectedPrunePaths.length <
+                          prunePreview.worktrees.length
+                      }
+                      onChange={(event) =>
+                        setSelectedPrunePaths(
+                          event.target.checked
+                            ? prunePreview.worktrees.map((item) => item.path)
+                            : [],
+                        )
+                      }
+                    >
+                      Select all
+                    </Checkbox>
+                    <Typography.Text type="secondary">
+                      {selectedPrunePaths.length} selected
+                    </Typography.Text>
+                  </div>
+                  <div className="prune-worktree-list">
+                    {prunePreview.worktrees.map((worktree) => {
+                      const selected = selectedPrunePaths.includes(
+                        worktree.path,
+                      );
+                      return (
+                        <div
+                          className={`prune-worktree-item ${selected ? 'selected' : ''}`}
+                          key={worktree.path}
+                          role="checkbox"
+                          aria-checked={selected}
+                          tabIndex={0}
+                          onClick={() =>
+                            setSelectedPrunePaths((current) =>
+                              selected
+                                ? current.filter(
+                                    (item) => item !== worktree.path,
+                                  )
+                                : [...current, worktree.path],
+                            )
+                          }
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              setSelectedPrunePaths((current) =>
+                                selected
+                                  ? current.filter(
+                                      (item) => item !== worktree.path,
+                                    )
+                                  : [...current, worktree.path],
+                              );
+                            }
+                          }}
+                        >
+                          <Checkbox checked={selected} tabIndex={-1} />
+                          <div>
+                            <Typography.Text
+                              strong
+                              className="prune-worktree-name"
+                            >
+                              {worktree.name || worktree.resolvedName}
+                            </Typography.Text>
+                            <div className="prune-worktree-detail">
+                              <span>Path</span>
+                              <Typography.Text ellipsis title={worktree.path}>
+                                {worktree.path}
+                              </Typography.Text>
+                            </div>
+                            <div className="prune-worktree-detail reason">
+                              <span>Issue</span>
+                              <Typography.Text>
+                                {worktree.pruneReason ||
+                                  'Git marked this worktree as prunable.'}
+                              </Typography.Text>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <div className="prune-worktree-empty">
+                  <ClearOutlined />
+                  <Typography.Text>No damaged worktrees found.</Typography.Text>
+                </div>
+              )}
+              {prunePreview.output && (
+                <details className="prune-dry-run-output">
+                  <summary>Git dry-run output</summary>
+                  <pre>{prunePreview.output}</pre>
+                </details>
+              )}
+            </Modal>
+            <div className="worktrees-list-scrollable">
+              <ul
+                style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}
+              >
+                {worktrees.map((worktree: any) => (
+                  <li
+                    key={worktree.name}
+                    className={
+                      !isDarkMode ? 'worktree-item' : 'worktree-item-dark'
+                    }
+                    style={{
+                      color: token.colorTextBase,
+                    }}
+                  >
+                    <Space
+                      className="worktree-container"
+                      style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
+                    >
+                      {/* eslint-disable-next-line no-nested-ternary */}
+                      {worktree.isLocked ? (
+                        <Tooltip
+                          title={
+                            worktree.lockReason
+                              ? `Lock reason: ${worktree.lockReason}`
+                              : 'Worktree is locked'
+                          }
+                          placement="right"
+                          mouseEnterDelay={0}
+                          mouseLeaveDelay={0}
+                        >
+                          <LockOutlined style={{ color: token.colorWarning }} />
+                        </Tooltip>
+                      ) : worktree.prunable ? (
+                        <Tooltip
+                          title="Gitdir file points to non-existent location"
+                          placement="right"
+                          mouseEnterDelay={0}
+                          mouseLeaveDelay={0}
+                        >
+                          <CloseOutlined style={{ color: token.colorError }} />
+                        </Tooltip>
+                      ) : (
+                        <Tree02Icon size={18} />
+                      )}
+                      <span
+                        style={{
+                          color: worktree.prunable ? token.colorError : '',
+                        }}
+                      >
+                        <Tooltip
+                          title={worktree.name}
+                          placement="right"
+                          mouseEnterDelay={0}
+                          mouseLeaveDelay={0}
+                        >
+                          {worktree.name}
+                        </Tooltip>
+                      </span>
+                      {Object.values(
+                        activeAgentsByWorktree[
+                          worktreeActivityKey(worktree.path)
+                        ] || {},
+                      ).length > 0 && (
+                        <span
+                          className="worktree-agent-status"
+                          aria-label="Active AI agents"
+                        >
+                          {Object.entries(
+                            activeAgentsByWorktree[
+                              worktreeActivityKey(worktree.path)
+                            ] || {},
+                          ).map(([terminalId, agent]) => (
+                            <Tooltip
+                              title={`${agent.label} is working`}
+                              key={terminalId}
+                            >
+                              <Avatar
+                                size={18}
+                                className="agent-working-icon"
+                                style={{
+                                  backgroundColor: 'transparent',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                {getAiAgentIcon(agent.id, 18)}
+                              </Avatar>
+                            </Tooltip>
+                          ))}
+                        </span>
+                      )}
+                    </Space>
+                    <Dropdown
+                      menu={{
+                        items: getWorktreeMenuItems(worktree),
+                        onClick: handleWorktreeMenuClick(worktree),
+                      }}
+                      trigger={['click']}
+                      placement="bottomRight"
+                    >
+                      <Tooltip
+                        title="actions"
+                        placement="right"
+                        mouseEnterDelay={0}
+                        mouseLeaveDelay={0}
+                      >
+                        <MoreOutlined
+                          style={{ cursor: 'pointer', padding: '2px 4px' }}
+                        />
+                      </Tooltip>
+                    </Dropdown>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {openTerminalModal && (
+              <Suspense fallback={<Spin size="large" />}>
+                <TerminalInteractive
+                  isModalOpen={openTerminalModal}
+                  initialRepository={repositoryInTerminal}
+                  worktrees={worktrees}
+                  handleCancel={closeTerminalModal}
+                  isDarkMode={isDarkMode}
+                  onAgentActivity={onTerminalAgentActivity}
+                  initialMode={terminalInitialMode}
+                  initialAgentId={terminalInitialAgentId}
+                />
+              </Suspense>
+            )}
+            {isModalOpen && (
+              <Suspense fallback={<Spin size="large" />}>
+                <RenameWorktree
+                  isModalOpen={isModalOpen}
+                  form={form}
+                  onFinish={onFinish}
+                  handleCancel={handleCancel}
+                  loading={loadingRenameWorktree}
+                />
+              </Suspense>
+            )}
+            {isLockModalOpen && (
+              <Suspense fallback={<Spin size="large" />}>
+                <LockWorktree
+                  isModalOpen={isLockModalOpen}
+                  form={form}
+                  onFinish={lockWorktree}
+                  handleCancel={() => {
+                    setIsLockModalOpen(false);
+                    form.setFieldValue('lockReason', '');
+                  }}
+                  loading={loadingLockWorktree}
+                />
+              </Suspense>
+            )}
+            {isMoveModalOpen && (
+              <Suspense fallback={<Spin size="large" />}>
+                <MoveWorktree
+                  isModalOpen={isMoveModalOpen}
+                  form={form}
+                  onFinish={onFinishMoveWorktree}
+                  handleCancel={handleCancelMoveWorktree}
+                  loading={loadingMoveWorktree}
+                />
+              </Suspense>
+            )}
+            {isChangePatternModalOpen && (
+              <Suspense fallback={<Spin size="large" />}>
+                <ChangePatternWorktree
+                  isModalOpen={isChangePatternModalOpen}
+                  form={form}
+                  onFinish={onFinishChangePatternWorktree}
+                  handleCancel={handleCancelChangePatternWorktree}
+                  loading={loadingChangePatternWorktree}
+                />
+              </Suspense>
+            )}
+            {configWorktree && (
+              <Suspense fallback={<Spin size="large" />}>
+                <WorktreeGitConfig
+                  open={Boolean(configWorktree)}
+                  worktreeName={configWorktree.name}
+                  worktreePath={configWorktree.path}
+                  onClose={closeWorktreeGitConfig}
+                  onSaved={handleWorktreeGitConfigSaved}
+                />
+              </Suspense>
+            )}
+            {rebaseSourceWorktree && (
+              <Suspense fallback={<Spin size="large" />}>
+                <RebaseWorktree
+                  open={Boolean(rebaseSourceWorktree)}
+                  repositoryPath={tabRepoPath}
+                  worktrees={worktrees}
+                  initialSourcePath={rebaseSourceWorktree.path}
+                  onClose={() => setRebaseSourceWorktree(null)}
+                  onCompleted={(
+                    result: Extract<WorktreeRebaseResult, { ok: true }>,
+                  ) => {
+                    setRebaseSourceWorktree(null);
+                    api.success({
+                      message: 'Rebase Completed',
+                      description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
+                      placement: 'bottomLeft',
+                      duration: 3,
+                    });
+                    window.electron.ipcRenderer.send(
+                      'show-git-log',
+                      tabRepoPath,
+                      null,
+                    );
+                    window.electron.ipcRenderer.send(
+                      'get-worktrees',
+                      tabRepoPath,
+                    );
+                  }}
+                />
+              </Suspense>
+            )}
+            {mergeTargetWorktree && (
+              <Suspense fallback={<Spin size="large" />}>
+                <MergeWorktree
+                  open={Boolean(mergeTargetWorktree)}
+                  repositoryPath={tabRepoPath}
+                  worktrees={worktrees}
+                  initialTargetPath={mergeTargetWorktree.path}
+                  onClose={() => setMergeTargetWorktree(null)}
+                  onCompleted={(
+                    result: Extract<WorktreeMergeResult, { ok: true }>,
+                  ) => {
+                    setMergeTargetWorktree(null);
+                    api.success({
+                      message: 'Merge Completed',
+                      description: `${result.sourceBranch} was merged into ${result.targetBranch}.`,
+                      placement: 'bottomLeft',
+                      duration: 3,
+                    });
+                    window.electron.ipcRenderer.send(
+                      'show-git-log',
+                      tabRepoPath,
+                      null,
+                    );
+                    window.electron.ipcRenderer.send(
+                      'get-worktrees',
+                      tabRepoPath,
+                    );
+                  }}
+                />
+              </Suspense>
+            )}
+            {upstreamWorktree && (
+              <Suspense fallback={<Spin size="large" />}>
+                <SetupUpstreamModal
+                  open={Boolean(upstreamWorktree)}
+                  worktree={upstreamWorktree}
+                  repositoryPath={tabRepoPath}
+                  onClose={() => setUpstreamWorktree(null)}
+                  onCompleted={() => {
+                    setUpstreamWorktree(null);
+                    window.electron.ipcRenderer.send(
+                      'get-worktrees',
+                      tabRepoPath,
+                    );
+                    window.electron.ipcRenderer.send(
+                      'show-git-log',
+                      tabRepoPath,
+                      null,
+                    );
+                  }}
+                />
+              </Suspense>
+            )}
           </Collapse.Panel>
         </Collapse>
       </div>

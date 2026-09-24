@@ -1619,6 +1619,7 @@ export default function TerminalInteractive({
   isDarkMode,
   onAgentActivity,
   initialMode = 'terminal',
+  initialAgentId,
 }: {
   isModalOpen: boolean;
   initialRepository: string | null;
@@ -1627,6 +1628,7 @@ export default function TerminalInteractive({
   isDarkMode: boolean;
   onAgentActivity?: (activity: TerminalAgentActivity) => void;
   initialMode?: 'terminal' | 'agent';
+  initialAgentId?: AiAgentId;
 }) {
   const availableWorktrees = useMemo(
     () =>
@@ -1649,6 +1651,9 @@ export default function TerminalInteractive({
       path: initialRepository || '',
       name: initialWorktree?.name || 'Terminal',
       mode: initialMode,
+      agent: initialAgentId
+        ? aiAgentsDefault.find((agent) => agent.id === initialAgentId)
+        : undefined,
     },
   ]);
   const [activeTerminalId, setActiveTerminalId] = useState<string | null>(

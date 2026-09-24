@@ -159,13 +159,11 @@ ipcMain.on(
     let gitWorktreeCreated = false;
     try {
       log.info(`Creating a new worktree ${name} in path ${worktreePath}`);
-      if (environmentIsolation || shareNodeModules) {
-        event.sender.send(
-          'worktree-creation-progress',
-          'git',
-          'Creating Git worktree',
-        );
-      }
+      event.sender.send(
+        'worktree-creation-progress',
+        'git',
+        'Creating Git worktree',
+      );
       const result = await worktreeMainService.add(
         name,
         worktreePath,
