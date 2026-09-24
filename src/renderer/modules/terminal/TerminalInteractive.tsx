@@ -47,6 +47,8 @@ import {
   normalizeReasoningEffort,
 } from '../../../shared/aiAgents';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
+import { getShellIcon } from '../../components/shells/ShellIcons';
+import { ShellDetectionResult } from '../../../shared/shells';
 import WorktreeFileExplorer from './WorktreeFileExplorer';
 import EmbeddedBrowser from './EmbeddedBrowser';
 import './TerminalInteractive.css';
@@ -192,6 +194,38 @@ function TerminalPane({
   const [smartContextEnabled, setSmartContextEnabled] = useState(false);
   const smartContextEnabledRef = useRef(false);
   smartContextEnabledRef.current = smartContextEnabled;
+  const [installedShells, setInstalledShells] = useState<
+    ShellDetectionResult[]
+  >([]);
+  const [selectedShellPath, setSelectedShellPath] = useState<string>();
+  const selectedShellPathRef = useRef<string>();
+  selectedShellPathRef.current = selectedShellPath;
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      window.electron.ipcRenderer.invoke('shells:detect-all'),
+      window.electron.ipcRenderer.invoke('shells:get-active'),
+    ])
+      .then(([shells, activeShell]) => {
+        if (!mounted) return;
+        const detected = (shells as ShellDetectionResult[]).filter(
+          (shell) => shell.found,
+        );
+        setInstalledShells(detected);
+        const active = detected.find(
+          (shell) =>
+            shell.path.toLowerCase() === String(activeShell).toLowerCase(),
+        );
+        setSelectedShellPath(active?.path || detected[0]?.path);
+      })
+      .catch(() => {
+        if (mounted) setInstalledShells([]);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const activeAgent = useMemo(() => {
     return (
@@ -662,6 +696,7 @@ function TerminalPane({
           xterm.cols,
           xterm.rows,
           initialDarkModeRef.current,
+          selectedShellPathRef.current,
         );
       },
     );
@@ -789,6 +824,7 @@ function TerminalPane({
         xterm.cols,
         xterm.rows,
         initialDarkModeRef.current,
+        selectedShellPathRef.current,
       );
     }
     xterm.focus();
@@ -1092,6 +1128,26 @@ function TerminalPane({
       .catch(() => message.error('Failed to copy selection'));
   };
 
+  const handleShellChange = (shellPath: string) => {
+    const shell = installedShells.find(
+      (candidate) => candidate.path === shellPath,
+    );
+    if (!shell || !xtermRef.current) return;
+    setSelectedShellPath(shellPath);
+    selectedShellPathRef.current = shellPath;
+    xtermRef.current.reset();
+    xtermRef.current.writeln(`\x1b[90mStarting ${shell.name}...\x1b[0m\r\n`);
+    window.electron.ipcRenderer.send(
+      'terminal-create',
+      terminal.id,
+      terminal.path,
+      xtermRef.current.cols,
+      xtermRef.current.rows,
+      initialDarkModeRef.current,
+      shellPath,
+    );
+  };
+
   const toggleCollapsedSection = (section: FourSectionName) => {
     setCollapsedSections((current) => {
       const next = new Set(current);
@@ -1280,6 +1336,25 @@ function TerminalPane({
           </Typography.Text>
         </div>
         <Space className="terminal-pane-actions" size={6}>
+          {viewMode === 'terminal' && installedShells.length > 0 && (
+            <Select
+              size="small"
+              value={selectedShellPath}
+              aria-label="Shell for this terminal"
+              className="terminal-shell-select"
+              popupMatchSelectWidth={false}
+              options={installedShells.map((shell) => ({
+                value: shell.path,
+                label: (
+                  <span className="terminal-shell-option">
+                    {getShellIcon(shell.icon, 16)}
+                    <span>{shell.name}</span>
+                  </span>
+                ),
+              }))}
+              onChange={handleShellChange}
+            />
+          )}
           {viewMode === 'agent' && (
             <>
               <Select

@@ -188,6 +188,23 @@
   white-space: nowrap;
 }
 
+.terminal-shell-select {
+  width: 170px;
+  max-width: 100%;
+}
+
+.terminal-shell-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.terminal-shell-option svg {
+  display: block;
+  flex: 0 0 auto;
+}
+
 .terminal-agent-select {
   width: 176px;
   max-width: 100%;

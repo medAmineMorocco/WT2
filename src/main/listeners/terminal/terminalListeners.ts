@@ -71,6 +71,7 @@ ipcMain.on(
     cols = 80,
     rows = 24,
     isDarkMode = false,
+    requestedShellPath?: string,
   ) => {
     try {
       const stat = await fs.promises.stat(directory);
@@ -80,7 +81,22 @@ ipcMain.on(
       closeSession(sessionId);
       watchOwner(event.sender);
       const configuredShell = await utils.getStorageItem('shellPath');
-      const shell = configuredShell || defaultShell();
+      let shell = configuredShell || defaultShell();
+      if (requestedShellPath) {
+        const detectedShells = await shellDetectionService.detectAllShells();
+        const normalizeShellPath = (value: string) =>
+          path.normalize(value).toLowerCase();
+        const detectedShell = detectedShells.find(
+          (candidate) =>
+            candidate.found &&
+            normalizeShellPath(candidate.path) ===
+              normalizeShellPath(requestedShellPath),
+        );
+        if (!detectedShell) {
+          throw new Error('The selected shell is not installed or available.');
+        }
+        shell = detectedShell.path;
+      }
       const cleanEnv: NodeJS.ProcessEnv = { ...process.env };
       delete cleanEnv.NODE_OPTIONS;
       delete cleanEnv.ELECTRON_RUN_AS_NODE;
