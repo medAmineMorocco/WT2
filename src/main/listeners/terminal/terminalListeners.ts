@@ -200,12 +200,7 @@ ipcMain.on(
 
 ipcMain.on(
   'terminal-input',
-  (
-    event,
-    sessionId: string,
-    data: string,
-    smartContextEnabled?: boolean,
-  ) => {
+  (event, sessionId: string, data: string, smartContextEnabled?: boolean) => {
     const binding = aiAgentSessionManager.getBinding(sessionId);
     if (binding && binding.mode === 'agent') {
       if (typeof smartContextEnabled === 'boolean') {
@@ -292,6 +287,7 @@ ipcMain.on(
     isDarkMode = false,
     model?: string,
     reasoningEffort?: string,
+    launchOptionIds?: string[],
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
@@ -310,7 +306,9 @@ ipcMain.on(
     if (mode === 'agent') {
       try {
         const agents = await configuredAiAgents();
-        const agent = agents.find((candidate) => candidate.id === targetAgentId);
+        const agent = agents.find(
+          (candidate) => candidate.id === targetAgentId,
+        );
         if (!agent?.enabled) {
           throw new Error(
             'This AI agent is disabled. Enable and configure it in Settings > AI Agents.',
@@ -332,6 +330,7 @@ ipcMain.on(
           event.sender,
           model,
           reasoningEffort,
+          launchOptionIds,
         );
       } catch (error: any) {
         log.error(
@@ -367,6 +366,7 @@ ipcMain.on(
     isDarkMode = false,
     model?: string,
     reasoningEffort?: string,
+    launchOptionIds?: string[],
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
@@ -394,6 +394,7 @@ ipcMain.on(
         event.sender,
         model,
         reasoningEffort,
+        launchOptionIds,
       );
     } catch (error: any) {
       log.error(`Failed to switch agent on ${sessionId}: ${error.message}`);
@@ -418,6 +419,7 @@ ipcMain.on(
     rows = 24,
     isDarkMode = false,
     reasoningEffort?: string,
+    launchOptionIds?: string[],
   ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
@@ -445,9 +447,12 @@ ipcMain.on(
         event.sender,
         model,
         reasoningEffort,
+        launchOptionIds,
       );
     } catch (error: any) {
-      log.error(`Failed to switch agent model on ${sessionId}: ${error.message}`);
+      log.error(
+        `Failed to switch agent model on ${sessionId}: ${error.message}`,
+      );
       event.sender.send(
         'terminal-ai-agent-error',
         sessionId,
@@ -459,13 +464,20 @@ ipcMain.on(
 
 ipcMain.on(
   'terminal-stop-ai-agent',
-  async (event, sessionId: string, worktreePath?: string, agentId?: AiAgentId) => {
+  async (
+    event,
+    sessionId: string,
+    worktreePath?: string,
+    agentId?: AiAgentId,
+  ) => {
     const session = ownedSession(sessionId, event.sender.id);
     const targetPath = worktreePath || session?.directory || '';
     try {
       aiAgentSessionManager.stopAgent(sessionId, targetPath, agentId);
     } catch (error: any) {
-      log.error(`Failed to interrupt AI agent on ${sessionId}: ${error.message}`);
+      log.error(
+        `Failed to interrupt AI agent on ${sessionId}: ${error.message}`,
+      );
     }
   },
 );
@@ -535,7 +547,10 @@ ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
       const firstLine = (trimmedOut.split('\n')[0] || '').trim();
       const looksLikeVersion = /\d+\.\d+/.test(firstLine);
 
-      if (code === 0 || (looksLikeVersion && !trimmedErr.toLowerCase().includes('error'))) {
+      if (
+        code === 0 ||
+        (looksLikeVersion && !trimmedErr.toLowerCase().includes('error'))
+      ) {
         sendResult(0, firstLine || combined || 'Verified OK');
         return;
       }
@@ -551,15 +566,14 @@ ipcMain.on('test-ai-agent', async (event, agent: AiAgentConfig) => {
       if (code === null) {
         sendResult(
           -1,
-          signal ? `Terminated by signal ${signal}` : 'Process terminated unexpectedly',
+          signal
+            ? `Terminated by signal ${signal}`
+            : 'Process terminated unexpectedly',
         );
         return;
       }
 
-      sendResult(
-        -1,
-        combined || `Exited with code ${code}`,
-      );
+      sendResult(-1, combined || `Exited with code ${code}`);
     });
   } catch (error: any) {
     event.sender.send('ai-agent-tested', agent.id, -1, error.message);

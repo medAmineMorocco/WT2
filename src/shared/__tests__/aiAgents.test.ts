@@ -4,7 +4,10 @@ import {
   AiAgentId,
   aiAgentsDefault,
   detectPlatform,
+  getAgentLaunchOptions,
   getInstallationGuide,
+  normalizeAgentLaunchOptionIds,
+  resolveAgentLaunchArgs,
 } from '../aiAgents';
 
 describe('aiAgents shared definitions', () => {
@@ -16,7 +19,10 @@ describe('aiAgents shared definitions', () => {
   describe('getInstallationGuide suggestions', () => {
     test('Claude Code suggests npm install command', () => {
       const guide = getInstallationGuide('claude');
-      assert.strictEqual(guide.command, 'npm install -g @anthropic-ai/claude-code');
+      assert.strictEqual(
+        guide.command,
+        'npm install -g @anthropic-ai/claude-code',
+      );
       assert.ok(guide.url.startsWith('https://'));
     });
 
@@ -28,13 +34,19 @@ describe('aiAgents shared definitions', () => {
 
     test('Qwen Code suggests npm install command', () => {
       const guide = getInstallationGuide('qwen');
-      assert.strictEqual(guide.command, 'npm install -g @qwen-code/qwen-code@latest');
+      assert.strictEqual(
+        guide.command,
+        'npm install -g @qwen-code/qwen-code@latest',
+      );
       assert.ok(guide.url.startsWith('https://'));
     });
 
     test('Kimi Code suggests npm install command', () => {
       const guide = getInstallationGuide('kimi');
-      assert.strictEqual(guide.command, 'npm install -g @moonshot-ai/kimi-code');
+      assert.strictEqual(
+        guide.command,
+        'npm install -g @moonshot-ai/kimi-code',
+      );
       assert.ok(guide.url.startsWith('https://'));
     });
 
@@ -71,8 +83,44 @@ describe('aiAgents shared definitions', () => {
             `Command for ${id} on ${p} should be an npm install command, got: ${guide.command}`,
           );
         }
-        assert.ok(guide.url.startsWith('https://'), `URL should be https for ${id} on ${p}`);
+        assert.ok(
+          guide.url.startsWith('https://'),
+          `URL should be https for ${id} on ${p}`,
+        );
       }
     }
+  });
+
+  describe('agent launch options', () => {
+    test('provides agent-specific interactive options', () => {
+      assert.ok(
+        getAgentLaunchOptions('codex').some(({ id }) => id === 'search'),
+      );
+      assert.ok(
+        getAgentLaunchOptions('cursor').some(({ id }) => id === 'auto-review'),
+      );
+      assert.ok(
+        !getAgentLaunchOptions('qwen').some(({ id }) => id === 'search'),
+      );
+    });
+
+    test('drops unknown option ids and keeps the latest mutually exclusive value', () => {
+      assert.deepStrictEqual(
+        normalizeAgentLaunchOptionIds('codex', [
+          'search',
+          'sandbox-read-only',
+          'unknown',
+          'sandbox-workspace-write',
+        ]),
+        ['search', 'sandbox-workspace-write'],
+      );
+    });
+
+    test('resolves selections only through the curated argument allow-list', () => {
+      assert.deepStrictEqual(
+        resolveAgentLaunchArgs('kimi', ['continue', 'plan', '--bad-flag']),
+        ['--continue', '--plan'],
+      );
+    });
   });
 });

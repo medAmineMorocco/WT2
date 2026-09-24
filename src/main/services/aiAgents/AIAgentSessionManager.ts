@@ -3,8 +3,10 @@ import {
   AiAgentConfig,
   AiAgentId,
   getReasoningEffortFlag,
+  normalizeAgentLaunchOptionIds,
   normalizeReasoningEffort,
   normalizeAgentModel,
+  resolveAgentLaunchArgs,
 } from '../../../shared/aiAgents';
 import log from '../../utils/logger';
 import graftSmartContextService from './GraftSmartContextService';
@@ -28,6 +30,7 @@ export interface AgentPtySession {
   lastUsedAt: number;
   currentModel?: string;
   currentReasoningEffort?: string;
+  currentLaunchOptionIds: string[];
 }
 
 const MAX_CACHED_AGENT_SESSIONS_PER_WORKTREE = 2;
@@ -125,6 +128,7 @@ export class AIAgentSessionManager {
     sender: WebContents,
     model?: string,
     reasoningEffort?: string,
+    launchOptionIds?: string[],
   ): AgentPtySession {
     const norm = this.normalizePath(worktreePath);
     let agentMap = this.worktreeSessions.get(norm);
@@ -142,16 +146,28 @@ export class AIAgentSessionManager {
       reasoningEffort || '',
       normalizedModel,
     );
+    const normalizedLaunchOptionIds = normalizeAgentLaunchOptionIds(
+      agentConfig.id,
+      launchOptionIds,
+    );
 
     // If a session exists but model or reasoning effort changed, terminate and recreate
     const modelChanged =
       !!session && (session.currentModel ?? '') !== normalizedModel;
     const effortChanged =
       !!session && (session.currentReasoningEffort ?? '') !== normalizedEffort;
+    const launchOptionsChanged =
+      !!session &&
+      (session.currentLaunchOptionIds || []).join('\0') !==
+        normalizedLaunchOptionIds.join('\0');
 
-    if (session && session.ptyProcess && (modelChanged || effortChanged)) {
+    if (
+      session &&
+      session.ptyProcess &&
+      (modelChanged || effortChanged || launchOptionsChanged)
+    ) {
       log.info(
-        `[AIAgentSessionManager] Configuration changed for ${agentConfig.id} (model: "${session.currentModel || 'default'}" -> "${normalizedModel || 'default'}", effort: "${session.currentReasoningEffort || 'default'}" -> "${normalizedEffort || 'default'}"), restarting session`,
+        `[AIAgentSessionManager] Configuration changed for ${agentConfig.id} (model: "${session.currentModel || 'default'}" -> "${normalizedModel || 'default'}", effort: "${session.currentReasoningEffort || 'default'}" -> "${normalizedEffort || 'default'}", options: ${(session.currentLaunchOptionIds || []).join(',') || 'none'} -> ${normalizedLaunchOptionIds.join(',') || 'none'}), restarting session`,
       );
       try {
         session.ptyProcess.kill();
@@ -226,6 +242,10 @@ export class AIAgentSessionManager {
         }
       }
 
+      rawArgs.push(
+        ...resolveAgentLaunchArgs(agentConfig.id, normalizedLaunchOptionIds),
+      );
+
       log.info(
         `[AIAgentSessionManager] Spawning interactive PTY for ${agentConfig.id}: "${rawCommand}" with args [${rawArgs.join(', ')}] in ${worktreePath}`,
       );
@@ -286,29 +306,29 @@ export class AIAgentSessionManager {
           try {
             rawResize(c, r);
             if (Array.isArray((ptyProcess as any)._deferreds)) {
-              (ptyProcess as any)._deferreds = (ptyProcess as any)._deferreds.map(
-                (d: any) => {
-                  if (d.__safeWrapped) return d;
-                  const origRun = d.run;
-                  return {
-                    __safeWrapped: true,
-                    run: () => {
-                      try {
-                        if (
-                          !hasExited &&
-                          (!agent || agent._exitCode === undefined)
-                        ) {
-                          return origRun();
-                        }
-                      } catch (deferredErr: any) {
-                        log.warn(
-                          `Suppressed deferred pty resize error: ${deferredErr?.message}`,
-                        );
+              (ptyProcess as any)._deferreds = (
+                ptyProcess as any
+              )._deferreds.map((d: any) => {
+                if (d.__safeWrapped) return d;
+                const origRun = d.run;
+                return {
+                  __safeWrapped: true,
+                  run: () => {
+                    try {
+                      if (
+                        !hasExited &&
+                        (!agent || agent._exitCode === undefined)
+                      ) {
+                        return origRun();
                       }
-                    },
-                  };
-                },
-              );
+                    } catch (deferredErr: any) {
+                      log.warn(
+                        `Suppressed deferred pty resize error: ${deferredErr?.message}`,
+                      );
+                    }
+                  },
+                };
+              });
             }
           } catch (resizeErr: any) {
             log.warn(`Suppressed pty resize error: ${resizeErr?.message}`);
@@ -332,6 +352,7 @@ export class AIAgentSessionManager {
         lastUsedAt: Date.now(),
         currentModel: normalizedModel,
         currentReasoningEffort: normalizedEffort,
+        currentLaunchOptionIds: normalizedLaunchOptionIds,
       };
 
       agentMap.set(agentConfig.id, session);
@@ -425,6 +446,7 @@ export class AIAgentSessionManager {
     sender: WebContents,
     model?: string,
     reasoningEffort?: string,
+    launchOptionIds?: string[],
   ): AgentPtySession {
     const session = this.getOrCreateAgentPtySession(
       sessionId,
@@ -436,6 +458,7 @@ export class AIAgentSessionManager {
       sender,
       model,
       reasoningEffort,
+      launchOptionIds,
     );
 
     this.setBinding(sessionId, worktreePath, agentConfig.id, 'agent', sender);

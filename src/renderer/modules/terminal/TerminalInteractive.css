@@ -278,6 +278,15 @@
   font-size: 12px;
 }
 
+.terminal-agent-options-select {
+  width: 132px;
+  max-width: 100%;
+}
+
+.terminal-agent-options-select .ant-select-selection-item {
+  font-size: 12px;
+}
+
 /* AI Agent Composer Area */
 .terminal-agent-composer {
   order: 3;
@@ -605,6 +614,7 @@
 .terminal-four-section-agent.is-collapsed .terminal-agent-version-tag,
 .terminal-four-section-agent.is-collapsed .terminal-agent-model-select,
 .terminal-four-section-agent.is-collapsed .terminal-agent-effort-select,
+.terminal-four-section-agent.is-collapsed .terminal-agent-options-select,
 .terminal-four-section-agent.is-collapsed .ant-checkbox-wrapper {
   display: none;
 }
@@ -654,6 +664,10 @@
   width: 105px;
 }
 
+.terminal-four-section-agent-controls .terminal-agent-options-select {
+  width: 112px;
+}
+
 .terminal-four-section-agent-toolbar {
   display: flex;
   min-width: 0;
@@ -675,6 +689,10 @@
 
 .terminal-four-section-agent-toolbar .terminal-agent-effort-select {
   width: 105px;
+}
+
+.terminal-four-section-agent-toolbar .terminal-agent-options-select {
+  width: 112px;
 }
 
 .terminal-four-section-content {
@@ -1199,14 +1217,20 @@
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-doctag,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-type,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-template-tag,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-template-variable {
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-template-variable {
   color: #ff7b72;
 }
 
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-title,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-title.class_,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-title.class_.inherited__,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-title.function_,
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-title.class_.inherited__,
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-title.function_,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-section,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-function {
   color: #d2a8ff;
@@ -1214,7 +1238,10 @@
 
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-string,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-regexp,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-meta .hljs-string,
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-meta
+  .hljs-string,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-meta-string {
   color: #a5d6ff;
 }
@@ -1224,7 +1251,9 @@
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-attr,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-attribute,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-variable,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-variable.language_,
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-variable.language_,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-property,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-params {
   color: #79c0ff;
@@ -1238,7 +1267,9 @@
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-name,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-tag,
 .worktree-file-layout.is-dark .worktree-file-preview-content .hljs-selector-tag,
-.worktree-file-layout.is-dark .worktree-file-preview-content .hljs-selector-pseudo {
+.worktree-file-layout.is-dark
+  .worktree-file-preview-content
+  .hljs-selector-pseudo {
   color: #7ee787;
 }
 

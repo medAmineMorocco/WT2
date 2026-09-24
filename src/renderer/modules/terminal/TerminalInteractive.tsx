@@ -17,6 +17,7 @@ import {
 } from '@ant-design/icons';
 import {
   Button,
+  Cascader,
   Checkbox,
   Empty,
   message,
@@ -38,8 +39,10 @@ import {
   AiAgentModel,
   aiAgentsDefault,
   formatVersionBadge,
+  getAgentLaunchOptions,
   getAgentModels,
   normalizeAgentModel,
+  normalizeAgentLaunchOptionIds,
   getReasoningEffortOptions,
   normalizeReasoningEffort,
 } from '../../../shared/aiAgents';
@@ -54,7 +57,6 @@ type WorktreeOption = {
   prunable?: boolean;
   directoryExists?: boolean;
 };
-
 
 type TerminalDescriptor = WorktreeOption & {
   id: string;
@@ -74,6 +76,20 @@ export type TerminalAgentActivity = {
 
 function sessionId() {
   return `terminal-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
+function readAgentLaunchOptions(agentId: AiAgentId): string[] {
+  try {
+    return normalizeAgentLaunchOptionIds(
+      agentId,
+      JSON.parse(
+        window.localStorage.getItem(`aiAgent_launch_options_${agentId}`) ||
+          '[]',
+      ),
+    );
+  } catch {
+    return [];
+  }
 }
 
 function terminalTheme(isDarkMode: boolean) {
@@ -299,9 +315,7 @@ function TerminalPane({
         const agentId = terminal.agent?.id || 'claude';
         return normalizeReasoningEffort(
           agentId,
-          window.localStorage.getItem(
-            `aiAgent_effort_${agentId}`,
-          ) || '',
+          window.localStorage.getItem(`aiAgent_effort_${agentId}`) || '',
           window.localStorage.getItem(`aiAgent_model_${agentId}`) || '',
         );
       } catch {
@@ -311,6 +325,50 @@ function TerminalPane({
 
   const selectedReasoningEffortRef = useRef(selectedReasoningEffort);
   selectedReasoningEffortRef.current = selectedReasoningEffort;
+
+  const [selectedLaunchOptionIds, setSelectedLaunchOptionIds] = useState<
+    string[]
+  >(() => readAgentLaunchOptions(terminal.agent?.id || 'claude'));
+  const selectedLaunchOptionIdsRef = useRef(selectedLaunchOptionIds);
+  selectedLaunchOptionIdsRef.current = selectedLaunchOptionIds;
+  const launchOptionsChangedWhileOpenRef = useRef(false);
+  const agentLaunchOptions = useMemo(
+    () => getAgentLaunchOptions(selectedAgentId),
+    [selectedAgentId],
+  );
+  const launchOptionCascaderOptions = useMemo(() => {
+    const categories = new Map<
+      string,
+      Array<{ value: string; label: React.ReactNode }>
+    >();
+    agentLaunchOptions.forEach((option) => {
+      const children = categories.get(option.category) || [];
+      children.push({
+        value: option.id,
+        label: (
+          <Tooltip title={option.description} placement="right">
+            <span>{option.label}</span>
+          </Tooltip>
+        ),
+      });
+      categories.set(option.category, children);
+    });
+    return [...categories.entries()].map(([category, children]) => ({
+      value: category,
+      label: category,
+      children,
+    }));
+  }, [agentLaunchOptions]);
+  const selectedLaunchOptionPaths = useMemo(
+    () =>
+      selectedLaunchOptionIds
+        .map((id) => {
+          const option = agentLaunchOptions.find((item) => item.id === id);
+          return option ? [option.category, option.id] : null;
+        })
+        .filter((path): path is string[] => Boolean(path)),
+    [agentLaunchOptions, selectedLaunchOptionIds],
+  );
 
   useEffect(() => {
     try {
@@ -324,6 +382,12 @@ function TerminalPane({
     } catch {
       setSelectedReasoningEffort('');
     }
+  }, [selectedAgentId]);
+
+  useEffect(() => {
+    const savedOptions = readAgentLaunchOptions(selectedAgentId);
+    selectedLaunchOptionIdsRef.current = savedOptions;
+    setSelectedLaunchOptionIds(savedOptions);
   }, [selectedAgentId]);
 
   useEffect(() => {
@@ -694,6 +758,7 @@ function TerminalPane({
       );
       const initEffort =
         window.localStorage.getItem(`aiAgent_effort_${selectedAgentId}`) || '';
+      const initLaunchOptions = readAgentLaunchOptions(selectedAgentId);
       const modelDef = getAgentModels(selectedAgentId).find(
         (m) => m.id === initModel,
       );
@@ -714,6 +779,7 @@ function TerminalPane({
         initialDarkModeRef.current,
         initModel,
         initEffort,
+        initLaunchOptions,
       );
     } else {
       window.electron.ipcRenderer.send(
@@ -776,6 +842,7 @@ function TerminalPane({
     setSelectedAgentId(newAgentId);
     let targetModel = '';
     let targetEffort = '';
+    let targetLaunchOptions: string[] = [];
     try {
       targetModel = normalizeAgentModel(
         newAgentId,
@@ -786,10 +853,13 @@ function TerminalPane({
         window.localStorage.getItem(`aiAgent_effort_${newAgentId}`) || '',
         targetModel,
       );
+      targetLaunchOptions = readAgentLaunchOptions(newAgentId);
       selectedModelRef.current = targetModel;
       selectedReasoningEffortRef.current = targetEffort;
       setSelectedModel(targetModel);
       setSelectedReasoningEffort(targetEffort);
+      selectedLaunchOptionIdsRef.current = targetLaunchOptions;
+      setSelectedLaunchOptionIds(targetLaunchOptions);
     } catch {}
     const targetAgent =
       configuredAgents.find((item) => item.id === newAgentId) || activeAgent;
@@ -815,6 +885,7 @@ function TerminalPane({
         isDarkMode,
         targetModel,
         targetEffort,
+        targetLaunchOptions,
       );
       xtermRef.current.focus();
     }
@@ -841,9 +912,7 @@ function TerminalPane({
     const modelDef = availableModels.find((m) => m.id === newModel);
     const modelDesc =
       modelDef?.label && modelDef.id ? ` [${modelDef.label}]` : '';
-    const effortDesc = effectiveEffort
-      ? ` (effort: ${effectiveEffort})`
-      : '';
+    const effortDesc = effectiveEffort ? ` (effort: ${effectiveEffort})` : '';
 
     if (xtermRef.current) {
       xtermRef.current.reset();
@@ -860,6 +929,7 @@ function TerminalPane({
         xtermRef.current.rows,
         isDarkMode,
         effectiveEffort,
+        selectedLaunchOptionIdsRef.current,
       );
       xtermRef.current.focus();
     }
@@ -897,6 +967,57 @@ function TerminalPane({
         xtermRef.current.rows,
         isDarkMode,
         newEffort,
+        selectedLaunchOptionIdsRef.current,
+      );
+      xtermRef.current.focus();
+    }
+  };
+
+  const handleLaunchOptionsChange = (paths: Array<Array<string | number>>) => {
+    const rawIds = paths
+      .map((path) => path[path.length - 1])
+      .filter((value): value is string => typeof value === 'string');
+    const newlySelected = rawIds.filter(
+      (id) => !selectedLaunchOptionIdsRef.current.includes(id),
+    );
+    const stillSelected = selectedLaunchOptionIdsRef.current.filter((id) =>
+      rawIds.includes(id),
+    );
+    const normalized = normalizeAgentLaunchOptionIds(selectedAgentId, [
+      ...stillSelected,
+      ...newlySelected,
+    ]);
+    selectedLaunchOptionIdsRef.current = normalized;
+    setSelectedLaunchOptionIds(normalized);
+    launchOptionsChangedWhileOpenRef.current = true;
+    try {
+      window.localStorage.setItem(
+        `aiAgent_launch_options_${selectedAgentId}`,
+        JSON.stringify(normalized),
+      );
+    } catch {}
+  };
+
+  const handleLaunchOptionsDropdownChange = (open: boolean) => {
+    if (open || !launchOptionsChangedWhileOpenRef.current) return;
+    launchOptionsChangedWhileOpenRef.current = false;
+    const normalized = selectedLaunchOptionIdsRef.current;
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      xtermRef.current.writeln(
+        `\x1b[90m➜ Restarting ${activeAgent?.label || 'AI agent'} with ${normalized.length} launch option${normalized.length === 1 ? '' : 's'}...\x1b[0m\r\n`,
+      );
+      window.electron.ipcRenderer.send(
+        'terminal-switch-ai-agent-model',
+        terminal.id,
+        selectedAgentId,
+        selectedModelRef.current,
+        terminal.path,
+        xtermRef.current.cols,
+        xtermRef.current.rows,
+        isDarkMode,
+        selectedReasoningEffortRef.current,
+        normalized,
       );
       xtermRef.current.focus();
     }
@@ -931,6 +1052,7 @@ function TerminalPane({
         isDarkMode,
         selectedModelRef.current,
         selectedReasoningEffortRef.current,
+        selectedLaunchOptionIdsRef.current,
       );
       xtermRef.current.focus();
     }
@@ -992,9 +1114,7 @@ function TerminalPane({
           <Typography.Text strong>AI Agent</Typography.Text>
           <Tooltip
             title={
-              embeddedAgentCollapsed
-                ? 'Restore AI Agent'
-                : 'Collapse AI Agent'
+              embeddedAgentCollapsed ? 'Restore AI Agent' : 'Collapse AI Agent'
             }
           >
             <Button
@@ -1093,6 +1213,25 @@ function TerminalPane({
                   label: e.label,
                 }))}
                 onChange={handleReasoningEffortChange}
+              />
+            )}
+            {agentLaunchOptions.length > 0 && (
+              <Cascader
+                multiple
+                size="small"
+                value={selectedLaunchOptionPaths}
+                options={launchOptionCascaderOptions}
+                aria-label="Select additional launch options for this AI agent"
+                placeholder="Options"
+                className="terminal-agent-options-select"
+                maxTagCount="responsive"
+                showCheckedStrategy={Cascader.SHOW_CHILD}
+                onDropdownVisibleChange={handleLaunchOptionsDropdownChange}
+                onChange={(value) =>
+                  handleLaunchOptionsChange(
+                    value as Array<Array<string | number>>,
+                  )
+                }
               />
             )}
             <Tooltip title="Enrich submitted prompts with relevant repository code using Graft">
@@ -1218,6 +1357,25 @@ function TerminalPane({
                     label: e.label,
                   }))}
                   onChange={handleReasoningEffortChange}
+                />
+              )}
+              {agentLaunchOptions.length > 0 && (
+                <Cascader
+                  multiple
+                  size="small"
+                  value={selectedLaunchOptionPaths}
+                  options={launchOptionCascaderOptions}
+                  aria-label="Select additional launch options for this AI agent"
+                  placeholder="Options"
+                  className="terminal-agent-options-select"
+                  maxTagCount="responsive"
+                  showCheckedStrategy={Cascader.SHOW_CHILD}
+                  onDropdownVisibleChange={handleLaunchOptionsDropdownChange}
+                  onChange={(value) =>
+                    handleLaunchOptionsChange(
+                      value as Array<Array<string | number>>,
+                    )
+                  }
                 />
               )}
             </>
@@ -1539,7 +1697,9 @@ export default function TerminalInteractive({
   }, [activeTerminalId, isModalOpen, terminals]);
 
   const addTerminal = (worktreePath: string) => {
-    const worktree = availableWorktrees.find((item) => item.path === worktreePath);
+    const worktree = availableWorktrees.find(
+      (item) => item.path === worktreePath,
+    );
     if (!worktree) return;
     const terminal = { ...worktree, id: sessionId(), mode: initialMode };
     setTerminals((current) => [...current, terminal]);

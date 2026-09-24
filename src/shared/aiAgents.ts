@@ -35,6 +35,305 @@ export type AiAgentConfig = {
   enabled: boolean;
 };
 
+export type AiAgentLaunchOption = {
+  id: string;
+  category: string;
+  label: string;
+  description: string;
+  args: string[];
+  exclusiveGroup?: string;
+};
+
+/**
+ * Curated interactive flags only. Values from the renderer are resolved through
+ * this allow-list in the main process; arbitrary command fragments are never
+ * accepted over IPC.
+ */
+export const AI_AGENT_LAUNCH_OPTIONS: Record<AiAgentId, AiAgentLaunchOption[]> =
+  {
+    claude: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Resume the most recent conversation.',
+        args: ['--continue'],
+      },
+      {
+        id: 'verbose',
+        category: 'Diagnostics',
+        label: 'Verbose output',
+        description: 'Show additional diagnostic output.',
+        args: ['--verbose'],
+      },
+      {
+        id: 'plan',
+        category: 'Permissions',
+        label: 'Plan mode',
+        description: 'Start read-only and propose a plan before editing.',
+        args: ['--permission-mode', 'plan'],
+        exclusiveGroup: 'permission-mode',
+      },
+      {
+        id: 'accept-edits',
+        category: 'Permissions',
+        label: 'Accept edits',
+        description:
+          'Automatically accept file edits while keeping other permission prompts.',
+        args: ['--permission-mode', 'acceptEdits'],
+        exclusiveGroup: 'permission-mode',
+      },
+    ],
+    codex: [
+      {
+        id: 'search',
+        category: 'Capabilities',
+        label: 'Web search',
+        description: 'Enable the native web-search tool.',
+        args: ['--search'],
+      },
+      {
+        id: 'no-alt-screen',
+        category: 'Terminal',
+        label: 'Preserve scrollback',
+        description: 'Run without the alternate terminal screen.',
+        args: ['--no-alt-screen'],
+      },
+      {
+        id: 'sandbox-read-only',
+        category: 'Sandbox',
+        label: 'Read-only',
+        description: 'Allow reads but prevent workspace writes.',
+        args: ['--sandbox', 'read-only'],
+        exclusiveGroup: 'sandbox',
+      },
+      {
+        id: 'sandbox-workspace-write',
+        category: 'Sandbox',
+        label: 'Workspace write',
+        description: 'Allow writes inside the selected workspace.',
+        args: ['--sandbox', 'workspace-write'],
+        exclusiveGroup: 'sandbox',
+      },
+      {
+        id: 'approval-on-request',
+        category: 'Approvals',
+        label: 'Ask on request',
+        description: 'Let the agent request approval when needed.',
+        args: ['--ask-for-approval', 'on-request'],
+        exclusiveGroup: 'approval',
+      },
+      {
+        id: 'approval-never',
+        category: 'Approvals',
+        label: 'Never ask',
+        description: 'Return denied operations to the agent without asking.',
+        args: ['--ask-for-approval', 'never'],
+        exclusiveGroup: 'approval',
+      },
+      {
+        id: 'approve-for-me',
+        category: 'Approvals',
+        label: 'Automatic review',
+        description: 'Route approval requests through automatic review.',
+        args: ['--approve-for-me'],
+        exclusiveGroup: 'approval',
+      },
+    ],
+    cursor: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Continue the previous Cursor session.',
+        args: ['--continue'],
+      },
+      {
+        id: 'plan',
+        category: 'Mode',
+        label: 'Plan mode',
+        description: 'Start in read-only planning mode.',
+        args: ['--mode', 'plan'],
+        exclusiveGroup: 'mode',
+      },
+      {
+        id: 'ask',
+        category: 'Mode',
+        label: 'Ask mode',
+        description: 'Start in read-only question-and-answer mode.',
+        args: ['--mode', 'ask'],
+        exclusiveGroup: 'mode',
+      },
+      {
+        id: 'auto-review',
+        category: 'Approvals',
+        label: 'Smart auto-review',
+        description:
+          'Automatically run safe tool calls and prompt for the rest.',
+        args: ['--auto-review'],
+      },
+      {
+        id: 'sandbox',
+        category: 'Safety',
+        label: 'Enable sandbox',
+        description: 'Run tool calls inside Cursor sandbox mode.',
+        args: ['--sandbox', 'enabled'],
+      },
+      {
+        id: 'approve-mcps',
+        category: 'Integrations',
+        label: 'Approve MCP servers',
+        description: 'Automatically approve configured MCP servers.',
+        args: ['--approve-mcps'],
+      },
+    ],
+    antigravity: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Continue the most recent conversation.',
+        args: ['--continue'],
+      },
+      {
+        id: 'plan',
+        category: 'Mode',
+        label: 'Plan mode',
+        description: 'Start in planning mode.',
+        args: ['--mode', 'plan'],
+        exclusiveGroup: 'mode',
+      },
+      {
+        id: 'accept-edits',
+        category: 'Mode',
+        label: 'Accept edits',
+        description: 'Allow edits without individual edit prompts.',
+        args: ['--mode', 'accept-edits'],
+        exclusiveGroup: 'mode',
+      },
+      {
+        id: 'sandbox',
+        category: 'Safety',
+        label: 'Enable sandbox',
+        description: 'Run terminal operations with sandbox restrictions.',
+        args: ['--sandbox'],
+      },
+    ],
+    qwen: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Resume the most recent project session.',
+        args: ['--continue'],
+      },
+      {
+        id: 'sandbox',
+        category: 'Safety',
+        label: 'Enable sandbox',
+        description: 'Run tools in sandbox mode.',
+        args: ['--sandbox'],
+      },
+      {
+        id: 'safe-mode',
+        category: 'Troubleshooting',
+        label: 'Safe mode',
+        description:
+          'Disable custom context, hooks, extensions, skills, and MCP servers.',
+        args: ['--safe-mode'],
+      },
+    ],
+    kimi: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Continue the previous session for this worktree.',
+        args: ['--continue'],
+      },
+      {
+        id: 'plan',
+        category: 'Mode',
+        label: 'Plan mode',
+        description: 'Start in read-only planning mode.',
+        args: ['--plan'],
+        exclusiveGroup: 'mode',
+      },
+      {
+        id: 'yolo',
+        category: 'Approvals',
+        label: 'Ask when needed',
+        description: 'Auto-run routine work and ask for risky actions.',
+        args: ['--yolo'],
+        exclusiveGroup: 'approval',
+      },
+      {
+        id: 'auto',
+        category: 'Approvals',
+        label: 'Never ask',
+        description: 'Run without interactive approval prompts.',
+        args: ['--auto'],
+        exclusiveGroup: 'approval',
+      },
+    ],
+    opencode: [
+      {
+        id: 'continue',
+        category: 'Session',
+        label: 'Continue latest session',
+        description: 'Continue the latest OpenCode session.',
+        args: ['--continue'],
+      },
+      {
+        id: 'fork',
+        category: 'Session',
+        label: 'Fork session',
+        description: 'Fork the selected or latest session when continuing.',
+        args: ['--fork'],
+      },
+    ],
+  };
+
+export function getAgentLaunchOptions(
+  agentId: AiAgentId,
+): AiAgentLaunchOption[] {
+  return AI_AGENT_LAUNCH_OPTIONS[agentId] || [];
+}
+
+export function normalizeAgentLaunchOptionIds(
+  agentId: AiAgentId,
+  optionIds: unknown,
+): string[] {
+  if (!Array.isArray(optionIds)) return [];
+  const available = getAgentLaunchOptions(agentId);
+  const byId = new Map(available.map((option) => [option.id, option]));
+  const normalized: string[] = [];
+  for (const value of optionIds) {
+    if (typeof value !== 'string' || !byId.has(value)) continue;
+    const option = byId.get(value)!;
+    if (option.exclusiveGroup) {
+      const existingIndex = normalized.findIndex(
+        (id) => byId.get(id)?.exclusiveGroup === option.exclusiveGroup,
+      );
+      if (existingIndex !== -1) normalized.splice(existingIndex, 1);
+    }
+    if (!normalized.includes(value)) normalized.push(value);
+  }
+  return normalized;
+}
+
+export function resolveAgentLaunchArgs(
+  agentId: AiAgentId,
+  optionIds: unknown,
+): string[] {
+  const byId = new Map(
+    getAgentLaunchOptions(agentId).map((option) => [option.id, option]),
+  );
+  return normalizeAgentLaunchOptionIds(agentId, optionIds).flatMap(
+    (id) => byId.get(id)?.args || [],
+  );
+}
+
 export const aiAgentsDefault: AiAgentConfig[] = [
   {
     id: 'claude',
@@ -208,9 +507,7 @@ export const AI_AGENT_MODELS: Record<AiAgentId, AiAgentModel[]> = {
     { id: 'moonshot-v1-8k', label: 'Kimi 8k' },
     { id: 'kimi-latest', label: 'Kimi Latest' },
   ],
-  opencode: [
-    { id: '', label: 'Default' },
-  ],
+  opencode: [{ id: '', label: 'Default' }],
 };
 
 export function getAgentModels(agentId: AiAgentId): AiAgentModel[] {
@@ -231,9 +528,13 @@ export function normalizeAgentModel(agentId: AiAgentId, model: string): string {
   }
   if (
     agentId === 'cursor' &&
-    ['claude-3.7-sonnet', 'claude-3.5-sonnet', 'gpt-4o', 'o3-mini', 'cursor-small'].includes(
-      normalized,
-    )
+    [
+      'claude-3.7-sonnet',
+      'claude-3.5-sonnet',
+      'gpt-4o',
+      'o3-mini',
+      'cursor-small',
+    ].includes(normalized)
   ) {
     return 'auto';
   }
