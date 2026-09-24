@@ -10,6 +10,7 @@ import playWorkflow, {
   stopActiveWorkflowProcesses,
 } from './processesListeners';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
+import { WorktreeOpenAction } from '../../../shared/worktreeOpenAction';
 
 ipcMain.on('play-workflow', async function (event, workflow, dir) {
   setStopExecution(false);
@@ -40,6 +41,7 @@ ipcMain.on(
     shareNodeModules?: boolean,
     nodeModulesSourcePath?: string,
     sparseFolders?: string[],
+    openAction?: WorktreeOpenAction,
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -202,6 +204,26 @@ ipcMain.on(
       } else {
         workflow.commands.push(environmentCommand);
       }
+    }
+    if (openAction) {
+      const destination =
+        openAction.type === 'editor'
+          ? openAction.editor
+          : openAction.type === 'agent'
+            ? 'AI Agent'
+            : 'Terminal';
+      workflow.commands.push({
+        key: String(workflow.commands.length + 1),
+        value: `Open worktree in ${destination}`,
+        display: `Open worktree in ${destination}`,
+        openCreatedWorktree: {
+          action: openAction,
+          worktree: {
+            name: sanitizedWorktreeName,
+            path: worktreesFolder,
+          },
+        },
+      });
     }
     await playWorkflow(event, workflow, dir);
   },

@@ -205,6 +205,20 @@ async function executeCommand(
     }
   }
 
+  if (command.openCreatedWorktree) {
+    const { action, worktree } = command.openCreatedWorktree;
+    event.sender.send('worktree-workflow-open-requested', action, worktree);
+    logStates = await getNewlogStates(
+      worktreeLabel,
+      `Opened ${worktree.name}`,
+      storedEncoding,
+      command,
+      'finished',
+    );
+    event.sender.send('workflow-started-log-received', logStates);
+    return 'finish command';
+  }
+
   // Workflows intentionally execute in a pseudo terminal so commands receive
   // the same terminal semantics as the integrated terminal. PTY output merges
   // stdout/stderr, which is also how users see it in a normal shell.
@@ -423,6 +437,7 @@ async function executeCommandAtWorktree(
       );
       event.sender.send('workflow-started-states-updated', worktreesStates);
     }
+    return true;
   } catch (err: any) {
     if (err.message.includes('aborted') || getStopExecution()) {
       worktreesStates = updateWorktreesStates(
@@ -432,7 +447,7 @@ async function executeCommandAtWorktree(
         'warning',
       );
       event.sender.send('workflow-started-states-updated', worktreesStates);
-      return;
+      return false;
     }
     worktreesStates = updateWorktreesStates(
       worktreesStates,
@@ -441,6 +456,7 @@ async function executeCommandAtWorktree(
       'error',
     );
     event.sender.send('workflow-started-states-updated', worktreesStates);
+    return false;
   }
 }
 
@@ -464,14 +480,14 @@ export async function executeProcessesAtWorktree(
     }
     const command = commands[i];
     // eslint-disable-next-line no-await-in-loop
-    await executeCommandAtWorktree(
+    const completed = await executeCommandAtWorktree(
       command,
       i,
       i === commands.length - 1,
       worktree,
       event,
     );
-    if (getStopExecution()) {
+    if (!completed || getStopExecution()) {
       break;
     }
   }

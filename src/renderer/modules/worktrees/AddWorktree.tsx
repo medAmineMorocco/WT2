@@ -41,13 +41,12 @@ import {
   SuggestedCommand,
 } from '../../../shared/environmentIsolation';
 import { aiAgentsDefault, AiAgentId } from '../../../shared/aiAgents';
+import {
+  CreatedWorktreeTarget,
+  WorktreeOpenAction,
+} from '../../../shared/worktreeOpenAction';
 import { editorIconsMap, editorsCst } from '../config/EditorsConfig';
 import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
-
-type CreateAndOpenAction =
-  | { type: 'terminal' }
-  | { type: 'editor'; editor: string }
-  | { type: 'agent'; agentId: AiAgentId };
 
 type SparseCheckoutFolder = {
   title: string;
@@ -118,8 +117,8 @@ export default function AddWorktree({
   const [loadingCreateWorktree, setLoadingCreateWorktree] = useState(false);
   const [creationProgress, setCreationProgress] = useState(0);
   const [creationProgressLabel, setCreationProgressLabel] = useState('');
-  const createAndOpenAction = useRef<CreateAndOpenAction | null>(null);
-  const createdWorktree = useRef<{ name: string; path: string } | null>(null);
+  const createAndOpenAction = useRef<WorktreeOpenAction | null>(null);
+  const createdWorktree = useRef<CreatedWorktreeTarget | null>(null);
 
   const [nodeModulesWorktrees, setNodeModulesWorktrees] = useState<
     Array<{ path: string; name: string; isPrimary: boolean }>
@@ -862,15 +861,6 @@ export default function AddWorktree({
         selectedCheckoutFolders,
       );
     } else {
-      if (createAndOpenAction.current) {
-        notification.info({
-          message: 'Open after workflow completes',
-          description:
-            'Finish the creation workflow, then use its worktree action to open the selected tool.',
-          placement: 'bottomLeft',
-        });
-        createAndOpenAction.current = null;
-      }
       log.debug('== create-worktree-workflow ==');
       window.electron.ipcRenderer.send(
         'create-worktree-workflow',
@@ -883,7 +873,10 @@ export default function AddWorktree({
         shouldShareNodeModules,
         shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
         selectedCheckoutFolders,
+        createAndOpenAction.current,
       );
+      createAndOpenAction.current = null;
+      createdWorktree.current = null;
       setIsWorkflowPlaying(true);
       handleCancel();
       setMode({ target: { value: 'WORKFLOW' } });
@@ -970,36 +963,50 @@ export default function AddWorktree({
   return (
     <Modal
       open={isModalOpen}
+      title={
+        <div className="create-worktree-modal-title">
+          <span className="create-worktree-modal-title-icon">
+            <BranchesOutlined />
+          </span>
+          <span>
+            <Typography.Title level={4}>Create a worktree</Typography.Title>
+            <Typography.Text type="secondary">
+              Start isolated work without leaving your current branch.
+            </Typography.Text>
+          </span>
+        </div>
+      }
       footer={null}
       onCancel={handleCancel}
       destroyOnClose
-      width={950}
-      closeIcon={false}
-      centered={true}
+      width={920}
+      centered
+      className="create-worktree-modal"
       styles={{
         body: {
           display: 'flex',
           flexDirection: 'column',
-          height: '90vh',
+          maxHeight: 'calc(100vh - 150px)',
           overflow: 'hidden',
         },
       }}
     >
       <Segmented
+        className="create-worktree-source-tabs"
         defaultValue={createWorktreeMode}
         onChange={onChangeCreateWorktreeMode}
         block
         options={[
           {
-            label: <div style={{ padding: 2 }}>From Head</div>,
+            label: <div style={{ padding: 3 }}>New branch</div>,
             value: 'new-branch',
           },
           {
-            label: <div style={{ padding: 2 }}>From Branch</div>,
+            label: <div style={{ padding: 3 }}>Existing branch</div>,
             value: 'existing-branch',
           },
           {
-            label: <div style={{ padding: 2 }}>From Tag</div>,
+            label: <div style={{ padding: 3 }}>From tag</div>,
             value: 'existing-tag',
           },
         ]}
@@ -1013,7 +1020,7 @@ export default function AddWorktree({
           display: 'flex',
           flex: 1,
           flexDirection: 'column',
-          marginTop: 8,
+          marginTop: 16,
           minHeight: 0,
         }}
       >
@@ -1027,6 +1034,10 @@ export default function AddWorktree({
             paddingRight: 4,
           }}
         >
+          <div className="create-worktree-section-heading">
+            <span>Source</span>
+            <small>Choose the Git reference and worktree name.</small>
+          </div>
           {createWorktreeMode === 'new-branch' && (
             <Form.Item
               label="Name"
@@ -1129,13 +1140,11 @@ export default function AddWorktree({
               />
             </Form.Item>
           )}
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              gap: 12,
-            }}
-          >
+          <div className="create-worktree-section-heading">
+            <span>Automation hooks</span>
+            <small>Optional commands run before and after creation.</small>
+          </div>
+          <div className="create-worktree-hook-grid">
             <Form.Item
               label="Pre-hook"
               name="preHook"
@@ -1169,7 +1178,10 @@ export default function AddWorktree({
               />
             </Form.Item>
           </div>
-          <small>The worktree will be created at the specified directory</small>
+          <div className="create-worktree-section-heading">
+            <span>Location</span>
+            <small>Review where the new worktree will be stored.</small>
+          </div>
           <Form.Item
             style={{ marginBottom: 10 }}
             extra={
@@ -1185,7 +1197,7 @@ export default function AddWorktree({
               </small>
             }
           >
-            <div style={{ width: '100%', display: 'flex', gap: '8px' }}>
+            <div className="create-worktree-location-control">
               <Tooltip
                 mouseEnterDelay={0}
                 mouseLeaveDelay={0}
@@ -1193,9 +1205,9 @@ export default function AddWorktree({
                 placement="bottom"
               >
                 <Button
-                  size="small"
                   icon={<FolderOutlined />}
                   onClick={chooseWorktreesDir}
+                  aria-label="Change worktree location"
                 />
               </Tooltip>
               <Tooltip
@@ -1207,7 +1219,7 @@ export default function AddWorktree({
                 <Typography.Text
                   code
                   ellipsis={{ rows: 1 }}
-                  style={{ direction: 'rtl' }}
+                  className="create-worktree-path"
                 >
                   {worktreesFolder + pathSeparator + getWorktreeName()}
                 </Typography.Text>
@@ -1343,50 +1355,63 @@ export default function AddWorktree({
               </div>
             )}
           </section>
-          {nodeModulesWorktrees.length > 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <Checkbox
-                checked={shareNodeModules}
-                onChange={(event) => setShareNodeModules(event.target.checked)}
-              >
-                Share node_modules
-              </Checkbox>
-              {shareNodeModules && (
-                <div style={{ marginTop: 6, paddingLeft: 24 }}>
-                  <Typography.Text
-                    type="secondary"
-                    style={{
-                      display: 'block',
-                      marginBottom: 4,
-                      fontSize: 12,
-                    }}
-                  >
-                    Share from worktree:
-                  </Typography.Text>
-                  <Select
-                    size="small"
-                    style={{ width: '100%' }}
-                    value={selectedNodeModulesSourcePath}
-                    onChange={(val) => setSelectedNodeModulesSourcePath(val)}
-                    options={nodeModulesWorktrees.map((wt) => ({
-                      value: wt.path,
-                      label: wt.isPrimary
-                        ? `${wt.name} (Main worktree)`
-                        : wt.name,
-                    }))}
-                  />
-                </div>
-              )}
-            </div>
-          )}
-          <Form.Item style={{ marginBottom: isolateEnvironment ? 12 : 24 }}>
-            <Checkbox
-              checked={isolateEnvironment}
-              onChange={(event) => setIsolateEnvironment(event.target.checked)}
+          <div className="create-worktree-section-heading">
+            <span>Workspace setup</span>
+            <small>Optional optimizations and environment isolation.</small>
+          </div>
+          <div className="create-worktree-setup-options">
+            {nodeModulesWorktrees.length > 0 && (
+              <div className="create-worktree-setup-option">
+                <Checkbox
+                  checked={shareNodeModules}
+                  onChange={(event) =>
+                    setShareNodeModules(event.target.checked)
+                  }
+                >
+                  Share node_modules
+                </Checkbox>
+                {shareNodeModules && (
+                  <div style={{ marginTop: 6, paddingLeft: 24 }}>
+                    <Typography.Text
+                      type="secondary"
+                      style={{
+                        display: 'block',
+                        marginBottom: 4,
+                        fontSize: 12,
+                      }}
+                    >
+                      Share from worktree:
+                    </Typography.Text>
+                    <Select
+                      size="small"
+                      style={{ width: '100%' }}
+                      value={selectedNodeModulesSourcePath}
+                      onChange={(val) => setSelectedNodeModulesSourcePath(val)}
+                      options={nodeModulesWorktrees.map((wt) => ({
+                        value: wt.path,
+                        label: wt.isPrimary
+                          ? `${wt.name} (Main worktree)`
+                          : wt.name,
+                      }))}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            <Form.Item
+              className="create-worktree-setup-option"
+              style={{ marginBottom: isolateEnvironment ? 12 : 0 }}
             >
-              Isolate environment
-            </Checkbox>
-          </Form.Item>
+              <Checkbox
+                checked={isolateEnvironment}
+                onChange={(event) =>
+                  setIsolateEnvironment(event.target.checked)
+                }
+              >
+                Isolate environment
+              </Checkbox>
+            </Form.Item>
+          </div>
           {isolateEnvironment && (
             <div style={{ marginBottom: 10 }}>
               <Typography.Text strong>Environment sources</Typography.Text>
@@ -1556,7 +1581,7 @@ export default function AddWorktree({
             </div>
           )}
         </div>
-        <Form.Item style={{ flex: 'none', marginBottom: 0, paddingTop: 10 }}>
+        <Form.Item className="create-worktree-actions">
           {loadingCreateWorktree && (
             <div style={{ marginBottom: 10 }} aria-live="polite">
               <div style={{ display: 'flex', justifyContent: 'space-between' }}>

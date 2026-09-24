@@ -58,6 +58,10 @@ import { getAiAgentIcon } from '../../components/aiAgents/AiAgentIcons';
 import { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
 import { WorktreeMergeResult } from '../../../shared/worktreeMerge';
 import { AiAgentId } from '../../../shared/aiAgents';
+import {
+  CreatedWorktreeTarget,
+  WorktreeOpenAction,
+} from '../../../shared/worktreeOpenAction';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -211,8 +215,13 @@ export default function ListWorktrees({
   }, []);
 
   useEffect(() => {
-    const openCreatedWorktree = (event: Event) => {
-      const { action, worktree } = (event as CustomEvent).detail || {};
+    const openCreatedWorktree = ({
+      action,
+      worktree,
+    }: {
+      action: WorktreeOpenAction;
+      worktree: CreatedWorktreeTarget;
+    }) => {
       if (!action || !worktree?.path) return;
       if (action.type === 'editor') {
         window.electron.ipcRenderer.send(
@@ -228,15 +237,24 @@ export default function ListWorktrees({
       setTerminalInitialAgentId(action.agentId);
       setOpenTerminalModal(true);
     };
+    const onCreatedWorktreeEvent = (event: Event) =>
+      openCreatedWorktree((event as CustomEvent).detail || {});
+    const removeWorkflowOpenListener = window.electron.ipcRenderer.on(
+      'worktree-workflow-open-requested',
+      (action: WorktreeOpenAction, worktree: CreatedWorktreeTarget) =>
+        openCreatedWorktree({ action, worktree }),
+    );
     window.addEventListener(
       'worktreewise:open-created-worktree',
-      openCreatedWorktree,
+      onCreatedWorktreeEvent,
     );
-    return () =>
+    return () => {
+      removeWorkflowOpenListener();
       window.removeEventListener(
         'worktreewise:open-created-worktree',
-        openCreatedWorktree,
+        onCreatedWorktreeEvent,
       );
+    };
   }, [tabRepoPath]);
 
   useEffect(() => {
