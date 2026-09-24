@@ -24,6 +24,7 @@ describe('aiAgents shared definitions', () => {
         'npm install -g @anthropic-ai/claude-code',
       );
       assert.ok(guide.url.startsWith('https://'));
+      assert.strictEqual(guide.npmPackage, '@anthropic-ai/claude-code');
     });
 
     test('Codex suggests npm install command', () => {
@@ -81,6 +82,10 @@ describe('aiAgents shared definitions', () => {
           assert.ok(
             guide.command.startsWith('npm install'),
             `Command for ${id} on ${p} should be an npm install command, got: ${guide.command}`,
+          );
+          assert.ok(
+            guide.npmPackage,
+            `An npm-managed agent should expose its validated package name: ${id}`,
           );
         }
         assert.ok(

@@ -46,6 +46,18 @@ type DetectionResult = {
   command: string | null;
 };
 
+type AgentMaintenanceResult = {
+  ok: boolean;
+  message: string;
+  detection?: DetectionResult;
+};
+
+type MaintenanceRequest = {
+  agent: AiAgentConfig;
+  action: 'install' | 'update' | 'repair';
+  npmPackage: string;
+};
+
 function readConfiguredAgents(): AiAgentConfig[] {
   try {
     const stored = window.localStorage.getItem('aiAgents');
@@ -54,7 +66,14 @@ function readConfiguredAgents(): AiAgentConfig[] {
       const match = saved.find((agent) => agent.id === defaultAgent.id);
       let cmd = match?.command ?? defaultAgent.command;
       const lower = cmd.toLowerCase().trim();
-      if (defaultAgent.id === 'cursor' && (lower.includes('resources\\app\\bin\\cursor') || lower.includes('resources/app/bin/cursor') || lower === 'cursor' || lower === 'cursor.exe' || lower === 'cursor.cmd')) {
+      if (
+        defaultAgent.id === 'cursor' &&
+        (lower.includes('resources\\app\\bin\\cursor') ||
+          lower.includes('resources/app/bin/cursor') ||
+          lower === 'cursor' ||
+          lower === 'cursor.exe' ||
+          lower === 'cursor.cmd')
+      ) {
         const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
         if (lastSlash !== -1) {
           const dir = cmd.slice(0, lastSlash + 1);
@@ -66,7 +85,17 @@ function readConfiguredAgents(): AiAgentConfig[] {
           cmd = 'cursor-agent';
         }
       }
-      if (defaultAgent.id === 'antigravity' && (lower.includes('programs\\antigravity ide') || lower.includes('programs/antigravity ide') || lower === 'antigravity' || lower === 'antigravity.exe' || lower === 'antigravity.cmd' || lower === 'antigravity-ide' || lower === 'antigravity-ide.exe' || lower === 'antigravity-ide.cmd')) {
+      if (
+        defaultAgent.id === 'antigravity' &&
+        (lower.includes('programs\\antigravity ide') ||
+          lower.includes('programs/antigravity ide') ||
+          lower === 'antigravity' ||
+          lower === 'antigravity.exe' ||
+          lower === 'antigravity.cmd' ||
+          lower === 'antigravity-ide' ||
+          lower === 'antigravity-ide.exe' ||
+          lower === 'antigravity-ide.cmd')
+      ) {
         const lastSlash = Math.max(cmd.lastIndexOf('\\'), cmd.lastIndexOf('/'));
         if (lastSlash !== -1) {
           const dir = cmd.slice(0, lastSlash + 1);
@@ -100,9 +129,12 @@ export default function AiAgentSettings({
   const [results, setResults] = useState<Record<string, TestResult>>({});
   const [detectingAll, setDetectingAll] = useState(true);
   const [detectingId, setDetectingId] = useState<string | null>(null);
-  const [detections, setDetections] = useState<
-    Record<string, DetectionResult>
-  >({});
+  const [maintainingId, setMaintainingId] = useState<string | null>(null);
+  const [maintenanceRequest, setMaintenanceRequest] =
+    useState<MaintenanceRequest | null>(null);
+  const [detections, setDetections] = useState<Record<string, DetectionResult>>(
+    {},
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AiAgentConfig | null>(null);
   const [form] = Form.useForm();
@@ -209,8 +241,10 @@ export default function AiAgentSettings({
   const handleDetectOne = async (id: AiAgentId) => {
     setDetectingId(id);
     try {
-      const det: DetectionResult =
-        await window.electron.ipcRenderer.invoke('ai-agents:detect-one', id);
+      const det: DetectionResult = await window.electron.ipcRenderer.invoke(
+        'ai-agents:detect-one',
+        id,
+      );
       setDetections((current) => ({ ...current, [id]: det }));
       if (det && det.found && det.executablePath) {
         updateAgent(id, { command: det.executablePath, enabled: true });
@@ -233,6 +267,72 @@ export default function AiAgentSettings({
       args: agent.args,
     });
     setIsModalOpen(true);
+  };
+
+  const handleAgentMaintenance = (
+    agent: AiAgentConfig,
+    action: 'install' | 'update' | 'repair',
+  ) => {
+    const installation = getInstallationGuide(agent.id, platform);
+    if (!installation.npmPackage) return;
+    setMaintenanceRequest({
+      agent,
+      action,
+      npmPackage: installation.npmPackage,
+    });
+  };
+
+  const runAgentMaintenance = async () => {
+    if (!maintenanceRequest) return;
+    const { agent, action } = maintenanceRequest;
+    setMaintainingId(agent.id);
+    try {
+      const result: AgentMaintenanceResult =
+        await window.electron.ipcRenderer.invoke(
+          'ai-agents:maintain',
+          agent.id,
+          action === 'repair',
+        );
+      if (!result.ok) {
+        setResults((current) => ({
+          ...current,
+          [agent.id]: { ok: false, output: result.message },
+        }));
+        message.error({
+          content: `${agent.label}: ${result.message}`,
+          duration: 8,
+        });
+        return;
+      }
+
+      if (result.detection) {
+        setDetections((current) => ({
+          ...current,
+          [agent.id]: result.detection!,
+        }));
+        if (result.detection.executablePath) {
+          updateAgent(agent.id, {
+            command: result.detection.executablePath,
+            enabled: true,
+          });
+        }
+      }
+      setResults((current) => ({
+        ...current,
+        [agent.id]: { ok: true, output: result.message },
+      }));
+      setMaintenanceRequest(null);
+      message.success(result.message);
+    } catch (error: any) {
+      const detail = error?.message || String(error);
+      setResults((current) => ({
+        ...current,
+        [agent.id]: { ok: false, output: detail },
+      }));
+      message.error(`${agent.label}: ${detail}`);
+    } finally {
+      setMaintainingId(null);
+    }
   };
 
   const handleModalSave = (values: any) => {
@@ -262,7 +362,8 @@ export default function AiAgentSettings({
             AI Coding Agents
           </Typography.Title>
           <Typography.Text type="secondary">
-            Configure CLI assistants and autonomous agents used inside your worktree terminals.
+            Configure CLI assistants and autonomous agents used inside your
+            worktree terminals.
           </Typography.Text>
         </div>
         <Button
@@ -286,10 +387,17 @@ export default function AiAgentSettings({
         {agents.map((agent) => {
           const det = detections[agent.id];
           const detectionComplete = Boolean(det);
-          const isDetected = det?.found === true || results[agent.id]?.ok === true;
+          const isDetected =
+            det?.found === true || results[agent.id]?.ok === true;
           const isTesting = testingId === agent.id;
           const testRes = results[agent.id];
           const installation = getInstallationGuide(agent.id, platform);
+          const maintenanceAction: 'install' | 'update' | 'repair' =
+            testRes?.ok === false
+              ? 'repair'
+              : isDetected
+                ? 'update'
+                : 'install';
 
           return (
             <Card
@@ -306,8 +414,16 @@ export default function AiAgentSettings({
               }}
               bodyStyle={{ padding: '16px' }}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                <div style={{ marginTop: 2 }}>{getAiAgentIcon(agent.id, 34)}</div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '12px',
+                }}
+              >
+                <div style={{ marginTop: 2 }}>
+                  {getAiAgentIcon(agent.id, 34)}
+                </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div
                     style={{
@@ -394,7 +510,11 @@ export default function AiAgentSettings({
                   ) : (
                     <Typography.Text
                       type="secondary"
-                      style={{ fontSize: 11, fontStyle: 'italic', display: 'block' }}
+                      style={{
+                        fontSize: 11,
+                        fontStyle: 'italic',
+                        display: 'block',
+                      }}
                     >
                       No command configured
                     </Typography.Text>
@@ -410,34 +530,37 @@ export default function AiAgentSettings({
                           {installation.requirement}
                         </Typography.Text>
                       )}
-                      {installation.command && installation.command.startsWith('npm') && (
-                        <div className="ai-agent-install-command-row">
-                          <Tooltip
-                            title={installation.command}
-                            placement="topLeft"
-                            mouseEnterDelay={0}
-                            mouseLeaveDelay={0}
-                          >
-                            <Typography.Text
-                              code
-                              className="ai-agent-install-command"
-                              onClick={() => {
-                                navigator.clipboard.writeText(installation.command!);
-                                message.success('Copied to clipboard');
-                              }}
+                      {installation.command &&
+                        installation.command.startsWith('npm') && (
+                          <div className="ai-agent-install-command-row">
+                            <Tooltip
+                              title={installation.command}
+                              placement="topLeft"
+                              mouseEnterDelay={0}
+                              mouseLeaveDelay={0}
                             >
-                              {installation.command}
-                            </Typography.Text>
-                          </Tooltip>
-                          <Typography.Text
-                            copyable={{
-                              text: installation.command,
-                              tooltips: ['Copy command', 'Copied!'],
-                            }}
-                            className="ai-agent-install-copy-btn"
-                          />
-                        </div>
-                      )}
+                              <Typography.Text
+                                code
+                                className="ai-agent-install-command"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    installation.command!,
+                                  );
+                                  message.success('Copied to clipboard');
+                                }}
+                              >
+                                {installation.command}
+                              </Typography.Text>
+                            </Tooltip>
+                            <Typography.Text
+                              copyable={{
+                                text: installation.command,
+                                tooltips: ['Copy command', 'Copied!'],
+                              }}
+                              className="ai-agent-install-copy-btn"
+                            />
+                          </div>
+                        )}
                       <Button
                         type="link"
                         size="small"
@@ -450,39 +573,13 @@ export default function AiAgentSettings({
                     </div>
                   )}
 
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      marginTop: '12px',
-                    }}
-                  >
-                    <Button
-                      size="small"
-                      icon={<EditOutlined />}
-                      onClick={() => onOpenEditModal(agent)}
-                    >
-                      Configure
-                    </Button>
-                    <Button
-                      size="small"
-                      icon={<PlayCircleOutlined />}
-                      loading={isTesting}
-                      disabled={!agent.command.trim()}
-                      onClick={() => {
-                        setTestingId(agent.id);
-                        window.electron.ipcRenderer.send('test-ai-agent', agent);
-                      }}
-                    >
-                      Test
-                    </Button>
-                  </div>
-
                   {testRes && (
                     <div style={{ marginTop: 8 }}>
                       <Tooltip
-                        title={testRes.output || (testRes.ok ? 'Verified OK' : 'Test Failed')}
+                        title={
+                          testRes.output ||
+                          (testRes.ok ? 'Verified OK' : 'Test Failed')
+                        }
                         placement="bottomLeft"
                       >
                         <Tag
@@ -499,7 +596,11 @@ export default function AiAgentSettings({
                       {!testRes.ok && testRes.output && (
                         <Typography.Paragraph
                           type="danger"
-                          ellipsis={{ rows: 2, expandable: true, symbol: 'more' }}
+                          ellipsis={{
+                            rows: 2,
+                            expandable: true,
+                            symbol: 'more',
+                          }}
                           style={{
                             fontSize: 11,
                             marginTop: 4,
@@ -527,10 +628,114 @@ export default function AiAgentSettings({
                   )}
                 </div>
               </div>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: '8px',
+                  marginTop: '14px',
+                }}
+              >
+                <Button
+                  size="small"
+                  icon={<EditOutlined />}
+                  onClick={() => onOpenEditModal(agent)}
+                >
+                  Configure
+                </Button>
+                <Button
+                  size="small"
+                  icon={<PlayCircleOutlined />}
+                  loading={isTesting}
+                  disabled={!agent.command.trim()}
+                  onClick={() => {
+                    setTestingId(agent.id);
+                    window.electron.ipcRenderer.send('test-ai-agent', agent);
+                  }}
+                >
+                  Test
+                </Button>
+                {installation.npmPackage && (
+                  <Button
+                    size="small"
+                    icon={
+                      maintenanceAction === 'install' ? (
+                        <DownloadOutlined />
+                      ) : (
+                        <ReloadOutlined />
+                      )
+                    }
+                    loading={maintainingId === agent.id}
+                    disabled={
+                      maintainingId !== null && maintainingId !== agent.id
+                    }
+                    onClick={() =>
+                      handleAgentMaintenance(agent, maintenanceAction)
+                    }
+                  >
+                    {maintenanceAction === 'install'
+                      ? 'Install'
+                      : maintenanceAction === 'repair'
+                        ? 'Repair'
+                        : 'Update'}
+                  </Button>
+                )}
+              </div>
             </Card>
           );
         })}
       </div>
+
+      <Modal
+        open={Boolean(maintenanceRequest)}
+        title={
+          maintenanceRequest
+            ? `${maintenanceRequest.action === 'install' ? 'Install' : maintenanceRequest.action === 'repair' ? 'Repair' : 'Update'} ${maintenanceRequest.agent.label}?`
+            : 'Maintain AI agent'
+        }
+        okText={
+          maintenanceRequest?.action === 'install'
+            ? 'Install'
+            : maintenanceRequest?.action === 'repair'
+              ? 'Repair installation'
+              : 'Update'
+        }
+        cancelButtonProps={{ disabled: Boolean(maintainingId) }}
+        confirmLoading={Boolean(maintainingId)}
+        closable={!maintainingId}
+        maskClosable={!maintainingId}
+        keyboard={!maintainingId}
+        centered
+        destroyOnClose
+        onOk={runAgentMaintenance}
+        onCancel={() => {
+          if (!maintainingId) setMaintenanceRequest(null);
+        }}
+      >
+        {maintenanceRequest && (
+          <Space direction="vertical" size={8} style={{ width: '100%' }}>
+            <Typography.Text>
+              WorktreeWise will run npm for the global package{' '}
+              <Typography.Text code>
+                {maintenanceRequest.npmPackage}
+              </Typography.Text>
+              .
+            </Typography.Text>
+            {maintenanceRequest.action === 'repair' && (
+              <Typography.Text type="secondary">
+                Repair forces npm to replace the current files, then verifies
+                the executable again.
+              </Typography.Text>
+            )}
+            {maintainingId && (
+              <Typography.Text type="secondary">
+                This may take a few minutes. Keep WorktreeWise open.
+              </Typography.Text>
+            )}
+          </Space>
+        )}
+      </Modal>
 
       <Modal
         open={isModalOpen}
@@ -549,7 +754,12 @@ export default function AiAgentSettings({
           <Form.Item
             label="Executable Command / Path"
             name="command"
-            rules={[{ required: true, message: 'Please specify the executable command' }]}
+            rules={[
+              {
+                required: true,
+                message: 'Please specify the executable command',
+              },
+            ]}
             extra="e.g. claude, codex, cursor-agent, agy, qwen, kimi, opencode"
           >
             <Input allowClear />
@@ -560,10 +770,20 @@ export default function AiAgentSettings({
             name="args"
             extra="Additional flags passed to the CLI on startup."
           >
-            <Input placeholder="e.g. --dangerously-skip-permissions" allowClear />
+            <Input
+              placeholder="e.g. --dangerously-skip-permissions"
+              allowClear
+            />
           </Form.Item>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 24 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginTop: 24,
+            }}
+          >
             <Button
               icon={<ScanOutlined />}
               loading={detectingId === editingAgent?.id}

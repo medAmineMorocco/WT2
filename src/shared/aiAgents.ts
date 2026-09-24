@@ -390,6 +390,7 @@ export type Platform = 'win32' | 'darwin' | 'linux';
 
 export interface InstallationGuide {
   command?: string;
+  npmPackage?: string;
   url: string;
   requirement?: string;
 }
@@ -423,11 +424,13 @@ export function getInstallationGuide(
   const guides: Record<AiAgentId, InstallationGuide> = {
     claude: {
       command: 'npm install -g @anthropic-ai/claude-code',
+      npmPackage: '@anthropic-ai/claude-code',
       url: 'https://code.claude.com/docs/en/quickstart',
       requirement: 'Requires Node.js 18 or later',
     },
     codex: {
       command: 'npm install -g @openai/codex',
+      npmPackage: '@openai/codex',
       url: 'https://help.openai.com/en/articles/11096431',
     },
     cursor: {
@@ -438,16 +441,19 @@ export function getInstallationGuide(
     },
     qwen: {
       command: 'npm install -g @qwen-code/qwen-code@latest',
+      npmPackage: '@qwen-code/qwen-code',
       url: 'https://qwenlm.github.io/qwen-code-docs/en/users/quickstart/',
       requirement: 'Requires Node.js 22 or later',
     },
     kimi: {
       command: 'npm install -g @moonshot-ai/kimi-code',
+      npmPackage: '@moonshot-ai/kimi-code',
       url: 'https://www.kimi.com/code/docs/en/kimi-code-cli/guides/getting-started.html',
       requirement: 'Requires Node.js 22.19 or later',
     },
     opencode: {
       command: 'npm install -g opencode-ai',
+      npmPackage: 'opencode-ai',
       url: 'https://opencode.ai/docs/',
     },
   };

@@ -617,6 +617,16 @@ ipcMain.handle(
 );
 
 ipcMain.handle(
+  'ai-agents:maintain',
+  async (_event, agentId: AiAgentId, repair = false) => {
+    if (!aiAgentsDefault.some((agent) => agent.id === agentId)) {
+      return { ok: false, message: 'Unknown AI agent.' };
+    }
+    return aiAgentDetectionService.maintainAiAgent(agentId, repair === true);
+  },
+);
+
+ipcMain.handle(
   'ai-agents:get-models',
   async (_event, agentId: AiAgentId, customCommand?: string) => {
     return modelsDevService.getModelsForAgent(agentId, customCommand);

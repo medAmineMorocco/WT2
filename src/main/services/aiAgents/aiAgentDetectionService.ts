@@ -2,7 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import { execFileSync, spawn } from 'child_process';
-import { AiAgentId } from '../../../shared/aiAgents';
+import {
+  AiAgentId,
+  detectPlatform,
+  getInstallationGuide,
+} from '../../../shared/aiAgents';
 import log from '../../utils/logger';
 
 export interface DetectionResult {
@@ -24,11 +28,7 @@ const AGENT_BINARIES: Record<AiAgentId, string[]> = {
     'agent.exe',
     'agent',
   ],
-  antigravity: [
-    'agy.exe',
-    'agy.cmd',
-    'agy',
-  ],
+  antigravity: ['agy.exe', 'agy.cmd', 'agy'],
   qwen: ['qwen.cmd', 'qwen.exe', 'qwen', 'qwen.bat', 'qwen.ps1'],
   kimi: [
     'kimi.cmd',
@@ -109,7 +109,8 @@ function getSearchDirectories(): string[] {
 
   // 2. Windows-specific well-known directories
   if (isWindows) {
-    const appData = process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
+    const appData =
+      process.env.APPDATA || path.join(home, 'AppData', 'Roaming');
     const localAppData =
       process.env.LOCALAPPDATA || path.join(home, 'AppData', 'Local');
     const programFiles = process.env.ProgramFiles || 'C:\\Program Files';
@@ -143,7 +144,10 @@ function getSearchDirectories(): string[] {
     dirs.add(path.join(localAppData, 'uv', 'tools', 'kimi-cli', 'Scripts'));
     dirs.add(path.join(programFiles, 'Kimi Code'));
     dirs.add(path.join(localAppData, 'Programs', 'Kimi Code'));
-    [path.join(appData, 'Python'), path.join(localAppData, 'Programs', 'Python')]
+    [
+      path.join(appData, 'Python'),
+      path.join(localAppData, 'Programs', 'Python'),
+    ]
       .filter((pythonRoot) => fs.existsSync(pythonRoot))
       .forEach((pythonRoot) => {
         try {
@@ -294,13 +298,18 @@ export function parseCleanVersion(
   return null;
 }
 
-function verifyExecutable(executablePath: string): Promise<{ ok: boolean; version: string | null }> {
+function verifyExecutable(
+  executablePath: string,
+): Promise<{ ok: boolean; version: string | null }> {
   return new Promise((resolve) => {
     try {
       const isWindows = process.platform === 'win32';
-      const cmdToRun = isWindows && executablePath.includes(' ') && !executablePath.startsWith('"')
-        ? `"${executablePath}"`
-        : executablePath;
+      const cmdToRun =
+        isWindows &&
+        executablePath.includes(' ') &&
+        !executablePath.startsWith('"')
+          ? `"${executablePath}"`
+          : executablePath;
       const child = spawn(cmdToRun, ['--version'], {
         shell: isWindows,
         windowsHide: true,
@@ -354,6 +363,104 @@ interface CacheEntry {
 
 const detectionCache = new Map<string, CacheEntry>();
 const CACHE_TTL_MS = 60 * 1000;
+
+export interface AgentMaintenanceResult {
+  ok: boolean;
+  message: string;
+  detection?: DetectionResult;
+}
+
+export function maintainAiAgent(
+  agentId: AiAgentId,
+  repair = false,
+): Promise<AgentMaintenanceResult> {
+  return new Promise((resolve) => {
+    const npmPackage = getInstallationGuide(
+      agentId,
+      detectPlatform(),
+    ).npmPackage;
+    if (!npmPackage) {
+      resolve({
+        ok: false,
+        message: 'Automatic maintenance is not available for this agent.',
+      });
+      return;
+    }
+
+    const isWindows = process.platform === 'win32';
+    const command = isWindows ? 'npm.cmd' : 'npm';
+    const args = ['install', '-g', `${npmPackage}@latest`];
+    if (repair) args.push('--force');
+
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    const finish = (result: AgentMaintenanceResult) => {
+      if (settled) return;
+      settled = true;
+      resolve(result);
+    };
+
+    try {
+      const child = spawn(command, args, {
+        shell: isWindows,
+        windowsHide: true,
+        cwd: os.homedir(),
+        env: getAugmentedEnv(),
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      const timeout = setTimeout(
+        () => {
+          child.kill();
+          finish({
+            ok: false,
+            message: 'The npm operation timed out after five minutes.',
+          });
+        },
+        5 * 60 * 1000,
+      );
+
+      const appendOutput = (current: string, chunk: Buffer) =>
+        `${current}${chunk.toString()}`.slice(-20000);
+      child.stdout?.on('data', (chunk: Buffer) => {
+        stdout = appendOutput(stdout, chunk);
+      });
+      child.stderr?.on('data', (chunk: Buffer) => {
+        stderr = appendOutput(stderr, chunk);
+      });
+      child.on('error', (error: Error) => {
+        clearTimeout(timeout);
+        finish({ ok: false, message: error.message });
+      });
+      child.on('close', async (code: number | null) => {
+        clearTimeout(timeout);
+        if (settled) return;
+        const output = [stdout.trim(), stderr.trim()]
+          .filter(Boolean)
+          .join('\n');
+        if (code !== 0) {
+          finish({
+            ok: false,
+            message: output || `npm exited with code ${code ?? 'unknown'}.`,
+          });
+          return;
+        }
+
+        clearDetectionCache(agentId);
+        const detection = await detectAiAgent(agentId);
+        finish({
+          ok: detection.found,
+          message: detection.found
+            ? `${repair ? 'Repaired' : 'Updated'} ${npmPackage} successfully.`
+            : `${npmPackage} was installed, but its executable could not be detected.`,
+          detection,
+        });
+      });
+    } catch (error: any) {
+      finish({ ok: false, message: error?.message || String(error) });
+    }
+  });
+}
 
 export function clearDetectionCache(agentId?: AiAgentId): void {
   if (agentId) {
@@ -468,7 +575,9 @@ export async function detectAiAgent(
   return notFoundResult;
 }
 
-export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionResult>> {
+export async function detectAllAiAgents(): Promise<
+  Record<AiAgentId, DetectionResult>
+> {
   const agentIds: AiAgentId[] = [
     'claude',
     'codex',
@@ -503,6 +612,7 @@ export async function detectAllAiAgents(): Promise<Record<AiAgentId, DetectionRe
 export default {
   detectAiAgent,
   detectAllAiAgents,
+  maintainAiAgent,
   getCleanEnv,
   getAugmentedEnv,
   parseCleanVersion,
