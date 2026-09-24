@@ -625,6 +625,20 @@ ipcMain.handle('ai-agents:detect-all', async () => {
   return aiAgentDetectionService.detectAllAiAgents();
 });
 
+ipcMain.handle('ai-agents:check-updates', async () => {
+  return aiAgentDetectionService.checkAllAiAgentUpdates();
+});
+
+ipcMain.handle(
+  'ai-agents:check-update',
+  async (_event, agentId: AiAgentId, force = false) => {
+    if (!aiAgentsDefault.some((agent) => agent.id === agentId)) {
+      return null;
+    }
+    return aiAgentDetectionService.checkAiAgentUpdate(agentId, force === true);
+  },
+);
+
 ipcMain.handle(
   'ai-agents:detect-one',
   async (_event, agentId: AiAgentId, customCommand?: string) => {

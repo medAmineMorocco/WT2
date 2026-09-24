@@ -12,6 +12,7 @@ import {
   Tooltip,
   Typography,
   message,
+  notification,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -50,6 +51,14 @@ type AgentMaintenanceResult = {
   ok: boolean;
   message: string;
   detection?: DetectionResult;
+};
+
+type AgentUpdateStatus = {
+  agentId: AiAgentId;
+  checked: boolean;
+  updateAvailable: boolean;
+  installedVersion: string | null;
+  latestVersion: string | null;
 };
 
 type MaintenanceRequest = {
@@ -135,6 +144,9 @@ export default function AiAgentSettings({
   const [detections, setDetections] = useState<Record<string, DetectionResult>>(
     {},
   );
+  const [updateStatuses, setUpdateStatuses] = useState<
+    Partial<Record<AiAgentId, AgentUpdateStatus>>
+  >({});
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AiAgentConfig | null>(null);
   const [form] = Form.useForm();
@@ -180,7 +192,14 @@ export default function AiAgentSettings({
     window.electron.ipcRenderer
       .invoke('ai-agents:detect-all')
       .then((detectedMap: Record<AiAgentId, DetectionResult>) => {
-        if (active) setDetections(detectedMap || {});
+        if (!active) return;
+        setDetections(detectedMap || {});
+        window.electron.ipcRenderer
+          .invoke('ai-agents:check-updates')
+          .then((statuses: Record<AiAgentId, AgentUpdateStatus>) => {
+            if (active) setUpdateStatuses(statuses || {});
+          })
+          .catch(() => {});
       })
       .catch(() => {
         // Keep settings usable when detection is temporarily unavailable.
@@ -209,6 +228,9 @@ export default function AiAgentSettings({
       const detectedMap: Record<AiAgentId, DetectionResult> =
         await window.electron.ipcRenderer.invoke('ai-agents:detect-all');
       setDetections(detectedMap || {});
+      const statuses: Record<AiAgentId, AgentUpdateStatus> =
+        await window.electron.ipcRenderer.invoke('ai-agents:check-updates');
+      setUpdateStatuses(statuses || {});
 
       let foundCount = 0;
       setAgents((current) => {
@@ -294,12 +316,9 @@ export default function AiAgentSettings({
           action === 'repair',
         );
       if (!result.ok) {
-        setResults((current) => ({
-          ...current,
-          [agent.id]: { ok: false, output: result.message },
-        }));
-        message.error({
-          content: `${agent.label}: ${result.message}`,
+        notification.error({
+          message: `${agent.label} update failed`,
+          description: result.message,
           duration: 8,
         });
         return;
@@ -317,19 +336,36 @@ export default function AiAgentSettings({
           });
         }
       }
-      setResults((current) => ({
-        ...current,
-        [agent.id]: { ok: true, output: result.message },
-      }));
+      const refreshedStatus: AgentUpdateStatus | null =
+        await window.electron.ipcRenderer.invoke(
+          'ai-agents:check-update',
+          agent.id,
+          true,
+        );
+      if (refreshedStatus) {
+        setUpdateStatuses((current) => ({
+          ...current,
+          [agent.id]: refreshedStatus,
+        }));
+      }
+      setResults((current) => {
+        const next = { ...current };
+        delete next[agent.id];
+        return next;
+      });
       setMaintenanceRequest(null);
-      message.success(result.message);
+      notification.success({
+        message: `${agent.label} ${action === 'install' ? 'installed' : action === 'repair' ? 'repaired' : 'updated'}`,
+        description: result.message,
+        duration: 5,
+      });
     } catch (error: any) {
       const detail = error?.message || String(error);
-      setResults((current) => ({
-        ...current,
-        [agent.id]: { ok: false, output: detail },
-      }));
-      message.error(`${agent.label}: ${detail}`);
+      notification.error({
+        message: `${agent.label} update failed`,
+        description: detail,
+        duration: 8,
+      });
     } finally {
       setMaintainingId(null);
     }
@@ -392,6 +428,7 @@ export default function AiAgentSettings({
           const isTesting = testingId === agent.id;
           const testRes = results[agent.id];
           const installation = getInstallationGuide(agent.id, platform);
+          const updateStatus = updateStatuses[agent.id];
           const maintenanceAction: 'install' | 'update' | 'repair' =
             testRes?.ok === false
               ? 'repair'
@@ -656,31 +693,34 @@ export default function AiAgentSettings({
                 >
                   Test
                 </Button>
-                {installation.npmPackage && (
-                  <Button
-                    size="small"
-                    icon={
-                      maintenanceAction === 'install' ? (
-                        <DownloadOutlined />
-                      ) : (
-                        <ReloadOutlined />
-                      )
-                    }
-                    loading={maintainingId === agent.id}
-                    disabled={
-                      maintainingId !== null && maintainingId !== agent.id
-                    }
-                    onClick={() =>
-                      handleAgentMaintenance(agent, maintenanceAction)
-                    }
-                  >
-                    {maintenanceAction === 'install'
-                      ? 'Install'
-                      : maintenanceAction === 'repair'
-                        ? 'Repair'
-                        : 'Update'}
-                  </Button>
-                )}
+                {installation.npmPackage &&
+                  (!isDetected ||
+                    testRes?.ok === false ||
+                    updateStatus?.updateAvailable === true) && (
+                    <Button
+                      size="small"
+                      icon={
+                        maintenanceAction === 'install' ? (
+                          <DownloadOutlined />
+                        ) : (
+                          <ReloadOutlined />
+                        )
+                      }
+                      loading={maintainingId === agent.id}
+                      disabled={
+                        maintainingId !== null && maintainingId !== agent.id
+                      }
+                      onClick={() =>
+                        handleAgentMaintenance(agent, maintenanceAction)
+                      }
+                    >
+                      {maintenanceAction === 'install'
+                        ? 'Install'
+                        : maintenanceAction === 'repair'
+                          ? 'Repair'
+                          : 'Update'}
+                    </Button>
+                  )}
               </div>
             </Card>
           );

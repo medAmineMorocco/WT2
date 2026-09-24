@@ -370,6 +370,139 @@ export interface AgentMaintenanceResult {
   detection?: DetectionResult;
 }
 
+export interface AgentUpdateStatus {
+  agentId: AiAgentId;
+  checked: boolean;
+  updateAvailable: boolean;
+  installedVersion: string | null;
+  latestVersion: string | null;
+}
+
+const updateStatusCache = new Map<
+  AiAgentId,
+  { status: AgentUpdateStatus; expiresAt: number }
+>();
+const UPDATE_STATUS_CACHE_TTL_MS = 10 * 60 * 1000;
+
+function extractSemanticVersion(value: string | null): string | null {
+  if (!value) return null;
+  return value.match(/\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?/)?.[0] || null;
+}
+
+export function isNewerVersion(
+  installedValue: string | null,
+  latestValue: string | null,
+): boolean {
+  const installed = extractSemanticVersion(installedValue);
+  const latest = extractSemanticVersion(latestValue);
+  if (!installed || !latest) return false;
+
+  const [installedCore, installedPre] = installed.split('-', 2);
+  const [latestCore, latestPre] = latest.split('-', 2);
+  const installedParts = installedCore.split('.').map(Number);
+  const latestParts = latestCore.split('.').map(Number);
+  for (let index = 0; index < 3; index += 1) {
+    if (latestParts[index] !== installedParts[index]) {
+      return latestParts[index] > installedParts[index];
+    }
+  }
+  if (installedPre && !latestPre) return true;
+  if (!installedPre || !latestPre) return false;
+  return (
+    latestPre.localeCompare(installedPre, undefined, { numeric: true }) > 0
+  );
+}
+
+function readLatestNpmVersion(npmPackage: string): Promise<string | null> {
+  return new Promise((resolve) => {
+    const isWindows = process.platform === 'win32';
+    const child = spawn(
+      isWindows ? 'npm.cmd' : 'npm',
+      ['view', npmPackage, 'version', '--json'],
+      {
+        shell: isWindows,
+        windowsHide: true,
+        cwd: os.homedir(),
+        env: getAugmentedEnv(),
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+    let stdout = '';
+    let settled = false;
+    const finish = (version: string | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(version);
+    };
+    const timeout = setTimeout(() => {
+      child.kill();
+      finish(null);
+    }, 15000);
+    child.stdout?.on('data', (chunk: Buffer) => {
+      stdout = `${stdout}${chunk.toString()}`.slice(-1000);
+    });
+    child.on('error', () => {
+      clearTimeout(timeout);
+      finish(null);
+    });
+    child.on('close', (code: number | null) => {
+      clearTimeout(timeout);
+      if (code !== 0) {
+        finish(null);
+        return;
+      }
+      try {
+        const parsed = JSON.parse(stdout.trim());
+        finish(typeof parsed === 'string' ? parsed : null);
+      } catch {
+        finish(extractSemanticVersion(stdout));
+      }
+    });
+  });
+}
+
+export async function checkAiAgentUpdate(
+  agentId: AiAgentId,
+  force = false,
+): Promise<AgentUpdateStatus> {
+  const cached = updateStatusCache.get(agentId);
+  if (!force && cached && cached.expiresAt > Date.now()) return cached.status;
+
+  const detection = await detectAiAgent(agentId);
+  const installedVersion = extractSemanticVersion(detection.version);
+  const npmPackage = getInstallationGuide(agentId, detectPlatform()).npmPackage;
+  let latestVersion: string | null = null;
+  if (detection.found && installedVersion && npmPackage) {
+    latestVersion = extractSemanticVersion(
+      await readLatestNpmVersion(npmPackage),
+    );
+  }
+  const status: AgentUpdateStatus = {
+    agentId,
+    checked: Boolean(latestVersion),
+    updateAvailable: isNewerVersion(installedVersion, latestVersion),
+    installedVersion,
+    latestVersion,
+  };
+  updateStatusCache.set(agentId, {
+    status,
+    expiresAt: Date.now() + UPDATE_STATUS_CACHE_TTL_MS,
+  });
+  return status;
+}
+
+export async function checkAllAiAgentUpdates(): Promise<
+  Record<AiAgentId, AgentUpdateStatus>
+> {
+  const agentIds = Object.keys(AGENT_BINARIES) as AiAgentId[];
+  const entries = await Promise.all(
+    agentIds.map(
+      async (agentId) => [agentId, await checkAiAgentUpdate(agentId)] as const,
+    ),
+  );
+  return Object.fromEntries(entries) as Record<AiAgentId, AgentUpdateStatus>;
+}
+
 export function maintainAiAgent(
   agentId: AiAgentId,
   repair = false,
@@ -447,6 +580,7 @@ export function maintainAiAgent(
         }
 
         clearDetectionCache(agentId);
+        updateStatusCache.delete(agentId);
         const detection = await detectAiAgent(agentId);
         finish({
           ok: detection.found,
@@ -613,6 +747,8 @@ export default {
   detectAiAgent,
   detectAllAiAgents,
   maintainAiAgent,
+  checkAiAgentUpdate,
+  checkAllAiAgentUpdates,
   getCleanEnv,
   getAugmentedEnv,
   parseCleanVersion,
