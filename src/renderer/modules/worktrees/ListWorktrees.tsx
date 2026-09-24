@@ -21,6 +21,7 @@ import {
   Spin,
   Modal,
   Typography,
+  FloatButton,
 } from 'antd';
 import type { MenuProps } from 'antd';
 import {
@@ -80,6 +81,63 @@ const { useToken } = theme;
 
 type ActiveAgent = TerminalAgentActivity['agent'];
 
+function TerminalWorkspaceIcon() {
+  return (
+    <svg
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="2.5"
+        y="3"
+        width="19"
+        height="18"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.7"
+      />
+      <path d="M2.5 8.25H21.5" stroke="currentColor" strokeWidth="1.7" />
+      <path
+        d="M12 8.25V21"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        opacity="0.8"
+      />
+      <circle cx="5.5" cy="5.7" r="0.8" fill="currentColor" />
+      <circle cx="8" cy="5.7" r="0.8" fill="currentColor" opacity="0.72" />
+      <path
+        d="M5.5 12L7.8 14.2L5.5 16.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M8.8 17H10.4"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinecap="round"
+      />
+      <path
+        d="M15 12H19"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+      <path
+        d="M15 15H18"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        opacity="0.8"
+      />
+    </svg>
+  );
+}
+
 function worktreeActivityKey(worktreePath: string) {
   const normalized = worktreePath.replace(/\\/g, '/').replace(/\/+$/, '');
   return /^[a-z]:\//i.test(normalized) ? normalized.toLowerCase() : normalized;
@@ -120,6 +178,9 @@ export default function ListWorktrees({
   const isRemotesExpanded = remotesActiveKey.includes('remotes');
 
   const [openTerminalModal, setOpenTerminalModal] = useState(false);
+  const [terminalWorkspaceMounted, setTerminalWorkspaceMounted] =
+    useState(false);
+  const [terminalWorkspaceCount, setTerminalWorkspaceCount] = useState(1);
   const [repositoryInTerminal, setRepositoryInTerminal] = useState<
     string | null
   >(null);
@@ -235,6 +296,7 @@ export default function ListWorktrees({
       setRepositoryInTerminal(worktree.path);
       setTerminalInitialMode(action.type === 'agent' ? 'agent' : 'terminal');
       setTerminalInitialAgentId(action.agentId);
+      setTerminalWorkspaceMounted(true);
       setOpenTerminalModal(true);
     };
     const onCreatedWorktreeEvent = (event: Event) =>
@@ -737,8 +799,14 @@ export default function ListWorktrees({
     setRepositoryInTerminal(null);
     setTerminalInitialMode('terminal');
     setTerminalInitialAgentId(undefined);
+    setTerminalWorkspaceMounted(false);
+    setTerminalWorkspaceCount(1);
     setOpenTerminalModal(false);
   };
+
+  const minimizeTerminalWorkspace = () => setOpenTerminalModal(false);
+
+  const restoreTerminalWorkspace = () => setOpenTerminalModal(true);
 
   const closeWorktreeGitConfig = useCallback(() => setConfigWorktree(null), []);
 
@@ -780,12 +848,14 @@ export default function ListWorktrees({
       if (key === 'open-terminal') {
         setRepositoryInTerminal(worktree.path);
         setTerminalInitialMode('terminal');
+        setTerminalWorkspaceMounted(true);
         setOpenTerminalModal(true);
         return;
       }
       if (key === 'work-agent') {
         setRepositoryInTerminal(worktree.path);
         setTerminalInitialMode('agent');
+        setTerminalWorkspaceMounted(true);
         setOpenTerminalModal(true);
         return;
       }
@@ -1304,19 +1374,31 @@ export default function ListWorktrees({
                 ))}
               </ul>
             </div>
-            {openTerminalModal && (
+            {terminalWorkspaceMounted && (
               <Suspense fallback={<Spin size="large" />}>
                 <TerminalInteractive
                   isModalOpen={openTerminalModal}
                   initialRepository={repositoryInTerminal}
                   worktrees={worktrees}
                   handleCancel={closeTerminalModal}
+                  handleMinimize={minimizeTerminalWorkspace}
                   isDarkMode={isDarkMode}
                   onAgentActivity={onTerminalAgentActivity}
                   initialMode={terminalInitialMode}
                   initialAgentId={terminalInitialAgentId}
+                  onTerminalCountChange={setTerminalWorkspaceCount}
                 />
               </Suspense>
+            )}
+            {terminalWorkspaceMounted && !openTerminalModal && (
+              <FloatButton
+                className="terminal-workspace-fab"
+                icon={<TerminalWorkspaceIcon />}
+                tooltip="Resume terminal workspace"
+                badge={{ count: terminalWorkspaceCount }}
+                aria-label="Resume terminal workspace"
+                onClick={restoreTerminalWorkspace}
+              />
             )}
             {isModalOpen && (
               <Suspense fallback={<Spin size="large" />}>

@@ -13,6 +13,7 @@ import {
   LayoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  MinusOutlined,
   PlusOutlined,
 } from '@ant-design/icons';
 import {
@@ -1691,19 +1692,23 @@ export default function TerminalInteractive({
   initialRepository,
   worktrees,
   handleCancel,
+  handleMinimize,
   isDarkMode,
   onAgentActivity,
   initialMode = 'terminal',
   initialAgentId,
+  onTerminalCountChange,
 }: {
   isModalOpen: boolean;
   initialRepository: string | null;
   worktrees: WorktreeOption[];
   handleCancel: () => void;
+  handleMinimize: () => void;
   isDarkMode: boolean;
   onAgentActivity?: (activity: TerminalAgentActivity) => void;
   initialMode?: 'terminal' | 'agent';
   initialAgentId?: AiAgentId;
+  onTerminalCountChange?: (count: number) => void;
 }) {
   const availableWorktrees = useMemo(
     () =>
@@ -1740,6 +1745,10 @@ export default function TerminalInteractive({
     null,
   );
   const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
+
+  useEffect(() => {
+    onTerminalCountChange?.(terminals.length);
+  }, [onTerminalCountChange, terminals.length]);
 
   const registerTerminalFocus = useCallback(
     (id: string, focus: (() => void) | null) => {
@@ -1803,7 +1812,7 @@ export default function TerminalInteractive({
   return (
     <Modal
       open={isModalOpen}
-      onCancel={handleCancel}
+      onCancel={handleMinimize}
       keyboard={false}
       afterOpenChange={(open) => {
         if (!open) {
@@ -1818,7 +1827,6 @@ export default function TerminalInteractive({
         }, 0);
       }}
       footer={null}
-      destroyOnClose
       closable={false}
       className={`terminal-workspace-modal${
         isWorkspaceExpanded ? ' is-expanded' : ''
@@ -1860,6 +1868,14 @@ export default function TerminalInteractive({
             }))}
             onChange={addTerminal}
           />
+          <Tooltip title="Minimize terminal workspace">
+            <Button
+              type="text"
+              aria-label="Minimize terminal workspace"
+              icon={<MinusOutlined />}
+              onClick={handleMinimize}
+            />
+          </Tooltip>
           <Tooltip title="Close terminal workspace">
             <Button
               type="text"
