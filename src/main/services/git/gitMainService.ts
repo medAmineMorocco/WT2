@@ -216,7 +216,10 @@ function showLogAsync(
         : '--glob=refs/stash';
 
     const branchOrAll = branch || '--all';
-    const gitFormat = '%s %d <%an> {%ae} [%ci] %h parents:[%p]';
+    // Keep full object ids in renderer data so pasted 40-character SHAs can be
+    // searched reliably. The UI still renders the compact eight-character form.
+    // Parents must use the same width or graph lane matching would break.
+    const gitFormat = '%s %d <%an> {%ae} [%ci] %H parents:[%P]';
     const command = `"${gitCmd}" log --skip=${skip} -n ${limit} ${branchOrAll} ${stashArgs} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
 
     const git = spawn(command, {

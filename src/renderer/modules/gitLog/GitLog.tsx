@@ -10,6 +10,7 @@ import {
   Input,
   Typography,
 } from 'antd';
+import type { InputRef } from 'antd';
 import React, {
   lazy,
   Suspense,
@@ -199,7 +200,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const worktreesInitializedRef = useRef(false);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [commitSearchOpen, setCommitSearchOpen] = useState(false);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const commitSearchInputRef = useRef<InputRef>(null);
+  const autoSelectedSearchRef = useRef('');
 
   const [isAuthorEnabled, setIsAuthorEnabled] = useState(true);
   const [isCommitDateEnabled, setIsCommitDateEnabled] = useState(true);
@@ -487,7 +491,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     if (!q) return [];
     return commitList.filter(
       (c) =>
-        c.hash.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q),
+        c.hash.toLowerCase().includes(q) ||
+        c.hash.slice(0, 8).toLowerCase().includes(q) ||
+        c.subject.toLowerCase().includes(q),
     );
   }, [commitList, searchQuery]);
 
@@ -511,19 +517,31 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     setSearchQuery(value);
     const q = value.trim().toLowerCase();
     if (!q) {
+      autoSelectedSearchRef.current = '';
       setCurrentMatchIndex(0);
       return;
     }
     const newMatches = commitList.filter(
       (c) =>
-        c.hash.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q),
+        c.hash.toLowerCase().includes(q) ||
+        c.hash.slice(0, 8).toLowerCase().includes(q) ||
+        c.subject.toLowerCase().includes(q),
     );
     if (newMatches.length > 0) {
+      autoSelectedSearchRef.current = q;
       selectMatch(0, newMatches);
     } else {
       setCurrentMatchIndex(0);
     }
   };
+
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q || matchingCommits.length === 0) return;
+    if (autoSelectedSearchRef.current === q) return;
+    autoSelectedSearchRef.current = q;
+    selectMatch(0, matchingCommits);
+  }, [matchingCommits, searchQuery, selectMatch]);
 
   const handleNextMatch = () => {
     if (matchingCommits.length === 0) return;
@@ -677,12 +695,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   useEffect(() => {
     const q = searchQuery.trim();
     if (!q) return;
+    const searchingByHash = /^[a-f0-9]{7,40}$/i.test(q);
     if (
       matchingCommits.length === 0 &&
       hasMore &&
       !loadingMore &&
       !loading &&
-      commits.length < 500
+      (searchingByHash || commits.length < 500)
     ) {
       handleLoadMore();
     }
@@ -729,11 +748,20 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     <Popover
       trigger="click"
       placement="bottomLeft"
+      open={commitSearchOpen}
+      onOpenChange={(open) => {
+        setCommitSearchOpen(open);
+        if (open) {
+          window.setTimeout(() => {
+            commitSearchInputRef.current?.focus({ cursor: 'all' });
+          }, 0);
+        }
+      }}
       content={
         <div className="git-log-header-filter-popover git-log-commit-filter-popover">
           <Typography.Text strong>Find commit</Typography.Text>
           <Input
-            autoFocus
+            ref={commitSearchInputRef}
             placeholder="Hash or commit message"
             prefix={<SearchOutlined />}
             value={searchQuery}
