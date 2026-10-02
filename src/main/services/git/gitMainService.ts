@@ -28,6 +28,11 @@ import {
   CherryPickResolution,
 } from '../../../shared/cherryPick';
 import { GitRemote, SetUpstreamParams } from '../../../shared/gitRemote';
+import {
+  BisectMark,
+  GitBisectResult,
+  GitBisectState,
+} from '../../../shared/gitBisect';
 
 const zlib = require('zlib');
 
@@ -330,8 +335,10 @@ function updateGitSshConfig(config: {
   useLocalAgent?: boolean;
   useGitCredentialManager?: boolean;
 }) {
-  if (config.privateKeyPath !== undefined) activeSshPrivateKey = config.privateKeyPath;
-  if (config.useLocalAgent !== undefined) activeUseLocalAgent = config.useLocalAgent;
+  if (config.privateKeyPath !== undefined)
+    activeSshPrivateKey = config.privateKeyPath;
+  if (config.useLocalAgent !== undefined)
+    activeUseLocalAgent = config.useLocalAgent;
   if (config.useGitCredentialManager !== undefined)
     activeUseGitCredentialManager = config.useGitCredentialManager;
 }
@@ -372,9 +379,7 @@ async function runGit(
         const stderrStr = Buffer.concat(stderr).toString().trim();
         const stdoutStr = Buffer.concat(stdout).toString().trim();
         const combined = [stderrStr, stdoutStr].filter(Boolean).join('\n');
-        reject(
-          new Error(combined || `Git exited with code ${code}.`),
-        );
+        reject(new Error(combined || `Git exited with code ${code}.`));
       }
     });
   });
@@ -453,7 +458,9 @@ async function assertCherryPickInProgress(directory: string): Promise<void> {
     return;
   }
 
-  throw new BusinessError('There is no cherry-pick in progress in this worktree.');
+  throw new BusinessError(
+    'There is no cherry-pick in progress in this worktree.',
+  );
 }
 
 async function assertRevertInProgress(directory: string): Promise<void> {
@@ -582,14 +589,10 @@ async function continueCherryPick(
   }
 
   try {
-    const output = await runGit(
-      directory,
-      ['cherry-pick', '--continue'],
-      {
-        ...process.env,
-        GIT_EDITOR: 'true',
-      },
-    );
+    const output = await runGit(directory, ['cherry-pick', '--continue'], {
+      ...process.env,
+      GIT_EDITOR: 'true',
+    });
     logCache.delete(directory);
     return {
       ok: true,
@@ -751,14 +754,10 @@ async function continueRevert(
   }
 
   try {
-    const output = await runGit(
-      directory,
-      ['revert', '--continue'],
-      {
-        ...process.env,
-        GIT_EDITOR: 'true',
-      },
-    );
+    const output = await runGit(directory, ['revert', '--continue'], {
+      ...process.env,
+      GIT_EDITOR: 'true',
+    });
     logCache.delete(directory);
     return {
       ok: true,
@@ -789,6 +788,277 @@ async function abortRevert(directory: string): Promise<void> {
   await assertRevertInProgress(directory);
   await runGit(directory, ['revert', '--abort']);
   logCache.delete(directory);
+}
+
+function validateCommitHash(commit: string): void {
+  if (!/^[a-f0-9]{7,40}$/i.test(commit)) {
+    throw new BusinessError('The selected commit hash is invalid.');
+  }
+}
+
+function parseBisectCompletion(output: string): string | null {
+  return (
+    output.match(/([a-f0-9]{7,40}) is the first bad commit/i)?.[1] ||
+    output.match(/first bad commit:\s*\[([a-f0-9]{7,40})\]/i)?.[1] ||
+    null
+  );
+}
+
+async function getGitStateFilePath(
+  directory: string,
+  stateFile: string,
+): Promise<string> {
+  const gitPath = (
+    await runGit(directory, ['rev-parse', '--git-path', stateFile])
+  )
+    .toString('utf8')
+    .trim();
+  return path.isAbsolute(gitPath) ? gitPath : path.resolve(directory, gitPath);
+}
+
+async function getBisectState(directory: string): Promise<GitBisectState> {
+  let active = false;
+  try {
+    const bisectStartPath = await getGitStateFilePath(
+      directory,
+      'BISECT_START',
+    );
+    active = fs.existsSync(bisectStartPath);
+  } catch {
+    active = false;
+  }
+
+  const currentCommit = (
+    await runGit(directory, ['rev-parse', '--verify', 'HEAD'])
+  )
+    .toString('utf8')
+    .trim();
+  if (!active) {
+    return {
+      active: false,
+      currentCommit,
+      originalBranch: null,
+      completed: false,
+      culpritCommit: null,
+    };
+  }
+
+  let originalBranch: string | null = null;
+  let logOutput = '';
+  try {
+    const bisectStartPath = await getGitStateFilePath(
+      directory,
+      'BISECT_START',
+    );
+    const storedStart = fs.readFileSync(bisectStartPath, 'utf8').trim();
+    originalBranch = storedStart.replace(/^refs\/heads\//, '') || null;
+  } catch {
+    originalBranch = null;
+  }
+  try {
+    logOutput = (await runGit(directory, ['bisect', 'log']))
+      .toString('utf8')
+      .trim();
+  } catch {
+    logOutput = '';
+  }
+  const culpritCommit = parseBisectCompletion(logOutput);
+  return {
+    active: true,
+    currentCommit,
+    originalBranch,
+    completed: Boolean(culpritCommit),
+    culpritCommit,
+  };
+}
+
+async function startBisect(
+  directory: string,
+  badCommit: string,
+  goodCommit: string,
+): Promise<GitBisectResult> {
+  const existingState = await getBisectState(directory);
+  if (existingState.active) {
+    throw new BusinessError(
+      'A Git bisect session is already active in this worktree. Finish or abort it before starting another.',
+    );
+  }
+  validateCommitHash(badCommit);
+  validateCommitHash(goodCommit);
+  if (badCommit.toLowerCase() === goodCommit.toLowerCase()) {
+    throw new BusinessError('Good and bad commits must be different.');
+  }
+  const status = await runGit(directory, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ]);
+  if (status.toString('utf8').trim()) {
+    throw new BusinessError(
+      'The selected worktree has uncommitted changes. Commit or stash them before starting bisect.',
+    );
+  }
+  await Promise.all([
+    runGit(directory, ['rev-parse', '--verify', `${badCommit}^{commit}`]),
+    runGit(directory, ['rev-parse', '--verify', `${goodCommit}^{commit}`]),
+  ]);
+  try {
+    await runGitWithAllowedCodes(
+      directory,
+      ['merge-base', '--is-ancestor', goodCommit, badCommit],
+      [0],
+    );
+  } catch {
+    throw new BusinessError(
+      'The known good commit must be an ancestor of the known bad commit. Choose two commits from the same history path.',
+    );
+  }
+  const output = await runGit(directory, [
+    'bisect',
+    'start',
+    badCommit,
+    goodCommit,
+  ]);
+  logCache.delete(directory);
+  const text = output.toString('utf8').trim();
+  const state = await getBisectState(directory);
+  const culpritCommit = parseBisectCompletion(text);
+  return {
+    ok: true,
+    output: text,
+    state: culpritCommit ? { ...state, completed: true, culpritCommit } : state,
+  };
+}
+
+async function markBisect(
+  directory: string,
+  mark: BisectMark,
+): Promise<GitBisectResult> {
+  if (!['good', 'bad', 'skip'].includes(mark)) {
+    throw new BusinessError('Choose good, bad, or skip for this revision.');
+  }
+  const stateBefore = await getBisectState(directory);
+  if (!stateBefore.active) {
+    throw new BusinessError('There is no Git bisect session in progress.');
+  }
+  if (stateBefore.completed) {
+    throw new BusinessError(
+      'The first bad commit has already been found. Finish the bisect to restore the worktree.',
+    );
+  }
+  const output = await runGit(directory, ['bisect', mark]);
+  logCache.delete(directory);
+  const text = output.toString('utf8').trim();
+  const state = await getBisectState(directory);
+  const culpritCommit = parseBisectCompletion(text);
+  return {
+    ok: true,
+    output: text,
+    state: culpritCommit ? { ...state, completed: true, culpritCommit } : state,
+  };
+}
+
+async function resetBisect(directory: string): Promise<GitBisectResult> {
+  const state = await getBisectState(directory);
+  if (!state.active) return { ok: true, state };
+  const output = await runGit(directory, ['bisect', 'reset']);
+  logCache.delete(directory);
+  return {
+    ok: true,
+    output: output.toString('utf8').trim(),
+    state: await getBisectState(directory),
+  };
+}
+
+function runBisectVerificationCommand(
+  directory: string,
+  command: string,
+): Promise<{ code: number; output: string }> {
+  return new Promise(async (resolve, reject) => {
+    const configuredShell = await getShell();
+    const shell =
+      configuredShell || (process.platform === 'win32' ? 'cmd.exe' : '/bin/sh');
+    const shellName = path.basename(shell).toLowerCase();
+    let args: string[];
+    if (
+      shellName.includes('powershell') ||
+      shellName === 'pwsh' ||
+      shellName === 'pwsh.exe'
+    ) {
+      args = ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', command];
+    } else if (shellName === 'cmd' || shellName === 'cmd.exe') {
+      args = ['/d', '/s', '/c', command];
+    } else {
+      args = ['-lc', command];
+    }
+    const child = spawn(shell, args, {
+      cwd: directory,
+      shell: false,
+      windowsHide: true,
+      env: process.env,
+    });
+    let output = '';
+    const append = (chunk: Buffer) => {
+      output = `${output}${chunk.toString()}`.slice(-20000);
+    };
+    child.stdout?.on('data', append);
+    child.stderr?.on('data', append);
+    child.on('error', reject);
+    child.on('close', (code) =>
+      resolve({ code: code ?? 1, output: output.trim() }),
+    );
+  });
+}
+
+async function runAutomaticBisect(
+  directory: string,
+  command: string,
+): Promise<GitBisectResult> {
+  if (!command.trim()) {
+    throw new BusinessError('Enter a verification command.');
+  }
+  let state = await getBisectState(directory);
+  if (!state.active) {
+    throw new BusinessError(
+      'Start the Git bisect session before running verification.',
+    );
+  }
+  if (state.completed) {
+    return {
+      ok: true,
+      state,
+      output: 'The first bad commit has already been found.',
+      iterations: 0,
+    };
+  }
+  const transcripts: string[] = [];
+  for (let iteration = 1; iteration <= 100; iteration += 1) {
+    const verification = await runBisectVerificationCommand(
+      directory,
+      command.trim(),
+    );
+    const mark: BisectMark =
+      verification.code === 0
+        ? 'good'
+        : verification.code === 125
+          ? 'skip'
+          : 'bad';
+    transcripts.push(
+      `$ ${command.trim()}\n${verification.output}\nExit ${verification.code} → ${mark}`,
+    );
+    const step = await markBisect(directory, mark);
+    state = step.state;
+    if (state.completed) {
+      return {
+        ...step,
+        verificationOutput: transcripts.join('\n\n'),
+        iterations: iteration,
+      };
+    }
+  }
+  throw new BusinessError(
+    'Automatic bisect stopped after 100 revisions without finding a result.',
+  );
 }
 
 async function runGitWithInput(
@@ -1094,7 +1364,15 @@ async function getWorkingTreeFileDiff(
   if (untracked) {
     output = await runGitWithAllowedCodes(
       directory,
-      ['diff', '--no-index', '--no-color', contextArg, '--', '/dev/null', filePath],
+      [
+        'diff',
+        '--no-index',
+        '--no-color',
+        contextArg,
+        '--',
+        '/dev/null',
+        filePath,
+      ],
       [0, 1],
     );
   } else {
@@ -1258,16 +1536,27 @@ async function getCommitFileContent(
   const normalizedPath = filePath.replace(/\\/g, '/');
   try {
     if (version === 'after') {
-      const output = await runGit(directory, ['show', `${commit}:${normalizedPath}`]);
+      const output = await runGit(directory, [
+        'show',
+        `${commit}:${normalizedPath}`,
+      ]);
       return formatFileBuffer(output);
     }
     // For 'before', check if commit has parents
     try {
-      await runGit(directory, ['rev-parse', '--verify', '--quiet', `${commit}^`]);
+      await runGit(directory, [
+        'rev-parse',
+        '--verify',
+        '--quiet',
+        `${commit}^`,
+      ]);
     } catch {
       return { exists: false, reason: 'added' };
     }
-    const output = await runGit(directory, ['show', `${commit}^:${normalizedPath}`]);
+    const output = await runGit(directory, [
+      'show',
+      `${commit}^:${normalizedPath}`,
+    ]);
     return formatFileBuffer(output);
   } catch (error: any) {
     const message = error?.message || String(error);
@@ -1276,7 +1565,10 @@ async function getCommitFileContent(
       message.includes('fatal: path') ||
       message.includes('exists on disk, but not in')
     ) {
-      return { exists: false, reason: version === 'before' ? 'added' : 'deleted' };
+      return {
+        exists: false,
+        reason: version === 'before' ? 'added' : 'deleted',
+      };
     }
     return { exists: false, reason: 'error', error: message };
   }
@@ -1306,7 +1598,10 @@ async function getWorkingTreeFileContent(
     if (staged) {
       if (version === 'before') {
         try {
-          const output = await runGit(directory, ['show', `HEAD:${normalizedPath}`]);
+          const output = await runGit(directory, [
+            'show',
+            `HEAD:${normalizedPath}`,
+          ]);
           return formatFileBuffer(output);
         } catch {
           return { exists: false, reason: 'added' };
@@ -1322,11 +1617,17 @@ async function getWorkingTreeFileContent(
       // Unstaged
       if (version === 'before') {
         try {
-          const output = await runGit(directory, ['show', `:${normalizedPath}`]);
+          const output = await runGit(directory, [
+            'show',
+            `:${normalizedPath}`,
+          ]);
           return formatFileBuffer(output);
         } catch {
           try {
-            const output = await runGit(directory, ['show', `HEAD:${normalizedPath}`]);
+            const output = await runGit(directory, [
+              'show',
+              `HEAD:${normalizedPath}`,
+            ]);
             return formatFileBuffer(output);
           } catch {
             return { exists: false, reason: 'added' };
@@ -1570,7 +1871,11 @@ async function getRemotes(directory: string): Promise<GitRemote[]> {
           const prefix = `${name}/`;
           if (branchLine.startsWith(prefix)) {
             const branchName = branchLine.slice(prefix.length);
-            if (branchName && branchName !== 'HEAD' && !remote.branches.includes(branchName)) {
+            if (
+              branchName &&
+              branchName !== 'HEAD' &&
+              !remote.branches.includes(branchName)
+            ) {
               remote.branches.push(branchName);
             }
           }
@@ -1615,7 +1920,9 @@ async function addRemote(
 
   // Attempt background fetch without blocking failure
   runGit(directory, ['fetch', trimmedName]).catch((err) => {
-    log.warn(`Background fetch for remote ${trimmedName} failed: ${err.message}`);
+    log.warn(
+      `Background fetch for remote ${trimmedName} failed: ${err.message}`,
+    );
   });
 }
 
@@ -1635,7 +1942,12 @@ async function editRemote(
 
   let currentName = trimmedOldName;
   if (trimmedOldName !== trimmedNewName) {
-    await runGit(directory, ['remote', 'rename', trimmedOldName, trimmedNewName]);
+    await runGit(directory, [
+      'remote',
+      'rename',
+      trimmedOldName,
+      trimmedNewName,
+    ]);
     currentName = trimmedNewName;
   }
 
@@ -1678,7 +1990,12 @@ async function setUpstream(params: SetUpstreamParams): Promise<string> {
 
   if (push) {
     const refspec = `${localBranch.trim()}:${remoteBranch.trim()}`;
-    const output = await runGit(directory, ['push', '-u', remote.trim(), refspec]);
+    const output = await runGit(directory, [
+      'push',
+      '-u',
+      remote.trim(),
+      refspec,
+    ]);
     return (
       output.toString('utf8').trim() ||
       `Branch '${localBranch}' pushed and set up to track '${remote}/${remoteBranch}'.`
@@ -1744,6 +2061,11 @@ export default {
   resolveRevertConflict,
   continueRevert,
   abortRevert,
+  getBisectState,
+  startBisect,
+  markBisect,
+  resetBisect,
+  runAutomaticBisect,
   getCommitFileContent,
   getWorkingTreeFileContent,
   getRemotes,

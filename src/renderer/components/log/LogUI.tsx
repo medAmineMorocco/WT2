@@ -105,6 +105,14 @@ export default function LogUI({
   onResetCommit,
   onRevertCommit,
   onMergeCommit,
+  bisectMode = false,
+  bisectGoodCommit,
+  bisectBadCommit,
+  bisectCurrentCommit,
+  onBisectMark,
+  columnsControl,
+  commitFilterControl,
+  authorFilterControl,
 }: {
   commits: string[];
   searchQuery?: string;
@@ -128,6 +136,14 @@ export default function LogUI({
   onResetCommit?: (commit: ParsedCommit, mode: ResetMode) => void;
   onRevertCommit?: (commit: ParsedCommit) => void;
   onMergeCommit?: (commit: ParsedCommit) => void;
+  bisectMode?: boolean;
+  bisectGoodCommit?: string | null;
+  bisectBadCommit?: string | null;
+  bisectCurrentCommit?: string | null;
+  onBisectMark?: (commit: ParsedCommit, mark: 'good' | 'bad') => void;
+  columnsControl?: React.ReactNode;
+  commitFilterControl?: React.ReactNode;
+  authorFilterControl?: React.ReactNode;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -240,8 +256,16 @@ export default function LogUI({
       );
     }
 
+    if (bisectMode) {
+      baseItems.push(
+        { type: 'divider' },
+        { label: 'Mark as known good', key: 'bisect-good' },
+        { label: 'Mark as known bad', key: 'bisect-bad', danger: true },
+      );
+    }
+
     return baseItems;
-  }, [selectedWorktree]);
+  }, [bisectMode, selectedWorktree]);
 
   const onClick = (commit: ParsedCommit) => {
     return (event: any) => {
@@ -288,6 +312,8 @@ export default function LogUI({
       if (event.key === 'revert-commit') {
         onRevertCommit?.(commit);
       }
+      if (event.key === 'bisect-good') onBisectMark?.(commit, 'good');
+      if (event.key === 'bisect-bad') onBisectMark?.(commit, 'bad');
     };
   };
 
@@ -835,13 +861,26 @@ export default function LogUI({
     <div ref={containerRef} className="log-container" onScroll={handleScroll}>
       {contextHolder}
       <div
-        className="git-log-list-header"
+        className={`git-log-list-header ${columnsControl ? 'has-columns-control' : ''}`}
         style={{ gridTemplateColumns: rowTemplate }}
       >
-        <span>Commit</span>
-        {!shouldHide && isAuthorEnabled && <span>Author</span>}
+        <span className="git-log-column-heading">
+          <span>Commit</span>
+          {commitFilterControl}
+        </span>
+        {!shouldHide && isAuthorEnabled && (
+          <span className="git-log-column-heading">
+            <span>Author</span>
+            {authorFilterControl}
+          </span>
+        )}
         {!shouldHide && isCommitDateEnabled && <span>Date</span>}
         {!shouldHide && isHashEnabled && <span>SHA</span>}
+        {columnsControl && (
+          <span className="git-log-header-columns-control">
+            {columnsControl}
+          </span>
+        )}
       </div>
       {workingTreeCount > 0 && (
         <div
@@ -910,7 +949,7 @@ export default function LogUI({
               role="button"
               tabIndex={0}
               data-commit-hash={item.hash}
-              className={`commit-row ${selectedCommit === item.hash ? 'selected' : ''}`}
+              className={`commit-row ${selectedCommit === item.hash ? 'selected' : ''} ${bisectGoodCommit === item.hash ? 'bisect-good' : ''} ${bisectBadCommit === item.hash ? 'bisect-bad' : ''} ${bisectCurrentCommit === item.hash ? 'bisect-current' : ''}`}
               style={{ gridTemplateColumns: rowTemplate }}
               onClick={(event) => {
                 event.preventDefault();
@@ -933,6 +972,21 @@ export default function LogUI({
                 <span className="commit-msg" title={item.subject}>
                   {highlightMatch(item.subject, searchQuery)}
                 </span>
+                {bisectGoodCommit === item.hash && (
+                  <Tag color="success" bordered={false}>
+                    Good
+                  </Tag>
+                )}
+                {bisectBadCommit === item.hash && (
+                  <Tag color="error" bordered={false}>
+                    Bad
+                  </Tag>
+                )}
+                {bisectCurrentCommit === item.hash && (
+                  <Tag color="processing" bordered={false}>
+                    Testing
+                  </Tag>
+                )}
                 {isRefsEnabled && item.refs && (
                   <span className="commit-refs">{renderRefs(item.refs)}</span>
                 )}

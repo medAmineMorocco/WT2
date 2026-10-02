@@ -27,6 +27,82 @@ import {
   RevertResolution,
   RevertCommitResult,
 } from '../../../shared/gitResetRevert';
+import type {
+  BisectMark,
+  GitBisectResult,
+  GitBisectState,
+} from '../../../shared/gitBisect';
+
+const bisectFailure = async (
+  directory: string,
+  error: any,
+): Promise<GitBisectResult> => {
+  let state: GitBisectState = {
+    active: false,
+    currentCommit: null,
+    originalBranch: null,
+    completed: false,
+    culpritCommit: null,
+  };
+  try {
+    state = await gitMainService.getBisectState(directory);
+  } catch {
+    // Preserve the original, more useful failure when the worktree is missing.
+  }
+  return {
+    ok: false,
+    error:
+      error instanceof BusinessError
+        ? error.message
+        : error?.message || 'Git bisect failed.',
+    state,
+  };
+};
+
+ipcMain.handle('git-bisect-status', async (_event, directory: string) =>
+  gitMainService.getBisectState(directory),
+);
+
+ipcMain.handle(
+  'git-bisect-start',
+  async (_event, directory: string, badCommit: string, goodCommit: string) => {
+    try {
+      return await gitMainService.startBisect(directory, badCommit, goodCommit);
+    } catch (error: any) {
+      return bisectFailure(directory, error);
+    }
+  },
+);
+
+ipcMain.handle(
+  'git-bisect-mark',
+  async (_event, directory: string, mark: BisectMark) => {
+    try {
+      return await gitMainService.markBisect(directory, mark);
+    } catch (error: any) {
+      return bisectFailure(directory, error);
+    }
+  },
+);
+
+ipcMain.handle('git-bisect-reset', async (_event, directory: string) => {
+  try {
+    return await gitMainService.resetBisect(directory);
+  } catch (error: any) {
+    return bisectFailure(directory, error);
+  }
+});
+
+ipcMain.handle(
+  'git-bisect-run',
+  async (_event, directory: string, command: string) => {
+    try {
+      return await gitMainService.runAutomaticBisect(directory, command);
+    } catch (error: any) {
+      return bisectFailure(directory, error);
+    }
+  },
+);
 
 ipcMain.handle('get-working-tree-status', async (_event, directory: string) =>
   gitMainService.getWorkingTreeStatus(directory),
@@ -296,12 +372,7 @@ ipcMain.handle(
     filePath: string,
     version: 'before' | 'after',
   ) =>
-    gitMainService.getCommitFileContent(
-      directory,
-      commit,
-      filePath,
-      version,
-    ),
+    gitMainService.getCommitFileContent(directory, commit, filePath, version),
 );
 
 ipcMain.handle('get-head-commit-message', async (_event, directory: string) =>
@@ -520,8 +591,10 @@ ipcMain.handle(
   ) => gitMainService.editRemote(directory, oldName, newName, pullUrl, pushUrl),
 );
 
-ipcMain.handle('remove-remote', async (_event, directory: string, name: string) =>
-  gitMainService.removeRemote(directory, name),
+ipcMain.handle(
+  'remove-remote',
+  async (_event, directory: string, name: string) =>
+    gitMainService.removeRemote(directory, name),
 );
 
 ipcMain.handle(
@@ -550,14 +623,12 @@ ipcMain.handle('get-upstream', async (_event, directory: string) =>
 
 ipcMain.handle(
   'verify-integration',
-  async (_event, params: VerifyIntegrationParams) =>
-    verifyIntegration(params),
+  async (_event, params: VerifyIntegrationParams) => verifyIntegration(params),
 );
 
 ipcMain.handle(
   'sync-git-credential',
-  async (_event, params: SyncGitCredentialParams) =>
-    syncGitCredential(params),
+  async (_event, params: SyncGitCredentialParams) => syncGitCredential(params),
 );
 
 ipcMain.handle(
@@ -580,4 +651,3 @@ ipcMain.handle(
     return { ok: true };
   },
 );
-

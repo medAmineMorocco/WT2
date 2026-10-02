@@ -8,6 +8,7 @@ import {
   Tooltip,
   Button,
   Input,
+  Typography,
 } from 'antd';
 import React, {
   lazy,
@@ -31,6 +32,9 @@ import {
   SearchOutlined,
   UpOutlined,
   DownOutlined,
+  ExperimentOutlined,
+  LoadingOutlined,
+  FilterOutlined,
 } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
@@ -45,7 +49,9 @@ import type {
 } from '../../../shared/gitResetRevert';
 import type { CherryPickResult } from '../../../shared/cherryPick';
 import type { WorktreeMergeResult } from '../../../shared/worktreeMerge';
+import type { GitBisectState } from '../../../shared/gitBisect';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
+import { useItemsContext } from '../../TabsContext';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
 const CommitDetailsPanel = lazy(() => import('./CommitDetailsPanel'));
@@ -56,6 +62,7 @@ const CherryPickCommit = lazy(() => import('./CherryPickCommit'));
 const ResetCommitModal = lazy(() => import('./ResetCommitModal'));
 const RevertCommitModal = lazy(() => import('./RevertCommitModal'));
 const MergeCommitModal = lazy(() => import('./MergeCommitModal'));
+const GitBisectPanel = lazy(() => import('./GitBisectPanel'));
 
 const LIMIT = 40;
 
@@ -66,6 +73,74 @@ const cleanErrorMessage = (error: any): string => {
     .trim();
 };
 
+interface GitLogActionButtonProps extends Omit<
+  React.ComponentPropsWithoutRef<typeof Button>,
+  'icon'
+> {
+  label: string;
+  icon: React.ReactNode;
+  loading?: boolean;
+  active?: boolean;
+  tooltip?: React.ReactNode;
+  ariaLabel?: string;
+}
+
+const GitLogActionButton = React.forwardRef<
+  HTMLButtonElement,
+  GitLogActionButtonProps
+>(
+  (
+    {
+      label,
+      icon,
+      loading = false,
+      active = false,
+      tooltip,
+      disabled = false,
+      onClick,
+      className = '',
+      type = 'default',
+      style,
+      ariaLabel,
+      ...rest
+    },
+    ref,
+  ) => {
+    const btn = (
+      <Button
+        ref={ref}
+        type={active ? 'primary' : type}
+        disabled={disabled}
+        onClick={onClick}
+        aria-label={ariaLabel || label}
+        className={`git-log-action-btn ${active ? 'git-log-action-btn-active' : ''} ${className}`}
+        style={style}
+        {...rest}
+      >
+        <span className="git-log-action-btn-icon">
+          {loading ? <LoadingOutlined spin /> : icon}
+        </span>
+        <span className="git-log-action-btn-label">{label}</span>
+      </Button>
+    );
+
+    if (tooltip) {
+      return (
+        <Tooltip title={tooltip} placement="bottom">
+          {disabled ? (
+            <span style={{ display: 'inline-flex' }}>{btn}</span>
+          ) : (
+            btn
+          )}
+        </Tooltip>
+      );
+    }
+
+    return btn;
+  },
+);
+GitLogActionButton.displayName = 'GitLogActionButton';
+
 export default function GitLog({ isModal }: { isModal: boolean }) {
   const { notification } = AntdApp.useApp();
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
@@ -73,6 +148,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const tabRepoPath = useMemo(() => {
     return TabService.getTabRepoPath(activeTab);
   }, [activeTab]);
+
+  const { selectedWorktreeByRepository, setSelectedWorktreeForRepository } =
+    useItemsContext();
+  const selectedWorktree = selectedWorktreeByRepository[tabRepoPath] ?? null;
 
   const [worktrees, setWorktrees] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
@@ -100,6 +179,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     useState<ParsedCommit | null>(null);
   const [mergeCommitTarget, setMergeCommitTarget] =
     useState<ParsedCommit | null>(null);
+  const [bisectMode, setBisectMode] = useState(false);
+  const [bisectGoodCommit, setBisectGoodCommit] = useState<string | null>(null);
+  const [bisectBadCommit, setBisectBadCommit] = useState<string | null>(null);
+  const [bisectState, setBisectState] = useState<GitBisectState | null>(null);
 
   const handleOpenReset = useCallback(
     (commit: ParsedCommit, mode: ResetMode = 'mixed') => {
@@ -112,11 +195,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const [loading, setLoading] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
-  const selectWorktreeRef = useRef(null);
-  const selectAuthorRef = useRef(null);
-
-  const [selectedWorktree, setSelectedWorktree] = useState<string | null>(null);
-  const selectedWorktreeValueRef = useRef<string | null>(null);
+  const selectedWorktreeValueRef = useRef<string | null>(selectedWorktree);
   const worktreesInitializedRef = useRef(false);
   const [selectedAuthor, setSelectedAuthor] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -234,15 +313,15 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           };
         });
         const currentSelection = selectedWorktreeValueRef.current;
-        const nextSelection = worktreesInitializedRef.current
-          ? nextWorktrees.some((item: any) => item.value === currentSelection)
-            ? currentSelection
-            : null
+        const nextSelection = nextWorktrees.some(
+          (item: any) => item.value === currentSelection,
+        )
+          ? currentSelection
           : null;
         worktreesInitializedRef.current = true;
         selectedWorktreeValueRef.current = nextSelection;
         setWorktrees(nextWorktrees);
-        setSelectedWorktree(nextSelection);
+        setSelectedWorktreeForRepository(tabRepoPath, nextSelection);
         skipRef.current = 0;
         setHasMore(true);
         hasMoreRef.current = true;
@@ -296,7 +375,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       if (typeof removeAuthors === 'function') removeAuthors();
       else window.electron.ipcRenderer.removeAllListeners('receive-authors');
     };
-  }, [tabRepoPath]);
+  }, [tabRepoPath, setSelectedWorktreeForRepository]);
 
   const selectedRepositoryPath = useMemo(() => {
     if (selectedWorktree) {
@@ -408,8 +487,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     if (!q) return [];
     return commitList.filter(
       (c) =>
-        c.hash.toLowerCase().includes(q) ||
-        c.subject.toLowerCase().includes(q),
+        c.hash.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q),
     );
   }, [commitList, searchQuery]);
 
@@ -438,8 +516,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     }
     const newMatches = commitList.filter(
       (c) =>
-        c.hash.toLowerCase().includes(q) ||
-        c.subject.toLowerCase().includes(q),
+        c.hash.toLowerCase().includes(q) || c.subject.toLowerCase().includes(q),
     );
     if (newMatches.length > 0) {
       selectMatch(0, newMatches);
@@ -463,7 +540,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   const handleChange = (worktree: string | null, author: string | null) => {
     selectedWorktreeValueRef.current = worktree;
-    setSelectedWorktree(worktree);
+    setSelectedWorktreeForRepository(tabRepoPath, worktree);
     setSelectedCommit(null);
     setSelectedCommitFile(null);
     setWorkingTreeSelected(false);
@@ -474,14 +551,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     skipRef.current = 0;
     setHasMore(true);
     hasMoreRef.current = true;
-    if (selectWorktreeRef.current) {
-      // @ts-ignore
-      selectWorktreeRef.current.blur();
-    }
-    if (selectAuthorRef.current) {
-      // @ts-ignore
-      selectAuthorRef.current.blur();
-    }
     window.electron.ipcRenderer.send(
       'show-git-log',
       tabRepoPath,
@@ -490,6 +559,31 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       0,
     );
   };
+
+  useEffect(() => {
+    if (
+      !worktreesInitializedRef.current ||
+      selectedWorktreeValueRef.current === selectedWorktree
+    ) {
+      return;
+    }
+    if (bisectState?.active) {
+      setSelectedWorktreeForRepository(
+        tabRepoPath,
+        selectedWorktreeValueRef.current,
+      );
+      notification.warning({
+        message: 'Finish Git bisect first',
+        description:
+          'The selected worktree cannot change during an active bisect.',
+        placement: 'bottomLeft',
+      });
+      return;
+    }
+    handleChange(selectedWorktree, selectedAuthor);
+    // This effect intentionally reacts only to selection made in the sidebar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedWorktree, bisectState?.active]);
 
   const runToolbarAction = async (
     action: 'pull' | 'push' | 'stash' | 'pop',
@@ -631,6 +725,99 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     </div>
   );
 
+  const commitFilterControl = (
+    <Popover
+      trigger="click"
+      placement="bottomLeft"
+      content={
+        <div className="git-log-header-filter-popover git-log-commit-filter-popover">
+          <Typography.Text strong>Find commit</Typography.Text>
+          <Input
+            autoFocus
+            placeholder="Hash or commit message"
+            prefix={<SearchOutlined />}
+            value={searchQuery}
+            onChange={(event) => handleSearchChange(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== 'Enter') return;
+              event.preventDefault();
+              if (event.shiftKey) handlePrevMatch();
+              else handleNextMatch();
+            }}
+            allowClear
+          />
+          <div className="git-log-filter-navigation">
+            <Typography.Text type="secondary">
+              {searchQuery.trim()
+                ? matchingCommits.length > 0
+                  ? `${currentMatchIndex + 1} of ${matchingCommits.length}`
+                  : 'No matching commits'
+                : 'The full log remains visible'}
+            </Typography.Text>
+            <Space size={2}>
+              <Button
+                type="text"
+                size="small"
+                icon={<UpOutlined />}
+                disabled={matchingCommits.length === 0}
+                onClick={handlePrevMatch}
+                aria-label="Previous matching commit"
+              />
+              <Button
+                type="text"
+                size="small"
+                icon={<DownOutlined />}
+                disabled={matchingCommits.length === 0}
+                onClick={handleNextMatch}
+                aria-label="Next matching commit"
+              />
+            </Space>
+          </div>
+        </div>
+      }
+    >
+      <Button
+        type="text"
+        size="small"
+        icon={<SearchOutlined />}
+        aria-label="Search commits"
+        className={`git-log-header-filter-trigger ${searchQuery.trim() ? 'active' : ''}`}
+      />
+    </Popover>
+  );
+
+  const authorFilterControl = (
+    <Popover
+      trigger="click"
+      placement="bottomLeft"
+      content={
+        <div className="git-log-header-filter-popover">
+          <Typography.Text strong>Filter by author</Typography.Text>
+          <Select
+            value={selectedAuthor || undefined}
+            placeholder="All authors"
+            options={authors}
+            onChange={(value?: string) =>
+              handleChange(selectedWorktree, value || null)
+            }
+            showSearch
+            allowClear
+            optionFilterProp="label"
+            style={{ width: 240 }}
+          />
+        </div>
+      }
+    >
+      <Button
+        type="text"
+        size="small"
+        icon={<FilterOutlined />}
+        aria-label="Filter commits by author"
+        className={`git-log-header-filter-trigger ${selectedAuthor ? 'active' : ''}`}
+      />
+    </Popover>
+  );
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -647,188 +834,111 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         }}
       >
         <div className="git-log-controls">
-          <Space wrap>
-            <Select
-              ref={selectWorktreeRef}
-              value={selectedWorktree || undefined}
-              placeholder="All refs"
-              options={worktrees}
-              onChange={(val?: string) =>
-                handleChange(val || null, selectedAuthor)
-              }
-              allowClear
-              style={{ width: 220 }}
-            />
-            <Select
-              ref={selectAuthorRef}
-              value={selectedAuthor}
-              placeholder="Author"
-              options={authors}
-              onChange={(val: string) => handleChange(selectedWorktree, val)}
-              showSearch
-              allowClear
-              style={{ width: 220 }}
-            />
-            <Input
-              placeholder="Search Commit"
-              prefix={<SearchOutlined style={{ opacity: 0.65 }} />}
-              value={searchQuery}
-              onChange={(e) => handleSearchChange(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (e.shiftKey) {
-                    handlePrevMatch();
-                  } else {
-                    handleNextMatch();
+          <div className="git-log-toolbar">
+            <div className="git-log-toolbar-actions">
+              <div className="git-log-action-group git-log-action-group-feature">
+                <GitLogActionButton
+                  label="Bisect"
+                  icon={<ExperimentOutlined />}
+                  active={bisectMode}
+                  disabled={!selectedWorktree}
+                  onClick={() => setBisectMode(true)}
+                  tooltip={
+                    !selectedWorktree
+                      ? 'Select a worktree before starting Git bisect'
+                      : bisectMode
+                        ? 'Git bisect mode is active'
+                        : 'Find the first bad commit'
                   }
-                }
-              }}
-              suffix={
-                searchQuery.trim() ? (
-                  <Space size={2} style={{ marginLeft: 4, alignItems: 'center' }}>
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        color:
-                          matchingCommits.length > 0
-                            ? 'var(--ant-color-text-secondary, #6b7280)'
-                            : '#ef4444',
-                        userSelect: 'none',
-                        marginRight: 2,
-                        minWidth: 28,
-                        textAlign: 'right',
-                      }}
-                    >
-                      {matchingCommits.length > 0
-                        ? `${currentMatchIndex + 1}/${matchingCommits.length}`
-                        : '0/0'}
-                    </span>
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<UpOutlined style={{ fontSize: 10 }} />}
-                      disabled={matchingCommits.length === 0}
-                      onClick={handlePrevMatch}
-                      title="Previous match (Shift+Enter)"
-                      style={{ width: 20, height: 20, padding: 0 }}
-                    />
-                    <Button
-                      type="text"
-                      size="small"
-                      icon={<DownOutlined style={{ fontSize: 10 }} />}
-                      disabled={matchingCommits.length === 0}
-                      onClick={handleNextMatch}
-                      title="Next match (Enter)"
-                      style={{ width: 20, height: 20, padding: 0 }}
-                    />
-                  </Space>
-                ) : null
-              }
-              allowClear
-              className="git-log-search-input"
-              style={{ width: searchQuery.trim() ? 300 : 220 }}
-            />
-            {!shouldHide && (
-              <Popover
-                content={columnsMenu}
-                trigger="click"
-                placement="bottomLeft"
-              >
-                <Button icon={<SettingOutlined />}>Columns</Button>
-              </Popover>
-            )}
-            <span className="git-log-toolbar-divider" />
-            <Tooltip
-              title={!selectedWorktree ? 'Select a worktree to pull' : undefined}
-            >
-              <span>
-                <Button
+                />
+              </div>
+              <div className="git-log-action-group">
+                <GitLogActionButton
+                  label="Pull"
                   icon={<CloudDownloadOutlined />}
                   loading={gitActionLoading === 'pull'}
                   disabled={!selectedWorktree || Boolean(gitActionLoading)}
-                  onClick={() => {
-                    runToolbarAction('pull');
-                  }}
-                >
-                  Pull
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={!selectedWorktree ? 'Select a worktree to push' : undefined}
-            >
-              <span>
-                <Button
+                  onClick={() => runToolbarAction('pull')}
+                  tooltip={
+                    !selectedWorktree ? 'Select a worktree to pull' : 'Pull'
+                  }
+                />
+                <GitLogActionButton
+                  label="Push"
                   icon={<CloudUploadOutlined />}
                   loading={gitActionLoading === 'push'}
                   disabled={!selectedWorktree || Boolean(gitActionLoading)}
-                  onClick={() => {
-                    runToolbarAction('push');
-                  }}
-                >
-                  Push
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={!selectedWorktree ? 'Select a worktree to stash' : undefined}
-            >
-              <span>
-                <Button
+                  onClick={() => runToolbarAction('push')}
+                  tooltip={
+                    !selectedWorktree ? 'Select a worktree to push' : 'Push'
+                  }
+                />
+                <GitLogActionButton
+                  label="Stash"
                   icon={<InboxOutlined />}
                   loading={gitActionLoading === 'stash'}
                   disabled={!selectedWorktree || Boolean(gitActionLoading)}
-                  onClick={() => {
-                    runToolbarAction('stash');
-                  }}
-                >
-                  Stash
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip
-              title={!selectedWorktree ? 'Select a worktree to pop' : undefined}
-            >
-              <span>
-                <Button
+                  onClick={() => runToolbarAction('stash')}
+                  tooltip={
+                    !selectedWorktree
+                      ? 'Select a worktree to stash'
+                      : 'Stash changes'
+                  }
+                />
+                <GitLogActionButton
+                  label="Pop"
                   icon={<ExportOutlined />}
                   loading={gitActionLoading === 'pop'}
                   disabled={!selectedWorktree || Boolean(gitActionLoading)}
-                  onClick={() => {
-                    runToolbarAction('pop');
-                  }}
-                >
-                  Pop
-                </Button>
-              </span>
-            </Tooltip>
-            <Tooltip title="Open Diff (Shift+D)">
-              <Button
-                icon={<DiffOutlined />}
-                onClick={() => setOpenGitDiff(true)}
-              >
-                Diff
-              </Button>
-            </Tooltip>
-            {!loading && (
-              <Tooltip
-                title="Reload Git Log"
-                placement="top"
-                mouseEnterDelay={0}
-                mouseLeaveDelay={0}
-              >
-                <Button
-                  type="text"
-                  shape="circle"
-                  icon={<ReloadOutlined />}
-                  aria-label="Reload Git Log"
-                  onClick={() => reloadGitLog()}
+                  onClick={() => runToolbarAction('pop')}
+                  tooltip={
+                    !selectedWorktree
+                      ? 'Select a worktree to pop'
+                      : 'Pop latest stash'
+                  }
                 />
-              </Tooltip>
-            )}
-          </Space>
+              </div>
+              <div className="git-log-action-group">
+                <GitLogActionButton
+                  label="Diff"
+                  icon={<DiffOutlined />}
+                  onClick={() => setOpenGitDiff(true)}
+                  tooltip="Open Diff (Shift+D)"
+                />
+                <GitLogActionButton
+                  label="Refresh"
+                  icon={<ReloadOutlined spin={loading} />}
+                  disabled={loading}
+                  onClick={() => reloadGitLog()}
+                  tooltip="Reload Git Log"
+                  ariaLabel="Reload Git Log"
+                />
+              </div>
+            </div>
+          </div>
         </div>
+        {bisectMode && selectedWorktree && (
+          <Suspense fallback={<Spin size="small" />}>
+            <GitBisectPanel
+              repositoryPath={selectedRepositoryPath}
+              worktreeName={selectedWorktreeInfo?.label || selectedWorktree}
+              goodCommit={bisectGoodCommit}
+              badCommit={bisectBadCommit}
+              onClearGood={() => setBisectGoodCommit(null)}
+              onClearBad={() => setBisectBadCommit(null)}
+              onStateChange={setBisectState}
+              onClose={() => {
+                setBisectMode(false);
+                setBisectState(null);
+                setBisectGoodCommit(null);
+                setBisectBadCommit(null);
+              }}
+              onReload={() => reloadGitLog(false)}
+              notify={notification}
+              hasWorkingChanges={workingTreeStatus.files.length > 0}
+            />
+          </Suspense>
+        )}
         {loading && (
           <div
             style={{
@@ -903,6 +1013,44 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     onResetCommit={handleOpenReset}
                     onRevertCommit={setRevertTargetCommit}
                     onMergeCommit={setMergeCommitTarget}
+                    bisectMode={bisectMode}
+                    bisectGoodCommit={bisectGoodCommit}
+                    bisectBadCommit={bisectBadCommit}
+                    bisectCurrentCommit={
+                      bisectState?.active ? bisectState.currentCommit : null
+                    }
+                    onBisectMark={(commit, mark) => {
+                      if (mark === 'good') {
+                        setBisectGoodCommit(commit.hash);
+                        if (bisectBadCommit === commit.hash) {
+                          setBisectBadCommit(null);
+                        }
+                      } else {
+                        setBisectBadCommit(commit.hash);
+                        if (bisectGoodCommit === commit.hash) {
+                          setBisectGoodCommit(null);
+                        }
+                      }
+                    }}
+                    columnsControl={
+                      !shouldHide ? (
+                        <Popover
+                          content={columnsMenu}
+                          trigger="click"
+                          placement="bottomRight"
+                        >
+                          <Button
+                            type="text"
+                            size="small"
+                            icon={<SettingOutlined />}
+                            aria-label="Choose Git log columns"
+                            className="git-log-columns-trigger"
+                          />
+                        </Popover>
+                      ) : null
+                    }
+                    commitFilterControl={commitFilterControl}
+                    authorFilterControl={authorFilterControl}
                   />
                 )}
             </div>
@@ -1017,7 +1165,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           worktrees={worktrees}
           onClose={() => setCherryPickSource(null)}
           onCompleted={(
-            result: Extract<CherryPickResult, { ok: true; status: 'completed' }>,
+            result: Extract<
+              CherryPickResult,
+              { ok: true; status: 'completed' }
+            >,
           ) => {
             setCherryPickSource(null);
             notification.success({

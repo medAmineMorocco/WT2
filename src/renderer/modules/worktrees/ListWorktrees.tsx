@@ -47,6 +47,7 @@ import {
   SettingOutlined,
   BranchesOutlined,
   CloudUploadOutlined,
+  CheckOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -229,7 +230,11 @@ export default function ListWorktrees({
   const [configWorktree, setConfigWorktree] = useState<any | null>(null);
   const [upstreamWorktree, setUpstreamWorktree] = useState<any | null>(null);
 
-  const { isWorkflowPlaying } = useItemsContext();
+  const {
+    isWorkflowPlaying,
+    selectedWorktreeByRepository,
+    setSelectedWorktreeForRepository,
+  } = useItemsContext();
 
   const onTerminalAgentActivity = useCallback(
     ({ terminalId, worktreePath, agent, active }: TerminalAgentActivity) => {
@@ -253,6 +258,14 @@ export default function ListWorktrees({
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
   }, []);
+  const selectedWorktree = selectedWorktreeByRepository[tabRepoPath] ?? null;
+
+  const selectWorktree = useCallback(
+    (worktreeName: string | null) => {
+      setSelectedWorktreeForRepository(tabRepoPath, worktreeName);
+    },
+    [setSelectedWorktreeForRepository, tabRepoPath],
+  );
 
   useEffect(() => {
     const storedEditors = window.localStorage.getItem('editors');
@@ -1262,116 +1275,175 @@ export default function ListWorktrees({
               <ul
                 style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}
               >
-                {worktrees.map((worktree: any) => (
-                  <li
-                    key={worktree.name}
-                    className={
-                      !isDarkMode ? 'worktree-item' : 'worktree-item-dark'
+                <li
+                  className={`${
+                    !isDarkMode ? 'worktree-item' : 'worktree-item-dark'
+                  } worktree-selection-item ${
+                    selectedWorktree === null ? 'selected' : ''
+                  }`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Show Git log for all refs"
+                  aria-pressed={selectedWorktree === null}
+                  onClick={() => selectWorktree(null)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      selectWorktree(null);
                     }
-                    style={{
-                      color: token.colorTextBase,
-                    }}
-                  >
-                    <Space
-                      className="worktree-container"
-                      style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
-                    >
-                      {/* eslint-disable-next-line no-nested-ternary */}
-                      {worktree.isLocked ? (
-                        <Tooltip
-                          title={
-                            worktree.lockReason
-                              ? `Lock reason: ${worktree.lockReason}`
-                              : 'Worktree is locked'
-                          }
-                          placement="right"
-                          mouseEnterDelay={0}
-                          mouseLeaveDelay={0}
-                        >
-                          <LockOutlined style={{ color: token.colorWarning }} />
-                        </Tooltip>
-                      ) : worktree.prunable ? (
-                        <Tooltip
-                          title="Gitdir file points to non-existent location"
-                          placement="right"
-                          mouseEnterDelay={0}
-                          mouseLeaveDelay={0}
-                        >
-                          <CloseOutlined style={{ color: token.colorError }} />
-                        </Tooltip>
-                      ) : (
-                        <Tree02Icon size={18} />
-                      )}
-                      <span
-                        style={{
-                          color: worktree.prunable ? token.colorError : '',
-                        }}
-                      >
-                        <Tooltip
-                          title={worktree.name}
-                          placement="right"
-                          mouseEnterDelay={0}
-                          mouseLeaveDelay={0}
-                        >
-                          {worktree.name}
-                        </Tooltip>
-                      </span>
-                      {Object.values(
-                        activeAgentsByWorktree[
-                          worktreeActivityKey(worktree.path)
-                        ] || {},
-                      ).length > 0 && (
-                        <span
-                          className="worktree-agent-status"
-                          aria-label="Active AI agents"
-                        >
-                          {Object.entries(
-                            activeAgentsByWorktree[
-                              worktreeActivityKey(worktree.path)
-                            ] || {},
-                          ).map(([terminalId, agent]) => (
-                            <Tooltip
-                              title={`${agent.label} is working`}
-                              key={terminalId}
-                            >
-                              <Avatar
-                                size={18}
-                                className="agent-working-icon"
-                                style={{
-                                  backgroundColor: 'transparent',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                {getAiAgentIcon(agent.id, 18)}
-                              </Avatar>
-                            </Tooltip>
-                          ))}
-                        </span>
-                      )}
-                    </Space>
-                    <Dropdown
-                      menu={{
-                        items: getWorktreeMenuItems(worktree),
-                        onClick: handleWorktreeMenuClick(worktree),
+                  }}
+                >
+                  <Space className="worktree-container">
+                    <BranchesOutlined />
+                    <span>All refs</span>
+                  </Space>
+                  {selectedWorktree === null && (
+                    <CheckOutlined className="worktree-selected-check" />
+                  )}
+                </li>
+                {worktrees.map((worktree: any) => {
+                  const worktreeName = worktree.name || worktree.resolvedName;
+                  const isSelected = selectedWorktree === worktreeName;
+                  const isSelectable = !worktree.prunable;
+                  return (
+                    <li
+                      key={worktreeName}
+                      className={`${!isDarkMode ? 'worktree-item' : 'worktree-item-dark'} worktree-selection-item ${isSelected ? 'selected' : ''} ${!isSelectable ? 'disabled' : ''}`}
+                      role="button"
+                      tabIndex={isSelectable ? 0 : -1}
+                      aria-label={`Show Git log for ${worktreeName}`}
+                      aria-pressed={isSelected}
+                      aria-disabled={!isSelectable}
+                      onClick={() =>
+                        isSelectable && selectWorktree(worktreeName)
+                      }
+                      onKeyDown={(event) => {
+                        if (
+                          isSelectable &&
+                          (event.key === 'Enter' || event.key === ' ')
+                        ) {
+                          event.preventDefault();
+                          selectWorktree(worktreeName);
+                        }
                       }}
-                      trigger={['click']}
-                      placement="bottomRight"
+                      style={{
+                        color: token.colorTextBase,
+                      }}
                     >
-                      <Tooltip
-                        title="actions"
-                        placement="right"
-                        mouseEnterDelay={0}
-                        mouseLeaveDelay={0}
+                      <Space
+                        className="worktree-container"
+                        style={{ overflowX: 'hidden', whiteSpace: 'nowrap' }}
                       >
-                        <MoreOutlined
-                          style={{ cursor: 'pointer', padding: '2px 4px' }}
-                        />
-                      </Tooltip>
-                    </Dropdown>
-                  </li>
-                ))}
+                        {/* eslint-disable-next-line no-nested-ternary */}
+                        {worktree.isLocked ? (
+                          <Tooltip
+                            title={
+                              worktree.lockReason
+                                ? `Lock reason: ${worktree.lockReason}`
+                                : 'Worktree is locked'
+                            }
+                            placement="right"
+                            mouseEnterDelay={0}
+                            mouseLeaveDelay={0}
+                          >
+                            <LockOutlined
+                              style={{ color: token.colorWarning }}
+                            />
+                          </Tooltip>
+                        ) : worktree.prunable ? (
+                          <Tooltip
+                            title="Gitdir file points to non-existent location"
+                            placement="right"
+                            mouseEnterDelay={0}
+                            mouseLeaveDelay={0}
+                          >
+                            <CloseOutlined
+                              style={{ color: token.colorError }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Tree02Icon size={18} />
+                        )}
+                        <span
+                          style={{
+                            color: worktree.prunable ? token.colorError : '',
+                          }}
+                        >
+                          <Tooltip
+                            title={worktreeName}
+                            placement="right"
+                            mouseEnterDelay={0}
+                            mouseLeaveDelay={0}
+                          >
+                            {worktreeName}
+                          </Tooltip>
+                        </span>
+                        {Object.values(
+                          activeAgentsByWorktree[
+                            worktreeActivityKey(worktree.path)
+                          ] || {},
+                        ).length > 0 && (
+                          <span
+                            className="worktree-agent-status"
+                            aria-label="Active AI agents"
+                          >
+                            {Object.entries(
+                              activeAgentsByWorktree[
+                                worktreeActivityKey(worktree.path)
+                              ] || {},
+                            ).map(([terminalId, agent]) => (
+                              <Tooltip
+                                title={`${agent.label} is working`}
+                                key={terminalId}
+                              >
+                                <Avatar
+                                  size={18}
+                                  className="agent-working-icon"
+                                  style={{
+                                    backgroundColor: 'transparent',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}
+                                >
+                                  {getAiAgentIcon(agent.id, 18)}
+                                </Avatar>
+                              </Tooltip>
+                            ))}
+                          </span>
+                        )}
+                      </Space>
+                      {isSelected && (
+                        <CheckOutlined className="worktree-selected-check" />
+                      )}
+                      <Dropdown
+                        menu={{
+                          items: getWorktreeMenuItems(worktree),
+                          onClick: handleWorktreeMenuClick(worktree),
+                        }}
+                        trigger={['click']}
+                        placement="bottomRight"
+                      >
+                        <span
+                          className="worktree-actions-trigger"
+                          onClick={(event) => event.stopPropagation()}
+                          onKeyDown={(event) => event.stopPropagation()}
+                        >
+                          <Tooltip
+                            title="Actions"
+                            placement="right"
+                            mouseEnterDelay={0}
+                            mouseLeaveDelay={0}
+                          >
+                            <MoreOutlined
+                              style={{ cursor: 'pointer', padding: '2px 4px' }}
+                            />
+                          </Tooltip>
+                        </span>
+                      </Dropdown>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
             {terminalWorkspaceMounted && (

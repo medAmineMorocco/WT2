@@ -109,8 +109,11 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 32px;
-  border: 0;
+  min-height: 36px;
+  margin: 3px 2px;
+  padding: 0 5px 0 10px;
+  border: 1px solid transparent;
+  border-radius: 9px;
 }
 
 .worktree-item:hover {
@@ -119,6 +122,101 @@ body {
 
 .worktree-item-dark:hover {
   background-color: rgba(255, 255, 255, 0.08);
+}
+
+.worktree-selection-item {
+  position: relative;
+  gap: 4px;
+  cursor: pointer;
+  outline: none;
+  transition:
+    color 0.16s ease,
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease;
+}
+
+.worktree-selection-item > .worktree-container {
+  flex: 1;
+  min-width: 0;
+}
+
+.worktree-selection-item:focus-visible {
+  box-shadow: 0 0 0 2px var(--ant-color-primary-border, #91caff);
+}
+
+.worktree-selection-item.selected {
+  color: var(--ant-color-primary, #1677ff) !important;
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 26%,
+    transparent
+  );
+  background: linear-gradient(
+    100deg,
+    color-mix(in srgb, var(--ant-color-primary, #1677ff) 16%, transparent),
+    color-mix(in srgb, var(--ant-color-primary, #1677ff) 7%, transparent)
+  );
+  box-shadow:
+    inset 3px 0 var(--ant-color-primary, #1677ff),
+    0 3px 10px
+      color-mix(in srgb, var(--ant-color-primary, #1677ff) 10%, transparent);
+  font-weight: 600;
+}
+
+.worktree-selection-item.selected
+  > .worktree-container
+  > .ant-space-item:first-child {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-inline-start: -2px;
+  border-radius: 7px;
+  color: var(--ant-color-primary, #1677ff);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 15%,
+    transparent
+  );
+}
+
+.worktree-selection-item.disabled {
+  cursor: not-allowed;
+  opacity: 0.66;
+}
+
+.worktree-selected-check {
+  display: grid;
+  place-items: center;
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--ant-color-primary, #1677ff);
+  box-shadow: 0 2px 6px rgba(22, 119, 255, 0.24);
+  font-size: 10px;
+}
+
+.worktree-actions-trigger {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+}
+
+html[data-color-scheme='dark'] .worktree-selection-item.selected {
+  color: #69a7ff !important;
+  border-color: rgba(64, 150, 255, 0.34);
+  background: linear-gradient(
+    100deg,
+    rgba(22, 119, 255, 0.25),
+    rgba(22, 119, 255, 0.1)
+  );
+  box-shadow:
+    inset 3px 0 #4096ff,
+    0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .steps-visualization.ant-steps.ant-steps-label-vertical
@@ -1311,7 +1409,7 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   position: sticky;
   top: 0;
   z-index: 4;
-  padding: 0 0 10px;
+  padding: 0 0 8px;
   border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   background: var(
     --ant-color-bg-base,
@@ -1319,17 +1417,504 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   );
 }
 
+.git-log-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 1px 0;
+  scrollbar-width: thin;
+}
+
+.git-log-toolbar-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.git-log-toolbar::-webkit-scrollbar {
+  height: 4px;
+}
+
+.git-log-toolbar::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 2px;
+}
+
 .git-log-columns-menu {
   display: grid;
-  min-width: 132px;
-  gap: 8px;
+  min-width: 168px;
+  gap: 10px;
+  padding: 4px;
 }
 
 .git-log-toolbar-divider {
   width: 1px;
-  height: 22px;
-  margin: 0 2px;
+  height: 24px;
+  margin: 0 3px;
+  flex-shrink: 0;
   background: color-mix(in srgb, currentColor 16%, transparent);
+}
+
+.git-log-action-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  height: 34px !important;
+  padding: 0 9px !important;
+  min-width: 58px !important;
+  line-height: 1 !important;
+  gap: 6px !important;
+  border-radius: 7px !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--ant-color-text, inherit) !important;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.git-log-action-btn .git-log-action-btn-label {
+  color: var(--ant-color-text-secondary, #64748b);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.git-log-action-btn .git-log-action-btn-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ant-color-text, inherit);
+  pointer-events: none;
+  transition: color 0.18s ease;
+}
+
+.git-log-action-btn .git-log-action-btn-icon .anticon {
+  font-size: 15px;
+}
+
+.git-log-action-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, currentColor 11%, transparent);
+  border-radius: 9px;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-bg-container, #fff) 96%,
+    currentColor 4%
+  );
+}
+
+.git-log-action-group-feature {
+  margin-left: 3px;
+}
+
+/* Hover state */
+.git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover {
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 8%,
+    var(--ant-color-bg-container, #ffffff)
+  ) !important;
+  border-color: var(--ant-color-primary, #1677ff) !important;
+}
+
+.git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover
+  .git-log-action-btn-icon,
+.git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover
+  .git-log-action-btn-label {
+  color: var(--ant-color-primary, #1677ff) !important;
+}
+
+/* Active / Primary state */
+.git-log-action-btn.git-log-action-btn-active,
+.git-log-action-btn.ant-btn-primary {
+  background: var(--ant-color-primary, #1677ff) !important;
+  border-color: var(--ant-color-primary, #1677ff) !important;
+}
+
+.git-log-action-btn.git-log-action-btn-active .git-log-action-btn-icon,
+.git-log-action-btn.ant-btn-primary .git-log-action-btn-icon,
+.git-log-action-btn.git-log-action-btn-active .git-log-action-btn-label,
+.git-log-action-btn.ant-btn-primary .git-log-action-btn-label {
+  color: #ffffff !important;
+}
+
+/* Disabled state */
+.git-log-action-btn:disabled,
+.git-log-action-btn.ant-btn-disabled {
+  opacity: 0.45 !important;
+  cursor: not-allowed !important;
+  border-color: color-mix(in srgb, currentColor 8%, transparent) !important;
+}
+
+/* Dark mode overrides */
+[data-color-scheme='dark'] .git-log-action-btn {
+  background: transparent !important;
+}
+
+[data-color-scheme='dark'] .git-log-action-btn-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+[data-color-scheme='dark'] .git-log-action-btn-label {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+html[data-color-scheme='dark'] .git-log-action-group {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #181b20;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-color-scheme='dark'] .git-log-action-btn:disabled,
+html[data-color-scheme='dark'] .git-log-action-btn.ant-btn-disabled {
+  color: rgba(255, 255, 255, 0.42) !important;
+  background: transparent !important;
+}
+
+[data-color-scheme='dark']
+  .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover {
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 22%,
+    transparent
+  ) !important;
+  border-color: var(--ant-color-primary, #1677ff) !important;
+}
+
+[data-color-scheme='dark']
+  .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover
+  .git-log-action-btn-icon {
+  color: var(--ant-color-primary-hover, #4096ff) !important;
+}
+
+@media (max-width: 1120px) {
+  .git-log-toolbar {
+    display: flex;
+  }
+
+  .git-log-toolbar-actions {
+    margin-inline: auto;
+  }
+}
+
+.git-bisect-panel {
+  flex: 0 0 auto;
+  display: grid;
+  gap: 10px;
+  margin: 0 0 10px;
+  padding: 11px 14px 12px;
+  border: 1px solid var(--ant-color-border-secondary, #e5e7eb);
+  border-radius: 10px;
+  background: var(--ant-color-bg-container, #fff);
+  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+}
+
+.git-bisect-heading,
+.git-bisect-setup,
+.git-bisect-active-actions,
+.git-bisect-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.git-bisect-heading > .ant-typography {
+  flex: 1;
+}
+
+.git-bisect-setup {
+  display: grid;
+  width: 100%;
+  align-items: initial;
+  gap: 8px;
+}
+
+.git-bisect-worktree-tag {
+  max-width: 210px;
+  margin-inline-end: 0 !important;
+  overflow: hidden;
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 18%,
+    transparent
+  ) !important;
+  color: var(--ant-color-primary, #1677ff) !important;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 8%,
+    transparent
+  ) !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.git-bisect-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--ant-color-text, #111827);
+  font-weight: 700;
+}
+
+.git-bisect-title .anticon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--ant-color-primary, #1677ff);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 12%,
+    transparent
+  );
+}
+
+.git-bisect-setup-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(300px, 1.1fr) minmax(
+      210px,
+      0.72fr
+    );
+  align-items: start;
+  gap: 8px;
+}
+
+.git-bisect-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary, #e5e7eb);
+  border-radius: 9px;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-bg-layout, #f5f5f5) 62%,
+    var(--ant-color-bg-container, #fff) 38%
+  );
+}
+
+.git-bisect-step-number {
+  display: grid;
+  place-items: center;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  color: #fff;
+  background: var(--ant-color-primary, #1677ff);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.git-bisect-step-content {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+}
+
+.git-bisect-start-area {
+  min-width: 0;
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 18%,
+    transparent
+  );
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 5%,
+    var(--ant-color-bg-container, #fff)
+  );
+}
+
+.git-bisect-start-button-wrap {
+  display: block;
+  width: 100%;
+}
+
+.git-bisect-boundaries {
+  row-gap: 6px !important;
+}
+
+.git-bisect-boundary-tag {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-inline-end: 0 !important;
+  padding-inline: 9px !important;
+  border-radius: 7px !important;
+}
+
+.git-bisect-boundary-tag strong {
+  font-family: var(--ant-font-family-code, monospace);
+  font-size: 11px;
+}
+
+.git-bisect-notice {
+  padding: 6px 10px !important;
+  border-radius: 8px !important;
+}
+
+.git-bisect-notice .ant-alert-content {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.git-bisect-notice .ant-alert-description {
+  font-size: 12px;
+}
+
+.git-bisect-setup .git-bisect-command {
+  width: 100%;
+  min-width: 0;
+  flex: none;
+}
+
+.git-bisect-active-actions .git-bisect-command {
+  min-width: 260px;
+  flex: 1 1 320px;
+}
+
+.git-bisect-active-actions,
+.git-bisect-result {
+  justify-content: space-between;
+}
+
+.git-bisect-result .ant-alert {
+  flex: 1;
+}
+
+.git-bisect-culprit-alert {
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 32%,
+    transparent
+  ) !important;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 8%,
+    var(--ant-color-bg-container, #fff)
+  ) !important;
+}
+
+.git-bisect-culprit {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.git-bisect-culprit .ant-typography {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-family: var(--ant-font-family-code, monospace);
+}
+
+html[data-color-scheme='dark'] .git-bisect-culprit-alert {
+  border-color: rgba(255, 120, 117, 0.34) !important;
+  background: rgba(255, 77, 79, 0.1) !important;
+}
+
+.git-bisect-output {
+  overflow: hidden;
+  font-family: var(--ant-font-family-code, monospace);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.commit-row.bisect-good {
+  box-shadow: inset 4px 0 #16a34a;
+}
+
+.commit-row.bisect-bad {
+  box-shadow: inset 4px 0 #dc2626;
+}
+
+.commit-row.bisect-current:not(.selected) {
+  background: color-mix(in srgb, #7c3aed 12%, transparent);
+  box-shadow: inset 4px 0 #7c3aed;
+}
+
+html[data-color-scheme='dark'] .git-bisect-panel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #15171b;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+}
+
+html[data-color-scheme='dark'] .git-bisect-title {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+html[data-color-scheme='dark'] .git-bisect-step {
+  border-color: rgba(255, 255, 255, 0.13);
+  background: #1b1e24;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+html[data-color-scheme='dark'] .git-bisect-start-area {
+  border-color: rgba(64, 150, 255, 0.25);
+  background: rgba(22, 119, 255, 0.08);
+}
+
+html[data-color-scheme='dark'] .git-bisect-worktree-tag {
+  color: #69a7ff !important;
+  background: rgba(22, 119, 255, 0.14) !important;
+}
+
+html[data-color-scheme='dark'] .git-bisect-step .ant-typography {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+html[data-color-scheme='dark'] .git-bisect-step .ant-typography-secondary {
+  color: rgba(255, 255, 255, 0.58);
+}
+
+html[data-color-scheme='dark'] .git-bisect-step .ant-radio-button-wrapper {
+  border-color: rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.78);
+  background: #12151a;
+}
+
+html[data-color-scheme='dark']
+  .git-bisect-step
+  .ant-radio-button-wrapper-checked {
+  border-color: var(--ant-color-primary, #1677ff);
+  color: #fff;
+  background: var(--ant-color-primary, #1677ff);
+}
+
+@media (max-width: 1180px) {
+  .git-bisect-setup-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .git-bisect-start-area {
+    grid-column: 1 / -1;
+  }
 }
 
 .git-log-search-input {
@@ -1383,6 +1968,97 @@ html[data-color-scheme='dark'] .log-container {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.git-log-header-columns-control {
+  position: absolute;
+  inset-inline-end: 4px;
+  top: 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 0 !important;
+}
+
+.git-log-list-header.has-columns-control > span:nth-last-child(2) {
+  padding-inline-end: 34px;
+}
+
+.git-log-columns-trigger {
+  width: 26px !important;
+  height: 26px !important;
+  color: inherit !important;
+}
+
+.git-log-columns-trigger:hover {
+  color: var(--ant-color-primary, #1677ff) !important;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 12%,
+    transparent
+  ) !important;
+}
+
+.git-log-column-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-width: 0;
+  height: 100%;
+  gap: 6px;
+}
+
+.git-log-header-filter-trigger {
+  flex: 0 0 auto;
+  width: 26px !important;
+  height: 26px !important;
+  padding: 0 !important;
+  color: currentColor !important;
+  opacity: 0.62;
+}
+
+.git-log-header-filter-trigger:hover,
+.git-log-header-filter-trigger.active {
+  color: var(--ant-color-primary, #1677ff) !important;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-primary, #1677ff) 12%,
+    transparent
+  ) !important;
+  opacity: 1;
+}
+
+.git-log-header-filter-trigger.active::after {
+  position: absolute;
+  inset-inline-end: 4px;
+  bottom: 3px;
+  width: 5px;
+  height: 5px;
+  border: 1px solid var(--ant-color-bg-container, #fff);
+  border-radius: 50%;
+  background: var(--ant-color-primary, #1677ff);
+  content: '';
+}
+
+.git-log-header-filter-popover {
+  display: grid;
+  gap: 10px;
+  min-width: 240px;
+  padding: 3px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+.git-log-commit-filter-popover {
+  width: 320px;
+}
+
+.git-log-filter-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 24px;
 }
 
 html[data-color-scheme='dark'] .git-log-list-header {

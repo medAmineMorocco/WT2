@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useState, useContext, useCallback } from 'react';
 import TabService from './services/tab/TabService';
 
 const ItemsContext = createContext<any | null>(null);
@@ -9,6 +9,18 @@ function ItemsProvider({ children }: { children: React.ReactNode }) {
   const [isWorkflowPlaying, setIsWorkflowPlaying] = useState<boolean>(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isFirstRender, setIsFirstRender] = useState(true);
+  const [selectedWorktreeByRepository, setSelectedWorktreeByRepository] =
+    useState<Record<string, string | null>>({});
+
+  const setSelectedWorktreeForRepository = useCallback(
+    (repositoryPath: string, worktreeName: string | null) => {
+      setSelectedWorktreeByRepository((current) => ({
+        ...current,
+        [repositoryPath]: worktreeName,
+      }));
+    },
+    [],
+  );
 
   const updateItems = (newItems: any[]) => {
     setItems(newItems);
@@ -27,6 +39,8 @@ function ItemsProvider({ children }: { children: React.ReactNode }) {
         setIsDarkMode,
         isFirstRender,
         setIsFirstRender,
+        selectedWorktreeByRepository,
+        setSelectedWorktreeForRepository,
       }}
     >
       {children}
