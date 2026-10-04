@@ -6,6 +6,7 @@ import { getStopExecution } from './sharedState';
 import worktreeMainService from '../../services/worktrees/worktreeMainService';
 import environmentIsolationService from '../../services/environment/environmentIsolationService';
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
+import pythonVenvSharingService from '../../services/worktrees/pythonVenvSharingService';
 
 const pty = require('node-pty');
 
@@ -114,6 +115,33 @@ async function executeCommand(
         worktreePath,
       );
       const generatedOutput = `Shared node_modules with main worktree (${projectPath} -> ${worktreePath})`;
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        generatedOutput,
+        storedEncoding,
+        command,
+        'finished',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      return 'finish command';
+    } catch (err: any) {
+      logStates = await getNewlogStates(
+        worktreeLabel,
+        Buffer.from(err.message),
+        storedEncoding,
+        command,
+        'error',
+      );
+      event.sender.send('workflow-started-log-received', logStates);
+      throw err;
+    }
+  }
+
+  if (command.sharePythonVenv) {
+    const { projectPath, worktreePath } = command.sharePythonVenv;
+    try {
+      await pythonVenvSharingService.linkPythonVenv(projectPath, worktreePath);
+      const generatedOutput = `Shared Python .venv with selected worktree (${projectPath} -> ${worktreePath})`;
       logStates = await getNewlogStates(
         worktreeLabel,
         generatedOutput,

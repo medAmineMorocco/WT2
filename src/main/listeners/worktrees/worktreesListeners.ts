@@ -6,6 +6,7 @@ import environmentIsolationService, {
   generateIsolatedEnvironmentSources,
 } from '../../services/environment/environmentIsolationService';
 import nodeModulesSharingService from '../../services/worktrees/nodeModulesSharingService';
+import pythonVenvSharingService from '../../services/worktrees/pythonVenvSharingService';
 import { EnvironmentIsolationConfig } from '../../../shared/environmentIsolation';
 import {
   WorktreeRebaseAbortResult,
@@ -46,6 +47,16 @@ ipcMain.on(
     }
   },
 );
+
+ipcMain.on('check-main-python-venv', async function (event, directory: string) {
+  try {
+    const worktrees =
+      await pythonVenvSharingService.getWorktreesWithPythonVenv(directory);
+    event.sender.send('main-python-venv-checked', 0, worktrees);
+  } catch (err: any) {
+    event.sender.send('main-python-venv-checked', -1, []);
+  }
+});
 
 ipcMain.on(
   'detect-environment-sources',
@@ -155,6 +166,8 @@ ipcMain.on(
     shareNodeModules?: boolean,
     nodeModulesSourcePath?: string,
     sparseFolders?: string[],
+    sharePythonVenv?: boolean,
+    pythonVenvSourcePath?: string,
   ) {
     let gitWorktreeCreated = false;
     try {
@@ -183,6 +196,15 @@ ipcMain.on(
           sourcePath,
           worktreePath,
         );
+      }
+      if (sharePythonVenv) {
+        const sourcePath = pythonVenvSourcePath || directory;
+        event.sender.send(
+          'worktree-creation-progress',
+          'python_venv',
+          'Sharing Python .venv with selected worktree',
+        );
+        await pythonVenvSharingService.linkPythonVenv(sourcePath, worktreePath);
       }
       if (environmentIsolation) {
         await environmentIsolationService.generateIsolatedEnvironmentSources(

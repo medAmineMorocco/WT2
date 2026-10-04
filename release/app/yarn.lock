@@ -115,17 +115,7 @@ node-addon-api@^7.1.0:
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-7.1.1.tgz"
   integrity sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==
 
-node-addon-api@^8.0.0:
-  version "8.9.2"
-  resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.9.2.tgz"
-  integrity sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==
-
-node-addon-api@^8.2.1:
-  version "8.9.2"
-  resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.9.2.tgz"
-  integrity sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==
-
-node-addon-api@^8.2.2:
+node-addon-api@^8.0.0, node-addon-api@^8.2.1, node-addon-api@^8.2.2:
   version "8.9.2"
   resolved "https://registry.npmjs.org/node-addon-api/-/node-addon-api-8.9.2.tgz"
   integrity sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==
@@ -221,7 +211,7 @@ tree-sitter-wasms@^0.1.11, tree-sitter-wasms@^0.1.13:
   dependencies:
     tree-sitter-wasms "^0.1.11"
 
-tree-sitter@^0.21.0, tree-sitter@^0.21.1:
+tree-sitter@^0.21.1:
   version "0.21.1"
   resolved "https://registry.npmjs.org/tree-sitter/-/tree-sitter-0.21.1.tgz"
   integrity sha512-7dxoA6kYvtgWw80265MyqJlkRl4yawIjO7S5MigytjELkX43fV2WsAXzsNfO7sBpPPCF5Gp0+XzHk0DwLCq3xQ==
@@ -234,15 +224,15 @@ ts-algebra@^2.0.0:
   resolved "https://registry.npmjs.org/ts-algebra/-/ts-algebra-2.0.0.tgz"
   integrity sha512-FPAhNPFMrkwz76P7cdjdmiShwMynZYN6SgOujD1urY4oNm80Ou9oMdmbR45LotcKOXoy7wSmHkRFE6Mxbrhefw==
 
-vscode-jsonrpc@^8.2.1:
-  version "8.2.1"
-  resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz"
-  integrity sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==
-
 vscode-jsonrpc@9.0.1:
   version "9.0.1"
   resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-9.0.1.tgz"
   integrity sha512-rfuA6T75H6m5EkbhtEPzre9pT0HPcDI2MMy4+nPFIBks5J8JBAUHD4tRYSgaBOijIEC7SRkC1kKyXTLqbmh9jw==
+
+vscode-jsonrpc@^8.2.1:
+  version "8.2.1"
+  resolved "https://registry.npmjs.org/vscode-jsonrpc/-/vscode-jsonrpc-8.2.1.tgz"
+  integrity sha512-kdjOSJ2lLIn7r1rtrMbbNCHjyMPfRnowdKjBQ+mGq6NAW5QY2bEZC/khaC5OR8svbbjvLEaIXkOq45e2X9BIbQ==
 
 vscode-languageserver-protocol@^3.18.2:
   version "3.18.2"

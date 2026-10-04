@@ -126,6 +126,12 @@ export default function AddWorktree({
   const [selectedNodeModulesSourcePath, setSelectedNodeModulesSourcePath] =
     useState<string>('');
   const [shareNodeModules, setShareNodeModules] = useState(false);
+  const [pythonVenvWorktrees, setPythonVenvWorktrees] = useState<
+    Array<{ path: string; name: string; isPrimary: boolean }>
+  >([]);
+  const [selectedPythonVenvSourcePath, setSelectedPythonVenvSourcePath] =
+    useState<string>('');
+  const [sharePythonVenv, setSharePythonVenv] = useState(false);
 
   const [checkoutScope, setCheckoutScope] = useState<'full' | 'selected'>(
     'full',
@@ -504,6 +510,25 @@ export default function AddWorktree({
       }
     };
 
+    const onMainPythonVenvChecked = (
+      code: number,
+      result: Array<{ path: string; name: string; isPrimary: boolean }>,
+    ) => {
+      if (code === 0 && Array.isArray(result) && result.length > 0) {
+        setPythonVenvWorktrees(result);
+        setSelectedPythonVenvSourcePath((current) => {
+          if (current && result.some((item) => item.path === current)) {
+            return current;
+          }
+          const primary = result.find((item) => item.isPrimary);
+          return primary ? primary.path : result[0].path;
+        });
+      } else {
+        setPythonVenvWorktrees([]);
+        setSelectedPythonVenvSourcePath('');
+      }
+    };
+
     window.electron.ipcRenderer.on('worktree-created', onWorktreeCreated);
     window.electron.ipcRenderer.on(
       'worktree-creation-progress',
@@ -543,6 +568,10 @@ export default function AddWorktree({
       'main-node-modules-checked',
       onMainNodeModulesChecked,
     );
+    window.electron.ipcRenderer.on(
+      'main-python-venv-checked',
+      onMainPythonVenvChecked,
+    );
 
     return () => {
       window.electron.ipcRenderer.removeAllListeners('worktree-created');
@@ -569,6 +598,9 @@ export default function AddWorktree({
       window.electron.ipcRenderer.removeAllListeners(
         'main-node-modules-checked',
       );
+      window.electron.ipcRenderer.removeAllListeners(
+        'main-python-venv-checked',
+      );
     };
     // do not touch
   }, [form, notification, tabRepoPath]);
@@ -593,8 +625,10 @@ export default function AddWorktree({
   useEffect(() => {
     if (isModalOpen && tabRepoPath) {
       window.electron.ipcRenderer.send('check-main-node-modules', tabRepoPath);
+      window.electron.ipcRenderer.send('check-main-python-venv', tabRepoPath);
     } else if (!isModalOpen) {
       setShareNodeModules(false);
+      setSharePythonVenv(false);
     }
   }, [isModalOpen, tabRepoPath]);
 
@@ -818,6 +852,8 @@ export default function AddWorktree({
         : undefined;
     const shouldShareNodeModules =
       shareNodeModules && nodeModulesWorktrees.length > 0;
+    const shouldSharePythonVenv =
+      sharePythonVenv && pythonVenvWorktrees.length > 0;
     const effectiveCreateWorktreeMode =
       createWorktreeMode === 'existing-branch' && showRemoteBranches
         ? 'existing-remote-branch'
@@ -859,6 +895,8 @@ export default function AddWorktree({
         shouldShareNodeModules,
         shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
         selectedCheckoutFolders,
+        shouldSharePythonVenv,
+        shouldSharePythonVenv ? selectedPythonVenvSourcePath : undefined,
       );
     } else {
       log.debug('== create-worktree-workflow ==');
@@ -874,6 +912,8 @@ export default function AddWorktree({
         shouldShareNodeModules ? selectedNodeModulesSourcePath : undefined,
         selectedCheckoutFolders,
         createAndOpenAction.current,
+        shouldSharePythonVenv,
+        shouldSharePythonVenv ? selectedPythonVenvSourcePath : undefined,
       );
       createAndOpenAction.current = null;
       createdWorktree.current = null;
@@ -1392,6 +1432,44 @@ export default function AddWorktree({
                         label: wt.isPrimary
                           ? `${wt.name} (Main worktree)`
                           : wt.name,
+                      }))}
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+            {pythonVenvWorktrees.length > 0 && (
+              <div className="create-worktree-setup-option">
+                <Checkbox
+                  checked={sharePythonVenv}
+                  onChange={(event) => setSharePythonVenv(event.target.checked)}
+                >
+                  Share Python .venv
+                </Checkbox>
+                {sharePythonVenv && (
+                  <div style={{ marginTop: 6, paddingLeft: 24 }}>
+                    <Typography.Text
+                      type="secondary"
+                      style={{
+                        display: 'block',
+                        marginBottom: 4,
+                        fontSize: 12,
+                      }}
+                    >
+                      Share from worktree:
+                    </Typography.Text>
+                    <Select
+                      size="small"
+                      style={{ width: '100%' }}
+                      value={selectedPythonVenvSourcePath}
+                      onChange={(value) =>
+                        setSelectedPythonVenvSourcePath(value)
+                      }
+                      options={pythonVenvWorktrees.map((worktree) => ({
+                        value: worktree.path,
+                        label: worktree.isPrimary
+                          ? `${worktree.name} (Main worktree)`
+                          : worktree.name,
                       }))}
                     />
                   </div>

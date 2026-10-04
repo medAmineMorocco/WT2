@@ -42,6 +42,8 @@ ipcMain.on(
     nodeModulesSourcePath?: string,
     sparseFolders?: string[],
     openAction?: WorktreeOpenAction,
+    sharePythonVenv?: boolean,
+    pythonVenvSourcePath?: string,
   ) {
     const pathSeparator = await worktreeMainService.getWorktreesSeparator();
     let command: string;
@@ -185,6 +187,24 @@ ipcMain.on(
         workflow.command = shareNodeModulesCommand;
       } else {
         workflow.commands.push(shareNodeModulesCommand);
+      }
+    }
+    if (sharePythonVenv) {
+      const sourcePath = pythonVenvSourcePath || dir;
+      const sharePythonVenvCommand = {
+        key: String(workflow.commands.length + 1),
+        value: 'Share Python .venv with worktree',
+        display: 'Share Python .venv with worktree',
+        sharePythonVenv: {
+          projectPath: sourcePath,
+          worktreePath: worktreesFolder,
+          worktreeName,
+        },
+      };
+      if (!workflow.command) {
+        workflow.command = sharePythonVenvCommand;
+      } else {
+        workflow.commands.push(sharePythonVenvCommand);
       }
     }
     if (environmentIsolation) {
