@@ -1,6 +1,7 @@
 import {
   CheckCircleFilled,
   CloseCircleFilled,
+  FileTextOutlined,
 } from '@ant-design/icons';
 import { Popover, Select, Tooltip, theme } from 'antd';
 import { useEffect, useState } from 'react';
@@ -14,6 +15,41 @@ type WorktreeMergeCheckProps = {
   branches: string[];
   defaultBranch: string;
 };
+
+function extractConflictedFiles(output: string, stderr = ''): string[] {
+  const files = new Set<string>();
+  const treeEntryRegex =
+    /^\s*(?:base|our|their)\s+\d{6}\s+[0-9a-f]{40,}\s+([^\r\n]+)$/gim;
+  let match: RegExpExecArray | null;
+  while ((match = treeEntryRegex.exec(output)) !== null) {
+    const file = match[1].trim();
+    if (file) files.add(file);
+  }
+  const conflictRegex =
+    /CONFLICT\s*(?:\([^)]+\))?:\s*(?:Merge conflict in|.*?in)\s+([^\r\n]+)/gi;
+  while ((match = conflictRegex.exec(output)) !== null) {
+    const file = match[1].trim();
+    if (file) files.add(file);
+  }
+  if (stderr) {
+    const binaryRegex = /Cannot merge binary files:\s*([^\r\n]+)/gi;
+    while ((match = binaryRegex.exec(stderr)) !== null) {
+      const file = match[1].trim();
+      if (file) files.add(file);
+    }
+  }
+  const diffSections = output.split(/^diff --git\s+/m);
+  for (const section of diffSections) {
+    if (/\+?<{7}\s/m.test(section) || /^\<{7}/m.test(section)) {
+      const firstLine = section.split(/[\r\n]+/)[0];
+      const matchDiff = firstLine.match(/^[ab]\/(.+?)\s+[ab]\/(.+)$/);
+      if (matchDiff) {
+        files.add(matchDiff[2]);
+      }
+    }
+  }
+  return Array.from(files);
+}
 
 export default function WorktreeMergeCheck({
   repositoryPath,
@@ -103,6 +139,11 @@ export default function WorktreeMergeCheck({
 
   const isClean = result.conflictFree;
   const iconColor = isClean ? token.colorSuccess : token.colorError;
+  const conflictedFiles = !isClean
+    ? result.conflictedFiles && result.conflictedFiles.length > 0
+      ? result.conflictedFiles
+      : extractConflictedFiles(result.details || '')
+    : [];
 
   const popoverContent = (
     <div
@@ -125,6 +166,7 @@ export default function WorktreeMergeCheck({
           <span className="worktree-merge-popover-branch">{targetBranch}</span>
         )}
       </div>
+
       <div
         className={`worktree-merge-popover-status ${isClean ? 'clean' : 'conflict'}`}
       >
@@ -140,12 +182,58 @@ export default function WorktreeMergeCheck({
             <CloseCircleFilled
               style={{ color: token.colorError, fontSize: 13 }}
             />
-            <span>Conflicts detected</span>
+            <span>
+              {conflictedFiles.length > 0
+                ? `${conflictedFiles.length} Conflicted File${conflictedFiles.length > 1 ? 's' : ''}`
+                : 'Conflicts detected'}
+            </span>
           </>
         )}
       </div>
+
+      {!isClean && conflictedFiles.length > 0 && (
+        <div className="worktree-merge-conflicted-section">
+          <div className="worktree-merge-conflicted-list">
+            {conflictedFiles.map((file) => {
+              const fileName = file.split('/').pop() || file;
+              const dirPath = file.includes('/')
+                ? file.slice(0, file.lastIndexOf('/'))
+                : '';
+              return (
+                <div
+                  key={file}
+                  className="worktree-merge-conflicted-item"
+                  title={file}
+                >
+                  <FileTextOutlined
+                    style={{
+                      color: token.colorError,
+                      fontSize: 13,
+                      flexShrink: 0,
+                    }}
+                  />
+                  <div className="worktree-merge-conflicted-info">
+                    <span className="worktree-merge-conflicted-name">
+                      {fileName}
+                    </span>
+                    {dirPath && (
+                      <span className="worktree-merge-conflicted-dir">
+                        {dirPath}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {result.details && (
-        <div className="worktree-merge-popover-details">{result.details}</div>
+        <details className="worktree-merge-raw-details">
+          <summary>Raw output</summary>
+          <div className="worktree-merge-popover-details">{result.details}</div>
+        </details>
       )}
     </div>
   );

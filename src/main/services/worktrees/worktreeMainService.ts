@@ -1433,6 +1433,41 @@ function detectMergeTreeConflicts(output: string, stderr = ''): boolean {
   return false;
 }
 
+function extractConflictedFiles(output: string, stderr = ''): string[] {
+  const files = new Set<string>();
+  const treeEntryRegex =
+    /^\s*(?:base|our|their)\s+\d{6}\s+[0-9a-f]{40,}\s+([^\r\n]+)$/gim;
+  let match: RegExpExecArray | null;
+  while ((match = treeEntryRegex.exec(output)) !== null) {
+    const file = match[1].trim();
+    if (file) files.add(file);
+  }
+  const conflictRegex =
+    /CONFLICT\s*(?:\([^)]+\))?:\s*(?:Merge conflict in|.*?in)\s+([^\r\n]+)/gi;
+  while ((match = conflictRegex.exec(output)) !== null) {
+    const file = match[1].trim();
+    if (file) files.add(file);
+  }
+  if (stderr) {
+    const binaryRegex = /Cannot merge binary files:\s*([^\r\n]+)/gi;
+    while ((match = binaryRegex.exec(stderr)) !== null) {
+      const file = match[1].trim();
+      if (file) files.add(file);
+    }
+  }
+  const diffSections = output.split(/^diff --git\s+/m);
+  for (const section of diffSections) {
+    if (/\+?<{7}\s/m.test(section) || /^\<{7}/m.test(section)) {
+      const firstLine = section.split(/[\r\n]+/)[0];
+      const matchDiff = firstLine.match(/^[ab]\/(.+?)\s+[ab]\/(.+)$/);
+      if (matchDiff) {
+        files.add(matchDiff[2]);
+      }
+    }
+  }
+  return Array.from(files);
+}
+
 async function calculateMergeProbability(
   directory: string,
   sourceWorktreePath: string,
@@ -1588,6 +1623,9 @@ async function calculateMergeProbability(
     const output = result.stdout || '';
     const hasConflicts = detectMergeTreeConflicts(output, result.stderr);
     const conflictFree = !hasConflicts;
+    const conflictedFiles = conflictFree
+      ? []
+      : extractConflictedFiles(output, result.stderr);
 
     return {
       sourceBranch: source.name,
@@ -1595,6 +1633,7 @@ async function calculateMergeProbability(
       probability: conflictFree ? (100 as const) : (0 as const),
       conflictFree,
       includedUncommittedChanges,
+      conflictedFiles,
       details: conflictFree
         ? 'Git produced a merge tree without conflicts.'
         : output ||

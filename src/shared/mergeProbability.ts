@@ -7,6 +7,7 @@ export type MergeProbabilityResult =
       conflictFree: boolean;
       includedUncommittedChanges: boolean;
       details: string;
+      conflictedFiles?: string[];
     }
   | {
       ok: false;

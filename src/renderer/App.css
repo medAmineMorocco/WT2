@@ -194,7 +194,8 @@ body {
 }
 
 .worktree-merge-popover {
-  max-width: 250px;
+  min-width: 260px;
+  max-width: 380px;
   padding: 4px;
 }
 
@@ -234,12 +235,82 @@ body {
   color: var(--ant-color-error-text, #cf1322);
 }
 
+.worktree-merge-conflicted-section {
+  margin: 6px 0;
+}
+
+.worktree-merge-conflicted-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.worktree-merge-conflicted-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 8%,
+    transparent
+  );
+  border: 1px solid
+    color-mix(in srgb, var(--ant-color-error, #ff4d4f) 22%, transparent);
+  border-radius: 6px;
+  min-width: 0;
+}
+
+.worktree-merge-conflicted-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.worktree-merge-conflicted-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--ant-color-text, #111);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.worktree-merge-conflicted-dir {
+  font-size: 10px;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.worktree-merge-raw-details {
+  margin-top: 6px;
+  font-size: 11px;
+}
+
+.worktree-merge-raw-details summary {
+  cursor: pointer;
+  color: var(--ant-color-text-tertiary, #8c8c8c);
+  font-size: 11px;
+  font-weight: 500;
+  user-select: none;
+  padding: 2px 0 4px;
+}
+
+.worktree-merge-raw-details summary:hover {
+  color: var(--ant-color-text-secondary, #666);
+}
+
 .worktree-merge-popover-details {
   font-size: 11px;
   line-height: 1.4;
   color: var(--ant-color-text-tertiary, #8c8c8c);
   word-break: break-word;
-  max-height: 120px;
+  max-height: 100px;
   overflow-y: auto;
   background: var(--ant-color-fill-quaternary, rgba(0, 0, 0, 0.02));
   padding: 6px 8px;
