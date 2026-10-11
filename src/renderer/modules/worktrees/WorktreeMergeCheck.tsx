@@ -1,10 +1,10 @@
 import {
   CheckCircleFilled,
   CloseCircleFilled,
-  LoadingOutlined,
 } from '@ant-design/icons';
 import { Popover, Select, Tooltip, theme } from 'antd';
 import { useEffect, useState } from 'react';
+import { Tree02Icon } from 'hugeicons-react';
 import type { MergeProbabilityResult } from '../../../shared/mergeProbability';
 
 type WorktreeMergeCheckProps = {
@@ -34,7 +34,11 @@ export default function WorktreeMergeCheck({
   }, [branches, defaultBranch, targetBranch]);
 
   useEffect(() => {
-    if (!targetBranch || worktreeName === defaultBranch || targetBranch === worktreeName) {
+    if (
+      !targetBranch ||
+      worktreeName === defaultBranch ||
+      targetBranch === worktreeName
+    ) {
       setLoading(false);
       setResult(undefined);
       return undefined;
@@ -70,31 +74,35 @@ export default function WorktreeMergeCheck({
     };
   }, [defaultBranch, repositoryPath, targetBranch, worktreeName, worktreePath]);
 
-  // Do not show conflict status on the default worktree itself or if targetBranch is self
+  // If default worktree or target is self, render default uncolored tree icon
   if (worktreeName === defaultBranch || targetBranch === worktreeName) {
-    return null;
+    return <Tree02Icon size={18} />;
   }
 
   if (loading) {
     return (
-      <Tooltip title={`Checking conflicts against ${targetBranch}...`} placement="top">
+      <Tooltip
+        title={`Checking merge status into ${targetBranch}...`}
+        placement="right"
+      >
         <span
-          className="worktree-merge-badge loading"
+          className="worktree-tree-icon-wrapper loading"
           onClick={(e) => e.stopPropagation()}
-          aria-label={`Checking conflicts for ${worktreeName}`}
+          aria-label={`Checking merge status for ${worktreeName}`}
         >
-          <LoadingOutlined spin style={{ fontSize: 11, color: token.colorTextTertiary }} />
+          <Tree02Icon size={18} />
         </span>
       </Tooltip>
     );
   }
 
-  // If analysis is unavailable or errored, do not render noisy pills
+  // If analysis is unavailable or errored, render default tree icon
   if (!result || !result.ok) {
-    return null;
+    return <Tree02Icon size={18} />;
   }
 
   const isClean = result.conflictFree;
+  const iconColor = isClean ? token.colorSuccess : token.colorError;
 
   const popoverContent = (
     <div
@@ -122,20 +130,22 @@ export default function WorktreeMergeCheck({
       >
         {isClean ? (
           <>
-            <CheckCircleFilled style={{ color: token.colorSuccess, fontSize: 13 }} />
+            <CheckCircleFilled
+              style={{ color: token.colorSuccess, fontSize: 13 }}
+            />
             <span>Clean (no conflicts)</span>
           </>
         ) : (
           <>
-            <CloseCircleFilled style={{ color: token.colorError, fontSize: 13 }} />
+            <CloseCircleFilled
+              style={{ color: token.colorError, fontSize: 13 }}
+            />
             <span>Conflicts detected</span>
           </>
         )}
       </div>
       {result.details && (
-        <div className="worktree-merge-popover-details">
-          {result.details}
-        </div>
+        <div className="worktree-merge-popover-details">{result.details}</div>
       )}
     </div>
   );
@@ -150,31 +160,28 @@ export default function WorktreeMergeCheck({
       <Tooltip
         title={
           isClean
-            ? `Clean merge into ${targetBranch}`
+            ? `Clean merge into ${targetBranch} (click to configure)`
             : `Conflicts detected against ${targetBranch} (click for details)`
         }
-        placement="top"
+        placement="right"
         mouseEnterDelay={0.2}
       >
         <span
-          className={`worktree-merge-badge ${isClean ? 'clean' : 'conflict'}`}
+          className={`worktree-tree-icon-wrapper ${isClean ? 'clean' : 'conflict'}`}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
           data-testid={`merge-check-${worktreeName}`}
           role="button"
           tabIndex={0}
           aria-label={`${worktreeName}: ${isClean ? 'Clean' : 'Conflicts'} with ${targetBranch}`}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            cursor: 'pointer',
+            color: iconColor,
+          }}
         >
-          {isClean ? (
-            <CheckCircleFilled
-              className="worktree-merge-icon success"
-              style={{ color: token.colorSuccess, fontSize: 12 }}
-            />
-          ) : (
-            <CloseCircleFilled
-              className="worktree-merge-icon conflict"
-              style={{ color: token.colorError, fontSize: 12 }}
-            />
-          )}
+          <Tree02Icon size={18} color={iconColor} style={{ color: iconColor }} />
         </span>
       </Tooltip>
     </Popover>

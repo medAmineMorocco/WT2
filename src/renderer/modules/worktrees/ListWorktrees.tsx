@@ -47,7 +47,6 @@ import {
   SettingOutlined,
   BranchesOutlined,
   CloudUploadOutlined,
-  CheckOutlined,
 } from '@ant-design/icons';
 import { FolderEditIcon, Tree02Icon } from 'hugeicons-react';
 import log from 'electron-log';
@@ -1317,9 +1316,6 @@ export default function ListWorktrees({
                     <BranchesOutlined />
                     <span>All refs</span>
                   </Space>
-                  {selectedWorktree === null && (
-                    <CheckOutlined className="worktree-selected-check" />
-                  )}
                 </li>
                 {worktrees.map((worktree: any) => {
                   const worktreeName = worktree.name || worktree.resolvedName;
@@ -1389,6 +1385,14 @@ export default function ListWorktrees({
                               style={{ color: token.colorError }}
                             />
                           </Tooltip>
+                        ) : canCheckMerge ? (
+                          <WorktreeMergeCheck
+                            repositoryPath={tabRepoPath}
+                            worktreePath={worktree.path}
+                            worktreeName={worktreeName}
+                            branches={mergeTargetBranches}
+                            defaultBranch={mergeDefaultBranch}
+                          />
                         ) : (
                           <Tree02Icon size={18} />
                         )}
@@ -1441,18 +1445,6 @@ export default function ListWorktrees({
                           </span>
                         )}
                       </Space>
-                      {canCheckMerge && (
-                        <WorktreeMergeCheck
-                          repositoryPath={tabRepoPath}
-                          worktreePath={worktree.path}
-                          worktreeName={worktreeName}
-                          branches={mergeTargetBranches}
-                          defaultBranch={mergeDefaultBranch}
-                        />
-                      )}
-                      {isSelected && (
-                        <CheckOutlined className="worktree-selected-check" />
-                      )}
                       <Dropdown
                         menu={{
                           items: getWorktreeMenuItems(worktree),
