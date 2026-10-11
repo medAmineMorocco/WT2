@@ -64,6 +64,8 @@ import {
   CreatedWorktreeTarget,
   WorktreeOpenAction,
 } from '../../../shared/worktreeOpenAction';
+import type { MergeProbabilityConfigResult } from '../../../shared/mergeProbability';
+import WorktreeMergeCheck from './WorktreeMergeCheck';
 
 const TerminalInteractive = lazy(
   () => import('../terminal/TerminalInteractive'),
@@ -170,6 +172,8 @@ export default function ListWorktrees({
     useState(false);
 
   const [worktrees, setWorktrees] = useState([]);
+  const [mergeTargetBranches, setMergeTargetBranches] = useState<string[]>([]);
+  const [mergeDefaultBranch, setMergeDefaultBranch] = useState('');
   const [worktreesActiveKey, setWorktreesActiveKey] = useState<string[]>(['1']);
   const [remotesActiveKey, setRemotesActiveKey] = useState<string[]>([
     'remotes',
@@ -231,6 +235,7 @@ export default function ListWorktrees({
   const [upstreamWorktree, setUpstreamWorktree] = useState<any | null>(null);
 
   const {
+    activeKey,
     isWorkflowPlaying,
     selectedWorktreeByRepository,
     setSelectedWorktreeForRepository,
@@ -257,8 +262,23 @@ export default function ListWorktrees({
   const tabRepoPath = useMemo(() => {
     const activeTab = TabService.getActiveTab();
     return TabService.getTabRepoPath(activeTab);
-  }, []);
+  }, [activeKey]);
   const selectedWorktree = selectedWorktreeByRepository[tabRepoPath] ?? null;
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!tabRepoPath) return undefined;
+    window.electron.ipcRenderer
+      .invoke('get-merge-probability-config', tabRepoPath)
+      .then((result: MergeProbabilityConfigResult) => {
+        if (cancelled || !result.ok) return;
+        setMergeTargetBranches(result.branches);
+        setMergeDefaultBranch(result.defaultBranch);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [tabRepoPath, worktrees.length]);
 
   const selectWorktree = useCallback(
     (worktreeName: string | null) => {
@@ -1305,9 +1325,17 @@ export default function ListWorktrees({
                   const worktreeName = worktree.name || worktree.resolvedName;
                   const isSelected = selectedWorktree === worktreeName;
                   const isSelectable = !worktree.prunable;
+                  const canCheckMerge =
+                    worktree.path &&
+                    !worktree.prunable &&
+                    worktree.directoryExists !== false &&
+                    worktreeName !== 'DETACHED HEAD' &&
+                    mergeTargetBranches.length > 0 &&
+                    Boolean(mergeDefaultBranch) &&
+                    worktreeName !== mergeDefaultBranch;
                   return (
                     <li
-                      key={worktreeName}
+                      key={worktree.path || worktreeName}
                       className={`${!isDarkMode ? 'worktree-item' : 'worktree-item-dark'} worktree-selection-item ${isSelected ? 'selected' : ''} ${!isSelectable ? 'disabled' : ''}`}
                       role="button"
                       tabIndex={isSelectable ? 0 : -1}
@@ -1413,6 +1441,15 @@ export default function ListWorktrees({
                           </span>
                         )}
                       </Space>
+                      {canCheckMerge && (
+                        <WorktreeMergeCheck
+                          repositoryPath={tabRepoPath}
+                          worktreePath={worktree.path}
+                          worktreeName={worktreeName}
+                          branches={mergeTargetBranches}
+                          defaultBranch={mergeDefaultBranch}
+                        />
+                      )}
                       {isSelected && (
                         <CheckOutlined className="worktree-selected-check" />
                       )}

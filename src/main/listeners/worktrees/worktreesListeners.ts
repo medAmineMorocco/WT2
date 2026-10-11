@@ -28,6 +28,10 @@ import {
   SaveWorktreeConfigResult,
   WorktreeConfigEntry,
 } from '../../../shared/worktreeConfig';
+import {
+  MergeProbabilityConfigResult,
+  MergeProbabilityResult,
+} from '../../../shared/mergeProbability';
 
 ipcMain.handle(
   'get-sparse-checkout-tree',
@@ -606,6 +610,47 @@ ipcMain.handle(
           error instanceof BusinessError
             ? error.message
             : 'The merge failed. The target branch was restored.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'get-merge-probability-config',
+  async (_event, directory: string): Promise<MergeProbabilityConfigResult> => {
+    try {
+      const result =
+        await worktreeMainService.getMergeProbabilityConfig(directory);
+      return { ok: true, ...result };
+    } catch (error: any) {
+      return {
+        ok: false,
+        error: error?.message || 'Merge analysis is unavailable.',
+      };
+    }
+  },
+);
+
+ipcMain.handle(
+  'calculate-merge-probability',
+  async (
+    _event,
+    directory: string,
+    sourceWorktreePath: string,
+    targetBranch: string,
+  ): Promise<MergeProbabilityResult> => {
+    try {
+      const result = await worktreeMainService.calculateMergeProbability(
+        directory,
+        sourceWorktreePath,
+        targetBranch,
+      );
+      return { ok: true, ...result };
+    } catch (error: any) {
+      log.error(`Failed to calculate merge probability: ${error.message}`);
+      return {
+        ok: false,
+        error: error?.message || 'The merge simulation failed.',
       };
     }
   },

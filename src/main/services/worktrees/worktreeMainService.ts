@@ -49,6 +49,38 @@ function runGit(
   });
 }
 
+function runGitWithExitCode(
+  gitExecutable: string,
+  cwd: string,
+  args: string[],
+) {
+  return new Promise<{ code: number; stdout: string; stderr: string }>(
+    (resolve, reject) => {
+      const child = spawn(gitExecutable, args, {
+        cwd,
+        shell: false,
+        windowsHide: true,
+      });
+      const stdout: Buffer[] = [];
+      const stderr: Buffer[] = [];
+      child.stdout.on('data', (chunk: Buffer) =>
+        stdout.push(Buffer.from(chunk)),
+      );
+      child.stderr.on('data', (chunk: Buffer) =>
+        stderr.push(Buffer.from(chunk)),
+      );
+      child.on('error', reject);
+      child.on('close', (code: number) =>
+        resolve({
+          code: code ?? -1,
+          stdout: Buffer.concat(stdout).toString('utf8').trim(),
+          stderr: Buffer.concat(stderr).toString('utf8').trim(),
+        }),
+      );
+    },
+  );
+}
+
 async function getRebaseConflictFiles(
   gitExecutable: string,
   worktreePath: string,
@@ -1374,6 +1406,259 @@ async function mergeWorktreeIntoWorktree(
   }
 }
 
+function detectMergeTreeConflicts(output: string, stderr = ''): boolean {
+  if (stderr && /Cannot merge binary files/i.test(stderr)) {
+    return true;
+  }
+  if (!output.trim()) {
+    return false;
+  }
+  if (/\+?<{7}\s/m.test(output) || /^\<{7}/m.test(output)) {
+    return true;
+  }
+  if (/^added in both/m.test(output)) {
+    return true;
+  }
+  if (/^removed in local/m.test(output)) {
+    return true;
+  }
+  const removedInRemoteMatches = output.matchAll(
+    /removed in remote\s+base\s+\d+\s+([0-9a-f]+)\s+[^\r\n]+\s+our\s+\d+\s+([0-9a-f]+)/g,
+  );
+  for (const match of removedInRemoteMatches) {
+    if (match[1] !== match[2]) {
+      return true;
+    }
+  }
+  return false;
+}
+
+async function calculateMergeProbability(
+  directory: string,
+  sourceWorktreePath: string,
+  targetBranch: string,
+) {
+  const worktrees = (await findAll(directory)) as Array<{
+    path: string;
+    name: string;
+    directoryExists?: boolean;
+    prunable?: boolean;
+  }>;
+  const normalizedSourcePath = path.resolve(sourceWorktreePath);
+  const source = worktrees.find(
+    (worktree) => path.resolve(worktree.path) === normalizedSourcePath,
+  );
+
+  if (!source) throw new BusinessError('The source worktree was not found.');
+  if (source.directoryExists === false || source.prunable) {
+    throw new BusinessError(
+      'The source worktree must be available and healthy.',
+    );
+  }
+  if (!source.name || source.name === 'DETACHED HEAD') {
+    throw new BusinessError(
+      'The source worktree must be attached to a local branch.',
+    );
+  }
+
+  const gitExecutable = await gitMainService.gitCommand();
+  const branches = (
+    await runGit(gitExecutable, directory, [
+      'for-each-ref',
+      '--format=%(refname:short)',
+      'refs/heads',
+    ])
+  )
+    .split(/\r?\n/)
+    .map((branch) => branch.trim())
+    .filter(Boolean);
+  if (!targetBranch || !branches.includes(targetBranch)) {
+    throw new BusinessError('Choose a valid local target branch.');
+  }
+
+  const status = await runGit(gitExecutable, source.path, [
+    'status',
+    '--porcelain=v1',
+    '--untracked-files=all',
+  ]);
+  const includedUncommittedChanges = Boolean(status.trim());
+  let sourceRevision = source.name;
+  let temporaryIndexDirectory: string | null = null;
+
+  try {
+    if (includedUncommittedChanges) {
+      temporaryIndexDirectory = await fs.mkdtemp(
+        path.join(os.tmpdir(), 'worktreewise-merge-check-'),
+      );
+      const temporaryIndex = path.join(temporaryIndexDirectory, 'index');
+      const temporaryEnvironment = {
+        ...process.env,
+        GIT_INDEX_FILE: temporaryIndex,
+      };
+      await runGit(
+        gitExecutable,
+        source.path,
+        ['read-tree', 'HEAD'],
+        temporaryEnvironment,
+      );
+      await runGit(
+        gitExecutable,
+        source.path,
+        ['add', '-A', '--', '.'],
+        temporaryEnvironment,
+      );
+      const tree = (
+        await runGit(
+          gitExecutable,
+          source.path,
+          ['write-tree'],
+          temporaryEnvironment,
+        )
+      ).trim();
+      const parent = (
+        await runGit(gitExecutable, source.path, ['rev-parse', 'HEAD'])
+      ).trim();
+      sourceRevision = (
+        await runGit(
+          gitExecutable,
+          source.path,
+          [
+            'commit-tree',
+            tree,
+            '-p',
+            parent,
+            '-m',
+            'WorktreeWise merge simulation',
+          ],
+          {
+            ...temporaryEnvironment,
+            GIT_AUTHOR_NAME: 'WorktreeWise',
+            GIT_AUTHOR_EMAIL: 'merge-check@worktreewise.local',
+            GIT_COMMITTER_NAME: 'WorktreeWise',
+            GIT_COMMITTER_EMAIL: 'merge-check@worktreewise.local',
+          },
+        )
+      ).trim();
+    }
+
+    if (sourceRevision === targetBranch || source.name === targetBranch) {
+      return {
+        sourceBranch: source.name,
+        targetBranch,
+        probability: 100 as const,
+        conflictFree: true,
+        includedUncommittedChanges,
+        details: 'Source and target branches are identical.',
+      };
+    }
+
+    const mergeBaseResult = await runGitWithExitCode(gitExecutable, directory, [
+      'merge-base',
+      targetBranch,
+      sourceRevision,
+    ]);
+
+    if (mergeBaseResult.code !== 0 || !mergeBaseResult.stdout.trim()) {
+      return {
+        sourceBranch: source.name,
+        targetBranch,
+        probability: 0 as const,
+        conflictFree: false,
+        includedUncommittedChanges,
+        details: 'No common merge base found between branches.',
+      };
+    }
+
+    const mergeBase = mergeBaseResult.stdout.trim().split(/\r?\n/)[0].trim();
+
+    const result = await runGitWithExitCode(gitExecutable, directory, [
+      'merge-tree',
+      mergeBase,
+      targetBranch,
+      sourceRevision,
+    ]);
+
+    if (result.code !== 0) {
+      const detail = result.stderr || result.stdout;
+      throw new BusinessError(
+        detail || 'Git could not simulate this merge.',
+      );
+    }
+
+    const output = result.stdout || '';
+    const hasConflicts = detectMergeTreeConflicts(output, result.stderr);
+    const conflictFree = !hasConflicts;
+
+    return {
+      sourceBranch: source.name,
+      targetBranch,
+      probability: conflictFree ? (100 as const) : (0 as const),
+      conflictFree,
+      includedUncommittedChanges,
+      details: conflictFree
+        ? 'Git produced a merge tree without conflicts.'
+        : output ||
+          result.stderr ||
+          'Git detected conflicts while producing the merge tree.',
+    };
+  } finally {
+    if (temporaryIndexDirectory) {
+      await fs.rm(temporaryIndexDirectory, { recursive: true, force: true });
+    }
+  }
+}
+
+async function getMergeProbabilityConfig(directory: string) {
+  const gitExecutable = await gitMainService.gitCommand();
+  const worktrees = (await findAll(directory)) as Array<{
+    isPrimary: boolean;
+    name: string;
+    path: string;
+    directoryExists?: boolean;
+    prunable?: boolean;
+  }>;
+
+  const healthyWorktrees = worktrees.filter(
+    (worktree) =>
+      worktree.name &&
+      worktree.name !== 'DETACHED HEAD' &&
+      !worktree.prunable &&
+      worktree.directoryExists !== false,
+  );
+
+  const worktreeBranches = Array.from(
+    new Set(healthyWorktrees.map((worktree) => worktree.name)),
+  );
+
+  const primaryWorktree = healthyWorktrees.find(
+    (worktree) => worktree.isPrimary,
+  );
+  const primaryBranch = primaryWorktree?.name;
+
+  const remoteDefault = (
+    await optionalGit(gitExecutable, directory, [
+      'symbolic-ref',
+      '--quiet',
+      '--short',
+      'refs/remotes/origin/HEAD',
+    ])
+  )
+    .trim()
+    .replace(/^origin\//, '');
+
+  const defaultBranch =
+    (primaryBranch && worktreeBranches.includes(primaryBranch) && primaryBranch) ||
+    (remoteDefault && worktreeBranches.includes(remoteDefault) && remoteDefault) ||
+    worktreeBranches[0];
+
+  if (!defaultBranch) {
+    throw new BusinessError(
+      'No active worktrees are available for merge analysis.',
+    );
+  }
+  return { defaultBranch, branches: worktreeBranches };
+}
+
 async function resolveMergeConflict(
   worktreePath: string,
   filePath: string,
@@ -1758,6 +2043,8 @@ export default {
   abortWorktreeRebase,
   mergePrimaryIntoWorktree,
   mergeWorktreeIntoWorktree,
+  calculateMergeProbability,
+  getMergeProbabilityConfig,
   resolveMergeConflict,
   continueWorktreeMerge,
   abortWorktreeMerge,
