@@ -11,13 +11,33 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import log from 'electron-log';
 import {
+  CloudOutlined,
+  CloudUploadOutlined,
+  DeleteOutlined,
   EditOutlined,
+  GithubOutlined,
+  GitlabOutlined,
+  GlobalOutlined,
+  LaptopOutlined,
   LoadingOutlined,
   MinusOutlined,
   PlusOutlined,
+  TagOutlined,
 } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
 import type { ResetMode } from '../../../shared/gitResetRevert';
+import type { GitTagStatus } from '../../../shared/gitTag';
+
+function getProviderIcon(url = '') {
+  const lower = url.toLowerCase();
+  if (lower.includes('github.com')) {
+    return <GithubOutlined className="tag-provider-icon github" />;
+  }
+  if (lower.includes('gitlab.com')) {
+    return <GitlabOutlined className="tag-provider-icon gitlab" />;
+  }
+  return <CloudOutlined className="tag-provider-icon cloud" />;
+}
 
 const formatDate = new Intl.DateTimeFormat('en-US', {
   year: 'numeric',
@@ -101,6 +121,12 @@ export default function LogUI({
   loadingMore = false,
   onLoadMore,
   onCherryPick,
+  onCreateTag,
+  onPushTag,
+  onDeleteTagLocally,
+  onDeleteTagRemotely,
+  onDeleteTagBoth,
+  tagStatuses,
   selectedWorktree,
   onResetCommit,
   onRevertCommit,
@@ -132,6 +158,12 @@ export default function LogUI({
   loadingMore?: boolean;
   onLoadMore?: () => void;
   onCherryPick?: (commit: ParsedCommit) => void;
+  onCreateTag?: (commit: ParsedCommit) => void;
+  onPushTag?: (tagName: string) => void;
+  onDeleteTagLocally?: (tagName: string) => void;
+  onDeleteTagRemotely?: (tagName: string) => void;
+  onDeleteTagBoth?: (tagName: string) => void;
+  tagStatuses?: Record<string, GitTagStatus>;
   selectedWorktree?: string | null;
   onResetCommit?: (commit: ParsedCommit, mode: ResetMode) => void;
   onRevertCommit?: (commit: ParsedCommit) => void;
@@ -205,67 +237,149 @@ export default function LogUI({
     };
   }, [api, tabRepoPath]);
 
-  const menuItems: MenuProps['items'] = useMemo(() => {
-    const baseItems: MenuProps['items'] = [
-      {
-        label: 'Copy commit sha',
-        key: '1',
-      },
-      {
-        label: 'Create worktree here',
-        key: '2',
-      },
-      {
-        label: 'Cherry-pick',
-        key: 'cherry-pick',
-      },
-    ];
+  const getMenuItems = useCallback(
+    (commit: ParsedCommit): MenuProps['items'] => {
+      const baseItems: MenuProps['items'] = [
+        {
+          label: 'Copy commit sha',
+          key: '1',
+        },
+        {
+          label: 'Create worktree here',
+          key: '2',
+        },
+        {
+          label: 'Create tag at commit',
+          key: 'create-tag',
+        },
+        {
+          label: 'Cherry-pick',
+          key: 'cherry-pick',
+        },
+      ];
 
-    if (selectedWorktree) {
-      baseItems.push(
-        {
-          type: 'divider',
-        },
-        {
-          label: `Merge into ${selectedWorktree}`,
-          key: 'merge-commit',
-        },
-        {
-          label: `Reset ${selectedWorktree} to this commit`,
-          key: 'reset-group',
-          children: [
-            {
-              label: 'Soft - keep all changes',
-              key: 'reset-commit-soft',
-            },
-            {
-              label: 'Mixed - keep working copy but reset index',
-              key: 'reset-commit-mixed',
-            },
-            {
-              label: 'Hard - discard all changes',
-              key: 'reset-commit-hard',
-              danger: true,
-            },
-          ],
-        },
-        {
-          label: 'Revert commit',
-          key: 'revert-commit',
-        },
-      );
-    }
+      if (selectedWorktree) {
+        baseItems.push(
+          {
+            type: 'divider',
+          },
+          {
+            label: `Merge into ${selectedWorktree}`,
+            key: 'merge-commit',
+          },
+          {
+            label: `Reset ${selectedWorktree} to this commit`,
+            key: 'reset-group',
+            children: [
+              {
+                label: 'Soft - keep all changes',
+                key: 'reset-commit-soft',
+              },
+              {
+                label: 'Mixed - keep working copy but reset index',
+                key: 'reset-commit-mixed',
+              },
+              {
+                label: 'Hard - discard all changes',
+                key: 'reset-commit-hard',
+                danger: true,
+              },
+            ],
+          },
+          {
+            label: 'Revert commit',
+            key: 'revert-commit',
+          },
+        );
+      }
 
-    if (bisectMode) {
-      baseItems.push(
-        { type: 'divider' },
-        { label: 'Mark as known good', key: 'bisect-good' },
-        { label: 'Mark as known bad', key: 'bisect-bad', danger: true },
-      );
-    }
+      // Check if commit has tags and offer tag actions in commit context menu
+      const tagRefs = commit.refs
+        ? commit.refs
+            .split(',')
+            .map((r) => r.trim())
+            .filter((r) => r.startsWith('tag:'))
+            .map((r) => r.replace(/^tag:\s*/, '').trim())
+        : [];
 
-    return baseItems;
-  }, [bisectMode, selectedWorktree]);
+      if (tagRefs.length > 0) {
+        baseItems.push({ type: 'divider' });
+        tagRefs.forEach((tagName) => {
+          const tStatus = tagStatuses?.[tagName];
+          const isRemote = Boolean(tStatus?.isRemote);
+          const remotes = tStatus?.remotes || [];
+          baseItems.push({
+            key: `tag-actions-${tagName}`,
+            label: (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                <span>Tag "{tagName}"</span>
+                <span
+                  style={{
+                    fontSize: 10,
+                    padding: '0 4px',
+                    borderRadius: 3,
+                    background: isRemote
+                      ? 'rgba(16, 185, 129, 0.15)'
+                      : 'rgba(234, 179, 8, 0.15)',
+                    color: isRemote ? '#059669' : '#d97706',
+                    fontWeight: 600,
+                  }}
+                >
+                  {isRemote
+                    ? `Pushed (${remotes.join(', ') || 'remote'})`
+                    : 'Local only'}
+                </span>
+              </span>
+            ),
+            icon: <TagOutlined />,
+            children: [
+              {
+                label: isRemote
+                  ? `Push tag "${tagName}" again...`
+                  : `Push tag "${tagName}" to remote...`,
+                key: `push-tag:${tagName}`,
+                icon: <CloudUploadOutlined />,
+              },
+              {
+                type: 'divider',
+              },
+              {
+                label: `Delete tag "${tagName}" locally`,
+                key: `delete-tag-locally:${tagName}`,
+                icon: <DeleteOutlined />,
+                danger: true,
+              },
+              {
+                label: `Delete tag "${tagName}" from remote...`,
+                key: `delete-tag-remotely:${tagName}`,
+                icon: <GlobalOutlined />,
+                danger: true,
+                disabled: !isRemote,
+              },
+              {
+                label: `Delete tag "${tagName}" from both...`,
+                key: `delete-tag-both:${tagName}`,
+                icon: <DeleteOutlined />,
+                danger: true,
+                disabled: !isRemote,
+              },
+            ],
+          });
+        });
+      }
+
+      if (bisectMode) {
+        baseItems.push(
+          { type: 'divider' },
+          { label: 'Mark as known good', key: 'bisect-good' },
+          { label: 'Mark as known bad', key: 'bisect-bad', danger: true },
+        );
+      }
+
+      return baseItems;
+    },
+    [bisectMode, selectedWorktree, tagStatuses],
+  );
 
   const onClick = (commit: ParsedCommit) => {
     return (event: any) => {
@@ -297,6 +411,9 @@ export default function LogUI({
       if (event.key === 'cherry-pick') {
         onCherryPick?.(commit);
       }
+      if (event.key === 'create-tag') {
+        onCreateTag?.(commit);
+      }
       if (event.key === 'merge-commit') {
         onMergeCommit?.(commit);
       }
@@ -308,6 +425,22 @@ export default function LogUI({
       }
       if (event.key === 'reset-commit-hard') {
         onResetCommit?.(commit, 'hard');
+      }
+      if (event.key.startsWith('push-tag:')) {
+        const tName = event.key.replace('push-tag:', '');
+        onPushTag?.(tName);
+      }
+      if (event.key.startsWith('delete-tag-locally:')) {
+        const tName = event.key.replace('delete-tag-locally:', '');
+        onDeleteTagLocally?.(tName);
+      }
+      if (event.key.startsWith('delete-tag-remotely:')) {
+        const tName = event.key.replace('delete-tag-remotely:', '');
+        onDeleteTagRemotely?.(tName);
+      }
+      if (event.key.startsWith('delete-tag-both:')) {
+        const tName = event.key.replace('delete-tag-both:', '');
+        onDeleteTagBoth?.(tName);
       }
       if (event.key === 'revert-commit') {
         onRevertCommit?.(commit);
@@ -391,6 +524,162 @@ export default function LogUI({
         displayRef = 'stash@{0}';
       } else if (ref.startsWith('refs/stash')) {
         displayRef = ref.replace(/^refs\/stash/, 'stash');
+      }
+
+      if (refType === 'tag') {
+        const cleanTagName = ref.replace(/^tag:\s*/, '').trim();
+        const tagStatus = tagStatuses?.[cleanTagName];
+        const isLocal = tagStatus ? tagStatus.isLocal : true;
+        const isRemote = Boolean(tagStatus?.isRemote);
+        const remotes = tagStatus?.remotes || [];
+        const remoteUrl = tagStatus?.remoteUrl || '';
+
+        const statusTooltipText = isRemote
+          ? `Local & Remote (pushed to ${remotes.join(', ') || 'remote'})`
+          : 'Local only (not pushed to remote)';
+
+        const tagMenuItems: MenuProps['items'] = [
+          {
+            key: 'tag-info',
+            label: (
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 2,
+                  padding: '2px 0',
+                }}
+              >
+                <span
+                  style={{
+                    fontWeight: 600,
+                    color: 'var(--ant-color-text, #1f2937)',
+                  }}
+                >
+                  Tag "{cleanTagName}"
+                </span>
+                <span
+                  style={{
+                    fontSize: 11,
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    color: isRemote ? '#059669' : '#d97706',
+                    fontWeight: 500,
+                  }}
+                >
+                  {isRemote ? (
+                    <>
+                      <CloudOutlined style={{ fontSize: 12 }} /> Pushed to{' '}
+                      {remotes.join(', ') || 'remote'}
+                    </>
+                  ) : (
+                    <>
+                      <LaptopOutlined style={{ fontSize: 12 }} /> Local only
+                      (not pushed)
+                    </>
+                  )}
+                </span>
+              </div>
+            ),
+            disabled: true,
+          },
+          {
+            type: 'divider',
+          },
+          {
+            key: 'push-tag',
+            label: isRemote
+              ? `Push tag "${cleanTagName}" again...`
+              : `Push tag "${cleanTagName}" to remote...`,
+            icon: <CloudUploadOutlined />,
+          },
+          {
+            type: 'divider',
+          },
+          {
+            key: 'delete-tag-locally',
+            label: `Delete tag "${cleanTagName}" locally`,
+            icon: <DeleteOutlined />,
+            danger: true,
+          },
+          {
+            key: 'delete-tag-remotely',
+            label: `Delete tag "${cleanTagName}" from remote...`,
+            icon: <GlobalOutlined />,
+            danger: true,
+            disabled: !isRemote,
+          },
+          {
+            key: 'delete-tag-both',
+            label: `Delete tag "${cleanTagName}" from both...`,
+            icon: <DeleteOutlined />,
+            danger: true,
+            disabled: !isRemote,
+          },
+        ];
+
+        return (
+          <Tooltip
+            key={ref}
+            title={`Tag: ${cleanTagName} • ${statusTooltipText} (Click or right-click for actions)`}
+            mouseEnterDelay={0.2}
+            mouseLeaveDelay={0}
+          >
+            <span
+              style={{ display: 'inline-flex', maxWidth: '170px' }}
+              onClick={(e) => e.stopPropagation()}
+              onContextMenu={(e) => e.stopPropagation()}
+            >
+              <Dropdown
+                menu={{
+                  items: tagMenuItems,
+                  onClick: ({ key, domEvent }) => {
+                    domEvent.stopPropagation();
+                    if (key === 'push-tag') onPushTag?.(cleanTagName);
+                    if (key === 'delete-tag-locally')
+                      onDeleteTagLocally?.(cleanTagName);
+                    if (key === 'delete-tag-remotely')
+                      onDeleteTagRemotely?.(cleanTagName);
+                    if (key === 'delete-tag-both')
+                      onDeleteTagBoth?.(cleanTagName);
+                  },
+                }}
+                trigger={['click', 'contextMenu']}
+              >
+                <Tag
+                  bordered={false}
+                  className={`commit-ref-chip ${refType} ${isRemote ? 'pushed' : 'local-only'}`}
+                  style={{ cursor: 'pointer' }}
+                  data-testid={`tag-chip-${cleanTagName}`}
+                >
+                  <span className="commit-ref-chip-content">
+                    <TagOutlined className="commit-ref-chip-icon" />
+                    <span className="commit-ref-chip-label">{cleanTagName}</span>
+                    <span className="commit-ref-chip-indicators">
+                      {isLocal && (
+                        <span
+                          className="ref-status-badge local"
+                          aria-label="Local tag"
+                        >
+                          <LaptopOutlined />
+                        </span>
+                      )}
+                      {isRemote && (
+                        <span
+                          className="ref-status-badge remote"
+                          aria-label={`Pushed to ${remotes.join(', ') || 'remote'}`}
+                        >
+                          {getProviderIcon(remoteUrl)}
+                        </span>
+                      )}
+                    </span>
+                  </span>
+                </Tag>
+              </Dropdown>
+            </span>
+          </Tooltip>
+        );
       }
 
       return (
@@ -939,7 +1228,7 @@ export default function LogUI({
         return (
           <Dropdown
             key={item.hash || idx}
-            menu={{ items: menuItems, onClick: onClick(item) }}
+            menu={{ items: getMenuItems(item), onClick: onClick(item) }}
             trigger={['contextMenu']}
             overlayClassName="commit-dropdown"
             placement="bottom"

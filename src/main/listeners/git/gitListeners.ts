@@ -34,6 +34,12 @@ import type {
   GitBisectResult,
   GitBisectState,
 } from '../../../shared/gitBisect';
+import type {
+  CreateGitTagResult,
+  DeleteGitTagResult,
+  GitTagStatus,
+  PushGitTagResult,
+} from '../../../shared/gitTag';
 
 const bisectFailure = async (
   directory: string,
@@ -60,6 +66,72 @@ const bisectFailure = async (
     state,
   };
 };
+
+ipcMain.handle(
+  'create-tag-at-commit',
+  async (
+    _event,
+    directory: string,
+    commit: string,
+    tagName: string,
+    message?: string,
+  ): Promise<CreateGitTagResult> =>
+    gitMainService.createTag(directory, commit, tagName, message),
+);
+
+ipcMain.handle(
+  'delete-tag-locally',
+  async (
+    _event,
+    directory: string,
+    tagName: string,
+  ): Promise<DeleteGitTagResult> =>
+    gitMainService.deleteTagLocally(directory, tagName),
+);
+
+ipcMain.handle(
+  'delete-tag-remotely',
+  async (
+    _event,
+    directory: string,
+    tagName: string,
+    remote: string,
+  ): Promise<DeleteGitTagResult> =>
+    gitMainService.deleteTagRemotely(directory, tagName, remote),
+);
+
+ipcMain.handle(
+  'push-tag',
+  async (
+    _event,
+    directory: string,
+    tagName: string,
+    remote: string,
+    force?: boolean,
+  ): Promise<PushGitTagResult> =>
+    gitMainService.pushTag(directory, tagName, remote, force),
+);
+
+ipcMain.handle(
+  'delete-tag-both',
+  async (
+    _event,
+    directory: string,
+    tagName: string,
+    remote?: string,
+  ): Promise<DeleteGitTagResult> =>
+    gitMainService.deleteTagBoth(directory, tagName, remote),
+);
+
+ipcMain.handle(
+  'get-tag-statuses',
+  async (
+    _event,
+    directory: string,
+    forceRemoteRefresh?: boolean,
+  ): Promise<GitTagStatus[]> =>
+    gitMainService.getTagStatuses(directory, forceRemoteRefresh),
+);
 
 ipcMain.handle('git-bisect-status', async (_event, directory: string) =>
   gitMainService.getBisectState(directory),

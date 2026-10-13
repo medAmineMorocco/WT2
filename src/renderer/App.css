@@ -2473,6 +2473,215 @@ html[data-color-scheme='dark'] .commit-msg {
   color: #7e22ce;
   background: #f3e8ff;
   border: 1px solid #d8b4fe;
+  transition: all 0.15s ease-in-out;
+  max-width: 175px;
+}
+
+.commit-ref-chip.tag:hover {
+  background: #ede9fe;
+  border-color: #c084fc;
+  box-shadow: 0 1px 3px rgba(126, 34, 206, 0.15);
+}
+
+.commit-ref-chip-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+.commit-ref-chip-icon {
+  font-size: 10px;
+  opacity: 0.85;
+  flex-shrink: 0;
+}
+
+.commit-ref-chip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+
+.commit-ref-chip-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 2px;
+  flex-shrink: 0;
+}
+
+.ref-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  font-size: 9px;
+  line-height: 1;
+  box-sizing: border-box;
+  transition: transform 0.12s ease;
+}
+
+.ref-status-badge:hover {
+  transform: scale(1.15);
+}
+
+.ref-status-badge.local {
+  background: rgba(245, 158, 11, 0.16);
+  color: #b45309;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+html[data-color-scheme='dark'] .ref-status-badge.local {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.5);
+}
+
+.ref-status-badge.remote {
+  background: rgba(16, 185, 129, 0.16);
+  color: #047857;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+html[data-color-scheme='dark'] .ref-status-badge.remote {
+  background: rgba(16, 185, 129, 0.22);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.5);
+}
+
+.git-log-tags-popover {
+  width: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.git-log-tags-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 2px;
+}
+
+.git-log-tags-count-badge {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--ant-color-fill-secondary, rgba(0, 0, 0, 0.06));
+  color: var(--ant-color-text-secondary, #64748b);
+  font-weight: 600;
+}
+
+html[data-color-scheme='dark'] .git-log-tags-count-badge {
+  background: rgba(255, 255, 255, 0.1);
+  color: #94a3b8;
+}
+
+.git-log-tags-search-input {
+  border-radius: 6px;
+}
+
+.git-log-tags-list {
+  max-height: 280px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  padding-right: 2px;
+}
+
+.git-log-tags-empty {
+  padding: 24px 12px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+}
+
+.git-log-tag-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+  user-select: none;
+}
+
+.git-log-tag-item:hover {
+  background: var(--ant-color-fill-tertiary, rgba(0, 0, 0, 0.04));
+}
+
+html[data-color-scheme='dark'] .git-log-tag-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.git-log-tag-item.selected {
+  background: var(--ant-color-primary-bg, #eff6ff);
+}
+
+html[data-color-scheme='dark'] .git-log-tag-item.selected {
+  background: rgba(14, 165, 233, 0.15);
+}
+
+.git-log-tag-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.git-log-tag-item-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.git-log-tag-item-name {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--ant-color-text, #1e293b);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+html[data-color-scheme='dark'] .git-log-tag-item-name {
+  color: #f1f5f9;
+}
+
+.git-log-tag-item-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+
+.git-log-tag-item-commit {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10px;
+  color: var(--ant-color-text-tertiary, #94a3b8);
+}
+
+.git-log-tag-item-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+  opacity: 0.75;
+  transition: opacity 0.15s ease;
+}
+
+.git-log-tag-item:hover .git-log-tag-item-actions {
+  opacity: 1;
 }
 
 .commit-ref-chip.remaining {
@@ -2665,6 +2874,13 @@ html[data-color-scheme='dark'] .commit-ref-chip.tag {
   color: #d8b4fe;
   background: rgba(147, 51, 234, 0.25);
   border: 1px solid rgba(192, 132, 252, 0.5);
+  transition: all 0.15s ease-in-out;
+}
+
+html[data-color-scheme='dark'] .commit-ref-chip.tag:hover {
+  background: rgba(147, 51, 234, 0.4);
+  border-color: rgba(192, 132, 252, 0.75);
+  box-shadow: 0 1px 4px rgba(192, 132, 252, 0.25);
 }
 
 html[data-color-scheme='dark'] .commit-ref-chip.remaining {
@@ -3424,6 +3640,22 @@ html[data-color-scheme='dark'] .git-log-file-diff-header {
 
 .commit-dropdown {
   min-width: 0 !important;
+}
+
+.create-tag-commit-summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+  padding: 10px 12px;
+  border: 1px solid var(--ant-color-border-secondary, #f0f0f0);
+  border-radius: 9px;
+  background: var(--ant-color-fill-quaternary, #fafafa);
+}
+
+.create-tag-commit-summary > .ant-typography:last-child {
+  min-width: 0;
 }
 
 .naming-pattern-space {

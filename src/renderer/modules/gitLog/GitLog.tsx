@@ -9,6 +9,8 @@ import {
   Button,
   Input,
   Typography,
+  Dropdown,
+  Segmented,
 } from 'antd';
 import type { InputRef } from 'antd';
 import React, {
@@ -36,6 +38,14 @@ import {
   ExperimentOutlined,
   LoadingOutlined,
   FilterOutlined,
+  ExclamationCircleOutlined,
+  TagOutlined,
+  LaptopOutlined,
+  CloudOutlined,
+  GithubOutlined,
+  GitlabOutlined,
+  DeleteOutlined,
+  GlobalOutlined,
 } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
@@ -51,6 +61,12 @@ import type {
 import type { CherryPickResult } from '../../../shared/cherryPick';
 import type { WorktreeMergeResult } from '../../../shared/worktreeMerge';
 import type { GitBisectState } from '../../../shared/gitBisect';
+import type {
+  CreateGitTagResult,
+  DeleteGitTagResult,
+  GitTagStatus,
+  PushGitTagResult,
+} from '../../../shared/gitTag';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
 import { useItemsContext } from '../../TabsContext';
 
@@ -63,6 +79,9 @@ const CherryPickCommit = lazy(() => import('./CherryPickCommit'));
 const ResetCommitModal = lazy(() => import('./ResetCommitModal'));
 const RevertCommitModal = lazy(() => import('./RevertCommitModal'));
 const MergeCommitModal = lazy(() => import('./MergeCommitModal'));
+const CreateTagModal = lazy(() => import('./CreateTagModal'));
+const PushTagModal = lazy(() => import('./PushTagModal'));
+const DeleteRemoteTagModal = lazy(() => import('./DeleteRemoteTagModal'));
 const GitBisectPanel = lazy(() => import('./GitBisectPanel'));
 
 const LIMIT = 40;
@@ -143,7 +162,7 @@ const GitLogActionButton = React.forwardRef<
 GitLogActionButton.displayName = 'GitLogActionButton';
 
 export default function GitLog({ isModal }: { isModal: boolean }) {
-  const { notification } = AntdApp.useApp();
+  const { notification, modal } = AntdApp.useApp();
   const activeTab = useMemo(() => TabService.getActiveTab(), []);
 
   const tabRepoPath = useMemo(() => {
@@ -180,6 +199,18 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     useState<ParsedCommit | null>(null);
   const [mergeCommitTarget, setMergeCommitTarget] =
     useState<ParsedCommit | null>(null);
+  const [tagTargetCommit, setTagTargetCommit] = useState<ParsedCommit | null>(
+    null,
+  );
+  const [pushTargetTag, setPushTargetTag] = useState<string | null>(null);
+  const [deleteRemoteTargetTag, setDeleteRemoteTargetTag] = useState<string | null>(
+    null,
+  );
+  const [tagStatuses, setTagStatuses] = useState<Record<string, GitTagStatus>>({});
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
+  const [tagFilterQuery, setTagFilterQuery] = useState('');
+  const [tagFilterMode, setTagFilterMode] = useState<'all' | 'local' | 'pushed'>('all');
   const [bisectMode, setBisectMode] = useState(false);
   const [bisectGoodCommit, setBisectGoodCommit] = useState<string | null>(null);
   const [bisectBadCommit, setBisectBadCommit] = useState<string | null>(null);
@@ -660,7 +691,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     }
   };
 
-  const reloadGitLog = (showSpinner = true) => {
+  const reloadGitLog = useCallback((showSpinner = true) => {
     if (showSpinner) setLoading(true);
     loadingRef.current = true;
     skipRef.current = 0;
@@ -673,7 +704,123 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
       selectedAuthor,
       0,
     );
-  };
+  }, [tabRepoPath, selectedWorktree, selectedAuthor]);
+
+  const loadTagStatuses = useCallback(
+    async (forceRemoteRefresh = false) => {
+      if (!tabRepoPath) return;
+      setTagsLoading(true);
+      try {
+        const list = (await window.electron.ipcRenderer.invoke(
+          'get-tag-statuses',
+          tabRepoPath,
+          forceRemoteRefresh,
+        )) as GitTagStatus[];
+        const map: Record<string, GitTagStatus> = {};
+        for (const item of list || []) {
+          map[item.name] = item;
+        }
+        setTagStatuses(map);
+      } catch (err: any) {
+        console.error('Failed to load tag statuses:', err);
+      } finally {
+        setTagsLoading(false);
+      }
+    },
+    [tabRepoPath],
+  );
+
+  useEffect(() => {
+    loadTagStatuses();
+  }, [loadTagStatuses]);
+
+  const handleDeleteTagLocally = useCallback(
+    (tagName: string) => {
+      modal.confirm({
+        title: `Delete tag "${tagName}" locally?`,
+        icon: <ExclamationCircleOutlined />,
+        content: `Are you sure you want to delete tag "${tagName}" from your local repository? This action cannot be undone.`,
+        okText: 'Delete Locally',
+        okButtonProps: { danger: true },
+        cancelText: 'Cancel',
+        onOk: async () => {
+          try {
+            const result = (await window.electron.ipcRenderer.invoke(
+              'delete-tag-locally',
+              tabRepoPath,
+              tagName,
+            )) as DeleteGitTagResult;
+            if (result.ok) {
+              notification.success({
+                message: 'Tag deleted locally',
+                description: `Tag "${tagName}" was removed.`,
+                placement: 'bottomLeft',
+              });
+              reloadGitLog(false);
+              loadTagStatuses();
+            } else {
+              notification.error({
+                message: 'Failed to delete tag',
+                description: result.error,
+                placement: 'bottomLeft',
+              });
+            }
+          } catch (err: any) {
+            notification.error({
+              message: 'Failed to delete tag',
+              description: cleanErrorMessage(err),
+              placement: 'bottomLeft',
+            });
+          }
+        },
+      });
+    },
+    [modal, notification, tabRepoPath, reloadGitLog, loadTagStatuses],
+  );
+
+  const handleDeleteTagBoth = useCallback(
+    (tagName: string) => {
+      modal.confirm({
+        title: `Delete tag "${tagName}" from both local and remote?`,
+        icon: <ExclamationCircleOutlined />,
+        content: `Are you sure you want to delete tag "${tagName}" from both your local repository and remote? This action cannot be undone.`,
+        okText: 'Delete from Both',
+        okButtonProps: { danger: true },
+        cancelText: 'Cancel',
+        onOk: async () => {
+          try {
+            const result = (await window.electron.ipcRenderer.invoke(
+              'delete-tag-both',
+              tabRepoPath,
+              tagName,
+            )) as DeleteGitTagResult;
+            if (result.ok) {
+              notification.success({
+                message: 'Tag deleted',
+                description: `Tag "${tagName}" was removed locally and from remote.`,
+                placement: 'bottomLeft',
+              });
+              reloadGitLog(false);
+              loadTagStatuses(true);
+            } else {
+              notification.error({
+                message: 'Failed to delete tag',
+                description: result.error,
+                placement: 'bottomLeft',
+              });
+            }
+          } catch (err: any) {
+            notification.error({
+              message: 'Failed to delete tag',
+              description: cleanErrorMessage(err),
+              placement: 'bottomLeft',
+            });
+          }
+        },
+      });
+    },
+    [modal, notification, tabRepoPath, reloadGitLog, loadTagStatuses],
+  );
 
   const handleLoadMore = useCallback(() => {
     if (loadingRef.current || loadingMoreRef.current || !hasMoreRef.current) {
@@ -846,6 +993,211 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     </Popover>
   );
 
+  const tagList = useMemo(
+    () =>
+      Object.values(tagStatuses).sort((a, b) =>
+        b.name.localeCompare(a.name, undefined, {
+          numeric: true,
+          sensitivity: 'base',
+        }),
+      ),
+    [tagStatuses],
+  );
+  const localTagsCount = useMemo(
+    () => tagList.filter((t) => t.isLocal && !t.isRemote).length,
+    [tagList],
+  );
+  const remoteTagsCount = useMemo(
+    () => tagList.filter((t) => t.isRemote).length,
+    [tagList],
+  );
+
+  const filteredTagList = useMemo(() => {
+    return tagList.filter((tag) => {
+      if (
+        tagFilterQuery.trim() &&
+        !tag.name.toLowerCase().includes(tagFilterQuery.trim().toLowerCase()) &&
+        !tag.commit.toLowerCase().includes(tagFilterQuery.trim().toLowerCase())
+      ) {
+        return false;
+      }
+      if (tagFilterMode === 'local') return tag.isLocal && !tag.isRemote;
+      if (tagFilterMode === 'pushed') return tag.isRemote;
+      return true;
+    });
+  }, [tagList, tagFilterQuery, tagFilterMode]);
+
+  const tagsPopoverContent = (
+    <div className="git-log-tags-popover">
+      <div className="git-log-tags-popover-header">
+        <Space size={6} align="center">
+          <TagOutlined style={{ fontSize: 13 }} />
+          <Typography.Text strong>Repository Tags</Typography.Text>
+          <span className="git-log-tags-count-badge">{tagList.length}</span>
+        </Space>
+        <Button
+          type="text"
+          size="small"
+          icon={<ReloadOutlined spin={tagsLoading} />}
+          disabled={tagsLoading}
+          onClick={() => loadTagStatuses(true)}
+          title="Refresh remote tags"
+        />
+      </div>
+      <Input
+        size="small"
+        placeholder="Filter tags by name or hash..."
+        prefix={<SearchOutlined />}
+        value={tagFilterQuery}
+        onChange={(e) => setTagFilterQuery(e.target.value)}
+        allowClear
+        className="git-log-tags-search-input"
+      />
+      <Segmented
+        size="small"
+        block
+        options={[
+          { label: `All (${tagList.length})`, value: 'all' },
+          { label: `Local (${localTagsCount})`, value: 'local' },
+          { label: `Pushed (${remoteTagsCount})`, value: 'pushed' },
+        ]}
+        value={tagFilterMode}
+        onChange={(val) => setTagFilterMode(val as any)}
+      />
+      <div className="git-log-tags-list">
+        {filteredTagList.length === 0 ? (
+          <div className="git-log-tags-empty">
+            {tagList.length === 0
+              ? 'No tags in repository'
+              : 'No matching tags'}
+          </div>
+        ) : (
+          filteredTagList.map((tag) => (
+            <div
+              key={tag.name}
+              className={`git-log-tag-item ${selectedCommit === tag.commit ? 'selected' : ''}`}
+              onClick={() => {
+                if (tag.commit) {
+                  setSelectedCommit(tag.commit);
+                  setWorkingTreeSelected(false);
+                  setSelectedWorkingTreeFile(null);
+                  setSelectedCommitFile(null);
+                  setTagsPopoverOpen(false);
+                }
+              }}
+            >
+              <div className="git-log-tag-item-info">
+                <div className="git-log-tag-item-name-row">
+                  <span className="git-log-tag-item-name" title={tag.name}>
+                    {tag.name}
+                  </span>
+                  <span className="git-log-tag-item-badges">
+                    {tag.isLocal && (
+                      <span className="ref-status-badge local" title="Local">
+                        <LaptopOutlined />
+                      </span>
+                    )}
+                    {tag.isRemote && (
+                      <span
+                        className="ref-status-badge remote"
+                        title={`Pushed to ${tag.remotes.join(', ') || 'remote'}`}
+                      >
+                        {tag.remoteUrl?.toLowerCase().includes('github.com') ? (
+                          <GithubOutlined />
+                        ) : tag.remoteUrl?.toLowerCase().includes('gitlab.com') ? (
+                          <GitlabOutlined />
+                        ) : (
+                          <CloudOutlined />
+                        )}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {tag.commit && (
+                  <span className="git-log-tag-item-commit">
+                    {tag.commit.slice(0, 8)}
+                  </span>
+                )}
+              </div>
+              <div
+                className="git-log-tag-item-actions"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {!tag.isRemote && (
+                  <Button
+                    type="text"
+                    size="small"
+                    icon={<CloudUploadOutlined />}
+                    title={`Push "${tag.name}" to remote`}
+                    onClick={() => {
+                      setPushTargetTag(tag.name);
+                      setTagsPopoverOpen(false);
+                    }}
+                  />
+                )}
+                <Dropdown
+                  menu={{
+                    items: [
+                      {
+                        key: 'push',
+                        label: tag.isRemote
+                          ? `Push tag "${tag.name}" again...`
+                          : `Push tag "${tag.name}" to remote...`,
+                        icon: <CloudUploadOutlined />,
+                        onClick: () => {
+                          setPushTargetTag(tag.name);
+                          setTagsPopoverOpen(false);
+                        },
+                      },
+                      { type: 'divider' },
+                      {
+                        key: 'del-local',
+                        label: 'Delete locally',
+                        icon: <DeleteOutlined />,
+                        danger: true,
+                        onClick: () => {
+                          handleDeleteTagLocally(tag.name);
+                          setTagsPopoverOpen(false);
+                        },
+                      },
+                      ...(tag.isRemote
+                        ? [
+                            {
+                              key: 'del-remote',
+                              label: 'Delete from remote...',
+                              icon: <GlobalOutlined />,
+                              danger: true,
+                              onClick: () => {
+                                setDeleteRemoteTargetTag(tag.name);
+                                setTagsPopoverOpen(false);
+                              },
+                            },
+                            {
+                              key: 'del-both',
+                              label: 'Delete from both...',
+                              icon: <DeleteOutlined />,
+                              danger: true,
+                              onClick: () => {
+                                handleDeleteTagBoth(tag.name);
+                                setTagsPopoverOpen(false);
+                              },
+                            },
+                          ]
+                        : []),
+                    ],
+                  }}
+                  trigger={['click']}
+                >
+                  <Button type="text" size="small" icon={<SettingOutlined />} />
+                </Dropdown>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <>
       <Space className="center-huge-icon">
@@ -927,6 +1279,20 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 />
               </div>
               <div className="git-log-action-group">
+                <Popover
+                  content={tagsPopoverContent}
+                  trigger="click"
+                  placement="bottomRight"
+                  open={tagsPopoverOpen}
+                  onOpenChange={setTagsPopoverOpen}
+                >
+                  <GitLogActionButton
+                    label={`Tags (${tagList.length})`}
+                    icon={<TagOutlined />}
+                    tooltip="View and manage repository tags (local / pushed)"
+                    active={tagsPopoverOpen}
+                  />
+                </Popover>
                 <GitLogActionButton
                   label="Diff"
                   icon={<DiffOutlined />}
@@ -937,7 +1303,10 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                   label="Refresh"
                   icon={<ReloadOutlined spin={loading} />}
                   disabled={loading}
-                  onClick={() => reloadGitLog()}
+                  onClick={() => {
+                    reloadGitLog();
+                    loadTagStatuses(true);
+                  }}
                   tooltip="Reload Git Log"
                   ariaLabel="Reload Git Log"
                 />
@@ -1037,6 +1406,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                       setSelectedCommitFile(null);
                     }}
                     onCherryPick={setCherryPickSource}
+                    onCreateTag={setTagTargetCommit}
+                    onPushTag={setPushTargetTag}
+                    onDeleteTagLocally={handleDeleteTagLocally}
+                    onDeleteTagRemotely={setDeleteRemoteTargetTag}
+                    onDeleteTagBoth={handleDeleteTagBoth}
+                    tagStatuses={tagStatuses}
                     selectedWorktree={selectedWorktree}
                     onResetCommit={handleOpenReset}
                     onRevertCommit={setRevertTargetCommit}
@@ -1188,6 +1563,61 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         </Suspense>
       )}
       <Suspense fallback={null}>
+        <CreateTagModal
+          commit={tagTargetCommit}
+          repositoryPath={tabRepoPath}
+          onClose={() => setTagTargetCommit(null)}
+          onCompleted={(
+            result: Extract<CreateGitTagResult, { ok: true }>,
+          ) => {
+            setTagTargetCommit(null);
+            notification.success({
+              message: 'Tag created',
+              description: `${result.tagName} now points to ${result.commit.slice(0, 8)}.`,
+              placement: 'bottomLeft',
+            });
+            reloadGitLog(false);
+            loadTagStatuses();
+          }}
+        />
+        <PushTagModal
+          tagName={pushTargetTag}
+          repositoryPath={tabRepoPath}
+          onClose={() => setPushTargetTag(null)}
+          onCompleted={(
+            result: Extract<PushGitTagResult, { ok: true }>,
+          ) => {
+            setPushTargetTag(null);
+            notification.success({
+              message: 'Tag pushed',
+              description: `Tag "${result.tagName}" was pushed to ${result.remote}.`,
+              placement: 'bottomLeft',
+            });
+            reloadGitLog(false);
+            loadTagStatuses(true);
+          }}
+        />
+        <DeleteRemoteTagModal
+          tagName={deleteRemoteTargetTag}
+          repositoryPath={tabRepoPath}
+          onClose={() => setDeleteRemoteTargetTag(null)}
+          onCompleted={(
+            result: Extract<DeleteGitTagResult, { ok: true }>,
+            alsoDeletedLocally: boolean,
+          ) => {
+            setDeleteRemoteTargetTag(null);
+            const desc = alsoDeletedLocally
+              ? `Tag "${result.tagName}" was deleted from ${result.remote} and deleted locally.`
+              : `Tag "${result.tagName}" was deleted from ${result.remote}.`;
+            notification.success({
+              message: 'Tag deleted remotely',
+              description: desc,
+              placement: 'bottomLeft',
+            });
+            reloadGitLog(false);
+            loadTagStatuses(true);
+          }}
+        />
         <CherryPickCommit
           commit={cherryPickSource}
           worktrees={worktrees}

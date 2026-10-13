@@ -33,6 +33,12 @@ import {
   GitBisectResult,
   GitBisectState,
 } from '../../../shared/gitBisect';
+import type {
+  CreateGitTagResult,
+  DeleteGitTagResult,
+  GitTagStatus,
+  PushGitTagResult,
+} from '../../../shared/gitTag';
 
 const zlib = require('zlib');
 
@@ -386,6 +392,369 @@ async function runGit(
       }
     });
   });
+}
+
+async function createTag(
+  directory: string,
+  commit: string,
+  requestedTagName: string,
+  requestedMessage?: string,
+): Promise<CreateGitTagResult> {
+  const tagName = requestedTagName?.trim();
+  const message = requestedMessage?.trim();
+  if (!tagName) return { ok: false, error: 'Enter a tag name.' };
+  if (!commit?.trim()) return { ok: false, error: 'Select a commit.' };
+
+  try {
+    await runGit(directory, [
+      'check-ref-format',
+      '--allow-onelevel',
+      `refs/tags/${tagName}`,
+    ]);
+  } catch {
+    return {
+      ok: false,
+      error:
+        'Enter a valid Git tag name without spaces, consecutive dots, or invalid ref characters.',
+    };
+  }
+
+  try {
+    await runGit(directory, ['rev-parse', '--verify', `${commit}^{commit}`]);
+    const existing = (await runGit(directory, ['tag', '--list', tagName]))
+      .toString()
+      .trim();
+    if (existing === tagName) {
+      return { ok: false, error: `Tag “${tagName}” already exists.` };
+    }
+
+    const args = message
+      ? ['tag', '-a', tagName, '-m', message, commit]
+      : ['tag', tagName, commit];
+    await runGit(directory, args);
+    logCache.delete(directory);
+    return {
+      ok: true,
+      tagName,
+      commit,
+      annotated: Boolean(message),
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error: error?.message || 'The tag could not be created.',
+    };
+  }
+}
+
+async function deleteTagLocally(
+  directory: string,
+  requestedTagName: string,
+): Promise<DeleteGitTagResult> {
+  const tagName = requestedTagName?.trim();
+  if (!directory) return { ok: false, error: 'No repository directory specified.' };
+  if (!tagName) return { ok: false, error: 'Enter a tag name.' };
+
+  try {
+    await runGit(directory, [
+      'check-ref-format',
+      '--allow-onelevel',
+      `refs/tags/${tagName}`,
+    ]);
+  } catch {
+    return {
+      ok: false,
+      error: 'Invalid tag name.',
+    };
+  }
+
+  try {
+    await runGit(directory, ['tag', '-d', tagName]);
+    logCache.delete(directory);
+    return {
+      ok: true,
+      tagName,
+      target: 'local',
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error: error?.message || `Failed to delete local tag "${tagName}".`,
+    };
+  }
+}
+
+async function deleteTagRemotely(
+  directory: string,
+  requestedTagName: string,
+  requestedRemote?: string,
+): Promise<DeleteGitTagResult> {
+  const tagName = requestedTagName?.trim();
+  const remote = requestedRemote?.trim() || 'origin';
+  if (!directory) return { ok: false, error: 'No repository directory specified.' };
+  if (!tagName) return { ok: false, error: 'Enter a tag name.' };
+  if (!remote) return { ok: false, error: 'Enter a remote name.' };
+
+  try {
+    await runGit(directory, [
+      'check-ref-format',
+      '--allow-onelevel',
+      `refs/tags/${tagName}`,
+    ]);
+  } catch {
+    return {
+      ok: false,
+      error: 'Invalid tag name.',
+    };
+  }
+
+  try {
+    await runGit(directory, ['push', remote, '--delete', tagName]);
+    logCache.delete(directory);
+    const cacheKey = `${directory}::${remote}`;
+    const cached = remoteTagsCache.get(cacheKey);
+    if (cached) {
+      cached.tags.delete(tagName);
+    }
+    return {
+      ok: true,
+      tagName,
+      target: 'remote',
+      remote,
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error:
+        error?.message ||
+        `Failed to delete tag "${tagName}" from remote "${remote}".`,
+    };
+  }
+}
+
+async function deleteTagBoth(
+  directory: string,
+  requestedTagName: string,
+  requestedRemote?: string,
+): Promise<DeleteGitTagResult> {
+  const tagName = requestedTagName?.trim();
+  const remote = requestedRemote?.trim() || 'origin';
+  if (!directory) return { ok: false, error: 'No repository directory specified.' };
+  if (!tagName) return { ok: false, error: 'Enter a tag name.' };
+
+  const remoteRes = await deleteTagRemotely(directory, tagName, remote);
+  const localRes = await deleteTagLocally(directory, tagName);
+
+  if (!remoteRes.ok && !localRes.ok) {
+    return {
+      ok: false,
+      error: `Failed to delete tag "${tagName}": ${remoteRes.error || localRes.error}`,
+    };
+  }
+
+  return {
+    ok: true,
+    tagName,
+    target: 'both',
+    remote,
+  };
+}
+
+const remoteTagsCache = new Map<
+  string,
+  { tags: Map<string, string>; lastFetched: number }
+>();
+
+async function getTagStatuses(
+  directory: string,
+  forceRemoteRefresh = false,
+): Promise<GitTagStatus[]> {
+  if (!directory) return [];
+
+  // 1. Get all local tags with direct or dereferenced commit SHA
+  const localTagsMap = new Map<string, string>();
+  try {
+    const rawLocal = await runGit(directory, [
+      'for-each-ref',
+      '--format=%(refname:strip=2)|%(objectname)|%(*objectname)',
+      'refs/tags',
+    ]);
+    const lines = rawLocal
+      .toString('utf8')
+      .split('\n')
+      .map((l) => l.trim())
+      .filter(Boolean);
+    for (const line of lines) {
+      const parts = line.split('|');
+      const tagName = parts[0]?.trim();
+      const directHash = parts[1]?.trim() || '';
+      const dereferencedHash = parts[2]?.trim() || '';
+      if (tagName) {
+        localTagsMap.set(tagName, dereferencedHash || directHash);
+      }
+    }
+  } catch {
+    // If command fails, ignore
+  }
+
+  // 2. Query configured remotes
+  let remotes: GitRemote[] = [];
+  try {
+    remotes = await getRemotes(directory);
+  } catch {
+    remotes = [];
+  }
+
+  // 3. For each remote, query remote tags (or use cache)
+  const remoteTagsByRemote = new Map<string, Map<string, string>>();
+  const remoteUrlByRemote = new Map<string, string>();
+
+  for (const remote of remotes) {
+    remoteUrlByRemote.set(remote.name, remote.fetchUrl || remote.pushUrl || '');
+    const cacheKey = `${directory}::${remote.name}`;
+    const cached = remoteTagsCache.get(cacheKey);
+    const now = Date.now();
+
+    if (!forceRemoteRefresh && cached && now - cached.lastFetched < 60000) {
+      remoteTagsByRemote.set(remote.name, cached.tags);
+      continue;
+    }
+
+    try {
+      const rawRemote = await runGit(directory, [
+        'ls-remote',
+        '--tags',
+        remote.name,
+      ]);
+      const tagMap = new Map<string, string>();
+      const lines = rawRemote
+        .toString('utf8')
+        .split('\n')
+        .map((l) => l.trim())
+        .filter(Boolean);
+      for (const line of lines) {
+        const match = line.match(/^([0-9a-fA-F]+)\s+refs\/tags\/(.+)$/);
+        if (match) {
+          const [, hash, rawTagName] = match;
+          const cleanName = rawTagName.replace(/\^\{\}$/, '').trim();
+          if (cleanName) {
+            tagMap.set(cleanName, hash);
+          }
+        }
+      }
+      remoteTagsCache.set(cacheKey, { tags: tagMap, lastFetched: now });
+      remoteTagsByRemote.set(remote.name, tagMap);
+    } catch {
+      if (cached) {
+        remoteTagsByRemote.set(remote.name, cached.tags);
+      } else {
+        remoteTagsByRemote.set(remote.name, new Map());
+      }
+    }
+  }
+
+  // 4. Combine into GitTagStatus list
+  const allTagNames = new Set<string>([
+    ...localTagsMap.keys(),
+    ...Array.from(remoteTagsByRemote.values()).flatMap((m) =>
+      Array.from(m.keys()),
+    ),
+  ]);
+
+  const result: GitTagStatus[] = [];
+
+  for (const name of allTagNames) {
+    const isLocal = localTagsMap.has(name);
+    const matchingRemotes: string[] = [];
+    let commitHash = localTagsMap.get(name) || '';
+    let primaryRemoteUrl = '';
+
+    for (const [rName, rTags] of remoteTagsByRemote.entries()) {
+      if (rTags.has(name)) {
+        matchingRemotes.push(rName);
+        if (!commitHash) commitHash = rTags.get(name) || '';
+        if (!primaryRemoteUrl) {
+          primaryRemoteUrl = remoteUrlByRemote.get(rName) || '';
+        }
+      }
+    }
+
+    result.push({
+      name,
+      commit: commitHash,
+      isLocal,
+      isRemote: matchingRemotes.length > 0,
+      remotes: matchingRemotes,
+      remoteUrl: primaryRemoteUrl || remoteUrlByRemote.get('origin') || '',
+    });
+  }
+
+  result.sort((a, b) =>
+    b.name.localeCompare(a.name, undefined, {
+      numeric: true,
+      sensitivity: 'base',
+    }),
+  );
+
+  return result;
+}
+
+async function pushTag(
+  directory: string,
+  requestedTagName: string,
+  requestedRemote?: string,
+  force?: boolean,
+): Promise<PushGitTagResult> {
+  const tagName = requestedTagName?.trim();
+  const remote = requestedRemote?.trim() || 'origin';
+  if (!directory) return { ok: false, error: 'No repository directory specified.' };
+  if (!tagName) return { ok: false, error: 'Enter a tag name.' };
+  if (!remote) return { ok: false, error: 'Enter a remote name.' };
+
+  try {
+    await runGit(directory, [
+      'check-ref-format',
+      '--allow-onelevel',
+      `refs/tags/${tagName}`,
+    ]);
+  } catch {
+    return {
+      ok: false,
+      error: 'Invalid tag name.',
+    };
+  }
+
+  try {
+    const args = ['push'];
+    if (force) {
+      args.push('--force');
+    }
+    args.push(remote, `refs/tags/${tagName}`);
+    await runGit(directory, args);
+    logCache.delete(directory);
+    const cacheKey = `${directory}::${remote}`;
+    const cached = remoteTagsCache.get(cacheKey);
+    if (cached) {
+      cached.tags.set(tagName, '');
+    } else {
+      remoteTagsCache.set(cacheKey, {
+        tags: new Map([[tagName, '']]),
+        lastFetched: Date.now(),
+      });
+    }
+    return {
+      ok: true,
+      tagName,
+      remote,
+    };
+  } catch (error: any) {
+    return {
+      ok: false,
+      error:
+        error?.message ||
+        `Failed to push tag "${tagName}" to remote "${remote}".`,
+    };
+  }
 }
 
 async function runGitWithAllowedCodes(
@@ -2036,6 +2405,12 @@ export default {
   showLogAsync,
   showDiff,
   executeCommand,
+  createTag,
+  deleteTagLocally,
+  deleteTagRemotely,
+  deleteTagBoth,
+  pushTag,
+  getTagStatuses,
   listBranches,
   listTags,
   listWorktrees,
