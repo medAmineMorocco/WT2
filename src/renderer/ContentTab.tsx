@@ -8,11 +8,8 @@ import React, {
 } from 'react';
 import {
   Button,
-  Form,
-  Input,
   Layout,
   message,
-  Modal,
   Progress,
   Result,
   Spin,
@@ -22,8 +19,6 @@ import {
 import {
   InboxOutlined,
   CloudDownloadOutlined,
-  FolderOpenOutlined,
-  LinkOutlined,
   LoadingOutlined,
   FolderOutlined,
 } from '@ant-design/icons';
@@ -40,6 +35,9 @@ const Execution = lazy(() => import('./modules/execution/Execution'));
 const GitLog = lazy(() => import('./modules/gitLog/GitLog'));
 const WorktreeOverview = lazy(
   () => import('./modules/worktrees/WorktreeOverview'),
+);
+const CloneRepositoryModal = lazy(
+  () => import('./modules/repository/CloneRepositoryModal'),
 );
 
 export default function ContentTab({ keyTab }: { keyTab: string }) {
@@ -62,7 +60,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   const [isRepoExistsOnDisk, setIsRepoExistsOnDisk] = useState<boolean>(true);
   const [cloneModalOpen, setCloneModalOpen] = useState(false);
   const [cloneLoading, setCloneLoading] = useState(false);
-  const [cloneForm] = Form.useForm();
 
   const [mode, setMode] = useState('GIT_LOG');
 
@@ -137,10 +134,7 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
   };
 
   const chooseCloneDirectory = async () => {
-    const directory = await window.electron.ipcRenderer.invoke(
-      'choose-clone-directory',
-    );
-    if (directory) cloneForm.setFieldValue('destination', directory);
+    return window.electron.ipcRenderer.invoke('choose-clone-directory');
   };
 
   const cloneRepository = async (values: {
@@ -157,7 +151,6 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
         values.folderName,
       );
       setCloneModalOpen(false);
-      cloneForm.resetFields();
       window.electron.ipcRenderer.send(
         'choose-dir-from-outside',
         cloned.path,
@@ -442,68 +435,17 @@ export default function ContentTab({ keyTab }: { keyTab: string }) {
             </Button>
           </div>
         </div>
-        <Modal
-          title="Clone a repository"
-          open={cloneModalOpen}
-          onCancel={() => {
-            if (!cloneLoading) setCloneModalOpen(false);
-          }}
-          footer={null}
-          centered
-          destroyOnClose
-        >
-          <Form form={cloneForm} layout="vertical" onFinish={cloneRepository}>
-            <Form.Item
-              label="Repository URL"
-              name="repositoryUrl"
-              rules={[{ required: true, message: 'Enter a repository URL.' }]}
-            >
-              <Input
-                prefix={<LinkOutlined />}
-                placeholder="https://github.com/owner/repository.git"
-                allowClear
-              />
-            </Form.Item>
-            <Form.Item
-              label="Destination folder"
-              name="destination"
-              rules={[
-                { required: true, message: 'Choose a destination folder.' },
-              ]}
-            >
-              <Input
-                prefix={<FolderOpenOutlined />}
-                readOnly
-                placeholder="Choose a parent folder"
-                addonAfter={
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={chooseCloneDirectory}
-                  >
-                    Browse
-                  </Button>
-                }
-              />
-            </Form.Item>
-            <Form.Item
-              label="Folder name"
-              name="folderName"
-              extra="Optional. By default, the repository name is used."
-            >
-              <Input placeholder="repository" allowClear />
-            </Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              icon={<CloudDownloadOutlined />}
-              loading={cloneLoading}
-            >
-              Clone Repository
-            </Button>
-          </Form>
-        </Modal>
+        <Suspense fallback={null}>
+          <CloneRepositoryModal
+            open={cloneModalOpen}
+            loading={cloneLoading}
+            onCancel={() => {
+              if (!cloneLoading) setCloneModalOpen(false);
+            }}
+            onChooseDirectory={chooseCloneDirectory}
+            onClone={cloneRepository}
+          />
+        </Suspense>
       </motion.div>
     );
   }

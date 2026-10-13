@@ -4,10 +4,20 @@ import {
   verifyIntegration,
   syncGitCredential,
   removeGitCredential,
+  listIntegrationRepositories,
   VerifyIntegrationParams,
 } from '../integrationsService';
 
 describe('Integrations Service Verification', () => {
+  test('repository listing rejects a missing token before requesting a provider', async () => {
+    const result = await listIntegrationRepositories({
+      providerId: 'github',
+      token: '   ',
+    });
+    assert.strictEqual(result.ok, false);
+    assert.match((!result.ok && result.error) || '', /token is missing/i);
+  });
+
   test('rejects empty or whitespace-only token', async () => {
     const result = await verifyIntegration({
       providerId: 'github',

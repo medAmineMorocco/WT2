@@ -58,6 +58,27 @@ export interface RemoveGitCredentialResult {
   error?: string;
 }
 
+export interface RemoteRepository {
+  id: string;
+  name: string;
+  fullName: string;
+  cloneUrl: string;
+  webUrl?: string;
+  description?: string;
+  isPrivate?: boolean;
+  updatedAt?: string;
+}
+
+export interface ListIntegrationRepositoriesParams {
+  providerId: IntegrationProviderId;
+  token: string;
+  hostDomain?: string;
+  username?: string;
+}
+
+export type ListIntegrationRepositoriesResult =
+  { ok: true; repositories: RemoteRepository[] } | { ok: false; error: string };
+
 export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
   {
     id: 'github',
@@ -65,10 +86,13 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     category: 'cloud',
     isEnterprise: false,
     defaultHost: 'github.com',
-    tokenUrl: 'https://github.com/settings/tokens/new?scopes=repo,read:user,user:email&description=WorktreeWise',
-    tokenGuidance: 'Generate a Personal Access Token with repo and read:user scopes.',
+    tokenUrl:
+      'https://github.com/settings/tokens/new?scopes=repo,read:user,user:email&description=WorktreeWise',
+    tokenGuidance:
+      'Generate a Personal Access Token with repo and read:user scopes.',
     tokenScopes: 'repo, read:user, user:email',
-    docsUrl: 'https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens',
+    docsUrl:
+      'https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens',
   },
   {
     id: 'github-enterprise',
@@ -76,8 +100,10 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     category: 'enterprise',
     isEnterprise: true,
     placeholderHost: 'e.g., github.mycompany.com',
-    tokenPath: '/settings/tokens/new?scopes=repo,read:user,user:email&description=WorktreeWise',
-    tokenGuidance: 'Generate a token on your GitHub Enterprise Server instance.',
+    tokenPath:
+      '/settings/tokens/new?scopes=repo,read:user,user:email&description=WorktreeWise',
+    tokenGuidance:
+      'Generate a token on your GitHub Enterprise Server instance.',
     tokenScopes: 'repo, read:user, user:email',
     docsUrl: 'https://docs.github.com/en/enterprise-server/authentication',
   },
@@ -87,10 +113,13 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     category: 'cloud',
     isEnterprise: false,
     defaultHost: 'gitlab.com',
-    tokenUrl: 'https://gitlab.com/-/user_settings/personal_access_tokens?name=WorktreeWise&scopes=api,read_user,read_repository,write_repository',
-    tokenGuidance: 'Generate a Personal Access Token with api and read_repository scopes.',
+    tokenUrl:
+      'https://gitlab.com/-/user_settings/personal_access_tokens?name=WorktreeWise&scopes=api,read_user,read_repository,write_repository',
+    tokenGuidance:
+      'Generate a Personal Access Token with api and read_repository scopes.',
     tokenScopes: 'api, read_user, read_repository, write_repository',
-    docsUrl: 'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
+    docsUrl:
+      'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
   },
   {
     id: 'gitlab-self-managed',
@@ -98,10 +127,12 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     category: 'enterprise',
     isEnterprise: true,
     placeholderHost: 'e.g., gitlab.mycompany.com',
-    tokenPath: '/-/user_settings/personal_access_tokens?name=WorktreeWise&scopes=api,read_user,read_repository,write_repository',
+    tokenPath:
+      '/-/user_settings/personal_access_tokens?name=WorktreeWise&scopes=api,read_user,read_repository,write_repository',
     tokenGuidance: 'Generate a token on your self-managed GitLab instance.',
     tokenScopes: 'api, read_user, read_repository, write_repository',
-    docsUrl: 'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
+    docsUrl:
+      'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
   },
   {
     id: 'bitbucket',
@@ -110,9 +141,11 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     isEnterprise: false,
     defaultHost: 'bitbucket.org',
     tokenUrl: 'https://bitbucket.org/account/settings/app-passwords/',
-    tokenGuidance: 'Create an App Password with repositories and account read/write permissions.',
+    tokenGuidance:
+      'Create an App Password with repositories and account read/write permissions.',
     tokenScopes: 'Repositories (Read, Write), Account (Read)',
-    docsUrl: 'https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/',
+    docsUrl:
+      'https://support.atlassian.com/bitbucket-cloud/docs/app-passwords/',
   },
   {
     id: 'bitbucket-datacenter',
@@ -121,9 +154,11 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     isEnterprise: true,
     placeholderHost: 'e.g., bitbucket.mycompany.com',
     tokenPath: '/plugins/servlet/access-tokens/manage',
-    tokenGuidance: 'Generate an HTTP access token on your Bitbucket Data Center server.',
+    tokenGuidance:
+      'Generate an HTTP access token on your Bitbucket Data Center server.',
     tokenScopes: 'Project read, Repository write',
-    docsUrl: 'https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html',
+    docsUrl:
+      'https://confluence.atlassian.com/bitbucketserver/personal-access-tokens-939515499.html',
   },
   {
     id: 'azure-devops',
@@ -132,9 +167,11 @@ export const INTEGRATION_PROVIDERS: IntegrationProviderDef[] = [
     isEnterprise: false,
     defaultHost: 'dev.azure.com',
     tokenUrl: 'https://dev.azure.com/_usersSettings/tokens',
-    tokenGuidance: 'Create a Personal Access Token with Code (Read & Write) access.',
+    tokenGuidance:
+      'Create a Personal Access Token with Code (Read & Write) access.',
     tokenScopes: 'Code (Read & Write)',
-    docsUrl: 'https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate',
+    docsUrl:
+      'https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate',
   },
 ];
 
@@ -169,7 +206,10 @@ export function parseTokenScopes(scopesString: string): string[] {
     .filter(Boolean);
 }
 
-export function loadStoredIntegrations(): Record<IntegrationProviderId, IntegrationState> {
+export function loadStoredIntegrations(): Record<
+  IntegrationProviderId,
+  IntegrationState
+> {
   const initial = {} as Record<IntegrationProviderId, IntegrationState>;
   for (const def of INTEGRATION_PROVIDERS) {
     initial[def.id] = {
@@ -255,7 +295,10 @@ export function matchRemoteToIntegration(
       state: integrations['bitbucket'],
     };
   }
-  if (lowerUrl.includes('dev.azure.com') || lowerUrl.includes('visualstudio.com')) {
+  if (
+    lowerUrl.includes('dev.azure.com') ||
+    lowerUrl.includes('visualstudio.com')
+  ) {
     return {
       def: INTEGRATION_PROVIDERS.find((p) => p.id === 'azure-devops')!,
       state: integrations['azure-devops'],

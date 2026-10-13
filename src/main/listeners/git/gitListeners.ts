@@ -6,8 +6,10 @@ import {
   VerifyIntegrationParams,
   syncGitCredential,
   removeGitCredential,
+  listIntegrationRepositories,
 } from '../../services/git/integrationsService';
 import {
+  ListIntegrationRepositoriesParams,
   SyncGitCredentialParams,
   RemoveGitCredentialParams,
 } from '../../../shared/integrations';
@@ -624,6 +626,12 @@ ipcMain.handle('get-upstream', async (_event, directory: string) =>
 ipcMain.handle(
   'verify-integration',
   async (_event, params: VerifyIntegrationParams) => verifyIntegration(params),
+);
+
+ipcMain.handle(
+  'list-integration-repositories',
+  async (_event, params: ListIntegrationRepositoriesParams) =>
+    listIntegrationRepositories(params),
 );
 
 ipcMain.handle(
