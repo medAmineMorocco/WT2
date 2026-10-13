@@ -11,8 +11,11 @@ import {
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import log from 'electron-log';
 import {
+  BranchesOutlined,
+  CheckOutlined,
   CloudOutlined,
   CloudUploadOutlined,
+  CopyOutlined,
   DeleteOutlined,
   EditOutlined,
   GithubOutlined,
@@ -25,8 +28,10 @@ import {
   TagOutlined,
 } from '@ant-design/icons';
 import TabService from '../../services/tab/TabService';
+import type { GitRemote } from '../../../shared/gitRemote';
 import type { ResetMode } from '../../../shared/gitResetRevert';
 import type { GitTagStatus } from '../../../shared/gitTag';
+import { parseGitLogRefs } from '../../../shared/gitRefParser';
 
 function getProviderIcon(url = '') {
   const lower = url.toLowerCase();
@@ -127,6 +132,7 @@ export default function LogUI({
   onDeleteTagRemotely,
   onDeleteTagBoth,
   tagStatuses,
+  remotes,
   selectedWorktree,
   onResetCommit,
   onRevertCommit,
@@ -164,6 +170,7 @@ export default function LogUI({
   onDeleteTagRemotely?: (tagName: string) => void;
   onDeleteTagBoth?: (tagName: string) => void;
   tagStatuses?: Record<string, GitTagStatus>;
+  remotes?: GitRemote[];
   selectedWorktree?: string | null;
   onResetCommit?: (commit: ParsedCommit, mode: ResetMode) => void;
   onRevertCommit?: (commit: ParsedCommit) => void;
@@ -485,49 +492,40 @@ export default function LogUI({
   }
 
   function renderRefs(value: string) {
-    const refs = value
-      .split(',')
-      .map((ref) => ref.trim())
-      .filter(Boolean);
-    if (refs.length === 0) return null;
+    const parsedItems = parseGitLogRefs(value, remotes, tagStatuses);
+    if (parsedItems.length === 0) return null;
 
-    // Prioritize HEAD, stash, and branch refs before tags
-    const sortedRefs = [...refs].sort((a, b) => {
-      const score = (r: string) => {
-        if (r.includes('HEAD')) return 0;
-        if (r.startsWith('stash') || r.includes('refs/stash')) return 1;
-        if (!r.startsWith('tag:') && !r.includes('/')) return 2;
-        if (r.includes('/')) return 3;
-        return 4;
-      };
-      return score(a) - score(b);
-    });
+    const maxVisible = parsedItems.length <= 3 ? 3 : 2;
+    const visibleItems = parsedItems.slice(0, maxVisible);
+    const remainingItems = parsedItems.slice(maxVisible);
 
-    const maxVisible = sortedRefs.length <= 3 ? 3 : 2;
-    const visibleRefs = sortedRefs.slice(0, maxVisible);
-    const remainingRefs = sortedRefs.slice(maxVisible);
-
-    const renderedTags = visibleRefs.map((ref) => {
-      let refType = 'branch';
-      if (ref.includes('HEAD')) {
-        refType = 'head';
-      } else if (ref.startsWith('stash') || ref.includes('refs/stash')) {
-        refType = 'stash';
-      } else if (ref.startsWith('tag:')) {
-        refType = 'tag';
-      } else if (ref.includes('/')) {
-        refType = 'remote';
+    const renderedTags = visibleItems.map((item) => {
+      if (item.type === 'head') {
+        return (
+          <Tooltip key={item.key} title="Detached HEAD" mouseEnterDelay={0} mouseLeaveDelay={0}>
+            <span style={{ display: 'inline-flex', maxWidth: '120px' }}>
+              <Tag bordered={false} className="commit-ref-chip head">
+                HEAD
+              </Tag>
+            </span>
+          </Tooltip>
+        );
       }
 
-      let displayRef = ref;
-      if (ref === 'refs/stash') {
-        displayRef = 'stash@{0}';
-      } else if (ref.startsWith('refs/stash')) {
-        displayRef = ref.replace(/^refs\/stash/, 'stash');
+      if (item.type === 'stash') {
+        return (
+          <Tooltip key={item.key} title={item.stashName} mouseEnterDelay={0} mouseLeaveDelay={0}>
+            <span style={{ display: 'inline-flex', maxWidth: '120px' }}>
+              <Tag bordered={false} className="commit-ref-chip stash">
+                {item.stashName}
+              </Tag>
+            </span>
+          </Tooltip>
+        );
       }
 
-      if (refType === 'tag') {
-        const cleanTagName = ref.replace(/^tag:\s*/, '').trim();
+      if (item.type === 'tag') {
+        const cleanTagName = item.tagName;
         const tagStatus = tagStatuses?.[cleanTagName];
         const isLocal = tagStatus ? tagStatus.isLocal : true;
         const isRemote = Boolean(tagStatus?.isRemote);
@@ -621,7 +619,7 @@ export default function LogUI({
 
         return (
           <Tooltip
-            key={ref}
+            key={item.key}
             title={`Tag: ${cleanTagName} • ${statusTooltipText} (Click or right-click for actions)`}
             mouseEnterDelay={0.2}
             mouseLeaveDelay={0}
@@ -649,7 +647,7 @@ export default function LogUI({
               >
                 <Tag
                   bordered={false}
-                  className={`commit-ref-chip ${refType} ${isRemote ? 'pushed' : 'local-only'}`}
+                  className={`commit-ref-chip tag ${isRemote ? 'pushed' : 'local-only'}`}
                   style={{ cursor: 'pointer' }}
                   data-testid={`tag-chip-${cleanTagName}`}
                 >
@@ -682,18 +680,150 @@ export default function LogUI({
         );
       }
 
+      // Branch
+      const { branchName, isHead, isLocal, isRemote, remotes: bRemotes, remoteUrl } = item;
+      const statusTooltipText = isHead
+        ? isRemote && isLocal
+          ? `HEAD -> ${branchName} • Local & Remote (${bRemotes.map((r) => `${r}/${branchName}`).join(', ') || 'remote'})`
+          : `HEAD -> ${branchName} • Local branch (checked out)`
+        : isRemote && isLocal
+          ? `${branchName} • Local & Remote (${bRemotes.map((r) => `${r}/${branchName}`).join(', ') || 'remote'})`
+          : isRemote
+            ? `${bRemotes.join(', ') || 'remote'}/${branchName} • Remote branch`
+            : `${branchName} • Local branch`;
+
+      const branchMenuItems: MenuProps['items'] = [
+        {
+          key: 'branch-info',
+          label: (
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                padding: '2px 0',
+              }}
+            >
+              <span
+                style={{
+                  fontWeight: 600,
+                  color: 'var(--ant-color-text, #1f2937)',
+                }}
+              >
+                {isHead ? 'HEAD -> ' : ''}{branchName}
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 4,
+                  color: isHead ? '#0284c7' : isRemote && isLocal ? '#059669' : isRemote ? '#64748b' : '#d97706',
+                  fontWeight: 500,
+                }}
+              >
+                {isHead && <CheckOutlined style={{ fontSize: 11 }} />}
+                {isRemote && isLocal ? (
+                  <>
+                    <CloudOutlined style={{ fontSize: 11 }} /> Local & Remote ({bRemotes.join(', ') || 'remote'})
+                  </>
+                ) : isRemote ? (
+                  <>
+                    <CloudOutlined style={{ fontSize: 11 }} /> Remote ({bRemotes.join(', ') || 'remote'})
+                  </>
+                ) : (
+                  <>
+                    <LaptopOutlined style={{ fontSize: 11 }} /> Local branch
+                  </>
+                )}
+              </span>
+            </div>
+          ),
+          disabled: true,
+        },
+        {
+          type: 'divider',
+        },
+        {
+          key: 'copy-branch-name',
+          label: 'Copy branch name',
+          icon: <CopyOutlined />,
+        },
+      ];
+
+      const chipClass = `commit-ref-chip ${isHead ? 'head' : isRemote && !isLocal ? 'remote-only' : 'branch'}`;
+
       return (
-        <Tooltip key={ref} title={ref} mouseEnterDelay={0} mouseLeaveDelay={0}>
-          <span style={{ display: 'inline-flex', maxWidth: '120px' }}>
-            <Tag bordered={false} className={`commit-ref-chip ${refType}`}>
-              {displayRef}
-            </Tag>
+        <Tooltip
+          key={item.key}
+          title={`${statusTooltipText} (Click or right-click for options)`}
+          mouseEnterDelay={0.2}
+          mouseLeaveDelay={0}
+        >
+          <span
+            style={{ display: 'inline-flex', maxWidth: '180px' }}
+            onClick={(e) => e.stopPropagation()}
+            onContextMenu={(e) => e.stopPropagation()}
+          >
+            <Dropdown
+              menu={{
+                items: branchMenuItems,
+                onClick: ({ key, domEvent }) => {
+                  domEvent.stopPropagation();
+                  if (key === 'copy-branch-name') {
+                    navigator.clipboard.writeText(branchName);
+                    api.success({
+                      key: 'branch-copy',
+                      message: 'Copied branch name',
+                      description: `"${branchName}" copied to clipboard.`,
+                      placement: 'bottomLeft',
+                      duration: 1.5,
+                    });
+                  }
+                },
+              }}
+              trigger={['click', 'contextMenu']}
+            >
+              <Tag
+                bordered={false}
+                className={chipClass}
+                style={{ cursor: 'pointer' }}
+                data-testid={`branch-chip-${branchName}`}
+              >
+                <span className="commit-ref-chip-content">
+                  {isHead ? (
+                    <CheckOutlined className="commit-ref-chip-head-icon" title="HEAD (checked out)" />
+                  ) : (
+                    <BranchesOutlined className="commit-ref-chip-icon" />
+                  )}
+                  <span className="commit-ref-chip-label">{branchName}</span>
+                  <span className="commit-ref-chip-indicators">
+                    {isLocal && (
+                      <span
+                        className="ref-status-badge local"
+                        aria-label="Local branch"
+                      >
+                        <LaptopOutlined />
+                      </span>
+                    )}
+                    {isRemote && (
+                      <span
+                        className="ref-status-badge remote"
+                        aria-label={`Remote branch (${bRemotes.join(', ') || 'remote'})`}
+                      >
+                        {getProviderIcon(remoteUrl)}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              </Tag>
+            </Dropdown>
           </span>
         </Tooltip>
       );
     });
 
-    if (remainingRefs.length > 0) {
+    if (remainingItems.length > 0) {
       const remainingTitle = (
         <div
           style={{
@@ -715,14 +845,27 @@ export default function LogUI({
               marginBottom: '2px',
             }}
           >
-            {remainingRefs.length} More Reference
-            {remainingRefs.length > 1 ? 's' : ''}:
+            {remainingItems.length} More Reference
+            {remainingItems.length > 1 ? 's' : ''}:
           </div>
-          {remainingRefs.map((r) => (
-            <div key={r} style={{ fontSize: '12px', lineHeight: '16px' }}>
-              {r}
-            </div>
-          ))}
+          {remainingItems.map((item) => {
+            let label = '';
+            if (item.type === 'head') label = 'HEAD';
+            else if (item.type === 'stash') label = item.stashName;
+            else if (item.type === 'tag') label = `tag: ${item.tagName}`;
+            else if (item.type === 'branch') {
+              label = `${item.isHead ? 'HEAD -> ' : ''}${item.branchName}${
+                item.isRemote
+                  ? ` (${item.remotes.map((r) => `${r}/${item.branchName}`).join(', ')})`
+                  : ''
+              }`;
+            }
+            return (
+              <div key={item.key} style={{ fontSize: '12px', lineHeight: '16px' }}>
+                {label}
+              </div>
+            );
+          })}
         </div>
       );
 
@@ -735,7 +878,7 @@ export default function LogUI({
         >
           <span style={{ display: 'inline-flex', flexShrink: 0 }}>
             <Tag bordered={false} className="commit-ref-chip remaining">
-              +{remainingRefs.length}
+              +{remainingItems.length}
             </Tag>
           </span>
         </Tooltip>,

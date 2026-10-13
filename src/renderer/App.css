@@ -2449,18 +2449,50 @@ html[data-color-scheme='dark'] .commit-msg {
   color: #0284c7;
   background: #e0f2fe;
   border: 1px solid #7dd3fc;
+  max-width: 180px;
+  transition: all 0.15s ease-in-out;
+}
+
+.commit-ref-chip.head:hover {
+  background: #bae6fd;
+  border-color: #38bdf8;
+  box-shadow: 0 1px 3px rgba(2, 132, 199, 0.2);
 }
 
 .commit-ref-chip.branch {
   color: #15803d;
   background: #dcfce7;
   border: 1px solid #86efac;
+  max-width: 180px;
+  transition: all 0.15s ease-in-out;
 }
 
-.commit-ref-chip.remote {
-  color: #1e293b;
-  background: #e2e8f0;
+.commit-ref-chip.branch:hover {
+  background: #d1fae5;
+  border-color: #4ade80;
+  box-shadow: 0 1px 3px rgba(22, 163, 74, 0.15);
+}
+
+.commit-ref-chip.remote-only {
+  color: #334155;
+  background: #f1f5f9;
   border: 1px solid #cbd5e1;
+  max-width: 180px;
+  transition: all 0.15s ease-in-out;
+}
+
+.commit-ref-chip.remote-only:hover {
+  background: #e2e8f0;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 3px rgba(100, 116, 139, 0.15);
+}
+
+.commit-ref-chip-head-icon {
+  font-size: 10px;
+  font-weight: 700;
+  flex-shrink: 0;
+  color: #0284c7;
+  margin-right: 3px;
 }
 
 .commit-ref-chip.stash {
@@ -2507,8 +2539,8 @@ html[data-color-scheme='dark'] .commit-msg {
 .commit-ref-chip-indicators {
   display: inline-flex;
   align-items: center;
-  gap: 2px;
-  margin-left: 2px;
+  gap: 5px;
+  margin-left: 6px;
   flex-shrink: 0;
 }
 
@@ -2516,11 +2548,10 @@ html[data-color-scheme='dark'] .commit-msg {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 14px;
-  height: 14px;
-  border-radius: 3px;
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1;
+  background: transparent;
+  border: none;
   box-sizing: border-box;
   transition: transform 0.12s ease;
 }
@@ -2530,27 +2561,27 @@ html[data-color-scheme='dark'] .commit-msg {
 }
 
 .ref-status-badge.local {
-  background: rgba(245, 158, 11, 0.16);
+  background: transparent;
   color: #b45309;
-  border: 1px solid rgba(245, 158, 11, 0.35);
+  border: none;
 }
 
 html[data-color-scheme='dark'] .ref-status-badge.local {
-  background: rgba(245, 158, 11, 0.22);
+  background: transparent;
   color: #fbbf24;
-  border: 1px solid rgba(245, 158, 11, 0.5);
+  border: none;
 }
 
 .ref-status-badge.remote {
-  background: rgba(16, 185, 129, 0.16);
+  background: transparent;
   color: #047857;
-  border: 1px solid rgba(16, 185, 129, 0.35);
+  border: none;
 }
 
 html[data-color-scheme='dark'] .ref-status-badge.remote {
-  background: rgba(16, 185, 129, 0.22);
+  background: transparent;
   color: #34d399;
-  border: 1px solid rgba(16, 185, 129, 0.5);
+  border: none;
 }
 
 .git-log-tags-popover {
@@ -2661,7 +2692,7 @@ html[data-color-scheme='dark'] .git-log-tag-item-name {
 .git-log-tag-item-badges {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: 5px;
   flex-shrink: 0;
 }
 
@@ -2852,16 +2883,38 @@ html[data-color-scheme='dark'] .commit-ref-chip.head {
   border: 1px solid rgba(56, 189, 248, 0.5);
 }
 
+html[data-color-scheme='dark'] .commit-ref-chip.head:hover {
+  background: rgba(2, 132, 199, 0.35);
+  border-color: rgba(56, 189, 248, 0.7);
+  box-shadow: 0 1px 4px rgba(56, 189, 248, 0.2);
+}
+
 html[data-color-scheme='dark'] .commit-ref-chip.branch {
   color: #86efac;
   background: rgba(22, 163, 74, 0.25);
   border: 1px solid rgba(74, 222, 128, 0.5);
 }
 
-html[data-color-scheme='dark'] .commit-ref-chip.remote {
-  color: #f1f5f9;
-  background: rgba(148, 163, 184, 0.25);
-  border: 1px solid rgba(148, 163, 184, 0.5);
+html[data-color-scheme='dark'] .commit-ref-chip.branch:hover {
+  background: rgba(22, 163, 74, 0.35);
+  border-color: rgba(74, 222, 128, 0.7);
+  box-shadow: 0 1px 4px rgba(74, 222, 128, 0.2);
+}
+
+html[data-color-scheme='dark'] .commit-ref-chip.remote-only {
+  color: #cbd5e1;
+  background: rgba(100, 116, 139, 0.25);
+  border: 1px solid rgba(148, 163, 184, 0.45);
+}
+
+html[data-color-scheme='dark'] .commit-ref-chip.remote-only:hover {
+  background: rgba(100, 116, 139, 0.38);
+  border-color: rgba(148, 163, 184, 0.7);
+  box-shadow: 0 1px 4px rgba(148, 163, 184, 0.2);
+}
+
+html[data-color-scheme='dark'] .commit-ref-chip-head-icon {
+  color: #38bdf8;
 }
 
 html[data-color-scheme='dark'] .commit-ref-chip.stash {

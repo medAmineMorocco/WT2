@@ -68,6 +68,7 @@ import type {
   PushGitTagResult,
 } from '../../../shared/gitTag';
 import type { SelectedWorkingTreeFile } from './WorkingTreeFileDiffPane';
+import type { GitRemote } from '../../../shared/gitRemote';
 import { useItemsContext } from '../../TabsContext';
 
 const GitDiff = lazy(() => import('../gitDiff/GitDiff'));
@@ -207,6 +208,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     null,
   );
   const [tagStatuses, setTagStatuses] = useState<Record<string, GitTagStatus>>({});
+  const [remotes, setRemotes] = useState<GitRemote[]>([]);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
   const [tagFilterQuery, setTagFilterQuery] = useState('');
@@ -733,6 +735,23 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   useEffect(() => {
     loadTagStatuses();
   }, [loadTagStatuses]);
+
+  const loadRemotes = useCallback(async () => {
+    if (!tabRepoPath) return;
+    try {
+      const list = (await window.electron.ipcRenderer.invoke(
+        'get-remotes',
+        tabRepoPath,
+      )) as GitRemote[];
+      setRemotes(list || []);
+    } catch (err: any) {
+      console.error('Failed to load remotes:', err);
+    }
+  }, [tabRepoPath]);
+
+  useEffect(() => {
+    loadRemotes();
+  }, [loadRemotes]);
 
   const handleDeleteTagLocally = useCallback(
     (tagName: string) => {
@@ -1412,6 +1431,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     onDeleteTagRemotely={setDeleteRemoteTargetTag}
                     onDeleteTagBoth={handleDeleteTagBoth}
                     tagStatuses={tagStatuses}
+                    remotes={remotes}
                     selectedWorktree={selectedWorktree}
                     onResetCommit={handleOpenReset}
                     onRevertCommit={setRevertTargetCommit}
