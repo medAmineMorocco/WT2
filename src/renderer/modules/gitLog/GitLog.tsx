@@ -21,7 +21,6 @@ import React, {
   useState,
 } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
-import { GitBranchIcon } from 'hugeicons-react';
 import {
   ReloadOutlined,
   SettingOutlined,
@@ -1022,17 +1021,12 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
 
   return (
     <>
-      <Space className="center-huge-icon">
-        <GitBranchIcon size={16} />
-        <strong>Git Log</strong>
-      </Space>
       <div
         className="git-log-body"
         style={{
           width: '100%',
-          height: isModal ? 'calc(100% - 94px)' : 'calc(100% - 12px)',
-          padding: '12px',
-          paddingLeft: 0,
+          height: isModal ? 'calc(100% - 82px)' : '100%',
+          padding: '0 12px 12px 0',
         }}
       >
         <div className="git-log-controls">
