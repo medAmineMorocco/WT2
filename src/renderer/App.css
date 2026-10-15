@@ -776,6 +776,92 @@ html[data-color-scheme='dark'] .repository-start-card-description {
   min-width: 0;
 }
 
+html[data-color-scheme='dark'] .clone-repository-modal .ant-modal-content,
+html[data-color-scheme='dark'] .clone-repository-modal .ant-modal-header {
+  color: #f1f5f9;
+  border-color: #3a424f;
+  background: #1b1f26;
+}
+
+html[data-color-scheme='dark'] .clone-repository-modal .ant-modal-close {
+  color: #cbd5e1;
+}
+
+html[data-color-scheme='dark'] .clone-repository-modal .ant-modal-close:hover {
+  color: #ffffff;
+  background: #303744;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-modal
+  .ant-form-item-label
+  > label {
+  color: #e2e8f0;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-modal
+  .ant-typography-secondary {
+  color: #aeb9c8;
+}
+
+html[data-color-scheme='dark'] .clone-provider-browser {
+  border-color: #3a424f;
+  background: #15191f;
+}
+
+html[data-color-scheme='dark'] .clone-repository-list {
+  border-color: #3a424f;
+  background: #11151b;
+  color: #f1f5f9;
+  scrollbar-color: #586273 #11151b;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item {
+  border-color: transparent;
+  color: #f1f5f9;
+  background: transparent;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item
+  .ant-typography {
+  color: #f1f5f9;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item
+  .ant-typography-secondary {
+  color: #aeb9c8;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item:hover,
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item:focus-visible {
+  border-color: #3b82f6;
+  background: #1c2a3d;
+}
+
+html[data-color-scheme='dark']
+  .clone-repository-option.ant-list-item.selected {
+  border-color: #60a5fa;
+  background: #183153;
+  box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.18);
+}
+
+html[data-color-scheme='dark'] .clone-repository-option .ant-tag {
+  color: #dbeafe;
+  border-color: #526071;
+  background: #28313d;
+}
+
+html[data-color-scheme='dark'] .clone-repository-state,
+html[data-color-scheme='dark'] .clone-repository-list .ant-empty-description {
+  color: #b8c2d0;
+}
+
 .clone-destination-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(180px, 0.65fr);
@@ -1889,9 +1975,18 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
 }
 
 html[data-color-scheme='dark'] .git-log-action-group {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #181b20;
+  border-color: #3a424f;
+  background: #1d232c;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+html[data-color-scheme='dark'] .git-log-controls {
+  border-bottom-color: #303846;
+  background: #0f1319;
+}
+
+html[data-color-scheme='dark'] .git-log-action-btn-label {
+  color: #cbd5e1;
 }
 
 html[data-color-scheme='dark'] .git-log-action-btn:disabled,
@@ -2258,9 +2353,9 @@ html[data-color-scheme='dark'] .search-highlight {
 }
 
 html[data-color-scheme='dark'] .log-container {
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
-  background: var(--ant-color-bg-container, #141414);
-  --commit-node-stroke: #141414;
+  border-top: 1px solid #303846;
+  background: #11151b;
+  --commit-node-stroke: #11151b;
 }
 
 .git-log-list-header,
@@ -2376,9 +2471,9 @@ html[data-color-scheme='dark'] .log-container {
 }
 
 html[data-color-scheme='dark'] .git-log-list-header {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
-  color: #94a3b8;
-  background: #181d28;
+  border-bottom: 1px solid #3a4454;
+  color: #cbd5e1;
+  background: #1b2230;
 }
 
 .git-log-list-header > span:not(:first-child),
@@ -2405,8 +2500,9 @@ html[data-color-scheme='dark'] .commit-column {
 }
 
 html[data-color-scheme='dark'] .commit-row {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  color: #f1f5f9;
+  border-bottom: 1px solid #252c36;
+  color: #f8fafc;
+  background: #11151b;
 }
 
 .commit-row:hover {
@@ -2414,7 +2510,7 @@ html[data-color-scheme='dark'] .commit-row {
 }
 
 html[data-color-scheme='dark'] .commit-row:hover {
-  background: rgba(59, 130, 246, 0.12);
+  background: #1a2637;
 }
 
 .commit-row.selected,
@@ -2788,7 +2884,7 @@ html[data-color-scheme='dark'] .git-log-tag-item-name {
 }
 
 html[data-color-scheme='dark'] .commit-column {
-  color: #94a3b8;
+  color: #b8c2d0;
 }
 
 .commit-column-author {
@@ -2820,7 +2916,7 @@ html[data-color-scheme='dark'] .commit-column-author {
 }
 
 html[data-color-scheme='dark'] .commit-column-date {
-  color: #94a3b8;
+  color: #b8c2d0;
 }
 
 .commit-column-hash {
@@ -2863,7 +2959,12 @@ html[data-color-scheme='dark'] .commit-column-hash {
 }
 
 html[data-color-scheme='dark'] .working-tree-row {
-  background: var(--ant-color-bg-container, #141414);
+  background: #11151b;
+}
+
+html[data-color-scheme='dark'] .working-tree-node {
+  background: #11151b;
+  box-shadow: 0 0 0 2px #11151b;
 }
 
 .working-tree-graph {
