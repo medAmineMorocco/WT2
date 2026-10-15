@@ -1026,7 +1026,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         style={{
           width: '100%',
           height: isModal ? 'calc(100% - 82px)' : '100%',
-          padding: '0 12px 12px 0',
+          padding: 0,
         }}
       >
         <div className="git-log-controls">

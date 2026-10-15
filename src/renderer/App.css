@@ -2369,7 +2369,7 @@ html[data-color-scheme='dark'] .log-container {
   top: 0;
   z-index: 2;
   min-height: 30px;
-  padding-right: 10px;
+  padding-right: 0;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   color: #334155;
   background: #f1f5f9;
@@ -2377,6 +2377,19 @@ html[data-color-scheme='dark'] .log-container {
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.git-log-list-header > span:first-child {
+  padding-left: 12px;
+}
+
+.log-container::-webkit-scrollbar-track {
+  background: linear-gradient(
+    to bottom,
+    #f1f5f9 0 29px,
+    rgba(0, 0, 0, 0.12) 29px 30px,
+    transparent 30px
+  ) !important;
 }
 
 .git-log-header-columns-control {
@@ -2474,6 +2487,15 @@ html[data-color-scheme='dark'] .git-log-list-header {
   border-bottom: 1px solid #3a4454;
   color: #cbd5e1;
   background: #1b2230;
+}
+
+html[data-color-scheme='dark'] .log-container::-webkit-scrollbar-track {
+  background: linear-gradient(
+    to bottom,
+    #1b2230 0 29px,
+    #3a4454 29px 30px,
+    transparent 30px
+  ) !important;
 }
 
 .git-log-list-header > span:not(:first-child),
