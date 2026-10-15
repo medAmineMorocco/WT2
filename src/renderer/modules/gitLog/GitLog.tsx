@@ -9,8 +9,6 @@ import {
   Button,
   Input,
   Typography,
-  Dropdown,
-  Segmented,
 } from 'antd';
 import type { InputRef } from 'antd';
 import React, {
@@ -39,13 +37,6 @@ import {
   LoadingOutlined,
   FilterOutlined,
   ExclamationCircleOutlined,
-  TagOutlined,
-  LaptopOutlined,
-  CloudOutlined,
-  GithubOutlined,
-  GitlabOutlined,
-  DeleteOutlined,
-  GlobalOutlined,
 } from '@ant-design/icons';
 import pako from 'pako';
 import TabService from '../../services/tab/TabService';
@@ -60,6 +51,7 @@ import type {
 } from '../../../shared/gitResetRevert';
 import type { CherryPickResult } from '../../../shared/cherryPick';
 import type { WorktreeMergeResult } from '../../../shared/worktreeMerge';
+import type { WorktreeRebaseResult } from '../../../shared/worktreeRebase';
 import type { GitBisectState } from '../../../shared/gitBisect';
 import type {
   CreateGitTagResult,
@@ -84,6 +76,7 @@ const CreateTagModal = lazy(() => import('./CreateTagModal'));
 const PushTagModal = lazy(() => import('./PushTagModal'));
 const DeleteRemoteTagModal = lazy(() => import('./DeleteRemoteTagModal'));
 const GitBisectPanel = lazy(() => import('./GitBisectPanel'));
+const RebaseWorktree = lazy(() => import('../worktrees/RebaseWorktree'));
 
 const LIMIT = 40;
 
@@ -209,14 +202,13 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   );
   const [tagStatuses, setTagStatuses] = useState<Record<string, GitTagStatus>>({});
   const [remotes, setRemotes] = useState<GitRemote[]>([]);
-  const [tagsLoading, setTagsLoading] = useState(false);
-  const [tagsPopoverOpen, setTagsPopoverOpen] = useState(false);
-  const [tagFilterQuery, setTagFilterQuery] = useState('');
-  const [tagFilterMode, setTagFilterMode] = useState<'all' | 'local' | 'pushed'>('all');
   const [bisectMode, setBisectMode] = useState(false);
   const [bisectGoodCommit, setBisectGoodCommit] = useState<string | null>(null);
   const [bisectBadCommit, setBisectBadCommit] = useState<string | null>(null);
   const [bisectState, setBisectState] = useState<GitBisectState | null>(null);
+  const [rebaseSourceWorktree, setRebaseSourceWorktree] = useState<any | null>(
+    null,
+  );
 
   const handleOpenReset = useCallback(
     (commit: ParsedCommit, mode: ResetMode = 'mixed') => {
@@ -354,7 +346,9 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           (item: any) => item.value === currentSelection,
         )
           ? currentSelection
-          : null;
+          : nextWorktrees.find((item: any) => item.isPrimary)?.value ||
+            nextWorktrees[0]?.value ||
+            null;
         worktreesInitializedRef.current = true;
         selectedWorktreeValueRef.current = nextSelection;
         setWorktrees(nextWorktrees);
@@ -366,6 +360,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
           'show-git-log',
           tabRepoPath,
           nextSelection,
+          null,
+          0,
         );
       } else {
         notification.error({
@@ -428,6 +424,21 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     if (!selectedWorktree) return null;
     return worktrees.find((item) => item.value === selectedWorktree) || null;
   }, [selectedWorktree, worktrees]);
+
+  const worktreeBranchNames = useMemo(
+    () => worktrees.map((worktree) => worktree.value),
+    [worktrees],
+  );
+
+  const handleOpenRebaseWorktree = useCallback(
+    (branchName: string) => {
+      const source = worktrees.find(
+        (worktree) => worktree.value === branchName,
+      );
+      if (source) setRebaseSourceWorktree(source);
+    },
+    [worktrees],
+  );
 
   const workingTreeCounts = useMemo(
     () =>
@@ -711,7 +722,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
   const loadTagStatuses = useCallback(
     async (forceRemoteRefresh = false) => {
       if (!tabRepoPath) return;
-      setTagsLoading(true);
       try {
         const list = (await window.electron.ipcRenderer.invoke(
           'get-tag-statuses',
@@ -725,8 +735,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         setTagStatuses(map);
       } catch (err: any) {
         console.error('Failed to load tag statuses:', err);
-      } finally {
-        setTagsLoading(false);
       }
     },
     [tabRepoPath],
@@ -1012,211 +1020,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
     </Popover>
   );
 
-  const tagList = useMemo(
-    () =>
-      Object.values(tagStatuses).sort((a, b) =>
-        b.name.localeCompare(a.name, undefined, {
-          numeric: true,
-          sensitivity: 'base',
-        }),
-      ),
-    [tagStatuses],
-  );
-  const localTagsCount = useMemo(
-    () => tagList.filter((t) => t.isLocal && !t.isRemote).length,
-    [tagList],
-  );
-  const remoteTagsCount = useMemo(
-    () => tagList.filter((t) => t.isRemote).length,
-    [tagList],
-  );
-
-  const filteredTagList = useMemo(() => {
-    return tagList.filter((tag) => {
-      if (
-        tagFilterQuery.trim() &&
-        !tag.name.toLowerCase().includes(tagFilterQuery.trim().toLowerCase()) &&
-        !tag.commit.toLowerCase().includes(tagFilterQuery.trim().toLowerCase())
-      ) {
-        return false;
-      }
-      if (tagFilterMode === 'local') return tag.isLocal && !tag.isRemote;
-      if (tagFilterMode === 'pushed') return tag.isRemote;
-      return true;
-    });
-  }, [tagList, tagFilterQuery, tagFilterMode]);
-
-  const tagsPopoverContent = (
-    <div className="git-log-tags-popover">
-      <div className="git-log-tags-popover-header">
-        <Space size={6} align="center">
-          <TagOutlined style={{ fontSize: 13 }} />
-          <Typography.Text strong>Repository Tags</Typography.Text>
-          <span className="git-log-tags-count-badge">{tagList.length}</span>
-        </Space>
-        <Button
-          type="text"
-          size="small"
-          icon={<ReloadOutlined spin={tagsLoading} />}
-          disabled={tagsLoading}
-          onClick={() => loadTagStatuses(true)}
-          title="Refresh remote tags"
-        />
-      </div>
-      <Input
-        size="small"
-        placeholder="Filter tags by name or hash..."
-        prefix={<SearchOutlined />}
-        value={tagFilterQuery}
-        onChange={(e) => setTagFilterQuery(e.target.value)}
-        allowClear
-        className="git-log-tags-search-input"
-      />
-      <Segmented
-        size="small"
-        block
-        options={[
-          { label: `All (${tagList.length})`, value: 'all' },
-          { label: `Local (${localTagsCount})`, value: 'local' },
-          { label: `Pushed (${remoteTagsCount})`, value: 'pushed' },
-        ]}
-        value={tagFilterMode}
-        onChange={(val) => setTagFilterMode(val as any)}
-      />
-      <div className="git-log-tags-list">
-        {filteredTagList.length === 0 ? (
-          <div className="git-log-tags-empty">
-            {tagList.length === 0
-              ? 'No tags in repository'
-              : 'No matching tags'}
-          </div>
-        ) : (
-          filteredTagList.map((tag) => (
-            <div
-              key={tag.name}
-              className={`git-log-tag-item ${selectedCommit === tag.commit ? 'selected' : ''}`}
-              onClick={() => {
-                if (tag.commit) {
-                  setSelectedCommit(tag.commit);
-                  setWorkingTreeSelected(false);
-                  setSelectedWorkingTreeFile(null);
-                  setSelectedCommitFile(null);
-                  setTagsPopoverOpen(false);
-                }
-              }}
-            >
-              <div className="git-log-tag-item-info">
-                <div className="git-log-tag-item-name-row">
-                  <span className="git-log-tag-item-name" title={tag.name}>
-                    {tag.name}
-                  </span>
-                  <span className="git-log-tag-item-badges">
-                    {tag.isLocal && (
-                      <span className="ref-status-badge local" title="Local">
-                        <LaptopOutlined />
-                      </span>
-                    )}
-                    {tag.isRemote && (
-                      <span
-                        className="ref-status-badge remote"
-                        title={`Pushed to ${tag.remotes.join(', ') || 'remote'}`}
-                      >
-                        {tag.remoteUrl?.toLowerCase().includes('github.com') ? (
-                          <GithubOutlined />
-                        ) : tag.remoteUrl?.toLowerCase().includes('gitlab.com') ? (
-                          <GitlabOutlined />
-                        ) : (
-                          <CloudOutlined />
-                        )}
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {tag.commit && (
-                  <span className="git-log-tag-item-commit">
-                    {tag.commit.slice(0, 8)}
-                  </span>
-                )}
-              </div>
-              <div
-                className="git-log-tag-item-actions"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {!tag.isRemote && (
-                  <Button
-                    type="text"
-                    size="small"
-                    icon={<CloudUploadOutlined />}
-                    title={`Push "${tag.name}" to remote`}
-                    onClick={() => {
-                      setPushTargetTag(tag.name);
-                      setTagsPopoverOpen(false);
-                    }}
-                  />
-                )}
-                <Dropdown
-                  menu={{
-                    items: [
-                      {
-                        key: 'push',
-                        label: tag.isRemote
-                          ? `Push tag "${tag.name}" again...`
-                          : `Push tag "${tag.name}" to remote...`,
-                        icon: <CloudUploadOutlined />,
-                        onClick: () => {
-                          setPushTargetTag(tag.name);
-                          setTagsPopoverOpen(false);
-                        },
-                      },
-                      { type: 'divider' },
-                      {
-                        key: 'del-local',
-                        label: 'Delete locally',
-                        icon: <DeleteOutlined />,
-                        danger: true,
-                        onClick: () => {
-                          handleDeleteTagLocally(tag.name);
-                          setTagsPopoverOpen(false);
-                        },
-                      },
-                      ...(tag.isRemote
-                        ? [
-                            {
-                              key: 'del-remote',
-                              label: 'Delete from remote...',
-                              icon: <GlobalOutlined />,
-                              danger: true,
-                              onClick: () => {
-                                setDeleteRemoteTargetTag(tag.name);
-                                setTagsPopoverOpen(false);
-                              },
-                            },
-                            {
-                              key: 'del-both',
-                              label: 'Delete from both...',
-                              icon: <DeleteOutlined />,
-                              danger: true,
-                              onClick: () => {
-                                handleDeleteTagBoth(tag.name);
-                                setTagsPopoverOpen(false);
-                              },
-                            },
-                          ]
-                        : []),
-                    ],
-                  }}
-                  trigger={['click']}
-                >
-                  <Button type="text" size="small" icon={<SettingOutlined />} />
-                </Dropdown>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-    </div>
-  );
-
   return (
     <>
       <Space className="center-huge-icon">
@@ -1298,20 +1101,6 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 />
               </div>
               <div className="git-log-action-group">
-                <Popover
-                  content={tagsPopoverContent}
-                  trigger="click"
-                  placement="bottomRight"
-                  open={tagsPopoverOpen}
-                  onOpenChange={setTagsPopoverOpen}
-                >
-                  <GitLogActionButton
-                    label={`Tags (${tagList.length})`}
-                    icon={<TagOutlined />}
-                    tooltip="View and manage repository tags (local / pushed)"
-                    active={tagsPopoverOpen}
-                  />
-                </Popover>
                 <GitLogActionButton
                   label="Diff"
                   icon={<DiffOutlined />}
@@ -1433,6 +1222,8 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                     tagStatuses={tagStatuses}
                     remotes={remotes}
                     selectedWorktree={selectedWorktree}
+                    worktreeBranchNames={worktreeBranchNames}
+                    onRebaseWorktree={handleOpenRebaseWorktree}
                     onResetCommit={handleOpenReset}
                     onRevertCommit={setRevertTargetCommit}
                     onMergeCommit={setMergeCommitTarget}
@@ -1722,6 +1513,33 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
                 placement: 'bottomLeft',
               });
               setWorkingTreeRefresh((value) => value + 1);
+              reloadGitLog(false);
+            }}
+          />
+        </Suspense>
+      )}
+      {rebaseSourceWorktree && (
+        <Suspense fallback={null}>
+          <RebaseWorktree
+            open
+            repositoryPath={tabRepoPath}
+            worktrees={worktrees.map((worktree) => ({
+              name: worktree.value,
+              path: worktree.path,
+              isPrimary: worktree.isPrimary,
+            }))}
+            initialSourcePath={rebaseSourceWorktree.path}
+            onClose={() => setRebaseSourceWorktree(null)}
+            onCompleted={(
+              result: Extract<WorktreeRebaseResult, { ok: true }>,
+            ) => {
+              setRebaseSourceWorktree(null);
+              notification.success({
+                message: 'Rebase Completed',
+                description: `${result.sourceBranch} was rebased onto ${result.targetBranch}.`,
+                placement: 'bottomLeft',
+              });
+              window.electron.ipcRenderer.send('get-worktrees', tabRepoPath);
               reloadGitLog(false);
             }}
           />

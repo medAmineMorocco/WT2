@@ -287,6 +287,23 @@ export default function ListWorktrees({
   );
 
   useEffect(() => {
+    if (selectedWorktree !== null || worktrees.length === 0) return;
+    const fallback =
+      worktrees.find(
+        (worktree: any) =>
+          worktree.isPrimary &&
+          !worktree.prunable &&
+          worktree.directoryExists !== false,
+      ) ||
+      worktrees.find(
+        (worktree: any) =>
+          !worktree.prunable && worktree.directoryExists !== false,
+      );
+    const fallbackName = fallback?.name || fallback?.resolvedName;
+    if (fallbackName) selectWorktree(fallbackName);
+  }, [selectedWorktree, selectWorktree, worktrees]);
+
+  useEffect(() => {
     const storedEditors = window.localStorage.getItem('editors');
     const editors = storedEditors
       ? JSON.parse(storedEditors)
@@ -861,8 +878,12 @@ export default function ListWorktrees({
   );
 
   const handleWorktreeMenuClick =
-    (worktree: any) =>
-    ({ key }: { key: string }) => {
+    (worktree: any): NonNullable<MenuProps['onClick']> =>
+    ({ key, domEvent }) => {
+      // Ant Design renders the dropdown outside the row, but its click still
+      // bubbles through the trigger. Keep actions such as Rebase from changing
+      // the Git Log selection before the dialog opens.
+      domEvent.stopPropagation();
       const isHealthy =
         worktree.directoryExists !== false && !worktree.prunable;
       if (
@@ -1294,29 +1315,6 @@ export default function ListWorktrees({
               <ul
                 style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}
               >
-                <li
-                  className={`${
-                    !isDarkMode ? 'worktree-item' : 'worktree-item-dark'
-                  } worktree-selection-item ${
-                    selectedWorktree === null ? 'selected' : ''
-                  }`}
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Show Git log for all refs"
-                  aria-pressed={selectedWorktree === null}
-                  onClick={() => selectWorktree(null)}
-                  onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
-                      event.preventDefault();
-                      selectWorktree(null);
-                    }
-                  }}
-                >
-                  <Space className="worktree-container">
-                    <BranchesOutlined />
-                    <span>All refs</span>
-                  </Space>
-                </li>
                 {worktrees.map((worktree: any) => {
                   const worktreeName = worktree.name || worktree.resolvedName;
                   const isSelected = selectedWorktree === worktreeName;

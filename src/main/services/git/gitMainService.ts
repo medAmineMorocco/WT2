@@ -216,21 +216,32 @@ function showLogAsync(
       stashHashMap.set(s.shortHash, s.ref);
     });
 
-    const stashArgs =
-      stashes.length > 0
-        ? `--glob=refs/stash ${stashes.map((s) => s.hash).join(' ')}`
-        : '--glob=refs/stash';
-
-    const branchOrAll = branch || '--all';
     // Keep full object ids in renderer data so pasted 40-character SHAs can be
     // searched reliably. The UI still renders the compact eight-character form.
     // Parents must use the same width or graph lane matching would break.
     const gitFormat = '%s %d <%an> {%ae} [%ci] %H parents:[%P]';
-    const command = `"${gitCmd}" log --skip=${skip} -n ${limit} ${branchOrAll} ${stashArgs} ${author ? `--author="${author}"` : ''} --oneline --decorate --abbrev-commit --no-color --date-order --format="${gitFormat}"`;
+    const revisionArgs = branch ? [branch] : ['--all'];
+    const args = [
+      'log',
+      `--skip=${skip}`,
+      '-n',
+      String(limit),
+      ...revisionArgs,
+      '--glob=refs/stash',
+      ...stashes.map((stash) => stash.hash),
+      ...(author ? [`--author=${author}`] : []),
+      '--oneline',
+      '--decorate',
+      '--abbrev-commit',
+      '--no-color',
+      '--date-order',
+      `--format=${gitFormat}`,
+    ];
 
-    const git = spawn(command, {
+    const git = spawn(gitCmd, args, {
       cwd: directory,
-      shell: true,
+      shell: false,
+      windowsHide: true,
     });
 
     const rawChunks: Buffer[] = [];

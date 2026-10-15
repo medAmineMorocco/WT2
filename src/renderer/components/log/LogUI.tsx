@@ -145,6 +145,8 @@ export default function LogUI({
   columnsControl,
   commitFilterControl,
   authorFilterControl,
+  worktreeBranchNames = [],
+  onRebaseWorktree,
 }: {
   commits: string[];
   searchQuery?: string;
@@ -183,6 +185,8 @@ export default function LogUI({
   columnsControl?: React.ReactNode;
   commitFilterControl?: React.ReactNode;
   authorFilterControl?: React.ReactNode;
+  worktreeBranchNames?: string[];
+  onRebaseWorktree?: (branchName: string) => void;
 }) {
   const [api, contextHolder] = notification.useNotification();
 
@@ -197,6 +201,11 @@ export default function LogUI({
     window.localStorage.getItem('worktreePrefix')?.trim() !== ''
       ? window.localStorage.getItem('worktreePrefix')
       : '{repo}__wt__{branch}';
+
+  const worktreeBranchNameSet = useMemo(
+    () => new Set(worktreeBranchNames),
+    [worktreeBranchNames],
+  );
 
   useEffect(() => {
     const timers: NodeJS.Timeout[] = [];
@@ -744,6 +753,18 @@ export default function LogUI({
         {
           type: 'divider',
         },
+        ...(isLocal &&
+        worktreeBranchNameSet.has(branchName) &&
+        onRebaseWorktree
+          ? [
+              {
+                key: 'rebase-worktree',
+                label: `Rebase ${branchName}…`,
+                icon: <BranchesOutlined />,
+              } as const,
+              { type: 'divider' as const },
+            ]
+          : []),
         {
           key: 'copy-branch-name',
           label: 'Copy branch name',
@@ -779,6 +800,9 @@ export default function LogUI({
                       placement: 'bottomLeft',
                       duration: 1.5,
                     });
+                  }
+                  if (key === 'rebase-worktree') {
+                    onRebaseWorktree?.(branchName);
                   }
                 },
               }}
