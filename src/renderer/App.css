@@ -3031,6 +3031,11 @@ html[data-color-scheme='dark'] .working-tree-node {
   background: #dbeafe;
 }
 
+html[data-color-scheme='dark'] .working-tree-count {
+  color: #ffffff;
+  background: var(--ant-color-primary, #2563eb);
+}
+
 .working-tree-row.selected .working-tree-count {
   color: #fff;
   background: rgba(255, 255, 255, 0.24);
