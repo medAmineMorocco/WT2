@@ -268,8 +268,8 @@
 }
 
 .add-remote-submit-btn {
-  background-color: #238636 !important;
-  border-color: #238636 !important;
+  background-color: var(--ant-color-primary, #1677ff) !important;
+  border-color: var(--ant-color-primary, #1677ff) !important;
   color: #ffffff !important;
   font-weight: 600;
   height: 38px;
@@ -279,8 +279,8 @@
 
 .add-remote-submit-btn:hover,
 .add-remote-submit-btn:focus {
-  background-color: #2ea043 !important;
-  border-color: #2ea043 !important;
+  background-color: var(--ant-color-primary-hover, #4096ff) !important;
+  border-color: var(--ant-color-primary-hover, #4096ff) !important;
 }
 
 /* Dark theme accents */
