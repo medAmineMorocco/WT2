@@ -1313,7 +1313,7 @@ export default function ListWorktrees({
             </Modal>
             <div className="worktrees-list-scrollable">
               <ul
-                style={{ margin: '0', paddingLeft: '8px', paddingRight: '2px' }}
+                style={{ margin: '0', paddingLeft: '2px', paddingRight: '2px' }}
               >
                 {worktrees.map((worktree: any) => {
                   const worktreeName = worktree.name || worktree.resolvedName;
@@ -1383,14 +1383,6 @@ export default function ListWorktrees({
                               style={{ color: token.colorError }}
                             />
                           </Tooltip>
-                        ) : canCheckMerge ? (
-                          <WorktreeMergeCheck
-                            repositoryPath={tabRepoPath}
-                            worktreePath={worktree.path}
-                            worktreeName={worktreeName}
-                            branches={mergeTargetBranches}
-                            defaultBranch={mergeDefaultBranch}
-                          />
                         ) : (
                           <Tree02Icon size={18} />
                         )}
@@ -1443,31 +1435,50 @@ export default function ListWorktrees({
                           </span>
                         )}
                       </Space>
-                      <Dropdown
-                        menu={{
-                          items: getWorktreeMenuItems(worktree),
-                          onClick: handleWorktreeMenuClick(worktree),
+                      <div
+                        className="worktree-item-actions"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 3,
+                          flexShrink: 0,
                         }}
-                        trigger={['click']}
-                        placement="bottomRight"
                       >
-                        <span
-                          className="worktree-actions-trigger"
-                          onClick={(event) => event.stopPropagation()}
-                          onKeyDown={(event) => event.stopPropagation()}
+                        {canCheckMerge && (
+                          <WorktreeMergeCheck
+                            repositoryPath={tabRepoPath}
+                            worktreePath={worktree.path}
+                            worktreeName={worktreeName}
+                            branches={mergeTargetBranches}
+                            defaultBranch={mergeDefaultBranch}
+                          />
+                        )}
+                        <Dropdown
+                          menu={{
+                            items: getWorktreeMenuItems(worktree),
+                            onClick: handleWorktreeMenuClick(worktree),
+                          }}
+                          trigger={['click']}
+                          placement="bottomRight"
                         >
-                          <Tooltip
-                            title="Actions"
-                            placement="right"
-                            mouseEnterDelay={0}
-                            mouseLeaveDelay={0}
+                          <span
+                            className="worktree-actions-trigger"
+                            onClick={(event) => event.stopPropagation()}
+                            onKeyDown={(event) => event.stopPropagation()}
                           >
-                            <MoreOutlined
-                              style={{ cursor: 'pointer', padding: '2px 4px' }}
-                            />
-                          </Tooltip>
-                        </span>
-                      </Dropdown>
+                            <Tooltip
+                              title="Actions"
+                              placement="right"
+                              mouseEnterDelay={0}
+                              mouseLeaveDelay={0}
+                            >
+                              <MoreOutlined
+                                style={{ cursor: 'pointer', padding: '2px 4px' }}
+                              />
+                            </Tooltip>
+                          </span>
+                        </Dropdown>
+                      </div>
                     </li>
                   );
                 })}

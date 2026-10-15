@@ -5,7 +5,7 @@ import {
 } from '@ant-design/icons';
 import { Popover, Select, Tooltip, theme } from 'antd';
 import { useEffect, useState } from 'react';
-import { Tree02Icon } from 'hugeicons-react';
+import { GitMergeIcon } from 'hugeicons-react';
 import type { MergeProbabilityResult } from '../../../shared/mergeProbability';
 
 type WorktreeMergeCheckProps = {
@@ -110,31 +110,32 @@ export default function WorktreeMergeCheck({
     };
   }, [defaultBranch, repositoryPath, targetBranch, worktreeName, worktreePath]);
 
-  // If default worktree or target is self, render default uncolored tree icon
+  // If default worktree or target is self, do not show merge check
   if (worktreeName === defaultBranch || targetBranch === worktreeName) {
-    return <Tree02Icon size={18} />;
+    return null;
   }
 
   if (loading) {
     return (
       <Tooltip
         title={`Checking merge status into ${targetBranch}...`}
-        placement="right"
+        placement="top"
+        mouseEnterDelay={0.2}
       >
         <span
-          className="worktree-tree-icon-wrapper loading"
+          className="worktree-merge-action-btn loading"
           onClick={(e) => e.stopPropagation()}
           aria-label={`Checking merge status for ${worktreeName}`}
         >
-          <Tree02Icon size={18} />
+          <GitMergeIcon size={13} />
         </span>
       </Tooltip>
     );
   }
 
-  // If analysis is unavailable or errored, render default tree icon
+  // If analysis is unavailable or errored, render nothing
   if (!result || !result.ok) {
-    return <Tree02Icon size={18} />;
+    return null;
   }
 
   const isClean = result.conflictFree;
@@ -242,34 +243,33 @@ export default function WorktreeMergeCheck({
     <Popover
       content={popoverContent}
       trigger="click"
-      placement="right"
+      placement="bottomRight"
       destroyTooltipOnHide
     >
       <Tooltip
         title={
           isClean
-            ? `Clean merge into ${targetBranch} (click to configure)`
-            : `Conflicts detected against ${targetBranch} (click for details)`
+            ? `Clean merge into ${targetBranch} (click to inspect)`
+            : `${conflictedFiles.length > 0 ? `${conflictedFiles.length} conflicted file${conflictedFiles.length > 1 ? 's' : ''}` : 'Conflicts detected'} with ${targetBranch} (click for details)`
         }
-        placement="right"
+        placement="top"
         mouseEnterDelay={0.2}
       >
         <span
-          className={`worktree-tree-icon-wrapper ${isClean ? 'clean' : 'conflict'}`}
+          className={`worktree-merge-action-btn ${isClean ? 'clean' : 'conflict'}`}
           onClick={(e) => e.stopPropagation()}
           onKeyDown={(e) => e.stopPropagation()}
           data-testid={`merge-check-${worktreeName}`}
           role="button"
           tabIndex={0}
           aria-label={`${worktreeName}: ${isClean ? 'Clean' : 'Conflicts'} with ${targetBranch}`}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            cursor: 'pointer',
-            color: iconColor,
-          }}
         >
-          <Tree02Icon size={18} color={iconColor} style={{ color: iconColor }} />
+          <GitMergeIcon size={13} />
+          {!isClean && (
+            <span className="worktree-merge-conflict-count">
+              {conflictedFiles.length > 0 ? conflictedFiles.length : '!'}
+            </span>
+          )}
         </span>
       </Tooltip>
     </Popover>
