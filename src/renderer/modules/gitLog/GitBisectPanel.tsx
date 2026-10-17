@@ -251,26 +251,31 @@ export default function GitBisectPanel({
               <span className="git-bisect-step-number">2</span>
               <div className="git-bisect-step-content">
                 <Typography.Text strong>Choose verification</Typography.Text>
-                <Radio.Group
-                  optionType="button"
-                  buttonStyle="solid"
-                  value={verification}
-                  onChange={(event) => setVerification(event.target.value)}
-                  options={[
-                    { label: 'Manual', value: 'manual' },
-                    { label: 'Run command', value: 'command' },
-                  ]}
-                />
-                {verification === 'command' && (
-                  <Input
-                    className="git-bisect-command"
-                    value={command}
-                    onChange={(event) => setCommand(event.target.value)}
-                    placeholder="npm test -- --runInBand"
-                    prefix={<PlayCircleOutlined />}
-                    onPressEnter={() => canStart && start()}
+                <Typography.Text type="secondary">
+                  Check each commit manually or run a test command.
+                </Typography.Text>
+                <div className="git-bisect-verification-controls">
+                  <Radio.Group
+                    optionType="button"
+                    buttonStyle="solid"
+                    value={verification}
+                    onChange={(event) => setVerification(event.target.value)}
+                    options={[
+                      { label: 'Manual', value: 'manual' },
+                      { label: 'Run command', value: 'command' },
+                    ]}
                   />
-                )}
+                  {verification === 'command' && (
+                    <Input
+                      className="git-bisect-command"
+                      value={command}
+                      onChange={(event) => setCommand(event.target.value)}
+                      placeholder="npm test -- --runInBand"
+                      prefix={<PlayCircleOutlined />}
+                      onPressEnter={() => canStart && start()}
+                    />
+                  )}
+                </div>
               </div>
             </div>
             <div className="git-bisect-step git-bisect-start-area">
@@ -330,25 +335,32 @@ export default function GitBisectPanel({
             message="First bad commit found"
             description={
               <div className="git-bisect-culprit">
+                <Typography.Text type="secondary">
+                  Bisect identified the commit that introduced the issue.
+                </Typography.Text>
                 <Typography.Text code>{state.culpritCommit}</Typography.Text>
+              </div>
+            }
+            action={
+              <div className="git-bisect-result-actions">
                 <Button
-                  size="small"
                   icon={<CopyOutlined />}
                   aria-label="Copy first bad commit hash"
                   onClick={copyCulpritCommit}
                 >
                   Copy commit
                 </Button>
+                <Button
+                  type="primary"
+                  icon={<StopOutlined />}
+                  loading={loading !== null}
+                  onClick={abort}
+                >
+                  Finish & restore worktree
+                </Button>
               </div>
             }
           />
-          <Button
-            icon={<StopOutlined />}
-            loading={loading !== null}
-            onClick={abort}
-          >
-            Finish & restore worktree
-          </Button>
         </div>
       ) : (
         <div className="git-bisect-active-actions">

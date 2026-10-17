@@ -2181,13 +2181,13 @@ html[data-color-scheme='dark']
 .git-bisect-panel {
   flex: 0 0 auto;
   display: grid;
-  gap: 10px;
+  gap: 14px;
   margin: 0 0 10px;
-  padding: 11px 14px 12px;
-  border: 1px solid var(--ant-color-border-secondary, #e5e7eb);
-  border-radius: 10px;
-  background: var(--ant-color-bg-container, #fff);
-  box-shadow: 0 3px 12px rgba(15, 23, 42, 0.05);
+  padding: 16px;
+  border: 1px solid #dce5f2;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f8fbff, #ffffff 90px);
+  box-shadow: 0 3px 10px rgba(30, 64, 120, 0.05);
 }
 
 .git-bisect-heading,
@@ -2202,6 +2202,15 @@ html[data-color-scheme='dark']
 
 .git-bisect-heading > .ant-typography {
   flex: 1;
+}
+
+.git-bisect-heading {
+  padding-bottom: 12px;
+  border-bottom: 1px solid #e5ebf4;
+}
+
+.git-bisect-heading > .ant-typography-secondary {
+  font-size: 12px;
 }
 
 .git-bisect-setup {
@@ -2258,8 +2267,8 @@ html[data-color-scheme='dark']
       210px,
       0.72fr
     );
-  align-items: start;
-  gap: 8px;
+  align-items: stretch;
+  gap: 12px;
 }
 
 .git-bisect-step {
@@ -2267,14 +2276,10 @@ html[data-color-scheme='dark']
   align-items: flex-start;
   gap: 10px;
   min-width: 0;
-  padding: 10px 12px;
+  padding: 14px;
   border: 1px solid var(--ant-color-border-secondary, #e5e7eb);
-  border-radius: 9px;
-  background: color-mix(
-    in srgb,
-    var(--ant-color-bg-layout, #f5f5f5) 62%,
-    var(--ant-color-bg-container, #fff) 38%
-  );
+  border-radius: 11px;
+  background: #ffffff;
 }
 
 .git-bisect-step-number {
@@ -2283,9 +2288,10 @@ html[data-color-scheme='dark']
   flex: 0 0 24px;
   width: 24px;
   height: 24px;
-  border-radius: 7px;
-  color: #fff;
-  background: var(--ant-color-primary, #1677ff);
+  border-radius: 50%;
+  color: #2563eb;
+  background: #eaf2ff;
+  border: 1px solid #cddfff;
   font-size: 12px;
   font-weight: 700;
 }
@@ -2295,7 +2301,7 @@ html[data-color-scheme='dark']
   flex: 1;
   flex-direction: column;
   align-items: flex-start;
-  gap: 7px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -2318,6 +2324,30 @@ html[data-color-scheme='dark']
   width: 100%;
 }
 
+.git-bisect-step-content > .ant-typography-secondary {
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.git-bisect-start-area .git-bisect-step-content {
+  align-self: stretch;
+}
+
+.git-bisect-start-area .git-bisect-start-button-wrap {
+  margin-top: auto;
+}
+
+.git-bisect-panel .ant-btn,
+.git-bisect-panel .ant-input-affix-wrapper {
+  border-radius: 8px;
+}
+
+.git-bisect-step .ant-radio-button-wrapper {
+  font-size: 12px;
+  height: 32px;
+  line-height: 30px;
+}
+
 .git-bisect-boundaries {
   row-gap: 6px !important;
 }
@@ -2326,7 +2356,7 @@ html[data-color-scheme='dark']
   display: inline-flex !important;
   align-items: center;
   gap: 6px;
-  min-height: 28px;
+  min-height: 30px;
   margin-inline-end: 0 !important;
   padding-inline: 9px !important;
   border-radius: 7px !important;
@@ -2358,6 +2388,23 @@ html[data-color-scheme='dark']
   flex: none;
 }
 
+.git-bisect-verification-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  gap: 8px;
+}
+
+.git-bisect-verification-controls > .ant-radio-group {
+  flex: 0 0 auto;
+}
+
+.git-bisect-setup .git-bisect-verification-controls > .git-bisect-command {
+  width: auto;
+  flex: 1 1 180px;
+}
+
 .git-bisect-active-actions .git-bisect-command {
   min-width: 260px;
   flex: 1 1 320px;
@@ -2373,6 +2420,10 @@ html[data-color-scheme='dark']
 }
 
 .git-bisect-culprit-alert {
+  width: 100%;
+  padding: 18px !important;
+  border-radius: 12px !important;
+  border-inline-start: 3px solid #ef4444 !important;
   border-color: color-mix(
     in srgb,
     var(--ant-color-error, #ff4d4f) 32%,
@@ -2380,17 +2431,55 @@ html[data-color-scheme='dark']
   ) !important;
   background: color-mix(
     in srgb,
-    var(--ant-color-error, #ff4d4f) 8%,
+    var(--ant-color-error, #ff4d4f) 3%,
     var(--ant-color-bg-container, #fff)
   ) !important;
 }
 
 .git-bisect-culprit {
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.git-bisect-culprit-alert .ant-alert-message {
+  font-weight: 600;
+}
+
+.git-bisect-result-actions {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-top: 4px;
+  gap: 8px;
+}
+
+.git-bisect-culprit-alert .ant-alert-action {
+  align-self: center;
+}
+
+.git-bisect-culprit > .ant-typography-secondary {
+  font-size: 12px;
+}
+
+.git-bisect-culprit code {
+  display: inline-block;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+@media (max-width: 1000px) {
+  .git-bisect-culprit-alert {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .git-bisect-culprit-alert .ant-alert-action {
+    flex-basis: 100%;
+    margin-inline-start: 0;
+  }
 }
 
 .git-bisect-culprit .ant-typography {
@@ -2426,9 +2515,19 @@ html[data-color-scheme='dark'] .git-bisect-culprit-alert {
 }
 
 html[data-color-scheme='dark'] .git-bisect-panel {
-  border-color: rgba(255, 255, 255, 0.12);
-  background: #15171b;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  border-color: #344257;
+  background: linear-gradient(180deg, #1a2638, #141b26 90px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
+}
+
+html[data-color-scheme='dark'] .git-bisect-heading {
+  border-bottom-color: #303d50;
+}
+
+html[data-color-scheme='dark'] .git-bisect-step-number {
+  color: #bfdbfe;
+  background: #213857;
+  border-color: #3a5578;
 }
 
 html[data-color-scheme='dark'] .git-bisect-title {
@@ -2437,7 +2536,7 @@ html[data-color-scheme='dark'] .git-bisect-title {
 
 html[data-color-scheme='dark'] .git-bisect-step {
   border-color: rgba(255, 255, 255, 0.13);
-  background: #1b1e24;
+  background: #1a2330;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
 }
 
