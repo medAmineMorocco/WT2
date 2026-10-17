@@ -188,7 +188,6 @@ body {
   cursor: default;
 }
 
-
 .worktree-item-actions {
   display: inline-flex;
   align-items: center;
@@ -226,20 +225,44 @@ body {
 .worktree-merge-action-btn.clean:hover {
   opacity: 1 !important;
   color: var(--ant-color-success, #52c41a);
-  background: color-mix(in srgb, var(--ant-color-success, #52c41a) 12%, transparent);
-  border-color: color-mix(in srgb, var(--ant-color-success, #52c41a) 25%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-success, #52c41a) 12%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-success, #52c41a) 25%,
+    transparent
+  );
 }
 
 .worktree-merge-action-btn.conflict {
   color: var(--ant-color-error, #ff4d4f);
-  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 10%, transparent);
-  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 28%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 10%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 28%,
+    transparent
+  );
   padding: 0 5px;
 }
 
 .worktree-merge-action-btn.conflict:hover {
-  background: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 18%, transparent);
-  border-color: color-mix(in srgb, var(--ant-color-error, #ff4d4f) 45%, transparent);
+  background: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 18%,
+    transparent
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--ant-color-error, #ff4d4f) 45%,
+    transparent
+  );
   transform: translateY(-0.5px);
 }
 
@@ -817,8 +840,7 @@ html[data-color-scheme='dark'] .clone-repository-list {
   scrollbar-color: #586273 #11151b;
 }
 
-html[data-color-scheme='dark']
-  .clone-repository-option.ant-list-item {
+html[data-color-scheme='dark'] .clone-repository-option.ant-list-item {
   border-color: transparent;
   color: #f1f5f9;
   background: transparent;
@@ -836,16 +858,14 @@ html[data-color-scheme='dark']
   color: #aeb9c8;
 }
 
-html[data-color-scheme='dark']
-  .clone-repository-option.ant-list-item:hover,
+html[data-color-scheme='dark'] .clone-repository-option.ant-list-item:hover,
 html[data-color-scheme='dark']
   .clone-repository-option.ant-list-item:focus-visible {
   border-color: #3b82f6;
   background: #1c2a3d;
 }
 
-html[data-color-scheme='dark']
-  .clone-repository-option.ant-list-item.selected {
+html[data-color-scheme='dark'] .clone-repository-option.ant-list-item.selected {
   border-color: #60a5fa;
   background: #183153;
   box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.18);
@@ -1809,7 +1829,7 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   position: sticky;
   top: 0;
   z-index: 4;
-  padding: 0 0 8px;
+  padding: 5px 0;
   border-bottom: 1px solid color-mix(in srgb, currentColor 12%, transparent);
   background: var(
     --ant-color-bg-base,
@@ -1824,7 +1844,7 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 1px 0;
+  padding: 5px 12px;
   scrollbar-width: thin;
 }
 
@@ -1832,7 +1852,13 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 0;
+  flex: 0 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .git-log-toolbar::-webkit-scrollbar {
@@ -1861,15 +1887,16 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
 
 .git-log-action-btn {
   display: inline-flex !important;
+  flex-direction: row;
   align-items: center !important;
   justify-content: center !important;
   width: auto !important;
   height: 34px !important;
-  padding: 0 9px !important;
-  min-width: 58px !important;
+  padding: 0 11px !important;
+  min-width: 64px !important;
   line-height: 1 !important;
   gap: 6px !important;
-  border-radius: 7px !important;
+  border-radius: 5px !important;
   border: 0 !important;
   background: transparent !important;
   color: var(--ant-color-text, inherit) !important;
@@ -1880,7 +1907,7 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
 }
 
 .git-log-action-btn .git-log-action-btn-label {
-  color: var(--ant-color-text-secondary, #64748b);
+  color: #475569;
   font-size: 11px;
   font-weight: 600;
   line-height: 1;
@@ -1908,22 +1935,34 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   align-items: center;
   gap: 2px;
   flex: 0 0 auto;
-  padding: 3px;
-  border: 1px solid color-mix(in srgb, currentColor 11%, transparent);
-  border-radius: 9px;
-  background: color-mix(
-    in srgb,
-    var(--ant-color-bg-container, #fff) 96%,
-    currentColor 4%
-  );
+  padding: 0 5px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.git-log-action-group-feature {
-  margin-left: 3px;
+.git-log-action-group + .git-log-action-group {
+  border-left: 1px solid #dce4f0;
+}
+
+.git-log-action-group-feature .git-log-action-btn-icon,
+.git-log-action-group-feature .git-log-action-btn-label {
+  color: #475569;
+}
+
+.git-log-action-btn:focus-visible {
+  outline: 2px solid var(--ant-color-primary, #1677ff);
+  outline-offset: 2px;
+}
+
+.git-log-action-btn:not(:disabled):not(.ant-btn-disabled):active {
+  transform: translateY(1px);
 }
 
 /* Hover state */
 .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover {
+  box-shadow: none;
   background: color-mix(
     in srgb,
     var(--ant-color-primary, #1677ff) 8%,
@@ -1974,10 +2013,26 @@ html[data-color-scheme='dark'] .ant-breadcrumb-separator {
   color: rgba(255, 255, 255, 0.72);
 }
 
-html[data-color-scheme='dark'] .git-log-action-group {
-  border-color: #3a424f;
-  background: #1d232c;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+html[data-color-scheme='dark'] .git-log-toolbar-actions {
+  background: transparent;
+  box-shadow: none;
+}
+
+html[data-color-scheme='dark'] .git-log-action-group-feature {
+  background: transparent;
+}
+
+html[data-color-scheme='dark'] .git-log-action-group + .git-log-action-group {
+  border-left-color: #36465d;
+}
+
+html[data-color-scheme='dark']
+  .git-log-action-group-feature
+  .git-log-action-btn-icon,
+html[data-color-scheme='dark']
+  .git-log-action-group-feature
+  .git-log-action-btn-label {
+  color: #cbd5e1;
 }
 
 html[data-color-scheme='dark'] .git-log-controls {
@@ -2009,6 +2064,108 @@ html[data-color-scheme='dark'] .git-log-action-btn.ant-btn-disabled {
   .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover
   .git-log-action-btn-icon {
   color: var(--ant-color-primary-hover, #4096ff) !important;
+}
+
+/* Distinct command buttons with a blue feature accent. */
+.git-log-toolbar-actions {
+  gap: 8px;
+}
+
+.git-log-action-group {
+  gap: 7px;
+  padding: 0;
+}
+
+.git-log-action-group + .git-log-action-group {
+  padding-left: 10px;
+}
+
+.git-log-toolbar .git-log-action-btn {
+  height: 40px !important;
+  padding: 0 14px !important;
+  gap: 8px !important;
+  border: 1px solid #d8e2f0 !important;
+  border-radius: 11px !important;
+  background: linear-gradient(180deg, #ffffff, #f0f5fc) !important;
+  box-shadow:
+    0 2px 3px rgba(30, 64, 120, 0.06),
+    inset 0 1px 0 #ffffff;
+}
+
+.git-log-toolbar .git-log-action-btn-label {
+  font-size: 12px;
+  color: #334155;
+}
+
+.git-log-toolbar .git-log-action-btn-icon .anticon {
+  font-size: 17px;
+}
+
+.git-log-toolbar .git-log-action-group-feature .git-log-action-btn {
+  border-color: #93baff !important;
+  background: linear-gradient(135deg, #e3efff, #f1edff) !important;
+}
+
+.git-log-toolbar .git-log-action-group-feature .git-log-action-btn-label,
+.git-log-toolbar .git-log-action-group-feature .git-log-action-btn-icon {
+  color: #2456b9;
+}
+
+.git-log-toolbar
+  .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover {
+  background: #e7f0ff !important;
+  border-color: #80afff !important;
+  box-shadow: 0 3px 9px rgba(22, 119, 255, 0.15);
+}
+
+html[data-color-scheme='dark'] .git-log-toolbar .git-log-action-btn {
+  border-color: #3b4b63 !important;
+  background: linear-gradient(180deg, #26344a, #1c283b) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+html[data-color-scheme='dark'] .git-log-toolbar .git-log-action-btn-label {
+  color: #e2e8f0;
+}
+
+html[data-color-scheme='dark']
+  .git-log-toolbar
+  .git-log-action-group-feature
+  .git-log-action-btn {
+  border-color: #587dc0 !important;
+  background: linear-gradient(135deg, #213e65, #363058) !important;
+}
+
+html[data-color-scheme='dark']
+  .git-log-toolbar
+  .git-log-action-group-feature
+  .git-log-action-btn-label,
+html[data-color-scheme='dark']
+  .git-log-toolbar
+  .git-log-action-group-feature
+  .git-log-action-btn-icon {
+  color: #bfdbfe;
+}
+
+html[data-color-scheme='dark']
+  .git-log-toolbar
+  .git-log-action-btn:not(:disabled):not(.ant-btn-disabled):hover {
+  background: #284367 !important;
+}
+
+.git-log-toolbar .git-log-action-btn.git-log-action-btn-active,
+.git-log-toolbar .git-log-action-btn.ant-btn-primary {
+  background: #1677ff !important;
+  border-color: #1677ff !important;
+}
+
+.git-log-toolbar
+  .git-log-action-btn.git-log-action-btn-active
+  .git-log-action-btn-label,
+.git-log-toolbar
+  .git-log-action-btn.git-log-action-btn-active
+  .git-log-action-btn-icon {
+  color: #ffffff !important;
 }
 
 @media (max-width: 1120px) {

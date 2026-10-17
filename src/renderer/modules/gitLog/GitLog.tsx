@@ -1032,7 +1032,7 @@ export default function GitLog({ isModal }: { isModal: boolean }) {
         <div className="git-log-controls">
           <div className="git-log-toolbar">
             <div className="git-log-toolbar-actions">
-              <div className="git-log-action-group git-log-action-group-feature">
+              <div className="git-log-action-group">
                 <GitLogActionButton
                   label="Bisect"
                   icon={<ExperimentOutlined />}
