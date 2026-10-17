@@ -1003,19 +1003,7 @@ export default function AddWorktree({
   return (
     <Modal
       open={isModalOpen}
-      title={
-        <div className="create-worktree-modal-title">
-          <span className="create-worktree-modal-title-icon">
-            <BranchesOutlined />
-          </span>
-          <span>
-            <Typography.Title level={4}>Create a worktree</Typography.Title>
-            <Typography.Text type="secondary">
-              Start isolated work without leaving your current branch.
-            </Typography.Text>
-          </span>
-        </div>
-      }
+      aria-label="Create a worktree"
       footer={null}
       onCancel={handleCancel}
       destroyOnClose
@@ -1024,13 +1012,20 @@ export default function AddWorktree({
       className="create-worktree-modal"
       styles={{
         body: {
+          paddingTop: 0,
           display: 'flex',
           flexDirection: 'column',
-          maxHeight: 'calc(100vh - 150px)',
+          height: 'calc(100dvh - 100px)',
           overflow: 'hidden',
         },
       }}
     >
+      <Typography.Title
+        level={4}
+        style={{ margin: '0 38px 12px 0', fontSize: 18, flexShrink: 0 }}
+      >
+        Create a worktree
+      </Typography.Title>
       <Segmented
         className="create-worktree-source-tabs"
         defaultValue={createWorktreeMode}
@@ -1074,15 +1069,11 @@ export default function AddWorktree({
             paddingRight: 4,
           }}
         >
-          <div className="create-worktree-section-heading">
-            <span>Source</span>
-            <small>Choose the Git reference and worktree name.</small>
-          </div>
           {createWorktreeMode === 'new-branch' && (
             <Form.Item
               label="Name"
               name="name"
-              extra="Always created from HEAD of the main worktree"
+              tooltip="Created from HEAD of the main worktree"
               rules={[
                 {
                   required: true,
@@ -1180,10 +1171,6 @@ export default function AddWorktree({
               />
             </Form.Item>
           )}
-          <div className="create-worktree-section-heading">
-            <span>Automation hooks</span>
-            <small>Optional commands run before and after creation.</small>
-          </div>
           <div className="create-worktree-hook-grid">
             <Form.Item
               label="Pre-hook"
@@ -1220,19 +1207,17 @@ export default function AddWorktree({
           </div>
           <div className="create-worktree-section-heading">
             <span>Location</span>
-            <small>Review where the new worktree will be stored.</small>
           </div>
           <Form.Item
             style={{ marginBottom: 10 }}
             extra={
               <small>
-                {`The folder name will be based on your current naming pattern: ${storedWorktreePrefix}.`}
                 <Button
                   type="link"
                   onClick={openSettingsPage}
                   style={{ paddingLeft: 0 }}
                 >
-                  <small>Want to change it ?</small>
+                  <small>Change naming pattern</small>
                 </Button>
               </small>
             }
@@ -1274,10 +1259,6 @@ export default function AddWorktree({
                 </span>
                 <span>
                   <Typography.Text strong>Repository checkout</Typography.Text>
-                  <Typography.Text type="secondary">
-                    Control which project folders are available in this
-                    worktree.
-                  </Typography.Text>
                 </span>
               </div>
               <span className="sparse-checkout-optional">Optional</span>
@@ -1297,7 +1278,6 @@ export default function AddWorktree({
                       <DatabaseOutlined />
                       <span>
                         <strong>Full repository</strong>
-                        <small>Checkout every file and folder</small>
                       </span>
                     </span>
                   ),
@@ -1309,7 +1289,6 @@ export default function AddWorktree({
                       <FolderOpenOutlined />
                       <span>
                         <strong>Selected folders</strong>
-                        <small>Keep the worktree lightweight</small>
                       </span>
                     </span>
                   ),
@@ -1397,7 +1376,6 @@ export default function AddWorktree({
           </section>
           <div className="create-worktree-section-heading">
             <span>Workspace setup</span>
-            <small>Optional optimizations and environment isolation.</small>
           </div>
           <div className="create-worktree-setup-options">
             {nodeModulesWorktrees.length > 0 && (
@@ -1444,7 +1422,7 @@ export default function AddWorktree({
                   checked={sharePythonVenv}
                   onChange={(event) => setSharePythonVenv(event.target.checked)}
                 >
-                  Share Python .venv
+                  Share .venv
                 </Checkbox>
                 {sharePythonVenv && (
                   <div style={{ marginTop: 6, paddingLeft: 24 }}>

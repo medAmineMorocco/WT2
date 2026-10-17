@@ -4914,7 +4914,8 @@ html[data-color-scheme='dark'] .worktree-agent-status .ant-avatar {
 }
 
 .create-worktree-source-tabs {
-  margin-top: 16px;
+  margin-top: 0;
+  margin-inline-end: 38px;
   padding: 4px;
   border-radius: 10px;
 }
@@ -4924,16 +4925,65 @@ html[data-color-scheme='dark'] .worktree-agent-status .ant-avatar {
 }
 
 .create-worktree-scrollable-content {
-  max-height: calc(100vh - 330px);
-  padding: 0 6px 12px 0;
-  scrollbar-gutter: stable;
+  padding: 0;
+}
+
+.create-worktree-modal .ant-form-item-label {
+  padding-bottom: 4px;
+}
+
+.create-worktree-modal .sparse-checkout-section {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.create-worktree-modal .sparse-checkout-heading-icon {
+  width: 26px;
+  height: 26px;
+  flex-basis: 26px;
+}
+
+.create-worktree-modal .sparse-checkout-heading {
+  align-items: center;
+}
+
+.create-worktree-modal .sparse-checkout-title-group {
+  flex: 1;
+  min-width: 0;
+}
+
+.create-worktree-modal .sparse-checkout-title-group > span:last-child {
+  flex-direction: row;
+  white-space: nowrap;
+}
+
+.create-worktree-modal .sparse-checkout-options {
+  margin-top: 8px;
+}
+
+.create-worktree-modal .sparse-checkout-options .ant-segmented-item-label {
+  padding: 4px 10px;
+}
+
+.create-worktree-modal .sparse-checkout-tree-wrap {
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.create-worktree-modal .sparse-checkout-tree-wrap .ant-tree {
+  max-height: none;
+  overflow: visible;
+}
+
+.create-worktree-source-tabs {
+  flex-shrink: 0;
 }
 
 .create-worktree-section-heading {
   display: flex;
   align-items: baseline;
   gap: 10px;
-  margin: 16px 0 10px;
+  margin: 8px 0 6px;
 }
 
 .create-worktree-section-heading:first-child {
@@ -5001,7 +5051,7 @@ html[data-color-scheme='dark'] .worktree-agent-status .ant-avatar {
 .create-worktree-setup-option {
   min-height: 48px;
   margin-bottom: 0 !important;
-  padding: 12px 14px;
+  padding: 8px 12px;
   border: 1px solid #e5e7eb;
   border-radius: 9px;
   background: rgba(248, 250, 252, 0.78);
